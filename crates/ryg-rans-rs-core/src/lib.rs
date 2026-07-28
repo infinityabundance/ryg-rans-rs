@@ -44,8 +44,7 @@
 //!   error occurs, the state is left in a consistent but partially-advanced
 //!   position.
 //! - **Decoding**: All decode operations return `Result<(), DecodeError>`.
-//!   `InputTooShort` indicates a truncated compressed stream. `InvalidState`
-//!   indicates the decoder state fell outside the valid normalization interval.
+//!   `InputTooShort` indicates a truncated compressed stream.
 //!
 //! ## I/O Abstraction
 //!
@@ -82,18 +81,58 @@ impl fmt::Display for EncodeError {
 pub enum DecodeError {
     /// The input is too short for the requested operation (truncated stream).
     InputTooShort,
-    /// The decoded state is not in the valid range after renormalization.
-    InvalidState,
 }
 
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DecodeError::InputTooShort => write!(f, "truncated input stream"),
-            DecodeError::InvalidState => write!(f, "invalid decoder state"),
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Symbol construction error types
+// ---------------------------------------------------------------------------
+
+/// Errors that can occur during symbol construction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModelError {
+    /// The input sequence was empty.
+    EmptyInput,
+    /// Total frequency is zero.
+    ZeroTotal,
+    /// `scale_bits` is outside the valid range.
+    InvalidScaleBits,
+    /// Symbol frequency is zero.
+    ZeroFrequency,
+    /// Frequency exceeds the allowed range for the given scale_bits/start.
+    FrequencyOutOfRange,
+    /// Start value exceeds the allowed range.
+    StartOutOfRange,
+    /// The provided total does not match the accumulated total.
+    TotalMismatch,
+    /// The workspace buffer is too small for the requested operation.
+    WorkspaceTooSmall,
+}
+
+impl fmt::Display for ModelError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ModelError::EmptyInput => write!(f, "empty input sequence"),
+            ModelError::ZeroTotal => write!(f, "total frequency is zero"),
+            ModelError::InvalidScaleBits => write!(f, "scale_bits is out of valid range"),
+            ModelError::ZeroFrequency => write!(f, "symbol frequency is zero"),
+            ModelError::FrequencyOutOfRange => write!(f, "frequency exceeds allowed range"),
+            ModelError::StartOutOfRange => write!(f, "start value exceeds allowed range"),
+            ModelError::TotalMismatch => write!(f, "total frequency mismatch"),
+            ModelError::WorkspaceTooSmall => write!(f, "workspace buffer too small"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ModelError {}
 
 /// Lower bound of the normalization interval.
 ///
@@ -372,6 +411,32 @@ impl RansByteEncSymbol {
             }
         }
     }
+
+    /// Initialize an encoder symbol with validation.
+    ///
+    /// Returns `Err(ModelError::InvalidScaleBits)` if `scale_bits` is not in
+    /// `1..=16`. Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
+    /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << scale_bits)`.
+    /// Returns `Err(ModelError::FrequencyOutOfRange)` if
+    /// `freq > (1 << scale_bits) - start`.
+    #[inline]
+    pub fn try_new(start: u32, freq: u32, scale_bits: u32) -> Result<Self, ModelError> {
+        if !(1..=16).contains(&scale_bits) {
+            return Err(ModelError::InvalidScaleBits);
+        }
+        let max_start = 1u64 << scale_bits;
+        if (start as u64) > max_start {
+            return Err(ModelError::StartOutOfRange);
+        }
+        if freq == 0 {
+            return Err(ModelError::ZeroFrequency);
+        }
+        if (freq as u64) > max_start - (start as u64) {
+            return Err(ModelError::FrequencyOutOfRange);
+        }
+
+        Ok(Self::new(start, freq, scale_bits))
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -401,6 +466,26 @@ impl RansByteDecSymbol {
             start: start as u16,
             freq: freq as u16,
         }
+    }
+
+    /// Initialize a decoder symbol with validation.
+    ///
+    /// Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
+    /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << 16)`.
+    /// Returns `Err(ModelError::FrequencyOutOfRange)` if
+    /// `freq > (1 << 16) - start`.
+    #[inline]
+    pub fn try_new(start: u32, freq: u32) -> Result<Self, ModelError> {
+        if freq == 0 {
+            return Err(ModelError::ZeroFrequency);
+        }
+        if (start as u64) > (1u64 << 16) {
+            return Err(ModelError::StartOutOfRange);
+        }
+        if (freq as u64) > (1u64 << 16) - (start as u64) {
+            return Err(ModelError::FrequencyOutOfRange);
+        }
+        Ok(Self::new(start, freq))
     }
 }
 
@@ -1180,6 +1265,32 @@ impl Rans64EncSymbol {
             }
         }
     }
+
+    /// Initialize a 64-bit encoder symbol with validation.
+    ///
+    /// Returns `Err(ModelError::InvalidScaleBits)` if `scale_bits` is not in
+    /// `1..=31`. Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
+    /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << scale_bits)`.
+    /// Returns `Err(ModelError::FrequencyOutOfRange)` if
+    /// `freq > (1 << scale_bits) - start`.
+    #[inline]
+    pub fn try_new(start: u32, freq: u32, scale_bits: u32) -> Result<Self, ModelError> {
+        if !(1..=31).contains(&scale_bits) {
+            return Err(ModelError::InvalidScaleBits);
+        }
+        let max_start = 1u64 << scale_bits;
+        if (start as u64) > max_start {
+            return Err(ModelError::StartOutOfRange);
+        }
+        if freq == 0 {
+            return Err(ModelError::ZeroFrequency);
+        }
+        if (freq as u64) > max_start - (start as u64) {
+            return Err(ModelError::FrequencyOutOfRange);
+        }
+
+        Ok(Self::new(start, freq, scale_bits))
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1210,6 +1321,26 @@ impl Rans64DecSymbol {
             "freq out of range"
         );
         Self { start, freq }
+    }
+
+    /// Initialize a 64-bit decoder symbol with validation.
+    ///
+    /// Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
+    /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << 31)`.
+    /// Returns `Err(ModelError::FrequencyOutOfRange)` if
+    /// `freq > (1 << 31) - start`.
+    #[inline]
+    pub fn try_new(start: u32, freq: u32) -> Result<Self, ModelError> {
+        if freq == 0 {
+            return Err(ModelError::ZeroFrequency);
+        }
+        if (start as u64) > (1u64 << 31) {
+            return Err(ModelError::StartOutOfRange);
+        }
+        if (freq as u64) > (1u64 << 31) - (start as u64) {
+            return Err(ModelError::FrequencyOutOfRange);
+        }
+        Ok(Self::new(start, freq))
     }
 }
 

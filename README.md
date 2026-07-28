@@ -1,7 +1,7 @@
 # ryg-rans-rs
 
 > **A native Rust forensic reconstruction of Fabian Giesen's public-domain `ryg_rans`**  
-> Verified through bit-exact cross-decoding, state-transition courts, deterministic residual analysis, and matched performance measurements.
+> Built through bit-exact cross-decoding, state-transition courts, deterministic residual analysis, and matched performance measurements. Cross-decoding courts, formal receipts, and performance seals are currently being built.
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-stable)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)

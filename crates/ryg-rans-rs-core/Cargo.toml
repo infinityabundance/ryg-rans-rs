@@ -9,3 +9,4 @@ description = "Deterministic algorithmic core of rANS entropy coding - no_std, n
 [features]
 default = []
 alloc = []
+std = []

@@ -46,6 +46,24 @@ fn main() {
                 all_ok = false;
             }
 
+            // Check docs/drafts/ directory exists
+            if let Err(e) = check_docs_drafts_exists() {
+                eprintln!("FAIL: docs/drafts check: {}", e);
+                all_ok = false;
+            }
+
+            // Print actual test count from cargo test -p ryg-rans-rs-core
+            if let Err(e) = check_test_count() {
+                eprintln!("FAIL: test count check: {}", e);
+                all_ok = false;
+            }
+
+            // Cargo tree check for facade crate (same as core check)
+            if let Err(e) = check_no_ffi_facade() {
+                eprintln!("FAIL: no-ffi facade check: {}", e);
+                all_ok = false;
+            }
+
             if all_ok {
                 println!("All gates passed.");
             } else {
@@ -159,6 +177,79 @@ fn check_no_upstream_source() -> Result<(), String> {
         }
     }
 
+    Ok(())
+}
+
+fn check_test_count() -> Result<(), String> {
+    println!("Checking: cargo test -p ryg-rans-rs-core...");
+    let output = Command::new("cargo")
+        .args(["test", "-p", "ryg-rans-rs-core"])
+        .output()
+        .map_err(|e| format!("cargo test failed: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !output.status.success() {
+        return Err(format!(
+            "cargo test -p ryg-rans-rs-core failed:\nstdout:{}\nstderr:{}",
+            stdout, stderr
+        ));
+    }
+
+    // Extract test count from the summary line: "test result: ok. N passed"
+    let test_count = stdout
+        .lines()
+        .find(|l| l.contains("test result:") && l.contains("passed"))
+        .map(|l| l.to_string())
+        .unwrap_or_else(|| "unknown (summary not found)".to_string());
+
+    println!("  Test count: {}", test_count);
+    Ok(())
+}
+
+fn check_docs_drafts_exists() -> Result<(), String> {
+    let drafts_dir = std::path::Path::new("docs/drafts");
+    if !drafts_dir.exists() {
+        return Err("docs/drafts/ directory not found".into());
+    }
+    if !drafts_dir.is_dir() {
+        return Err("docs/drafts/ is not a directory".into());
+    }
+    println!("  docs/drafts/: exists");
+
+    // Verify expected draft files are present
+    let expected = [
+        "residual-summary.md",
+        "court-matrix.md",
+        "claim-index.md",
+        "port-parity.md",
+        "unsafe-count.md",
+    ];
+    for name in &expected {
+        let path = drafts_dir.join(name);
+        if !path.exists() {
+            return Err(format!("docs/drafts/{} not found", name));
+        }
+    }
+    println!("  docs/drafts/: all expected draft files present");
+    Ok(())
+}
+
+fn check_no_ffi_facade() -> Result<(), String> {
+    println!("Checking: cargo tree -p ryg-rans-rs (no FFI deps)...");
+    let output = Command::new("cargo")
+        .args(["tree", "-p", "ryg-rans-rs", "--edges", "normal"])
+        .output()
+        .map_err(|e| format!("cargo tree failed: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    if stdout.contains("cc ") || stdout.contains("gcc ") || stdout.contains("cmake ") {
+        return Err(format!(
+            "FFI dependency detected in ryg-rans-rs:\n{}",
+            stdout
+        ));
+    }
+    println!("  ryg-rans-rs: no CC/gcc/cmake dependencies");
     Ok(())
 }
 

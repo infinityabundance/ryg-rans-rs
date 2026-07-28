@@ -12,13 +12,13 @@
 //! | Module | Source | Feature | Description |
 //! |--------|--------|---------|-------------|
 //! | [`byte`] | `ryg-rans-rs-core` | always | Complete rANS core: 32-bit byte and 64-bit variants |
-//! | [`simd`] | `ryg-rans-rs-simd` | `simd` (default) | SSE4.1 accelerated decoder kernels |
+//! | [`simd`] | `ryg-rans-rs-simd` | `simd` | SSE4.1 accelerated decoder kernels |
 //! | [`alloc_utils`] | this crate | `alloc` | Convenience encode/decode with `Vec<u8>` |
 //!
 //! ## Features
 //!
-//! - **`simd`** (enabled by default): Enables SSE4.1 accelerated decode kernels.
-//!   Disable with `default-features = false` if SIMD is not desired or available.
+//! - **`simd`**: Enable with the `simd` feature. SSE4.1 accelerated decode kernels.
+//!   Not enabled by default. Requires a CPU with SSE4.1 support.
 //! - **`alloc`**: Adds `alloc_utils` module with heap-allocated convenience APIs.
 //!   Requires an allocator (available on `std` targets and `no_std` targets with
 //!   a global allocator).

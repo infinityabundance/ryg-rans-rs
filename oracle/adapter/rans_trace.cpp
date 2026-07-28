@@ -62,27 +62,37 @@ static void trace_enc_put_state(uint32_t state,
                                 uint32_t freq,
                                 uint32_t scale_bits)
 {
-    uint32_t state_after = ((state / freq) << scale_bits) + (state % freq) + start;
+    // Use a real buffer and call real RansEncPut
+    RansState rans = state;
+    uint8_t buf[16];
+    uint8_t* ptr = buf + sizeof(buf);
+
+    RansEncPut(&rans, &ptr, start, freq, scale_bits);
+    uint32_t emitted = (uint32_t)((buf + sizeof(buf)) - ptr);
+
     printf("{\"op\":\"enc-put-state\""
            ",\"state_before\":%u"
            ",\"start\":%u"
            ",\"freq\":%u"
            ",\"scale_bits\":%u"
+           ",\"emitted\":%u"
            ",\"state_after\":%u"
            "}\n",
-           state, start, freq, scale_bits, state_after);
+           state, start, freq, scale_bits, emitted, rans);
 }
 
 static void trace_enc_renorm(uint32_t state,
                              uint32_t freq,
                              uint32_t scale_bits)
 {
-    uint32_t x        = state;
+    // Use real RansEncRenorm
+    uint8_t buf[16];
+    uint8_t* ptr = buf + sizeof(buf);
+
     uint32_t threshold = ((RANS_BYTE_L >> scale_bits) << 8) * freq;
-    uint32_t emitted  = 0;
-    if (x >= threshold) {
-        do { emitted++; x >>= 8; } while (x >= threshold);
-    }
+    RansState x = RansEncRenorm(state, &ptr, freq, scale_bits);
+    uint32_t emitted = (uint32_t)((buf + sizeof(buf)) - ptr);
+
     printf("{\"op\":\"enc-renorm\""
            ",\"state_before\":%u"
            ",\"threshold\":%u"
@@ -94,10 +104,17 @@ static void trace_enc_renorm(uint32_t state,
 
 static void trace_enc_flush(uint32_t state)
 {
-    uint32_t w0 = (state >> 0) & 0xff;
-    uint32_t w1 = (state >> 8) & 0xff;
-    uint32_t w2 = (state >> 16) & 0xff;
-    uint32_t w3 = (state >> 24) & 0xff;
+    // Use real RansEncFlush
+    uint8_t buf[4];
+    uint8_t* ptr = buf + sizeof(buf);
+    RansState r = state;
+    RansEncFlush(&r, &ptr);
+
+    uint32_t w0 = ptr[0];
+    uint32_t w1 = ptr[1];
+    uint32_t w2 = ptr[2];
+    uint32_t w3 = ptr[3];
+
     printf("{\"op\":\"enc-flush\""
            ",\"state\":%u"
            ",\"word0\":%u"
@@ -110,16 +127,27 @@ static void trace_enc_flush(uint32_t state)
 
 static void trace_dec_init(uint32_t word)
 {
+    // Use real RansDecInit
+    uint8_t buf[4];
+    buf[0] = (uint8_t)(word >> 0);
+    buf[1] = (uint8_t)(word >> 8);
+    buf[2] = (uint8_t)(word >> 16);
+    buf[3] = (uint8_t)(word >> 24);
+    uint8_t* ptr = buf;
+    RansState r;
+    RansDecInit(&r, &ptr);
+
     printf("{\"op\":\"dec-init\""
            ",\"word\":%u"
            ",\"state_after\":%u"
-           "}\n", word, word);
+           "}\n", word, r);
 }
 
 static void trace_dec_get(uint32_t state, uint32_t scale_bits)
 {
     uint32_t mask    = (1u << scale_bits) - 1;
-    uint32_t cum_freq = state & mask;
+    uint32_t cum_freq = RansDecGet(&state, scale_bits);
+
     printf("{\"op\":\"dec-get\""
            ",\"state\":%u"
            ",\"mask\":%u"
@@ -132,14 +160,24 @@ static void trace_dec_advance(uint32_t state,
                               uint32_t freq,
                               uint32_t scale_bits)
 {
-    uint32_t mask           = (1u << scale_bits) - 1;
-    uint32_t x              = state;
-    x                       = freq * (x >> scale_bits) + (x & mask) - start;
-    uint32_t x_before_renorm = x;
-    uint32_t bytes_consumed  = 0;
-    if (x < RANS_BYTE_L) {
-        do { bytes_consumed++; x = (x << 8); } while (x < RANS_BYTE_L);
-    }
+    uint32_t mask = (1u << scale_bits) - 1;
+
+    // Use RansDecAdvanceStep to get the x value before renormalization
+    RansState r_step = state;
+    RansDecAdvanceStep(&r_step, start, freq, scale_bits);
+    uint32_t x_before_renorm = r_step;
+
+    // Use real RansDecAdvance with a buffer large enough for renormalization
+    // The decoder reads bytes from the buffer if the state falls below RANS_BYTE_L.
+    // Fill with 0xff so renormalization terminates quickly.
+    uint8_t buf[16];
+    memset(buf, 0xff, sizeof(buf));
+    uint8_t* ptr = buf;
+    uint8_t* ptr_before = ptr;
+    RansState r = state;
+    RansDecAdvance(&r, &ptr, start, freq, scale_bits);
+    uint32_t bytes_consumed = (uint32_t)(ptr - ptr_before);
+
     printf("{\"op\":\"dec-advance\""
            ",\"state_before\":%u"
            ",\"start\":%u"
@@ -151,28 +189,16 @@ static void trace_dec_advance(uint32_t state,
            ",\"state_after\":%u"
            "}\n",
            state, start, freq, scale_bits,
-           mask, x_before_renorm, bytes_consumed, x);
+           mask, x_before_renorm, bytes_consumed, r);
 }
 
 static void trace_enc_symbol_init(uint32_t start,
                                   uint32_t freq,
                                   uint32_t scale_bits)
 {
-    uint32_t x_max    = ((RANS_BYTE_L >> scale_bits) << 8) * freq;
-    uint32_t cmpl_freq = (1u << scale_bits) - freq;
-    uint32_t rcp_freq, bias, rcp_shift;
-
-    if (freq < 2) {
-        rcp_freq  = ~0u;
-        rcp_shift = 0;
-        bias      = start + (1u << scale_bits) - 1;
-    } else {
-        uint32_t shift = 0;
-        while (freq > (1u << shift)) shift++;
-        rcp_freq  = (uint32_t)(((1ull << (shift + 31)) + freq - 1) / freq);
-        rcp_shift = shift - 1;
-        bias      = start;
-    }
+    // Use real RansEncSymbolInit, then serialize the struct fields
+    RansEncSymbol sym;
+    RansEncSymbolInit(&sym, start, freq, scale_bits);
 
     printf("{\"op\":\"enc-symbol-init\""
            ",\"start\":%u"
@@ -185,7 +211,7 @@ static void trace_enc_symbol_init(uint32_t start,
            ",\"rcp_shift\":%u"
            "}\n",
            start, freq, scale_bits,
-           x_max, rcp_freq, bias, cmpl_freq, rcp_shift);
+           sym.x_max, sym.rcp_freq, sym.bias, sym.cmpl_freq, sym.rcp_shift);
 }
 
 static void trace_enc_put_symbol(uint32_t state,
@@ -195,13 +221,27 @@ static void trace_enc_put_symbol(uint32_t state,
                                  uint32_t bias,
                                  uint32_t cmpl_freq)
 {
-    uint32_t x       = state;
-    uint32_t emitted = 0;
+    // Reconstruct the symbol struct from the serialized fields, then
+    // call real RansEncPutSymbol on a real buffer.
+    RansEncSymbol sym;
+    sym.x_max     = x_max;
+    sym.rcp_freq  = rcp_freq;
+    sym.bias      = bias;
+    sym.cmpl_freq = (uint16_t)cmpl_freq;
+    sym.rcp_shift = (uint16_t)rcp_shift;
+
+    uint8_t buf[16];
+    uint8_t* ptr = buf + sizeof(buf);
+    RansState r = state;
+    RansEncPutSymbol(&r, &ptr, &sym);
+    uint32_t emitted = (uint32_t)((buf + sizeof(buf)) - ptr);
+
+    // Compute q for trace output (not returned by the upstream function)
+    uint32_t x = state;
     if (x >= x_max) {
-        do { emitted++; x >>= 8; } while (x >= x_max);
+        do { x >>= 8; } while (x >= x_max);
     }
-    uint32_t q           = (uint32_t)(((uint64_t)x * rcp_freq) >> 32) >> rcp_shift;
-    uint32_t state_after = x + bias + q * cmpl_freq;
+    uint32_t q = (uint32_t)(((uint64_t)x * rcp_freq) >> 32) >> rcp_shift;
 
     printf("{\"op\":\"enc-put-symbol\""
            ",\"state_before\":%u"
@@ -210,7 +250,7 @@ static void trace_enc_put_symbol(uint32_t state,
            ",\"q\":%u"
            ",\"state_after\":%u"
            "}\n",
-           state, x_max, emitted, q, state_after);
+           state, x_max, emitted, q, r);
 }
 
 // ===========================================================================
@@ -222,22 +262,33 @@ static void trace_r64_enc_put_state(uint64_t state,
                                     uint32_t freq,
                                     uint32_t scale_bits)
 {
-    uint64_t state_after = ((state / freq) << scale_bits) + (state % freq) + start;
+    // Use a real buffer and call real Rans64EncPut
+    Rans64State rans = state;
+    uint32_t buf[16];
+    uint32_t* ptr = buf + sizeof(buf) / sizeof(buf[0]);
+
+    Rans64EncPut(&rans, &ptr, start, freq, scale_bits);
+    uint32_t emitted = (uint32_t)((buf + sizeof(buf) / sizeof(buf[0])) - ptr);
+
     printf("{\"op\":\"r64-enc-put-state\""
            ",\"state_before\":%llu"
            ",\"start\":%u"
            ",\"freq\":%u"
            ",\"scale_bits\":%u"
+           ",\"emitted\":%u"
            ",\"state_after\":%llu"
            "}\n",
            (unsigned long long)state, start, freq, scale_bits,
-           (unsigned long long)state_after);
+           emitted,
+           (unsigned long long)rans);
 }
 
 static void trace_r64_enc_renorm(uint64_t state,
                                  uint32_t freq,
                                  uint32_t scale_bits)
 {
+    // No separate Rans64EncRenorm exists -- the renormalization is inlined
+    // in Rans64EncPut.  Keep the formula for this case.
     uint64_t x        = state;
     uint64_t threshold = ((RANS64_L >> scale_bits) << 32) * (uint64_t)freq;
     uint32_t emitted  = 0;
@@ -259,8 +310,15 @@ static void trace_r64_enc_renorm(uint64_t state,
 
 static void trace_r64_enc_flush(uint64_t state)
 {
-    uint32_t w0 = (uint32_t)(state >> 0);
-    uint32_t w1 = (uint32_t)(state >> 32);
+    // Use real Rans64EncFlush
+    uint32_t buf[2];
+    uint32_t* ptr = buf + sizeof(buf) / sizeof(buf[0]);
+    Rans64State r = state;
+    Rans64EncFlush(&r, &ptr);
+
+    uint32_t w0 = ptr[0];
+    uint32_t w1 = ptr[1];
+
     printf("{\"op\":\"r64-enc-flush\""
            ",\"state\":%llu"
            ",\"word0\":%u"
@@ -271,19 +329,27 @@ static void trace_r64_enc_flush(uint64_t state)
 
 static void trace_r64_dec_init(uint32_t word_lo, uint32_t word_hi)
 {
-    uint64_t state = ((uint64_t)word_hi << 32) | word_lo;
+    // Use real Rans64DecInit
+    uint32_t buf[2];
+    buf[0] = word_lo;
+    buf[1] = word_hi;
+    uint32_t* ptr = buf;
+    Rans64State r;
+    Rans64DecInit(&r, &ptr);
+
     printf("{\"op\":\"r64-dec-init\""
            ",\"word_lo\":%u"
            ",\"word_hi\":%u"
            ",\"state_after\":%llu"
            "}\n",
-           word_lo, word_hi, (unsigned long long)state);
+           word_lo, word_hi, (unsigned long long)r);
 }
 
 static void trace_r64_dec_get(uint64_t state, uint32_t scale_bits)
 {
     uint64_t mask    = (1ull << scale_bits) - 1;
-    uint64_t cum_freq = state & mask;
+    uint64_t cum_freq = Rans64DecGet(&state, scale_bits);
+
     printf("{\"op\":\"r64-dec-get\""
            ",\"state\":%llu"
            ",\"mask\":%llu"
@@ -299,16 +365,22 @@ static void trace_r64_dec_advance(uint64_t state,
                                   uint32_t freq,
                                   uint32_t scale_bits)
 {
-    uint64_t state_before    = state;
-    uint64_t mask            = (1ull << scale_bits) - 1;
-    uint64_t x               = state;
-    x                        = freq * (x >> scale_bits) + (x & mask) - start;
-    uint64_t x_before_renorm = x;
-    uint32_t words_consumed  = 0;
-    if (x < RANS64_L) {
-        words_consumed++;
-        x = (x << 32);
-    }
+    uint64_t mask = (1ull << scale_bits) - 1;
+
+    // Use Rans64DecAdvanceStep to get x before renormalization
+    Rans64State r_step = state;
+    Rans64DecAdvanceStep(&r_step, start, freq, scale_bits);
+    uint64_t x_before_renorm = r_step;
+
+    // Use real Rans64DecAdvance with a buffer for renormalization
+    uint32_t buf[16];
+    memset(buf, 0xff, sizeof(buf));
+    uint32_t* ptr = buf;
+    uint32_t* ptr_before = ptr;
+    Rans64State r = state;
+    Rans64DecAdvance(&r, &ptr, start, freq, scale_bits);
+    uint32_t words_consumed = (uint32_t)(ptr - ptr_before);
+
     printf("{\"op\":\"r64-dec-advance\""
            ",\"state_before\":%llu"
            ",\"start\":%u"
@@ -319,40 +391,23 @@ static void trace_r64_dec_advance(uint64_t state,
            ",\"words_consumed\":%u"
            ",\"state_after\":%llu"
            "}\n",
-           (unsigned long long)state_before, start, freq, scale_bits,
+           (unsigned long long)state, start, freq, scale_bits,
            (unsigned long long)mask,
            (unsigned long long)x_before_renorm,
            words_consumed,
-           (unsigned long long)x);
+           (unsigned long long)r);
 }
 
 static void trace_r64_enc_symbol_init(uint32_t start,
                                       uint32_t freq,
                                       uint32_t scale_bits)
 {
-    uint64_t x_max    = ((RANS64_L >> scale_bits) << 32) * (uint64_t)freq;
-    uint32_t cmpl_freq = ((1u << scale_bits) - freq);
-    uint32_t bias;
-    uint64_t rcp_freq;
-    uint32_t rcp_shift;
+    // Use real Rans64EncSymbolInit, then serialize the struct fields
+    Rans64EncSymbol sym;
+    Rans64EncSymbolInit(&sym, start, freq, scale_bits);
 
-    if (freq < 2) {
-        rcp_freq  = ~0ull;
-        rcp_shift = 0;
-        bias      = start + (1u << scale_bits) - 1;
-    } else {
-        uint32_t shift = 0;
-        uint64_t x0, x1, t0, t1;
-        while (freq > (1u << shift)) shift++;
-        x0 = freq - 1;
-        x1 = 1ull << (shift + 31);
-        t1 = x1 / freq;
-        x0 += (x1 % freq) << 32;
-        t0 = x0 / freq;
-        rcp_freq  = t0 + (t1 << 32);
-        rcp_shift = shift - 1;
-        bias      = start;
-    }
+    // x_max is not stored in Rans64EncSymbol, compute it for trace output
+    uint64_t x_max = ((RANS64_L >> scale_bits) << 32) * (uint64_t)freq;
 
     printf("{\"op\":\"r64-enc-symbol-init\""
            ",\"start\":%u"
@@ -366,8 +421,8 @@ static void trace_r64_enc_symbol_init(uint32_t start,
            "}\n",
            start, freq, scale_bits,
            (unsigned long long)x_max,
-           (unsigned long long)rcp_freq,
-           bias, cmpl_freq, rcp_shift);
+           (unsigned long long)sym.rcp_freq,
+           sym.bias, sym.cmpl_freq, sym.rcp_shift);
 }
 
 static void trace_r64_enc_put_symbol(uint64_t state,
@@ -377,6 +432,11 @@ static void trace_r64_enc_put_symbol(uint64_t state,
                                      uint32_t bias,
                                      uint32_t cmpl_freq)
 {
+    // We cannot call Rans64EncPutSymbol because it recomputes x_max from
+    // sym->freq internally, but we don't know freq (only cmpl_freq, which
+    // also requires scale_bits to recover freq).  The core arithmetic uses
+    // the upstream Rans64MulHi for the multiply-high part.
+
     uint64_t x       = state;
     uint32_t emitted = 0;
     if (x >= x_max) {
@@ -415,19 +475,22 @@ static void trace_r64_mul_hi(uint64_t a, uint64_t b)
 
 static void trace_r64_dec_renorm(uint64_t state)
 {
-    uint64_t state_before = state;
-    uint32_t words_consumed = 0;
-    if (state < RANS64_L) {
-        words_consumed++;
-        state = (state << 32);
-    }
+    // Use real Rans64DecRenorm
+    uint32_t buf[16];
+    memset(buf, 0xff, sizeof(buf));
+    uint32_t* ptr = buf;
+    uint32_t* ptr_before = ptr;
+    Rans64State r = state;
+    Rans64DecRenorm(&r, &ptr);
+    uint32_t words_consumed = (uint32_t)(ptr - ptr_before);
+
     printf("{\"op\":\"r64-dec-renorm\""
            ",\"state_before\":%llu"
            ",\"words_consumed\":%u"
            ",\"state_after\":%llu"
            "}\n",
-           (unsigned long long)state_before, words_consumed,
-           (unsigned long long)state);
+           (unsigned long long)state, words_consumed,
+           (unsigned long long)r);
 }
 
 // ===========================================================================

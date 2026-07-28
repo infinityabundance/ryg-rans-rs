@@ -5,6 +5,7 @@ edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 description = "Oracle harness for comparing Rust rANS against compiled C/C++ — generates court receipts and residuals"
+publish = false
 
 [dependencies]
 ryg-rans-rs-core = { version = "0.1.0", path = "../ryg-rans-rs-core" }

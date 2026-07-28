@@ -1,5 +1,8 @@
 # Claim Index
 
+44 Rust self-tests exist covering all implemented surfaces.
+No formal sealed receipts exist. All verdicts are based on Rust unit tests only.
+
 | Court ID | Receipt | Verdict | Functions Cited |
 |----------|---------|---------|-----------------|
 | UNIT.BYTE.INIT | — | PASS | RansByteState::new |
@@ -19,5 +22,8 @@
 
 ## Receipts
 
-No formal receipts have been sealed yet. All above courts are unit tests that pass.
+No formal receipts have been sealed yet. All above courts are Rust unit tests that pass.
+No compiled oracle comparison has been sealed for any surface.
 Formal receipt generation requires the `ryg-rans-oracle` crate with full cross-decoding.
+
+Total test count: **44** (all Rust self-tests, zero sealed oracle receipts).

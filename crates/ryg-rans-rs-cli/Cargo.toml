@@ -5,6 +5,7 @@ edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 description = "CLI tools for rANS encoding, decoding, inspection, tracing, comparison, and benchmarking"
+publish = false
 
 [dependencies]
 ryg-rans-rs = { version = "0.1.0", path = "../ryg-rans-rs" }
