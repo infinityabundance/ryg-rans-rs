@@ -916,20 +916,23 @@ fn check_docker_matrix() -> Result<(), String> {
             schema
         ));
     }
-    // Verify git_commit is an ancestor of HEAD
-    let head_hash = get_git_head_hash();
-    if !head_hash.is_empty() && !git_commit.is_empty() {
-        let merge_base = std::process::Command::new("git")
-            .args(["merge-base", "--is-ancestor", git_commit, &head_hash])
-            .status();
-        match merge_base {
-            Ok(s) if s.success() => {}
-            _ => {
-                return Err(format!(
-                    "docker matrix git_commit {} not ancestor of HEAD {}",
-                    git_commit, head_hash
-                ));
-            }
+    // Verify git_commit matches the evidence index code_commit
+    // (the Docker matrix must run from the same source that produced the evidence)
+    let index_path = std::path::Path::new("evidence/index.json");
+    let index_content = std::fs::read_to_string(index_path)
+        .map_err(|e| format!("read evidence/index.json: {}", e))?;
+    let index_json: serde_json::Value = serde_json::from_str(&index_content)
+        .map_err(|e| format!("parse evidence/index.json: {}", e))?;
+    let evidence_commit = index_json
+        .get("code_commit")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    if !evidence_commit.is_empty() && !git_commit.is_empty() {
+        if git_commit != evidence_commit {
+            return Err(format!(
+                "docker-matrix.json git_commit={} does not match evidence code_commit={}. Run the Docker matrix from the exact source commit that produced the evidence.",
+                git_commit, evidence_commit
+            ));
         }
     }
     Ok(())
