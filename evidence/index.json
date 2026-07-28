@@ -1,0 +1,22 @@
+{
+  "code_commit": "1808bee96bc11c5f27239937d684d0931d00e173",
+  "receipts": [
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12",
+      "sha256": "0795b59c2f62c36bc59fd303027a7d92d460a93f8ac00d257ebcb20a643f0e09"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12",
+      "sha256": "a94f97c596ca42feb3fcff63817a9cf28926b8183443afe29e5076d678bf8dd0"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12",
+      "sha256": "cbdc5fba881deafdde95035ffb078c7bca001dd22ffcc2c42138bf10abeda354"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12",
+      "sha256": "6951de0f4603553b9665226351978d76854a6962e9f2d1b2a64ea67990e252cd"
+    }
+  ],
+  "schema_version": 1
+}

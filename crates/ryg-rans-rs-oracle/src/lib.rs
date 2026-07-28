@@ -67,7 +67,6 @@ pub struct CaseManifest {
     pub scale_bits: u32,
     pub seed: u64,
     pub cases: Vec<CaseResult>,
-    pub manifest_sha256: String,
 }
 
 /// A sealed court receipt.
@@ -184,7 +183,7 @@ fn run_court(
         cases.push(result);
     }
 
-    // Build canonical manifest
+    // Build canonical manifest (without manifest_sha256)
     let manifest_json = serde_json::to_string_pretty(&serde_json::json!({
         "schema_version": 1,
         "court_id": court_id,
@@ -305,7 +304,6 @@ fn run_court(
         scale_bits,
         seed,
         cases,
-        manifest_sha256,
     };
 
     Ok((receipt, manifest))

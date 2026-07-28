@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12",
+  "court_path": "DIVISION",
+  "variant": "byte",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "1808bee96bc11c5f27239937d684d0931d00e173",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "053964642f1cad03d935c531eccbc017e9e2a1b1397ac3dad3b454c7bd2bfd44",
+  "receipt_sha256": "b07c1b46111170653a1793a7bbb4c0b060577f44a89c465c0016d6977e7a2c25",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- oracle/adapter/rans_trace 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}
