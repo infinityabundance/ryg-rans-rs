@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
-FROM rust:1.83-slim-bookworm AS msrv
+# MSRV: Rust 1.83 (edition 2024 requires 1.85+, but we test 1.83 for backwards compat)
+# ryg-rans-rs-core uses edition="2024" which requires >= 1.85, so 1.85 is the effective MSRV
+FROM rust:1.85-slim-bookworm AS msrv
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \

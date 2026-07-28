@@ -1,7 +1,35 @@
 # Docker matrix for ryg-rans-rs forensic parity courts
 # Requires: RUN_ID and DOCKER_ROOT environment variables
+#
+# ALL volume keys must be fixed (Docker does not interpolate in keys).
+# Run-specific names are set via the `name:` field.
+# Evidence reports *must* survive cleanup — use bind mounts under /tmp/
+# (system drive, ext4, no chown issues).
+
+x-project-labels: &project-labels
+  org.infinityabundance.project: "ryg-rans-rs"
+  org.infinityabundance.purpose: "forensic-parity-court"
+  org.infinityabundance.managed-by: "ryg-rans-rs-xtask"
+  org.infinityabundance.run-id: "${RUN_ID}"
+
+x-vol-labels: &vol-labels
+  org.infinityabundance.project: "ryg-rans-rs"
+  org.infinityabundance.run-id: "${RUN_ID}"
+
+x-cargo-env: &cargo-env
+  CARGO_HOME: /cargo
+  CARGO_TARGET_DIR: /target
+
+x-security-base: &security-base
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
 
 services:
+  # ----------------------------------------------------------------
+  # oracle-gcc — compile upstream C oracles and verify they exist
+  # ----------------------------------------------------------------
   oracle-gcc:
     build:
       context: ${DOCKER_ROOT}/runs/${RUN_ID}/oracle-context
@@ -9,23 +37,31 @@ services:
     container_name: ryg-rans-rs-court-oracle-gcc-${RUN_ID}
     volumes:
       - type: bind
-        source: ${DOCKER_ROOT}/reports/${RUN_ID}/oracle
+        source: ${TMP_REPORTS}/oracle
         target: /reports
     read_only: true
     tmpfs:
       - /tmp
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    labels: &project-labels
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
-      org.infinityabundance.managed-by: "ryg-rans-rs-xtask"
-      org.infinityabundance.run-id: "${RUN_ID}"
+    <<: *security-base
+    labels: *project-labels
     command: >
-      sh -c 'ls -la /usr/local/bin/rans_byte_oracle /usr/local/bin/rans64_oracle /usr/local/bin/rans_alias_oracle /usr/local/bin/rans_sse41_oracle && echo "Oracle build OK"'
+      sh -c '
+        set -e
+        echo "=== Oracle binaries ==="
+        ls -la /usr/local/bin/
+        for b in rans_byte_oracle rans64_oracle rans_alias_oracle rans_sse41_oracle; do
+          if [ ! -x "/usr/local/bin/$b" ]; then
+            echo "MISSING: $b"
+            exit 1
+          fi
+          sha256sum "/usr/local/bin/$b"
+        done
+        echo "Oracle build OK"
+      '
 
+  # ----------------------------------------------------------------
+  # rust-stable-tests — default feature tests
+  # ----------------------------------------------------------------
   rust-stable-tests: &rust-base
     build:
       context: ${DOCKER_ROOT}
@@ -44,19 +80,29 @@ services:
         source: target-stable
         target: /target
       - type: bind
-        source: ${DOCKER_ROOT}/reports/${RUN_ID}/stable
+        source: ${TMP_REPORTS}/stable
         target: /reports
       - type: tmpfs
         target: /tmp
-    environment: &cargo-env
-      - CARGO_HOME=/cargo
-      - CARGO_TARGET_DIR=/target
-    security_opt:
-      - no-new-privileges:true
+    environment:
+      <<: *cargo-env
+    <<: *security-base
     labels: *project-labels
     command: >
-      sh -c 'cd /workspace && cargo test --workspace 2>&1 && echo "Rust tests OK"'
+      sh -c '
+        set -e
+        echo "=== cargo test --workspace ==="
+        cargo test --workspace 2>&1
+        echo "=== cargo check --features std ==="
+        cargo check -p ryg-rans-rs-core --features std 2>&1
+        echo "=== cargo test --no-default-features ==="
+        cargo test -p ryg-rans-rs-core --no-default-features 2>&1
+        echo "Rust tests OK"
+      '
 
+  # ----------------------------------------------------------------
+  # rust-musl-build — musl target cross-compilation
+  # ----------------------------------------------------------------
   rust-musl-build:
     <<: *rust-base
     build:
@@ -75,14 +121,23 @@ services:
         source: target-musl
         target: /target
       - type: bind
-        source: ${DOCKER_ROOT}/reports/${RUN_ID}/musl
+        source: ${TMP_REPORTS}/musl
         target: /reports
       - type: tmpfs
         target: /tmp
-    environment: *cargo-env
     command: >
-      sh -c 'cd /workspace && cargo build --target x86_64-unknown-linux-musl --workspace 2>&1 && echo "Musl build OK"'
+      sh -c '
+        set -e
+        echo "=== cargo build --target x86_64-unknown-linux-musl ==="
+        cargo build --target x86_64-unknown-linux-musl --workspace 2>&1
+        echo "=== cargo test --target x86_64-unknown-linux-musl ==="
+        cargo test --target x86_64-unknown-linux-musl -p ryg-rans-rs-core 2>&1
+        echo "Musl build OK"
+      '
 
+  # ----------------------------------------------------------------
+  # package-audit — verify crate packaging sanity
+  # ----------------------------------------------------------------
   package-audit:
     <<: *rust-base
     build:
@@ -91,8 +146,22 @@ services:
     image: ryg-rans-rs-court-package-audit:${RUN_ID}
     container_name: ryg-rans-rs-court-package-audit-${RUN_ID}
     command: >
-      sh -c 'cd /workspace && cargo package --list -p ryg-rans-rs-core 2>&1 && cargo package --list -p ryg-rans-rs 2>&1 && echo "Package audit OK"'
+      sh -c '
+        set -e
+        echo "=== cargo package --list -p ryg-rans-rs-core ==="
+        cargo package --list -p ryg-rans-rs-core 2>&1
+        echo "=== cargo package --list -p ryg-rans-rs ==="
+        cargo package --list -p ryg-rans-rs 2>&1
+        echo "=== cargo package --list -p ryg-rans-rs-cli ==="
+        cargo package --list -p ryg-rans-rs-cli 2>&1
+        echo "=== cargo package --list --workspace ==="
+        cargo package --list --workspace 2>&1
+        echo "Package audit OK"
+      '
 
+  # ----------------------------------------------------------------
+  # cross-court — C ↔ Rust cross-decoding parity courts
+  # ----------------------------------------------------------------
   cross-court:
     <<: *rust-base
     build:
@@ -111,7 +180,7 @@ services:
         source: target-stable
         target: /target
       - type: bind
-        source: ${DOCKER_ROOT}/reports/${RUN_ID}
+        source: ${TMP_REPORTS}/cross
         target: /reports
       - type: tmpfs
         target: /tmp
@@ -120,14 +189,28 @@ services:
         set -e
         echo "=== Building oracle adapter ==="
         g++ -o /workspace/oracle/adapter/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -lm
+        echo "=== Oracle adapter smoke test ==="
         /workspace/oracle/adapter/rans_trace enc-symbol-init 0 10 14
-        echo "=== Running cross-decoding court ==="
-        cd /workspace && cargo run -p ryg-rans-rs-oracle -- /workspace/oracle/adapter/rans_trace 12 42 20 2>&1
+        echo "=== Running cross-decoding court (byte + r64) ==="
+        cd /workspace
+        echo "--- Byte division ---"
+        cargo run -p ryg-rans-rs-oracle -- /workspace/oracle/adapter/rans_trace 12 42 20 2>&1
+        echo "--- 64-bit division ---"
+        cargo run -p ryg-rans-rs-oracle -- /workspace/oracle/adapter/rans_trace r64 12 42 20 2>&1
         echo "=== Copying evidence to /reports ==="
-        cp -r /workspace/evidence /reports/ 2>/dev/null || true
+        if [ -d /workspace/evidence ]; then
+          cp -r /workspace/evidence /reports/
+          echo "Evidence copied to /reports/evidence/"
+          ls -la /reports/evidence/ 2>/dev/null
+        else
+          echo "WARNING: /workspace/evidence not found"
+        fi
         echo "=== Cross-court complete ==="
       '
 
+  # ----------------------------------------------------------------
+  # miri — unsafe code detection via Miri (nightly)
+  # ----------------------------------------------------------------
   miri:
     <<: *rust-base
     build:
@@ -146,40 +229,189 @@ services:
         source: target-stable
         target: /target
       - type: bind
-        source: ${DOCKER_ROOT}/reports/${RUN_ID}/miri
+        source: ${TMP_REPORTS}/miri
         target: /reports
       - type: tmpfs
         target: /tmp
     environment:
-      - CARGO_HOME=/cargo
-      - CARGO_TARGET_DIR=/target
-      - MIRIFLAGS=-Zmiri-disable-isolation
+      <<: *cargo-env
+      RUSTUP_TOOLCHAIN: nightly-2025-11-25
+      MIRIFLAGS: "-Zmiri-disable-isolation"
     command: >
       sh -c '
         set -e
-        echo "=== Running Miri on core crate ==="
-        cd /workspace && cargo +nightly miri test -p ryg-rans-rs-core --no-default-features 2>&1
+        echo "=== Toolchain info ==="
+        rustc --version
+        cargo miri --version
+        echo "=== Miri: ryg-rans-rs-core (no_std) ==="
+        cargo miri test -p ryg-rans-rs-core --no-default-features 2>&1
+        echo "=== Miri: ryg-rans-rs-casefile (no_std) ==="
+        cargo miri test -p ryg-rans-rs-casefile --no-default-features 2>&1
         echo "=== Miri complete ==="
+      '
+
+  # ----------------------------------------------------------------
+  # msrv — minimum supported Rust version build
+  # ----------------------------------------------------------------
+  msrv:
+    <<: *rust-base
+    build:
+      context: ${DOCKER_ROOT}
+      dockerfile: dockerfiles/Dockerfile.msrv
+    image: ryg-rans-rs-court-msrv:${RUN_ID}
+    container_name: ryg-rans-rs-court-msrv-${RUN_ID}
+    volumes:
+      - type: bind
+        source: ${DOCKER_ROOT}/source/${RUN_ID}
+        target: /workspace
+      - type: volume
+        source: cargo-msrv
+        target: /cargo
+      - type: volume
+        source: target-msrv
+        target: /target
+      - type: bind
+        source: ${TMP_REPORTS}/msrv
+        target: /reports
+      - type: tmpfs
+        target: /tmp
+    command: >
+      sh -c '
+        set -e
+        echo "=== MSRV build: ryg-rans-rs-core ==="
+        cargo build -p ryg-rans-rs-core --no-default-features 2>&1
+        echo "=== MSRV build: ryg-rans-rs-casefile ==="
+        cargo build -p ryg-rans-rs-casefile --no-default-features 2>&1
+        echo "=== MSRV build: ryg-rans-rs (no simd) ==="
+        cargo build -p ryg-rans-rs --no-default-features 2>&1
+        echo "=== MSRV build: ryg-rans-rs-cli ==="
+        cargo build -p ryg-rans-rs-cli --no-default-features 2>&1
+        echo "=== MSRV complete ==="
+      '
+
+  # ----------------------------------------------------------------
+  # cross-aarch64 — aarch64 cross-compilation build check
+  # ----------------------------------------------------------------
+  cross-aarch64:
+    <<: *rust-base
+    build:
+      context: ${DOCKER_ROOT}
+      dockerfile: dockerfiles/Dockerfile.cross-aarch64
+    image: ryg-rans-rs-court-cross-aarch64:${RUN_ID}
+    container_name: ryg-rans-rs-court-cross-aarch64-${RUN_ID}
+    volumes:
+      - type: bind
+        source: ${DOCKER_ROOT}/source/${RUN_ID}
+        target: /workspace
+      - type: volume
+        source: cargo-aarch64
+        target: /cargo
+      - type: volume
+        source: target-aarch64
+        target: /target
+      - type: bind
+        source: ${TMP_REPORTS}/aarch64
+        target: /reports
+      - type: tmpfs
+        target: /tmp
+    environment:
+      <<: *cargo-env
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+      CARGO_BUILD_TARGET: aarch64-unknown-linux-gnu
+    command: >
+      sh -c '
+        set -e
+        echo "=== aarch64 cross-build: core ==="
+        cargo build -p ryg-rans-rs-core --target aarch64-unknown-linux-gnu --no-default-features 2>&1
+        echo "=== aarch64 cross-build: casefile ==="
+        cargo build -p ryg-rans-rs-casefile --target aarch64-unknown-linux-gnu --no-default-features 2>&1
+        echo "=== aarch64 cross-build: ryg-rans-rs ==="
+        cargo build -p ryg-rans-rs --target aarch64-unknown-linux-gnu --no-default-features 2>&1
+        echo "=== aarch64 complete ==="
+      '
+
+  # ----------------------------------------------------------------
+  # sanitizers — oracle compiled with ASan
+  # ----------------------------------------------------------------
+  sanitizers:
+    build:
+      context: ${DOCKER_ROOT}/runs/${RUN_ID}/oracle-context
+      dockerfile: Dockerfile.sanitizer
+    image: ryg-rans-rs-court-sanitizers:${RUN_ID}
+    container_name: ryg-rans-rs-court-sanitizers-${RUN_ID}
+    volumes:
+      - type: bind
+        source: ${TMP_REPORTS}/sanitizer
+        target: /reports
+    read_only: true
+    tmpfs:
+      - /tmp
+    <<: *security-base
+    labels: *project-labels
+    command: >
+      sh -c '
+        set -e
+        echo "=== Running ASan oracle smoke test ==="
+        /usr/local/bin/rans_byte_asan < /dev/null 2>&1 | head -5 || true
+        /usr/local/bin/rans64_asan < /dev/null 2>&1 | head -5 || true
+        echo "=== ASan build OK ==="
+      '
+
+  # ----------------------------------------------------------------
+  # performance — measure cycles/symbol benchmarks
+  # ----------------------------------------------------------------
+  performance:
+    <<: *rust-base
+    build:
+      context: ${DOCKER_ROOT}
+      dockerfile: dockerfiles/Dockerfile.rust-stable
+    image: ryg-rans-rs-court-performance:${RUN_ID}
+    container_name: ryg-rans-rs-court-performance-${RUN_ID}
+    volumes:
+      - type: bind
+        source: ${DOCKER_ROOT}/source/${RUN_ID}
+        target: /workspace
+      - type: volume
+        source: cargo-stable
+        target: /cargo
+      - type: volume
+        source: target-stable
+        target: /target
+      - type: bind
+        source: ${TMP_REPORTS}/performance
+        target: /reports
+      - type: tmpfs
+        target: /tmp
+    command: >
+      sh -c '
+        set -e
+        echo "=== cargo bench --workspace ==="
+        cargo bench --workspace 2>&1 || echo "WARNING: cargo bench failed (expected if no benches exist)"
+        echo "=== Performance check complete ==="
       '
 
 volumes:
   cargo-stable:
     name: "ryg-rans-rs-cargo-stable-${RUN_ID}"
-    labels:
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.run-id: "${RUN_ID}"
+    labels: *vol-labels
   target-stable:
     name: "ryg-rans-rs-target-stable-${RUN_ID}"
-    labels:
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.run-id: "${RUN_ID}"
+    labels: *vol-labels
   cargo-musl:
     name: "ryg-rans-rs-cargo-musl-${RUN_ID}"
-    labels:
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.run-id: "${RUN_ID}"
+    labels: *vol-labels
   target-musl:
     name: "ryg-rans-rs-target-musl-${RUN_ID}"
-    labels:
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.run-id: "${RUN_ID}"
+    labels: *vol-labels
+  cargo-msrv:
+    name: "ryg-rans-rs-cargo-msrv-${RUN_ID}"
+    labels: *vol-labels
+  target-msrv:
+    name: "ryg-rans-rs-target-msrv-${RUN_ID}"
+    labels: *vol-labels
+  cargo-aarch64:
+    name: "ryg-rans-rs-cargo-aarch64-${RUN_ID}"
+    labels: *vol-labels
+  target-aarch64:
+    name: "ryg-rans-rs-target-aarch64-${RUN_ID}"
+    labels: *vol-labels

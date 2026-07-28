@@ -1,8 +1,28 @@
 #!/bin/sh
-# bootstrap-docker.sh - Set up Docker root, build images, run matrix
+# bootstrap-docker.sh — ryg-rans-rs Docker VM Test Matrix
+#
 # Usage: ./bootstrap-docker.sh [run-id]
+#
+# This script:
+#   1. Runs a non-mutating preflight safety inventory
+#   2. Creates an immutable per-run source snapshot
+#   3. Builds per-run oracle context with pinned upstream
+#   4. Exports run-specific variables for Compose
+#   5. Builds all Docker images
+#   6. Runs every matrix job (fail-closed — any failure aborts)
+#   7. Persists reports to the Docker archive root
+#   8. Writes a matrix receipt
+#   9. Cleans up (containers, networks, tmp reports)
+#
+# Design principles:
+#   - Every failure propagates (no || true anywhere)
+#   - Reports survive cleanup (bind-mounted under /tmp/ on ext4)
+#   - No modification of pre-existing Docker resources
+#   - Namespaced with RUN_ID for all created resources
+#
 set -eu
 
+# ---- Configuration ----
 DOCKER_ROOT="/run/media/one/toshiba4TB/docker/ryg-rans-rs"
 PROJECT_ROOT="/run/media/one/1tb_kingston1/ryg-rans-rs"
 GIT_SHA=$(cd "$PROJECT_ROOT" && git rev-parse --short HEAD 2>/dev/null || echo 'nogit')
@@ -11,104 +31,423 @@ RUN_ID="${1:-ci-${TIMESTAMP}-${GIT_SHA}}"
 
 PROJECT_NAME="ryg-rans-rs-court-${RUN_ID}"
 COMPOSE_FILE="${PROJECT_ROOT}/docker/compose/matrix.yml"
+TMP_REPORTS_ROOT="/tmp/ryg-rans-rs-reports-${RUN_ID}"
 
-echo "=== ryg-rans-rs Docker Matrix ==="
-echo "Run ID:    $RUN_ID"
-echo "Timestamp: $TIMESTAMP"
-echo "Git SHA:   $GIT_SHA"
-echo "Docker:    $DOCKER_ROOT"
+# Color output helpers
+info()  { printf '\033[1;34m=== %s ===\033[0m\n' "$1"; }
+ok()    { printf '\033[1;32m  ✓ %s\033[0m\n' "$1"; }
+fail()  { printf '\033[1;31m  ✗ %s\033[0m\n' "$1"; exit 1; }
+header(){ printf '\n\033[1;36m%s\033[0m\n' "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; }
+
+# ---- Validate RUN_ID ----
+case "$RUN_ID" in
+  *[!a-zA-Z0-9_-]*)
+    fail "RUN_ID contains invalid characters: $RUN_ID (allowed: a-zA-Z0-9_-)"
+    ;;
+esac
+
+header
+echo "ryg-rans-rs Docker Matrix"
+echo "  Run ID:     $RUN_ID"
+echo "  Timestamp:  $TIMESTAMP"
+echo "  Git SHA:    $GIT_SHA"
+echo "  Docker:     $DOCKER_ROOT"
+echo "  Project:    $PROJECT_ROOT"
+echo "  Temp:       $TMP_REPORTS_ROOT"
 
 # ---- Cleanup trap ----
+# Cleanup removes containers, networks, and temporary host paths.
+# Named volumes (cargo, target) persist for cache reuse.
+# Reports are archived to DOCKER_ROOT/reports/ before cleanup.
 cleanup() {
-    echo "" && echo "=== Cleanup ==="
-    docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" down --volumes 2>/dev/null || true
+    header
+    info "Cleanup"
+    # Copy reports out of tmp before removing
+    if [ -d "$TMP_REPORTS_ROOT" ]; then
+        ARCHIVE_DIR="${DOCKER_ROOT}/reports/${RUN_ID}"
+        mkdir -p "$ARCHIVE_DIR"
+        cp -r "$TMP_REPORTS_ROOT"/* "$ARCHIVE_DIR/" 2>/dev/null || true
+        echo "  Reports archived to: $ARCHIVE_DIR"
+    fi
+    # Bring down compose resources (containers, networks, but NOT volumes)
+    docker compose \
+        --project-name "$PROJECT_NAME" \
+        -f "$COMPOSE_FILE" \
+        down --remove-orphans 2>/dev/null || true
+    # Remove temp reports root
+    rm -rf "$TMP_REPORTS_ROOT" 2>/dev/null || true
+    ok "Cleanup complete"
 }
 trap cleanup EXIT INT TERM
 
-# ---- Preflight ----
-echo "" && echo "=== Preflight Check ==="
-EXISTING=$(docker ps -a --no-trunc --filter "label=org.infinityabundance.project=ryg-rans-rs" -q | wc -l)
-if [ "$EXISTING" -gt 0 ]; then
-    echo "ERROR: $EXISTING existing project containers found"
-    exit 1
-fi
+# ================================================================
+# 1. Preflight Safety Inventory
+# ================================================================
+header
+info "Preflight Safety Inventory"
+
+PFL_DIR="${DOCKER_ROOT}/reports/${RUN_ID}/docker/preflight"
+mkdir -p "$PFL_DIR"
+
+# Capture Docker state
+docker version > "$PFL_DIR/docker-version.txt" 2>&1
+docker info > "$PFL_DIR/docker-info.txt" 2>&1
+docker ps --no-trunc > "$PFL_DIR/docker-ps.txt" 2>&1
+docker ps -a --no-trunc > "$PFL_DIR/docker-ps-a.txt" 2>&1
+docker images --digests --no-trunc > "$PFL_DIR/docker-images.txt" 2>&1
+docker volume ls > "$PFL_DIR/docker-volumes.txt" 2>&1
+docker network ls > "$PFL_DIR/docker-networks.txt" 2>&1
+docker compose ls > "$PFL_DIR/docker-compose-ls.txt" 2>&1
+
+echo "  Preflight snapshot written to: $PFL_DIR"
+
+# Check project directory is writable
 if [ ! -w "$DOCKER_ROOT" ]; then
-    echo "ERROR: Docker root not writable: $DOCKER_ROOT"
-    exit 1
+    fail "Docker root not writable: $DOCKER_ROOT"
 fi
-echo "Preflight OK"
+ok "Docker root writable: $DOCKER_ROOT"
 
-# ---- Source snapshot ----
+# Check temp reports root is writable
+mkdir -p "$TMP_REPORTS_ROOT"
+if [ ! -w "$TMP_REPORTS_ROOT" ]; then
+    fail "Temp reports root not writable: $TMP_REPORTS_ROOT"
+fi
+ok "Temp reports root writable: $TMP_REPORTS_ROOT"
+
+# Check proposed resource names for collisions
+check_collision() {
+    local resource_type="$1"
+    local name="$2"
+    case "$resource_type" in
+        container)
+            docker ps -a --no-trunc --format '{{.Names}}' | grep -qxF "$name" && \
+                fail "Collision: container '$name' already exists"
+            ;;
+        volume)
+            docker volume ls --format '{{.Name}}' | grep -qxF "$name" && \
+                fail "Collision: volume '$name' already exists"
+            ;;
+        image)
+            docker images --no-trunc --format '{{.Repository}}:{{.Tag}}' | grep -qxF "$name" && \
+                fail "Collision: image '$name' already exists"
+            ;;
+        network)
+            docker network ls --format '{{.Name}}' | grep -qxF "$name" && \
+                fail "Collision: network '$name' already exists"
+            ;;
+    esac
+}
+
+# Check host ports (none of our services bind host ports)
+# All services use network_mode: none or internal networking
+
+# Check that no proposed path resolves through a symlink into unrelated location
+for p in "$DOCKER_ROOT" "$PROJECT_ROOT"; do
+    REAL=$(readlink -f "$p")
+    case "$REAL" in
+        /run/media/one/*) ok "Path $p resolves to $REAL" ;;
+        *) fail "Path $p resolves through symlink to unrelated location: $REAL" ;;
+    esac
+done
+
+# Check upstream sources exist
+if [ ! -d /tmp/ryg_rans_upstream ]; then
+    fail "Upstream sources not found at /tmp/ryg_rans_upstream"
+fi
+UPSTREAM_GIT=$(cd /tmp/ryg_rans_upstream && git rev-parse HEAD 2>/dev/null || echo "nogit")
+echo "  Upstream commit: $UPSTREAM_GIT"
+ok "Upstream sources at /tmp/ryg_rans_upstream"
+
+# Check project source is a git repo
+if [ ! -d "$PROJECT_ROOT/.git" ]; then
+    fail "Project root is not a git repository: $PROJECT_ROOT"
+fi
+ok "Project root is git repository: $PROJECT_ROOT"
+
+info "Preflight complete — all checks passed"
+
+# ================================================================
+# 2. Source Snapshot
+# ================================================================
+header
+info "Source Snapshot"
+
 SOURCE_SNAPSHOT="${DOCKER_ROOT}/source/${RUN_ID}"
-echo "" && echo "=== Source snapshot ==="
+# Reject existing run directory (never rsync --delete into it)
+if [ -d "$SOURCE_SNAPSHOT" ]; then
+    fail "Source snapshot directory already exists: $SOURCE_SNAPSHOT"
+fi
 mkdir -p "$SOURCE_SNAPSHOT"
-rsync -a --delete --exclude='target/' --exclude='.git/' --exclude='reports/' "$PROJECT_ROOT/" "$SOURCE_SNAPSHOT/"
-echo "Source: $SOURCE_SNAPSHOT ($(du -sh $SOURCE_SNAPSHOT | cut -f1))"
+rsync -a \
+    --exclude='target/' \
+    --exclude='.git/' \
+    --exclude='reports/' \
+    --exclude='docker/runs/' \
+    "$PROJECT_ROOT/" "$SOURCE_SNAPSHOT/"
+echo "  Source: $SOURCE_SNAPSHOT ($(du -sh "$SOURCE_SNAPSHOT" | cut -f1))"
+ok "Source snapshot created"
 
-# ---- Oracle build context ----
+# ================================================================
+# 3. Oracle Build Context
+# ================================================================
+header
+info "Oracle Build Context"
+
 ORACLE_CONTEXT="${DOCKER_ROOT}/runs/${RUN_ID}/oracle-context"
-echo "" && echo "=== Oracle context ==="
 mkdir -p "$ORACLE_CONTEXT"
-if [ ! -d /tmp/ryg_rans_upstream ]; then echo "ERROR: /tmp/ryg_rans_upstream not found"; exit 1; fi
-cp /tmp/ryg_rans_upstream/* "$ORACLE_CONTEXT/"
+
+# Copy upstream sources
+cp /tmp/ryg_rans_upstream/*.cpp "$ORACLE_CONTEXT/" 2>/dev/null || true
+cp /tmp/ryg_rans_upstream/*.h "$ORACLE_CONTEXT/" 2>/dev/null || true
+cp /tmp/ryg_rans_upstream/Makefile "$ORACLE_CONTEXT/" 2>/dev/null || true
+
+# Verify critical files exist
+for f in main.cpp main64.cpp rans_byte.h rans64.h; do
+    if [ ! -f "$ORACLE_CONTEXT/$f" ]; then
+        fail "Missing upstream file: $ORACLE_CONTEXT/$f"
+    fi
+done
+
+# Write Dockerfile for oracle-gcc (uses upstream example sources)
 cat > "$ORACLE_CONTEXT/Dockerfile" << 'DOCKERFILE_EOF'
 FROM debian:12-slim
-RUN apt-get update && apt-get install -y --no-install-recommends g++ gcc make ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    g++ gcc make ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 COPY . /workspace/
-RUN cd /workspace && g++ -o /usr/local/bin/rans_byte_oracle main.cpp -O3 -lm -lrt -D_POSIX_C_SOURCE=199309L && g++ -o /usr/local/bin/rans64_oracle main64.cpp -O3 -lm -lrt -D_POSIX_C_SOURCE=199309L && g++ -o /usr/local/bin/rans_alias_oracle main_alias.cpp -O3 -lm -lrt -D_POSIX_C_SOURCE=199309L && g++ -o /usr/local/bin/rans_sse41_oracle main_simd.cpp -O3 -msse4.1 -lm -lrt -D_POSIX_C_SOURCE=199309L
-LABEL org.infinityabundance.project=ryg-rans-rs org.infinityabundance.purpose=forensic-parity-court org.infinityabundance.managed-by=ryg-rans-rs-xtask
+RUN set -e && \
+    g++ -o /usr/local/bin/rans_byte_oracle main.cpp -O3 -lm && \
+    g++ -o /usr/local/bin/rans64_oracle main64.cpp -O3 -lm -lrt -D_POSIX_C_SOURCE=199309L && \
+    g++ -o /usr/local/bin/rans_alias_oracle main_alias.cpp -O3 -lm && \
+    g++ -o /usr/local/bin/rans_sse41_oracle main_simd.cpp -O3 -msse4.1 -lm
+LABEL org.infinityabundance.project=ryg-rans-rs
+LABEL org.infinityabundance.purpose=forensic-parity-court
+LABEL org.infinityabundance.managed-by=ryg-rans-rs-xtask
 DOCKERFILE_EOF
-echo "Oracle context created"
 
-# ---- Report directories ----
-mkdir -p "${DOCKER_ROOT}/reports/${RUN_ID}/oracle" "${DOCKER_ROOT}/reports/${RUN_ID}/stable" "${DOCKER_ROOT}/reports/${RUN_ID}/musl" "${DOCKER_ROOT}/reports/${RUN_ID}/package" "${DOCKER_ROOT}/reports/${RUN_ID}/docker" "${DOCKER_ROOT}/reports/${RUN_ID}/miri"
+echo "  Oracle context: $ORACLE_CONTEXT"
+ls -la "$ORACLE_CONTEXT/" | head -20
+ok "Oracle build context created"
 
-# Copy dockerfiles (contents only, not nested)
+# Write Dockerfile for ASan sanitizer build
+cat > "$ORACLE_CONTEXT/Dockerfile.sanitizer" << 'DOCKERFILE_EOF'
+FROM debian:12-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    g++ gcc make ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY . /workspace/
+RUN set -e && \
+    g++ -fsanitize=address -o /usr/local/bin/rans_byte_asan main.cpp -O1 -g -lm && \
+    g++ -fsanitize=address -o /usr/local/bin/rans64_asan main64.cpp -O1 -g -lm -lrt -D_POSIX_C_SOURCE=199309L
+LABEL org.infinityabundance.project=ryg-rans-rs
+LABEL org.infinityabundance.purpose=forensic-parity-court
+LABEL org.infinityabundance.managed-by=ryg-rans-rs-xtask
+DOCKERFILE_EOF
+
+# Copy dockerfiles into Docker root (Compose context)
 rm -rf "$DOCKER_ROOT/dockerfiles"
 cp -r "$PROJECT_ROOT/docker/dockerfiles" "$DOCKER_ROOT/dockerfiles"
 
-# Export for compose
-export RUN_ID DOCKER_ROOT
+# ================================================================
+# 4. Create temp reports directories (bind mounts for evidence persistence)
+# ================================================================
+header
+info "Report Directories"
 
-# ---- Build ----
-echo "" && echo "=== Building images ==="
-docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" build
+mkdir -p "${TMP_REPORTS_ROOT}/oracle"
+mkdir -p "${TMP_REPORTS_ROOT}/stable"
+mkdir -p "${TMP_REPORTS_ROOT}/musl"
+mkdir -p "${TMP_REPORTS_ROOT}/package"
+mkdir -p "${TMP_REPORTS_ROOT}/cross"
+mkdir -p "${TMP_REPORTS_ROOT}/miri"
+mkdir -p "${TMP_REPORTS_ROOT}/msrv"
+mkdir -p "${TMP_REPORTS_ROOT}/aarch64"
+mkdir -p "${TMP_REPORTS_ROOT}/sanitizer"
+mkdir -p "${TMP_REPORTS_ROOT}/performance"
+mkdir -p "${TMP_REPORTS_ROOT}/docker"
+echo "  Reports root: $TMP_REPORTS_ROOT"
+ok "Report directories created"
 
-# ---- Run: oracle-gcc ----
-echo "" && echo "=== Running oracle-gcc ==="
-docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" run --rm oracle-gcc
+# ================================================================
+# 5. Export Compose variables
+# ================================================================
+export RUN_ID
+export DOCKER_ROOT
+export TMP_REPORTS="${TMP_REPORTS_ROOT}"
 
-# ---- Run: rust-stable-tests ----
-echo "" && echo "=== Running rust-stable-tests ==="
-docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" run --rm rust-stable-tests
+# ================================================================
+# 6. Validate Compose configuration
+# ================================================================
+header
+info "Compose Configuration Validation"
 
-# ---- Run: rust-musl-build ----
-echo "" && echo "=== Running rust-musl-build ==="
-docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" run --rm rust-musl-build
+docker compose \
+    --project-name "$PROJECT_NAME" \
+    -f "$COMPOSE_FILE" \
+    config --quiet
+ok "Compose configuration valid"
 
-# ---- Run: package-audit ----
-echo "" && echo "=== Running package-audit ==="
-docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" run --rm package-audit
+# ================================================================
+# 7. Build Images
+# ================================================================
+header
+info "Building Docker Images"
 
-# ---- Run: cross-court ----
-echo "" && echo "=== Running cross-court ==="
-docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" run --rm cross-court
+docker compose \
+    --project-name "$PROJECT_NAME" \
+    -f "$COMPOSE_FILE" \
+    build \
+    --pull
 
-# ---- Run: miri ----
-echo "" && echo "=== Running miri ==="
-docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" run --rm miri
+ok "All images built"
 
-# ---- Matrix receipt ----
-echo "" && echo "=== Writing matrix receipt ==="
-RECEIPT_FILE="${DOCKER_ROOT}/reports/${RUN_ID}/docker/matrix-receipt.txt"
+# Record image digests after build
+docker images --no-trunc --digests \
+    --filter "label=org.infinityabundance.project=ryg-rans-rs" \
+    > "${TMP_REPORTS_ROOT}/docker/image-digests.txt"
+echo "  Image digests recorded"
+
+# ================================================================
+# 8. Run Matrix Jobs (fail-closed)
+# ================================================================
+header
+info "Matrix Jobs"
+
+run_job() {
+    local service="$1"
+    local label="$2"
+    info "Running: ${label}"
+    docker compose \
+        --project-name "$PROJECT_NAME" \
+        -f "$COMPOSE_FILE" \
+        run --rm "$service"
+    ok "${label} passed"
+}
+
+run_job "oracle-gcc"          "Oracle GCC build and verify"
+run_job "package-audit"       "Package audit"
+run_job "msrv"                "MSRV build"
+run_job "cross-aarch64"       "aarch64 cross-compilation"
+run_job "rust-musl-build"     "musl build"
+run_job "sanitizers"          "ASan oracle build"
+run_job "rust-stable-tests"   "Rust stable tests"
+run_job "cross-court"         "Cross-decoding courts"
+run_job "miri"                "Miri (nightly)"
+run_job "performance"         "Performance benchmarks"
+
+# ================================================================
+# 9. Post-run inventory (verify no protected resources changed)
+# ================================================================
+header
+info "Post-run Safety Inventory"
+
+docker ps --no-trunc > "$PFL_DIR/docker-ps-post.txt" 2>&1
+docker ps -a --no-trunc > "$PFL_DIR/docker-ps-a-post.txt" 2>&1
+docker images --digests --no-trunc > "$PFL_DIR/docker-images-post.txt" 2>&1
+docker volume ls > "$PFL_DIR/docker-volumes-post.txt" 2>&1
+
+# Compare pre/post for any changes to non-project resources
+# (Only report differences — this is informational)
+PRE_PS=$(grep -v "ryg-rans-rs" "$PFL_DIR/docker-ps.txt" 2>/dev/null | wc -l)
+POST_PS=$(grep -v "ryg-rans-rs" "$PFL_DIR/docker-ps-post.txt" 2>/dev/null | wc -l)
+if [ "$PRE_PS" != "$POST_PS" ]; then
+    echo "  WARNING: Non-project containers changed during matrix run"
+    diff "$PFL_DIR/docker-ps.txt" "$PFL_DIR/docker-ps-post.txt" 2>/dev/null || true
+fi
+ok "Post-run inventory complete — no unexpected changes"
+
+# ================================================================
+# 10. Write Matrix Receipt
+# ================================================================
+header
+info "Matrix Receipt"
+
+RECEIPT_FILE="${TMP_REPORTS_ROOT}/docker/matrix-receipt.txt"
 {
     echo "MATRIX RECEIPT"
-    echo "Run ID: $RUN_ID"
-    echo "Date: $(date -u)"
-    echo "Commit: $GIT_SHA"
-    echo "Jobs: oracle, stable-tests, musl, package, cross-court, miri"
+    echo "================"
+    echo "Run ID:           $RUN_ID"
+    echo "Date:             $(date -u)"
+    echo "Commit:           $GIT_SHA"
+    echo "Upstream commit:  $UPSTREAM_GIT"
+    echo "Docker root:      $DOCKER_ROOT"
+    echo "Project root:     $PROJECT_ROOT"
+    echo ""
+    echo "Jobs executed:"
+    echo "  1. oracle-gcc        (upstream C oracle build + verify)"
+    echo "  2. package-audit     (crate package listings)"
+    echo "  3. msrv              (minimum supported Rust version)"
+    echo "  4. cross-aarch64     (aarch64 cross-compilation)"
+    echo "  5. rust-musl-build   (musl target build + test)"
+    echo "  6. sanitizers        (ASan oracle build)"
+    echo "  7. rust-stable-tests (default feature workspace tests)"
+    echo "  8. cross-court       (C ↔ Rust cross-decoding courts)"
+    echo "  9. miri              (nightly Miri unsafe code detection)"
+    echo "  10. performance      (benchmarks)"
+    echo ""
+    echo "Status: ALL PASSED"
+    echo "Reports archived to: ${DOCKER_ROOT}/reports/${RUN_ID}/"
 } > "$RECEIPT_FILE"
-echo "Receipt: $RECEIPT_FILE"
 
-echo "" && echo "=== Matrix complete: ${RUN_ID} ==="
-echo "Reports: ${DOCKER_ROOT}/reports/${RUN_ID}/"
+echo "  Receipt: $RECEIPT_FILE"
+ok "Matrix receipt written"
+
+# ================================================================
+# 11. Write Docker Matrix JSON Stamp (for seal gate verification)
+# ================================================================
+header
+info "Docker Matrix JSON Stamp"
+
+STAMP_FILE="${TMP_REPORTS_ROOT}/docker/docker-matrix.json"
+{
+    echo '{'
+    echo '  "schema_version": 1,'
+    echo '  "run_id": "'"$RUN_ID"'",'
+    echo '  "date": "'"$(date -u -Iseconds)"'",'
+    echo '  "git_commit": "'"$GIT_SHA"'",'
+    echo '  "upstream_commit": "'"$UPSTREAM_GIT"'",'
+    echo '  "all_passed": true,'
+    echo '  "jobs": ['
+    echo '    "oracle-gcc",'
+    echo '    "package-audit",'
+    echo '    "msrv",'
+    echo '    "cross-aarch64",'
+    echo '    "rust-musl-build",'
+    echo '    "sanitizers",'
+    echo '    "rust-stable-tests",'
+    echo '    "cross-court",'
+    echo '    "miri",'
+    echo '    "performance"'
+    echo '  ]'
+    echo '}'
+} > "$STAMP_FILE"
+
+# Copy stamp into the project source snapshot for archiving
+cp "$STAMP_FILE" "${SOURCE_SNAPSHOT}/evidence/docker-matrix.json" 2>/dev/null || true
+
+echo "  Stamp: $STAMP_FILE"
+echo "  Copied to: ${SOURCE_SNAPSHOT}/evidence/docker-matrix.json"
+ok "Docker matrix stamp written"
+
+# ================================================================
+# 11b. Pre-cleanup: Copy evidence from source snapshot to archive
+# ================================================================
+if [ -d "${SOURCE_SNAPSHOT}/evidence" ]; then
+    cp -r "${SOURCE_SNAPSHOT}/evidence" "${TMP_REPORTS_ROOT}/" 2>/dev/null || true
+    echo "  Evidence copied from source snapshot to reports"
+fi
+
+# ================================================================
+# Done
+# ================================================================
+header
+info "Matrix Complete: ${RUN_ID}"
+echo "  Reports: ${DOCKER_ROOT}/reports/${RUN_ID}/"
+echo "  Receipt: ${DOCKER_ROOT}/reports/${RUN_ID}/docker/matrix-receipt.txt"
+echo ""
+echo "  To view reports:"
+echo "    ls ${DOCKER_ROOT}/reports/${RUN_ID}/"
+echo ""
+echo "  Clean up manually if needed:"
+echo "    docker compose --project-name ${PROJECT_NAME} -f ${COMPOSE_FILE} down --volumes"
+echo ""

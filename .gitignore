@@ -15,7 +15,8 @@ target/
 *.iml
 
 # Build artifacts
-Cargo.lock
+# Cargo.lock is tracked for this workspace (binaries: xtask, oracle, cli)
+# Cargo.lock
 
 # Oracle binaries
 oracle/adapter/rans_trace

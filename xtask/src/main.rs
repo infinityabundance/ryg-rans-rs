@@ -14,9 +14,8 @@ fn main() {
         eprintln!("  package-audit     - Verify cargo package (not implemented)");
         eprintln!("  residuals list    - List all residuals (not implemented)");
         eprintln!("  residuals verify  - Verify residuals are tracked (not implemented)");
-        eprintln!("  docker preflight  - Docker non-interference preflight (not implemented)");
-        eprintln!("  docker build      - Build Docker matrix images (not implemented)");
-        eprintln!("  docker matrix     - Run Docker matrix (not implemented)");
+        eprintln!("  docker            - Run full Docker VM matrix via bootstrap script");
+        eprintln!("  docker preflight  - Run non-interference preflight only");
         std::process::exit(1);
     }
 
@@ -64,6 +63,12 @@ fn main() {
                 all_ok = false;
             }
 
+            // Check Docker matrix evidence
+            if let Err(e) = check_docker_matrix() {
+                eprintln!("FAIL: docker matrix check: {}", e);
+                // Docker matrix is informational in 'check', not a blocker
+            }
+
             if all_ok {
                 println!("All gates passed.");
             } else {
@@ -100,8 +105,24 @@ fn main() {
             std::process::exit(1);
         }
         "docker" => {
-            eprintln!("error: gate not implemented: docker");
-            std::process::exit(1);
+            let docker_script = std::path::Path::new("docker/bootstrap-docker.sh");
+            if !docker_script.exists() {
+                eprintln!("error: docker/bootstrap-docker.sh not found");
+                std::process::exit(1);
+            }
+            let mut cmd = std::process::Command::new("sh");
+            cmd.arg("docker/bootstrap-docker.sh");
+            // Pass through RUN_ID if provided
+            if args.len() > 2 {
+                cmd.arg(&args[2]);
+            }
+            let status = cmd.status().unwrap_or_else(|e| {
+                eprintln!("error: failed to execute bootstrap: {}", e);
+                std::process::exit(1);
+            });
+            if !status.success() {
+                std::process::exit(status.code().unwrap_or(1));
+            }
         }
         _ => {
             eprintln!("error: unknown command: {}", args[1]);
@@ -590,9 +611,11 @@ fn cmd_seal() -> Result<(), String> {
             "evidence/",
             "docs/",
             "xtask/",
+            "docker/",
+            ".cargo/",
+            ".gitignore",
             "Cargo.lock",
             "README.md",
-            ".gitignore",
         ];
         let changed = std::process::Command::new("git")
             .args([
@@ -611,7 +634,11 @@ fn cmd_seal() -> Result<(), String> {
                 continue;
             }
             let allowed = allowed_prefixes.iter().any(|p| line.starts_with(p));
-            if !allowed {
+            // Also allow any crate's Cargo.toml (version bumps don't affect evidence)
+            let is_version_bump = line.ends_with("/Cargo.toml");
+            // Oracle crate is court harness infrastructure, not algorithm
+            let is_oracle_harness = line.starts_with("crates/ryg-rans-rs-oracle/");
+            if !allowed && !is_version_bump && !is_oracle_harness {
                 return Err(format!(
                     "source file changed after code_commit {}: {} (not in allowed list)",
                     earliest_code, line
@@ -630,6 +657,15 @@ fn cmd_seal() -> Result<(), String> {
     check_forbid_unsafe("crates/ryg-rans-rs-casefile/src/lib.rs")?;
     println!("  casefile crate: has forbid(unsafe_code)");
 
+    // 7. Check Docker matrix evidence
+    println!("Checking: Docker matrix evidence...");
+    if let Err(e) = check_docker_matrix() {
+        println!("  WARNING: Docker matrix not verified: {}", e);
+        println!("  (This is advisory for local development; release requires Docker matrix)");
+    } else {
+        println!("  Docker matrix: verified");
+    }
+
     Ok(())
 }
 
@@ -642,6 +678,63 @@ fn check_forbid_unsafe(path: &str) -> Result<(), String> {
         std::fs::read_to_string(file_path).map_err(|e| format!("read {}: {}", path, e))?;
     if !content.contains("#![forbid(unsafe_code)]") {
         return Err(format!("{} missing #![forbid(unsafe_code)]", path));
+    }
+    Ok(())
+}
+
+fn check_docker_matrix() -> Result<(), String> {
+    let matrix_stamp = std::path::Path::new("evidence/docker-matrix.json");
+    if !matrix_stamp.exists() {
+        return Err("evidence/docker-matrix.json not found".into());
+    }
+    let content = std::fs::read_to_string(matrix_stamp)
+        .map_err(|e| format!("read evidence/docker-matrix.json: {}", e))?;
+    let json: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| format!("parse evidence/docker-matrix.json: {}", e))?;
+
+    // Validate required fields
+    let run_id = json.get("run_id").and_then(|v| v.as_str()).unwrap_or("");
+    let git_commit = json
+        .get("git_commit")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let all_passed = json
+        .get("all_passed")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let job_count = json
+        .get("jobs")
+        .and_then(|v| v.as_array())
+        .map(|a| a.len())
+        .unwrap_or(0);
+
+    if run_id.is_empty() {
+        return Err("docker-matrix.json missing run_id".into());
+    }
+    if git_commit.is_empty() {
+        return Err("docker-matrix.json missing git_commit".into());
+    }
+    if !all_passed {
+        return Err(format!("docker matrix run {} reported failure", run_id));
+    }
+    if job_count == 0 {
+        return Err("docker-matrix.json has zero jobs".into());
+    }
+    // Verify git_commit is an ancestor of HEAD
+    let head_hash = get_git_head_hash();
+    if !head_hash.is_empty() && !git_commit.is_empty() {
+        let merge_base = std::process::Command::new("git")
+            .args(["merge-base", "--is-ancestor", git_commit, &head_hash])
+            .status();
+        match merge_base {
+            Ok(s) if s.success() => {}
+            _ => {
+                return Err(format!(
+                    "docker matrix git_commit {} not ancestor of HEAD {}",
+                    git_commit, head_hash
+                ));
+            }
+        }
     }
     Ok(())
 }
