@@ -252,6 +252,7 @@ services:
       RUSTUP_TOOLCHAIN: nightly-2025-11-25
       RUSTUP_HOME: /cargo/.rustup
       RUSTUP_DIST_SERVER: https://static.rust-lang.org
+      MIRI_NO_CONFIRM: 1
       MIRIFLAGS: "-Zmiri-disable-isolation"
       TMPDIR: /cargo/.rustup-tmp
     command: >

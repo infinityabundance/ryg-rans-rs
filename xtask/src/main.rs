@@ -928,7 +928,11 @@ fn check_docker_matrix() -> Result<(), String> {
         .and_then(|v| v.as_str())
         .unwrap_or("");
     if !evidence_commit.is_empty() && !git_commit.is_empty() {
-        if git_commit != evidence_commit {
+        // Support prefix matching: the stamp may use short hash (214a2d8)
+        // while evidence uses full hash (214a2d86402335c25f7e4a9eb3c844d9c0c9868b)
+        let match_full =
+            evidence_commit.starts_with(git_commit) || git_commit.starts_with(evidence_commit);
+        if !match_full {
             return Err(format!(
                 "docker-matrix.json git_commit={} does not match evidence code_commit={}. Run the Docker matrix from the exact source commit that produced the evidence.",
                 git_commit, evidence_commit
