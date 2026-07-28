@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "run_id": "phase-b-20260728-092358-f07b1f1",
+  "date": "2026-07-28T09:25:24+00:00",
+  "git_commit": "f07b1f1",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "all_passed": true,
+  "jobs": [
+    "oracle-gcc",
+    "package-audit",
+    "msrv",
+    "cross-aarch64",
+    "rust-musl-build",
+    "sanitizers",
+    "rust-stable-tests",
+    "cross-court",
+    "miri",
+    "performance"
+  ]
+}
