@@ -14,10 +14,6 @@ target/
 .idea/
 *.iml
 
-# Docker artifacts - these live under the Docker root, not in the project
-docker/dockerfiles/
-docker/compose/
-
 # Build artifacts
 Cargo.lock
 
