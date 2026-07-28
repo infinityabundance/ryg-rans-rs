@@ -216,6 +216,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ gcc make ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY . /workspace/
+WORKDIR /workspace
 RUN set -e && \
     g++ -o /usr/local/bin/rans_byte_oracle main.cpp -O3 -lm && \
     g++ -o /usr/local/bin/rans64_oracle main64.cpp -O3 -lm -lrt -D_POSIX_C_SOURCE=199309L && \
@@ -237,6 +238,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ gcc make ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY . /workspace/
+WORKDIR /workspace
 RUN set -e && \
     g++ -fsanitize=address -o /usr/local/bin/rans_byte_asan main.cpp -O1 -g -lm && \
     g++ -fsanitize=address -o /usr/local/bin/rans64_asan main64.cpp -O1 -g -lm -lrt -D_POSIX_C_SOURCE=199309L
