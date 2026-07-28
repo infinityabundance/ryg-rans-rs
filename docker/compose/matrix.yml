@@ -1,10 +1,5 @@
 # Docker matrix for ryg-rans-rs forensic parity courts
 # Requires: RUN_ID and DOCKER_ROOT environment variables
-# Usage:
-#   export RUN_ID=$(date -u +%Y%m%dT%H%M%S)Z-$(git rev-parse --short HEAD)
-#   export DOCKER_ROOT=/run/media/one/toshiba4TB/docker/ryg-rans-rs
-#   docker compose --project-name "ryg-rans-rs-court-${RUN_ID}" -f compose/matrix.yml build
-#   docker compose --project-name "ryg-rans-rs-court-${RUN_ID}" -f compose/matrix.yml run --rm <service>
 
 services:
   oracle-gcc:
@@ -23,7 +18,7 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    labels:
+    labels: &project-labels
       org.infinityabundance.project: "ryg-rans-rs"
       org.infinityabundance.purpose: "forensic-parity-court"
       org.infinityabundance.managed-by: "ryg-rans-rs-xtask"
@@ -31,7 +26,7 @@ services:
     command: >
       sh -c 'ls -la /usr/local/bin/rans_byte_oracle /usr/local/bin/rans64_oracle /usr/local/bin/rans_alias_oracle /usr/local/bin/rans_sse41_oracle && echo "Oracle build OK"'
 
-  rust-stable-tests:
+  rust-stable-tests: &rust-base
     build:
       context: ${DOCKER_ROOT}
       dockerfile: dockerfiles/Dockerfile.rust-stable
@@ -42,7 +37,6 @@ services:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
         target: /workspace
-        read_only: true
       - type: volume
         source: cargo-stable
         target: /cargo
@@ -54,33 +48,26 @@ services:
         target: /reports
       - type: tmpfs
         target: /tmp
-    environment:
+    environment: &cargo-env
       - CARGO_HOME=/cargo
       - CARGO_TARGET_DIR=/target
     security_opt:
       - no-new-privileges:true
-    cap_drop:
-      - ALL
-    labels:
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
-      org.infinityabundance.managed-by: "ryg-rans-rs-xtask"
-      org.infinityabundance.run-id: "${RUN_ID}"
+    labels: *project-labels
     command: >
       sh -c 'cd /workspace && cargo test --workspace 2>&1 && echo "Rust tests OK"'
 
   rust-musl-build:
+    <<: *rust-base
     build:
       context: ${DOCKER_ROOT}
       dockerfile: dockerfiles/Dockerfile.rust-musl
     image: ryg-rans-rs-court-rust-musl:${RUN_ID}
     container_name: ryg-rans-rs-court-rust-musl-${RUN_ID}
-    working_dir: /workspace
     volumes:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
         target: /workspace
-        read_only: true
       - type: volume
         source: cargo-musl
         target: /cargo
@@ -92,66 +79,27 @@ services:
         target: /reports
       - type: tmpfs
         target: /tmp
-    environment:
-      - CARGO_HOME=/cargo
-      - CARGO_TARGET_DIR=/target
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    labels:
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
-      org.infinityabundance.managed-by: "ryg-rans-rs-xtask"
-      org.infinityabundance.run-id: "${RUN_ID}"
+    environment: *cargo-env
     command: >
       sh -c 'cd /workspace && cargo build --target x86_64-unknown-linux-musl --workspace 2>&1 && echo "Musl build OK"'
 
   package-audit:
+    <<: *rust-base
     build:
       context: ${DOCKER_ROOT}
       dockerfile: dockerfiles/Dockerfile.package-audit
     image: ryg-rans-rs-court-package-audit:${RUN_ID}
     container_name: ryg-rans-rs-court-package-audit-${RUN_ID}
-    working_dir: /workspace
-    volumes:
-      - type: bind
-        source: ${DOCKER_ROOT}/source/${RUN_ID}
-        target: /workspace
-        read_only: true
-      - type: volume
-        source: cargo-stable
-        target: /cargo
-      - type: volume
-        source: target-stable
-        target: /target
-      - type: bind
-        source: ${DOCKER_ROOT}/reports/${RUN_ID}/package
-        target: /reports
-      - type: tmpfs
-        target: /tmp
-    environment:
-      - CARGO_HOME=/cargo
-      - CARGO_TARGET_DIR=/target
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    labels:
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
-      org.infinityabundance.managed-by: "ryg-rans-rs-xtask"
-      org.infinityabundance.run-id: "${RUN_ID}"
     command: >
       sh -c 'cd /workspace && cargo package --list -p ryg-rans-rs-core 2>&1 && cargo package --list -p ryg-rans-rs 2>&1 && echo "Package audit OK"'
 
   cross-court:
+    <<: *rust-base
     build:
       context: ${DOCKER_ROOT}
       dockerfile: dockerfiles/Dockerfile.cross-court
     image: ryg-rans-rs-court-cross-court:${RUN_ID}
     container_name: ryg-rans-rs-court-cross-court-${RUN_ID}
-    working_dir: /workspace
     volumes:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
@@ -167,16 +115,6 @@ services:
         target: /reports
       - type: tmpfs
         target: /tmp
-    environment:
-      - CARGO_HOME=/cargo
-      - CARGO_TARGET_DIR=/target
-    security_opt:
-      - no-new-privileges:true
-    labels:
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
-      org.infinityabundance.managed-by: "ryg-rans-rs-xtask"
-      org.infinityabundance.run-id: "${RUN_ID}"
     command: >
       sh -c '
         set -e
@@ -191,12 +129,12 @@ services:
       '
 
   miri:
+    <<: *rust-base
     build:
       context: ${DOCKER_ROOT}
       dockerfile: dockerfiles/Dockerfile.miri
     image: ryg-rans-rs-court-miri:${RUN_ID}
     container_name: ryg-rans-rs-court-miri-${RUN_ID}
-    working_dir: /workspace
     volumes:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
@@ -216,19 +154,11 @@ services:
       - CARGO_HOME=/cargo
       - CARGO_TARGET_DIR=/target
       - MIRIFLAGS=-Zmiri-disable-isolation
-    security_opt:
-      - no-new-privileges:true
-    labels:
-      org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
-      org.infinityabundance.managed-by: "ryg-rans-rs-xtask"
-      org.infinityabundance.run-id: "${RUN_ID}"
     command: >
       sh -c '
         set -e
         echo "=== Running Miri on core crate ==="
-        cd /workspace
-        cargo miri test -p ryg-rans-rs-core --no-default-features 2>&1
+        cd /workspace && cargo +nightly miri test -p ryg-rans-rs-core --no-default-features 2>&1
         echo "=== Miri complete ==="
       '
 
@@ -237,23 +167,19 @@ volumes:
     name: "ryg-rans-rs-cargo-stable-${RUN_ID}"
     labels:
       org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
       org.infinityabundance.run-id: "${RUN_ID}"
   target-stable:
     name: "ryg-rans-rs-target-stable-${RUN_ID}"
     labels:
       org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
       org.infinityabundance.run-id: "${RUN_ID}"
   cargo-musl:
     name: "ryg-rans-rs-cargo-musl-${RUN_ID}"
     labels:
       org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
       org.infinityabundance.run-id: "${RUN_ID}"
   target-musl:
     name: "ryg-rans-rs-target-musl-${RUN_ID}"
     labels:
       org.infinityabundance.project: "ryg-rans-rs"
-      org.infinityabundance.purpose: "forensic-parity-court"
       org.infinityabundance.run-id: "${RUN_ID}"
