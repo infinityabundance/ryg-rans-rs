@@ -5,10 +5,11 @@ edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 description = "Development-only oracle harness for comparing against compiled C/C++ ryg_rans"
+publish = false
 
 [dependencies]
-ryg-rans-rs-core = { path = "../ryg-rans-rs-core" }
-ryg-rans-rs-casefile = { path = "../ryg-rans-rs-casefile" }
+ryg-rans-rs-core = { version = "0.1.0", path = "../ryg-rans-rs-core" }
+ryg-rans-rs-casefile = { version = "0.1.0", path = "../ryg-rans-rs-casefile" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"

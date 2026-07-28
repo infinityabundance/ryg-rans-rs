@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
-description = "Public facade for rANS entropy coding with safe API"
+description = "Public facade for rANS entropy coding with safe API — re-exports core types, optional SIMD acceleration"
 
 [dependencies]
-ryg-rans-rs-core = { path = "../ryg-rans-rs-core" }
-ryg-rans-rs-simd = { path = "../ryg-rans-rs-simd", optional = true }
+ryg-rans-rs-core = { version = "0.1.0", path = "../ryg-rans-rs-core" }
+ryg-rans-rs-simd = { version = "0.1.0", path = "../ryg-rans-rs-simd", optional = true }
 
 [features]
 default = ["simd"]
