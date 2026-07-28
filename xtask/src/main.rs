@@ -654,6 +654,12 @@ fn cmd_seal() -> Result<(), String> {
             ".gitignore",
             "Cargo.lock",
             "README.md",
+            "crates/ryg-rans-rs-core/README.md",
+            "crates/ryg-rans-rs-casefile/README.md",
+            "crates/ryg-rans-rs-simd/README.md",
+            "crates/ryg-rans-rs/README.md",
+            "crates/ryg-rans-rs-oracle/README.md",
+            "crates/ryg-rans-rs-cli/README.md",
         ];
         let changed = std::process::Command::new("git")
             .args([
