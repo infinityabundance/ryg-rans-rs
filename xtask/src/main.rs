@@ -313,6 +313,9 @@ fn cmd_seal() -> Result<(), String> {
             || path.starts_with("docs/")
             || path.starts_with("Cargo.lock")
             || path.starts_with(".gitignore")
+            || path.ends_with("/README.md")
+            || path == "README.md"
+            || path == "xtask/README.md"
         {
             continue;
         }
