@@ -52,11 +52,11 @@ services:
         echo "=== Oracle binaries ==="
         ls -la /usr/local/bin/
         for b in rans_byte_oracle rans64_oracle rans_alias_oracle rans_sse41_oracle; do
-          if [ ! -x "/usr/local/bin/$b" ]; then
-            echo "MISSING: $b"
+          if [ ! -x "/usr/local/bin/$$b" ]; then
+            echo "MISSING: $$b"
             exit 1
           fi
-          sha256sum "/usr/local/bin/$b"
+          sha256sum "/usr/local/bin/$$b"
         done
         echo "Oracle build OK"
       '
@@ -84,8 +84,6 @@ services:
       - type: bind
         source: ${TMP_REPORTS}/stable
         target: /reports
-      - type: tmpfs
-        target: /tmp
     environment:
       <<: *cargo-env
     <<: *security-base
@@ -93,6 +91,8 @@ services:
     command: >
       sh -c '
         set -e
+        export TMPDIR=/target/.doctest-tmp
+        mkdir -p "$$TMPDIR"
         echo "=== cargo test --workspace ==="
         cargo test --workspace 2>&1
         echo "=== cargo check --features std ==="
@@ -190,23 +190,17 @@ services:
       sh -c '
         set -e
         echo "=== Building oracle adapter ==="
-        g++ -o /workspace/oracle/adapter/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -lm
+        g++ -o /target/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -lm
         echo "=== Oracle adapter smoke test ==="
-        /workspace/oracle/adapter/rans_trace enc-symbol-init 0 10 14
+        /target/rans_trace enc-symbol-init 0 10 14
         echo "=== Running cross-decoding court (byte + r64) ==="
         cd /workspace
         echo "--- Byte division ---"
-        cargo run -p ryg-rans-rs-oracle -- /workspace/oracle/adapter/rans_trace 12 42 20 2>&1
+        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /target/rans_trace 12 42 20 2>&1
         echo "--- 64-bit division ---"
-        cargo run -p ryg-rans-rs-oracle -- /workspace/oracle/adapter/rans_trace r64 12 42 20 2>&1
-        echo "=== Copying evidence to /reports ==="
-        if [ -d /workspace/evidence ]; then
-          cp -r /workspace/evidence /reports/
-          echo "Evidence copied to /reports/evidence/"
-          ls -la /reports/evidence/ 2>/dev/null
-        else
-          echo "WARNING: /workspace/evidence not found"
-        fi
+        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /target/rans_trace r64 12 42 20 2>&1
+        echo "=== Cross-court evidence written to /reports ==="
+        ls -la /reports/evidence/ 2>/dev/null || echo "(no evidence dir yet)"
         echo "=== Cross-court complete ==="
       '
 
@@ -239,9 +233,11 @@ services:
       <<: *cargo-env
       RUSTUP_TOOLCHAIN: nightly-2025-11-25
       MIRIFLAGS: "-Zmiri-disable-isolation"
+      TMPDIR: /target/.miri-tmp
     command: >
       sh -c '
         set -e
+        mkdir -p "$$TMPDIR"
         echo "=== Toolchain info ==="
         rustc --version
         cargo miri --version

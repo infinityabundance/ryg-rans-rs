@@ -24,10 +24,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let seed: u64 = args.get(3).map(|s| s.parse().unwrap_or(42)).unwrap_or(42);
     let num_cases: usize = args.get(4).map(|s| s.parse().unwrap_or(20)).unwrap_or(20);
 
-    let receipt_dir = "evidence/receipts";
-    let manifest_dir = "evidence/manifests";
-    std::fs::create_dir_all(receipt_dir)?;
-    std::fs::create_dir_all(manifest_dir)?;
+    let evidence_root =
+        std::env::var("RANS_EVIDENCE_DIR").unwrap_or_else(|_| "evidence".to_string());
+    let receipt_dir = format!("{}/receipts", evidence_root);
+    let manifest_dir = format!("{}/manifests", evidence_root);
+    std::fs::create_dir_all(&receipt_dir)?;
+    std::fs::create_dir_all(&manifest_dir)?;
 
     // Run all 4 courts
     let court_configs: Vec<(
@@ -102,7 +104,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     std::fs::write(
-        "evidence/index.json",
+        format!("{}/index.json", evidence_root),
         serde_json::to_string_pretty(&serde_json::json!({
             "schema_version": 1,
             "code_commit": std::process::Command::new("git")
@@ -113,7 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "receipts": index,
         }))?,
     )?;
-    println!("Evidence index: evidence/index.json");
+    println!("Evidence index: {}/index.json", evidence_root);
 
     if all_passed {
         println!("ALL COURTS PASSED");
