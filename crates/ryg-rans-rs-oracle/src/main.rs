@@ -142,10 +142,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+/// Return the supported court paths for a given variant.
+/// Word rANS has only one path (division-based encode + table decode).
+fn supported_paths(variant: &str) -> &'static [CourtPath] {
+    match variant {
+        "byte" | "r64" => &[CourtPath::Division, CourtPath::Reciprocal],
+        "word" => &[CourtPath::Division],
+        _ => &[],
+    }
+}
+
 fn build_court_configs() -> Vec<FullConfig> {
     let mut configs = Vec::new();
     let variants = ["byte", "r64", "word"];
-    let paths = [CourtPath::Division, CourtPath::Reciprocal];
     let profiles = [
         ModelProfile::Uniform256,
         ModelProfile::Freq1Residual,
@@ -159,7 +168,7 @@ fn build_court_configs() -> Vec<FullConfig> {
 
     // Single-state standard profiles at scale_bits=12
     for &variant in &variants {
-        for &path in &paths {
+        for &path in supported_paths(variant) {
             for &profile in &profiles {
                 configs.push(FullConfig {
                     variant,
@@ -173,7 +182,7 @@ fn build_court_configs() -> Vec<FullConfig> {
 
     // Single-state scale sweep (word rANS uses fixed scale_bits=12 per upstream)
     for &variant in &["byte", "r64"] {
-        for &path in &paths {
+        for &path in supported_paths(variant) {
             configs.push(FullConfig {
                 variant,
                 path,
@@ -183,9 +192,9 @@ fn build_court_configs() -> Vec<FullConfig> {
         }
     }
 
-    // Interleaved2: byte and R64 interleaved courts
+    // Interleaved2: interleaved courts for all variants
     for &variant in &variants {
-        for &path in &paths {
+        for &path in supported_paths(variant) {
             for &profile in &profiles {
                 if profile == ModelProfile::ScaleSweep {
                     continue;

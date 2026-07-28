@@ -1597,6 +1597,16 @@ pub fn rans64_dec_renorm(
 ///
 /// Equivalent to `RANS_WORD_L` in `rans_word_sse41.h`.
 /// Word rANS uses L=2^16 with 16-bit renormalization words.
+/// Default scale_bits for word rANS (per upstream design).
+/// Upstream rans_word_sse41.h hardcodes this to 12.
+/// The table has 1<<12 = 4096 slots, and all encode/decode
+/// formulas assume this value.
+pub const RANS_WORD_SCALE_BITS: u32 = 12;
+
+/// Lower bound of the normalization interval for word rANS.
+///
+/// Equivalent to `RANS_WORD_L` in `rans_word_sse41.h`.
+/// Word rANS uses L=2^16 with 16-bit renormalization words.
 pub const RANS_WORD_L: u32 = 1u32 << 16;
 
 /// Word rANS encoder/decoder state.
@@ -1740,6 +1750,16 @@ pub struct RansWordTables<'a> {
     pub slot2sym: &'a [u8],
 }
 
+/// Check that scale_bits matches the word rANS upstream constant.
+/// Returns `Err(ModelError::InvalidScaleBits)` for unsupported values.
+#[inline]
+pub fn rans_word_check_scale_bits(scale_bits: u32) -> Result<(), ModelError> {
+    if scale_bits != RANS_WORD_SCALE_BITS {
+        return Err(ModelError::InvalidScaleBits);
+    }
+    Ok(())
+}
+
 // ---------------------------------------------------------------------------
 // Word rANS encoder functions
 // ---------------------------------------------------------------------------
@@ -1788,6 +1808,9 @@ pub fn rans_word_enc_put(
     freq: u32,
     scale_bits: u32,
 ) -> Result<(), EncodeError> {
+    // Validate scale_bits matches upstream constant
+    rans_word_check_scale_bits(scale_bits).map_err(|_| EncodeError::OutputTooSmall)?;
+
     // Renormalize
     rans_word_enc_renorm(state, writer, freq, scale_bits)?;
 
@@ -1843,6 +1866,14 @@ pub fn rans_word_dec_sym(
     tables: &RansWordTables<'_>,
     scale_bits: u32,
 ) -> u8 {
+    // Validate scale_bits matches upstream constant
+    // Panics on mismatch because this is a hot-path function that
+    // should not return Result; upstream hardcodes this value.
+    debug_assert_eq!(
+        scale_bits, RANS_WORD_SCALE_BITS,
+        "word rANS requires scale_bits={}",
+        RANS_WORD_SCALE_BITS
+    );
     let x = state.0;
     let mask = (1u32 << scale_bits) - 1;
     let slot = (x & mask) as usize;

@@ -401,6 +401,55 @@ fn cmd_seal() -> Result<(), String> {
     }
     println!("  full claims: all have receipts");
 
+    // 5a.2. Validate that each receipt's court_path is supported by its variant
+    println!("Checking: court path is valid for variant...");
+    if let Some(surfaces) = parity.get("surfaces").and_then(|s| s.as_array()) {
+        for surface in surfaces {
+            if let Some(claims) = surface.get("claims").and_then(|c| c.as_array()) {
+                let id = surface.get("id").and_then(|s| s.as_str()).unwrap_or("");
+                // Determine variant from surface ID
+                let variant = if id.starts_with("rans64.") {
+                    "r64"
+                } else if id.starts_with("byte.") {
+                    "byte"
+                } else if id.starts_with("word.") {
+                    "word"
+                } else {
+                    ""
+                };
+                for claim in claims {
+                    if let Some(rid) = claim.get("receipt").and_then(|s| s.as_str()) {
+                        if rid.is_empty() {
+                            continue;
+                        }
+                        // Parse court_path from receipt content
+                        let rp = format!("evidence/receipts/receipt-{}.json", rid);
+                        if let Ok(rc) = std::fs::read_to_string(&rp) {
+                            if let Ok(rj) = serde_json::from_str::<serde_json::Value>(&rc) {
+                                let court_path =
+                                    rj.get("court_path").and_then(|s| s.as_str()).unwrap_or("");
+                                let valid = match variant {
+                                    "r64" | "byte" => {
+                                        court_path == "DIVISION" || court_path == "RECIPROCAL"
+                                    }
+                                    "word" => court_path == "DIVISION",
+                                    _ => true,
+                                };
+                                if !valid {
+                                    return Err(format!(
+                                        "receipt '{}' has court_path='{}' which is not valid for variant '{}'",
+                                        rid, court_path, variant
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    println!("  all court paths valid for their variant");
+
     // 5b. Verify receipt files exist on disk
     println!("Checking: receipt files exist on disk...");
     if let Some(surfaces) = parity.get("surfaces").and_then(|s| s.as_array()) {
