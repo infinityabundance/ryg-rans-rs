@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.PRIME.RESIDUE.S12",
+  "court_path": "DIVISION",
+  "variant": "word_interleaved2",
+  "profile": "PRIME.RESIDUE",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "7e865527572ff91a15c2e96f4af8d12ed4e9a400",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "20a1b24dd7a7f22c8b00cacb705abc14c77795b1eabe8bd3179671dbb77a2cf0",
+  "receipt_sha256": "747d62657c386b13173e70c8d3d2c93fd196a253d34fbe4f788002ef24066fb5",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_full 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}

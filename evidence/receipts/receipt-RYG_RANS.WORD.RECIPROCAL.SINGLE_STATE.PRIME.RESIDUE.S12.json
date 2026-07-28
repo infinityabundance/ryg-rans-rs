@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.WORD.RECIPROCAL.SINGLE_STATE.PRIME.RESIDUE.S12",
+  "court_path": "RECIPROCAL",
+  "variant": "word",
+  "profile": "PRIME.RESIDUE",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "7e865527572ff91a15c2e96f4af8d12ed4e9a400",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "4d661aa21e5d3918a5cf5204f1c1335c90f96364a195977dd9fe780732a54b96",
+  "receipt_sha256": "10fd211e6f10aa32100e34761bd3941a8733f271bd9c3439c0cdc976fe4600f4",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_full 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}

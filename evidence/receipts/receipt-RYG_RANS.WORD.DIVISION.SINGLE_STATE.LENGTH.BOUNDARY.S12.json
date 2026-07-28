@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.WORD.DIVISION.SINGLE_STATE.LENGTH.BOUNDARY.S12",
+  "court_path": "DIVISION",
+  "variant": "word",
+  "profile": "LENGTH.BOUNDARY",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 12,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "7e865527572ff91a15c2e96f4af8d12ed4e9a400",
+  "pairs_compared": 60,
+  "pairs_matched": 60,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "1a0e1957c526bb5b0a89dd4b94f539eae54c9013db0a7d97a1c69f98ac26d989",
+  "receipt_sha256": "91509614632c514f3b825462b73799b4aba2f7bc9fca6d6b6417ecca35d658ce",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_full 12 42 12",
+  "oracle_compiler": "g++ -O3"
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.SKEWED.255_1.S12",
+  "court_path": "RECIPROCAL",
+  "variant": "word_interleaved2",
+  "profile": "SKEWED.255_1",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "7e865527572ff91a15c2e96f4af8d12ed4e9a400",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "b15af53eccdbda4dda91b18153f0736072885501f88de501eda653c96812ead9",
+  "receipt_sha256": "0d1f3a2a727bfa30579dc3b6086ec953c87517334ab91f3451fca91fee03e12f",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_full 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.RENORM.BOUNDARY.S12",
+  "court_path": "RECIPROCAL",
+  "variant": "word_interleaved2",
+  "profile": "RENORM.BOUNDARY",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "7e865527572ff91a15c2e96f4af8d12ed4e9a400",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "a0e6221c1a7210d5e78a3059b6c829abb8a52e7a56208137e9d6aeece2450590",
+  "receipt_sha256": "2cdd4b573b42efa0c38f58edecf1650d1537f1db1aa9bafca072e57ab2a0ef98",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_full 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}
