@@ -27,6 +27,7 @@ impl CourtPath {
             ("r64", CourtPath::Division) => "enc-stream-r64-div",
             ("r64", CourtPath::Reciprocal) => "enc-stream-r64",
             ("word", _) => "enc-stream-word",
+            ("alias", _) => "enc-stream-alias",
             _ => unreachable!(),
         }
     }
@@ -38,6 +39,7 @@ impl CourtPath {
             ("r64", CourtPath::Division) => "dec-stream-r64-div",
             ("r64", CourtPath::Reciprocal) => "dec-stream-r64",
             ("word", _) => "dec-stream-word",
+            ("alias", _) => "dec-stream-alias",
             _ => unreachable!(),
         }
     }
@@ -50,6 +52,7 @@ impl CourtPath {
             ("r64", CourtPath::Division) => "enc-stream-r64-interleaved2-div",
             ("r64", CourtPath::Reciprocal) => "enc-stream-r64-interleaved2",
             ("word", _) => "enc-stream-word-interleaved2",
+            ("alias", _) => "enc-stream-alias-interleaved2",
             _ => unreachable!(),
         }
     }
@@ -62,6 +65,7 @@ impl CourtPath {
             ("r64", CourtPath::Division) => "dec-stream-r64-interleaved2-div",
             ("r64", CourtPath::Reciprocal) => "dec-stream-r64-interleaved2",
             ("word", _) => "dec-stream-word-interleaved2",
+            ("alias", _) => "dec-stream-alias-interleaved2",
             _ => unreachable!(),
         }
     }
@@ -1186,11 +1190,14 @@ pub fn run_r64_court(
 macro_rules! use_core {
     () => {
         use ryg_rans_rs_core::{
-            BackwardByteWriter, BackwardWord16Writer, BackwardWord32Writer, ByteInterleavedDecoder,
-            ByteInterleavedEncoder, ByteReader, ForwardReader, Rans64DecSymbol, Rans64EncSymbol,
-            Rans64State, RansByteDecSymbol, RansByteEncSymbol, RansByteState, RansWordSlot,
-            RansWordState, RansWordTables, SliceBackwardWriter, Word16Reader, Word32Reader,
-            rans_byte_dec_advance, rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+            ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+            BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+            ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+            RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+            SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+            rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+            rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+            rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
@@ -1837,4 +1844,572 @@ fn rust_word_interleaved_decode(
     }
 
     Ok(output)
+}
+
+// ---------------------------------------------------------------------------
+// Alias method — byte rANS with alias table
+// ---------------------------------------------------------------------------
+
+fn rust_byte_alias_encode(
+    input: &[u8],
+    raw_freqs: &[u32],
+    scale_bits: u32,
+) -> Result<Vec<u8>, String> {
+    use_core!();
+    let target_total = 1u32 << scale_bits;
+    let (_freqs, _cum_freqs) =
+        rans_byte_alias_normalize_freqs(raw_freqs, raw_freqs.len(), target_total)
+            .map_err(|e| format!("alias normalize: {:?}", e))?;
+    let table = rans_byte_alias_build_table(&_freqs, &_cum_freqs, scale_bits);
+
+    let mut buf = vec![0u8; input.len() * 4 + 32];
+    let mut writer = BackwardByteWriter::new(&mut buf);
+    let mut state = RansByteState::new();
+    for &s in input.iter().rev() {
+        rans_byte_alias_enc_put(&mut state, &mut writer, &table, s, scale_bits)
+            .map_err(|e| format!("alias enc put: {:?}", e))?;
+    }
+    rans_byte_enc_flush(&state, &mut writer).map_err(|e| format!("alias enc flush: {:?}", e))?;
+    Ok(writer.encoded().to_vec())
+}
+
+fn rust_byte_alias_decode(
+    compressed: &[u8],
+    raw_freqs: &[u32],
+    scale_bits: u32,
+    expected_len: usize,
+) -> Result<Vec<u8>, String> {
+    use_core!();
+    let target_total = 1u32 << scale_bits;
+    let (_freqs, _cum_freqs) =
+        rans_byte_alias_normalize_freqs(raw_freqs, raw_freqs.len(), target_total)
+            .map_err(|e| format!("alias normalize: {:?}", e))?;
+    let table = rans_byte_alias_build_table(&_freqs, &_cum_freqs, scale_bits);
+
+    let mut reader = ByteReader::new(compressed);
+    let mut state =
+        rans_byte_dec_init(&mut reader).map_err(|e| format!("alias dec init: {:?}", e))?;
+    let mut output = vec![0u8; expected_len];
+    for i in 0..expected_len {
+        let s = rans_byte_alias_dec_advance(&mut state, &mut reader, &table, scale_bits)
+            .map_err(|e| format!("alias dec advance @{}: {:?}", i, e))?;
+        output[i] = s;
+    }
+    Ok(output)
+}
+
+fn rust_byte_alias_interleaved_encode(
+    input: &[u8],
+    raw_freqs: &[u32],
+    scale_bits: u32,
+) -> Result<Vec<u8>, String> {
+    use_core!();
+    let target_total = 1u32 << scale_bits;
+    let (_freqs, _cum_freqs) =
+        rans_byte_alias_normalize_freqs(raw_freqs, raw_freqs.len(), target_total)
+            .map_err(|e| format!("alias normalize: {:?}", e))?;
+    let table = rans_byte_alias_build_table(&_freqs, &_cum_freqs, scale_bits);
+
+    let mut buf = vec![0u8; input.len() * 4 + 32];
+    let mut writer = BackwardByteWriter::new(&mut buf);
+
+    let mut state0 = RansByteState::new();
+    let mut state1 = RansByteState::new();
+
+    let n = input.len();
+    if n & 1 != 0 {
+        let s = input[n - 1];
+        rans_byte_alias_enc_put(&mut state0, &mut writer, &table, s, scale_bits)
+            .map_err(|e| format!("alias int enc tail: {:?}", e))?;
+    }
+
+    for i in (0..(n & !1)).rev().step_by(2) {
+        let s1 = input[i];
+        let s0 = input[i - 1];
+        rans_byte_alias_enc_put(&mut state1, &mut writer, &table, s1, scale_bits)
+            .map_err(|e| format!("alias int enc1 @{}: {:?}", i, e))?;
+        rans_byte_alias_enc_put(&mut state0, &mut writer, &table, s0, scale_bits)
+            .map_err(|e| format!("alias int enc0 @{}: {:?}", i, e))?;
+    }
+
+    rans_byte_enc_flush(&state1, &mut writer).map_err(|e| format!("alias int flush1: {:?}", e))?;
+    rans_byte_enc_flush(&state0, &mut writer).map_err(|e| format!("alias int flush0: {:?}", e))?;
+    Ok(writer.encoded().to_vec())
+}
+
+fn rust_byte_alias_interleaved_decode(
+    compressed: &[u8],
+    raw_freqs: &[u32],
+    scale_bits: u32,
+    expected_len: usize,
+) -> Result<Vec<u8>, String> {
+    use_core!();
+    let target_total = 1u32 << scale_bits;
+    let (_freqs, _cum_freqs) =
+        rans_byte_alias_normalize_freqs(raw_freqs, raw_freqs.len(), target_total)
+            .map_err(|e| format!("alias normalize: {:?}", e))?;
+    let table = rans_byte_alias_build_table(&_freqs, &_cum_freqs, scale_bits);
+
+    let mut reader = ByteReader::new(compressed);
+    let mut state0 =
+        rans_byte_dec_init(&mut reader).map_err(|e| format!("alias int dec init0: {:?}", e))?;
+    let mut state1 =
+        rans_byte_dec_init(&mut reader).map_err(|e| format!("alias int dec init1: {:?}", e))?;
+
+    let n = expected_len;
+    let even_n = n & !1;
+    let mut output = vec![0u8; n];
+
+    let mut pos = 0;
+    while pos < even_n {
+        let s0 = rans_byte_alias_dec_get(state0, &table, scale_bits);
+        let s1 = rans_byte_alias_dec_get(state1, &table, scale_bits);
+        state0 = s0.1;
+        state1 = s1.1;
+        output[pos] = s0.0;
+        output[pos + 1] = s1.0;
+        rans_byte_alias_dec_renorm(&mut state0, &mut reader)
+            .map_err(|e| format!("alias int renorm0 @{}: {:?}", pos, e))?;
+        rans_byte_alias_dec_renorm(&mut state1, &mut reader)
+            .map_err(|e| format!("alias int renorm1 @{}: {:?}", pos, e))?;
+        pos += 2;
+    }
+
+    if even_n < n {
+        let s = rans_byte_alias_dec_get(state0, &table, scale_bits);
+        output[even_n] = s.0;
+        state0 = s.1;
+        rans_byte_alias_dec_renorm(&mut state0, &mut reader)
+            .map_err(|e| format!("alias int dec tail: {:?}", e))?;
+    }
+
+    Ok(output)
+}
+
+/// Run an alias cross-decoding court (single-state).
+pub fn run_alias_court(
+    oracle_path: &str,
+    scale_bits: u32,
+    seed: u64,
+    profile: ModelProfile,
+) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
+    let num_cases = profile.num_cases();
+    let profile_label = profile.label();
+    let court_id = format!(
+        "RYG_RANS.ALIAS.SINGLE_STATE.{}.S{}",
+        profile_label, scale_bits
+    );
+
+    let c_enc_op = "enc-stream-alias";
+    let c_dec_op = "dec-stream-alias";
+
+    let mut raw_freqs = profile.generate_frequencies(scale_bits);
+
+    while raw_freqs.len() < 256 {
+        raw_freqs.push(0);
+    }
+
+    let freq_csv = raw_freqs
+        .iter()
+        .map(|f| f.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+
+    let mut cases = Vec::with_capacity(num_cases);
+    let mut residuals = Vec::new();
+
+    for case_idx in 0..num_cases {
+        let input = profile.generate_input(seed, case_idx, scale_bits);
+        let input_hex = hex::encode(&input);
+
+        let call_c_dec = |compressed_hex: &str, input_len: usize| -> Result<bool, String> {
+            let dec_out = std::process::Command::new(oracle_path)
+                .args([
+                    c_dec_op,
+                    &scale_bits.to_string(),
+                    &freq_csv,
+                    compressed_hex,
+                    &input_len.to_string(),
+                ])
+                .output()
+                .map_err(|e| format!("C alias dec: {}", e))?;
+            if !dec_out.status.success() {
+                return Err(format!(
+                    "C alias dec exit {} for case {}",
+                    dec_out.status, case_idx
+                ));
+            }
+            let dec_json: serde_json::Value = serde_json::from_slice(&dec_out.stdout)
+                .map_err(|e| format!("C alias dec JSON: {}", e))?;
+            let decoded_hex = dec_json["decoded_hex"]
+                .as_str()
+                .ok_or("C alias dec missing decoded_hex")?;
+            Ok(decoded_hex == input_hex)
+        };
+
+        let c_enc_out = std::process::Command::new(oracle_path)
+            .args([c_enc_op, &scale_bits.to_string(), &freq_csv, &input_hex])
+            .output()
+            .map_err(|e| format!("C alias enc: {}", e))?;
+        if !c_enc_out.status.success() {
+            return Err(format!(
+                "C alias enc exit {} for case {}",
+                c_enc_out.status, case_idx
+            ));
+        }
+        let c_enc_json: serde_json::Value = serde_json::from_slice(&c_enc_out.stdout)
+            .map_err(|e| format!("C alias enc JSON: {}", e))?;
+        let c_compressed_hex = c_enc_json["compressed_hex"]
+            .as_str()
+            .ok_or("C alias enc missing compressed_hex")?
+            .to_string();
+        let c_compressed = hex::decode(&c_compressed_hex).map_err(|e| format!("C hex: {}", e))?;
+
+        let c_self_decode = call_c_dec(&c_compressed_hex, input.len())?;
+
+        let rust_compressed = rust_byte_alias_encode(&input, &raw_freqs, scale_bits)?;
+        let rust_compressed_hex = hex::encode(&rust_compressed);
+
+        let rust_self_decode =
+            rust_byte_alias_decode(&rust_compressed, &raw_freqs, scale_bits, input.len())
+                .map(|d| d == input)
+                .unwrap_or(false);
+
+        let c_to_rust = rust_byte_alias_decode(&c_compressed, &raw_freqs, scale_bits, input.len())
+            .map(|d| d == input)
+            .unwrap_or(false);
+
+        let rust_to_c = call_c_dec(&rust_compressed_hex, input.len())?;
+
+        let compressed_match = rust_compressed_hex == c_compressed_hex;
+        let case_id = format!("CASE.{:06}", case_idx);
+
+        let result = CaseResult {
+            case_id,
+            input_hex,
+            frequencies: raw_freqs.clone(),
+            scale_bits,
+            c_compressed_hex,
+            rust_compressed_hex,
+            compressed_match,
+            c_self_decode,
+            rust_self_decode,
+            c_to_rust,
+            rust_to_c,
+        };
+
+        let all_ok = result.c_self_decode
+            && result.rust_self_decode
+            && result.compressed_match
+            && result.c_to_rust
+            && result.rust_to_c;
+
+        if !all_ok {
+            residuals.push(format!("{}.{:06}", court_id, case_idx));
+        }
+
+        cases.push(result);
+    }
+
+    // ... (manifest + receipt generation omitted for brevity, follow same pattern as run_court_with_profile)
+
+    // Build manifest
+    let manifest = CaseManifest {
+        schema_version: 1,
+        court_id: court_id.clone(),
+        court_path: "ALIAS".to_string(),
+        variant: "alias".to_string(),
+        profile: profile_label.to_string(),
+        scale_bits,
+        seed,
+        cases: cases.clone(),
+    };
+
+    let manifest_bytes =
+        serde_json::to_vec_pretty(&manifest).map_err(|e| format!("manifest serialize: {}", e))?;
+    let manifest_sha256 = {
+        use sha2::Digest;
+        let mut h = sha2::Sha256::new();
+        h.update(&manifest_bytes);
+        format!("{:x}", h.finalize())
+    };
+
+    let pairs_compared = cases.len() as u64 * 5;
+    let pairs_matched: u64 = cases
+        .iter()
+        .map(|r| {
+            [
+                r.c_self_decode,
+                r.rust_self_decode,
+                r.compressed_match,
+                r.c_to_rust,
+                r.rust_to_c,
+            ]
+            .iter()
+            .filter(|&&x| x)
+            .count() as u64
+        })
+        .sum();
+    let residual_count = residuals.len() as u32;
+
+    let verdict = if residual_count == 0 {
+        "admitted_match"
+    } else {
+        "admitted_partial"
+    };
+
+    let code_commit = std::env::var("RANS_GIT_COMMIT")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            std::process::Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| "unknown".to_string())
+        });
+
+    let receipt = Receipt {
+        schema_version: 1,
+        court_id: court_id.clone(),
+        court_path: "ALIAS".to_string(),
+        variant: "alias".to_string(),
+        profile: profile_label.to_string(),
+        scale_bits,
+        seed,
+        num_cases: num_cases as u32,
+        verdict: verdict.to_string(),
+        upstream_commit: "c9d162d996fd600315af9ae8eb89d832576cb32d".to_string(),
+        code_commit,
+        pairs_compared,
+        pairs_matched,
+        residual_count,
+        residual_ids: residuals,
+        manifest_sha256,
+        receipt_sha256: String::new(),
+        reproduction_command: format!(
+            "cargo run -p ryg-rans-rs-oracle -- {} {} {} {}",
+            oracle_path, scale_bits, seed, num_cases
+        ),
+        oracle_compiler: "g++ (Debian 12)".to_string(),
+    };
+
+    Ok((receipt, manifest, manifest_bytes))
+}
+
+/// Run an alias interleaved cross-decoding court (two-state).
+pub fn run_alias_interleaved_court(
+    oracle_path: &str,
+    scale_bits: u32,
+    seed: u64,
+    profile: ModelProfile,
+) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
+    let num_cases = profile.num_cases();
+    let profile_label = profile.label();
+    let court_id = format!(
+        "RYG_RANS.ALIAS.INTERLEAVED2.{}.S{}",
+        profile_label, scale_bits
+    );
+
+    let c_enc_op = "enc-stream-alias-interleaved2";
+    let c_dec_op = "dec-stream-alias-interleaved2";
+
+    let mut raw_freqs = profile.generate_frequencies(scale_bits);
+
+    while raw_freqs.len() < 256 {
+        raw_freqs.push(0);
+    }
+
+    let freq_csv = raw_freqs
+        .iter()
+        .map(|f| f.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+
+    let mut cases = Vec::with_capacity(num_cases);
+    let mut residuals = Vec::new();
+
+    for case_idx in 0..num_cases {
+        let input = profile.generate_input(seed, case_idx, scale_bits);
+        let input_hex = hex::encode(&input);
+
+        let call_c_dec = |compressed_hex: &str, input_len: usize| -> Result<bool, String> {
+            let dec_out = std::process::Command::new(oracle_path)
+                .args([
+                    c_dec_op,
+                    &scale_bits.to_string(),
+                    &freq_csv,
+                    compressed_hex,
+                    &input_len.to_string(),
+                ])
+                .output()
+                .map_err(|e| format!("C alias int dec: {}", e))?;
+            if !dec_out.status.success() {
+                return Err(format!(
+                    "C alias int dec exit {} for case {}",
+                    dec_out.status, case_idx
+                ));
+            }
+            let dec_json: serde_json::Value = serde_json::from_slice(&dec_out.stdout)
+                .map_err(|e| format!("C alias int dec JSON: {}", e))?;
+            let decoded_hex = dec_json["decoded_hex"]
+                .as_str()
+                .ok_or("C alias int dec missing decoded_hex")?;
+            Ok(decoded_hex == input_hex)
+        };
+
+        let c_enc_out = std::process::Command::new(oracle_path)
+            .args([c_enc_op, &scale_bits.to_string(), &freq_csv, &input_hex])
+            .output()
+            .map_err(|e| format!("C alias int enc: {}", e))?;
+        if !c_enc_out.status.success() {
+            return Err(format!(
+                "C alias int enc exit {} for case {}",
+                c_enc_out.status, case_idx
+            ));
+        }
+        let c_enc_json: serde_json::Value = serde_json::from_slice(&c_enc_out.stdout)
+            .map_err(|e| format!("C alias int enc JSON: {}", e))?;
+        let c_compressed_hex = c_enc_json["compressed_hex"]
+            .as_str()
+            .ok_or("C alias int enc missing compressed_hex")?
+            .to_string();
+        let c_compressed = hex::decode(&c_compressed_hex).map_err(|e| format!("C hex: {}", e))?;
+
+        let c_self_decode = call_c_dec(&c_compressed_hex, input.len())?;
+
+        let rust_compressed = rust_byte_alias_interleaved_encode(&input, &raw_freqs, scale_bits)?;
+        let rust_compressed_hex = hex::encode(&rust_compressed);
+
+        let rust_self_decode = rust_byte_alias_interleaved_decode(
+            &rust_compressed,
+            &raw_freqs,
+            scale_bits,
+            input.len(),
+        )
+        .map(|d| d == input)
+        .unwrap_or(false);
+
+        let c_to_rust =
+            rust_byte_alias_interleaved_decode(&c_compressed, &raw_freqs, scale_bits, input.len())
+                .map(|d| d == input)
+                .unwrap_or(false);
+
+        let rust_to_c = call_c_dec(&rust_compressed_hex, input.len())?;
+
+        let compressed_match = rust_compressed_hex == c_compressed_hex;
+        let case_id = format!("CASE.{:06}", case_idx);
+
+        let result = CaseResult {
+            case_id,
+            input_hex,
+            frequencies: raw_freqs.clone(),
+            scale_bits,
+            c_compressed_hex,
+            rust_compressed_hex,
+            compressed_match,
+            c_self_decode,
+            rust_self_decode,
+            c_to_rust,
+            rust_to_c,
+        };
+
+        let all_ok = result.c_self_decode
+            && result.rust_self_decode
+            && result.compressed_match
+            && result.c_to_rust
+            && result.rust_to_c;
+
+        if !all_ok {
+            residuals.push(format!("{}.{:06}", court_id, case_idx));
+        }
+
+        cases.push(result);
+    }
+
+    let manifest = CaseManifest {
+        schema_version: 1,
+        court_id: court_id.clone(),
+        court_path: "ALIAS_INTERLEAVED2".to_string(),
+        variant: "alias_interleaved2".to_string(),
+        profile: profile_label.to_string(),
+        scale_bits,
+        seed,
+        cases: cases.clone(),
+    };
+
+    let manifest_bytes =
+        serde_json::to_vec_pretty(&manifest).map_err(|e| format!("manifest serialize: {}", e))?;
+    let manifest_sha256 = {
+        use sha2::Digest;
+        let mut h = sha2::Sha256::new();
+        h.update(&manifest_bytes);
+        format!("{:x}", h.finalize())
+    };
+
+    let pairs_compared = cases.len() as u64 * 5;
+    let pairs_matched: u64 = cases
+        .iter()
+        .map(|r| {
+            [
+                r.c_self_decode,
+                r.rust_self_decode,
+                r.compressed_match,
+                r.c_to_rust,
+                r.rust_to_c,
+            ]
+            .iter()
+            .filter(|&&x| x)
+            .count() as u64
+        })
+        .sum();
+    let residual_count = residuals.len() as u32;
+
+    let verdict = if residual_count == 0 {
+        "admitted_match"
+    } else {
+        "admitted_partial"
+    };
+
+    let code_commit = std::env::var("RANS_GIT_COMMIT")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            std::process::Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| "unknown".to_string())
+        });
+
+    let receipt = Receipt {
+        schema_version: 1,
+        court_id: court_id.clone(),
+        court_path: "ALIAS_INTERLEAVED2".to_string(),
+        variant: "alias_interleaved2".to_string(),
+        profile: profile_label.to_string(),
+        scale_bits,
+        seed,
+        num_cases: num_cases as u32,
+        verdict: verdict.to_string(),
+        upstream_commit: "c9d162d996fd600315af9ae8eb89d832576cb32d".to_string(),
+        code_commit,
+        pairs_compared,
+        pairs_matched,
+        residual_count,
+        residual_ids: residuals,
+        manifest_sha256,
+        receipt_sha256: String::new(),
+        reproduction_command: format!(
+            "cargo run -p ryg-rans-rs-oracle -- {} {} {} {}",
+            oracle_path, scale_bits, seed, num_cases
+        ),
+        oracle_compiler: "g++ (Debian 12)".to_string(),
+    };
+
+    Ok((receipt, manifest, manifest_bytes))
 }

@@ -739,10 +739,108 @@
     },
     {
       "id": "alias",
-      "name": "Alias method",
-      "implementation_status": "scaffold",
+      "name": "Alias method (byte rANS + Vose alias table)",
+      "implementation_status": "full",
       "upstream_file": "main_alias.cpp",
-      "claims": [],
+      "functions": ["RansEncPutAlias", "RansDecGetAlias"],
+      "claims": [
+        {
+          "profile": "SINGLE_STATE.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.SINGLE_STATE.UNIFORM256.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.FREQ1.RESIDUAL.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.SINGLE_STATE.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SKEWED.255_1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.SINGLE_STATE.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.2.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.SINGLE_STATE.SPARSE.2.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.17.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.SINGLE_STATE.SPARSE.17.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.PRIME.RESIDUE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.SINGLE_STATE.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.RENORM.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.SINGLE_STATE.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.LENGTH.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.SINGLE_STATE.LENGTH.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.INTERLEAVED2.UNIFORM256.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.FREQ1.RESIDUAL.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.INTERLEAVED2.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SKEWED.255_1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.INTERLEAVED2.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.2.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.INTERLEAVED2.SPARSE.2.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.17.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.INTERLEAVED2.SPARSE.17.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.PRIME.RESIDUE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.INTERLEAVED2.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.RENORM.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.INTERLEAVED2.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.LENGTH.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.ALIAS.INTERLEAVED2.LENGTH.BOUNDARY.S12"
+        }
+      ],
       "notes": ""
     },
     {

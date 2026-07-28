@@ -56,23 +56,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &[config.profile.scale_bits().unwrap_or(scale_bits)]
         };
         for &scale in scales {
-            let (receipt, _manifest, manifest_bytes) = match config.mode {
-                CourtMode::SingleState => ryg_rans_rs_oracle::run_court_with_profile(
-                    oracle,
-                    scale,
-                    seed,
-                    config.path,
-                    config.variant,
-                    config.profile,
-                )?,
-                CourtMode::Interleaved2 => ryg_rans_rs_oracle::run_interleaved_court(
-                    oracle,
-                    scale,
-                    seed,
-                    config.path,
-                    config.variant,
-                    config.profile,
-                )?,
+            let (receipt, _manifest, manifest_bytes) = if config.variant == "alias" {
+                match config.mode {
+                    CourtMode::SingleState => {
+                        ryg_rans_rs_oracle::run_alias_court(oracle, scale, seed, config.profile)?
+                    }
+                    CourtMode::Interleaved2 => ryg_rans_rs_oracle::run_alias_interleaved_court(
+                        oracle,
+                        scale,
+                        seed,
+                        config.profile,
+                    )?,
+                }
+            } else {
+                match config.mode {
+                    CourtMode::SingleState => ryg_rans_rs_oracle::run_court_with_profile(
+                        oracle,
+                        scale,
+                        seed,
+                        config.path,
+                        config.variant,
+                        config.profile,
+                    )?,
+                    CourtMode::Interleaved2 => ryg_rans_rs_oracle::run_interleaved_court(
+                        oracle,
+                        scale,
+                        seed,
+                        config.path,
+                        config.variant,
+                        config.profile,
+                    )?,
+                }
             };
 
             println!("--- Court: {} ---", receipt.court_id);
@@ -148,13 +162,14 @@ fn supported_paths(variant: &str) -> &'static [CourtPath] {
     match variant {
         "byte" | "r64" => &[CourtPath::Division, CourtPath::Reciprocal],
         "word" => &[CourtPath::Division],
+        "alias" => &[CourtPath::Division],
         _ => &[],
     }
 }
 
 fn build_court_configs() -> Vec<FullConfig> {
     let mut configs = Vec::new();
-    let variants = ["byte", "r64", "word"];
+    let variants = ["byte", "r64", "word", "alias"];
     let profiles = [
         ModelProfile::Uniform256,
         ModelProfile::Freq1Residual,

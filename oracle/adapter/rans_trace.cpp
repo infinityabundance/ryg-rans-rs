@@ -74,6 +74,12 @@ static void usage(const char *prog)
     fprintf(stderr, "  dec-stream-word                   scale_bits freq_csv compressed_hex num_symbols\n");
     fprintf(stderr, "  enc-stream-word-interleaved2       scale_bits freq_csv input_hex\n");
     fprintf(stderr, "  dec-stream-word-interleaved2       scale_bits freq_csv compressed_hex num_symbols\n");
+    fprintf(stderr, "\nAlias operations (alias method, byte rANS):\n");
+    fprintf(stderr, "  trace-alias-table                  scale_bits freq_csv\n");
+    fprintf(stderr, "  enc-stream-alias                  scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  dec-stream-alias                  scale_bits freq_csv compressed_hex num_symbols\n");
+    fprintf(stderr, "  enc-stream-alias-interleaved2     scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  dec-stream-alias-interleaved2     scale_bits freq_csv compressed_hex num_symbols\n");
     exit(1);
 }
 
@@ -1624,6 +1630,15 @@ static void trace_dec_stream_word_interleaved2(uint32_t scale_bits,
 }
 
 // ===========================================================================
+// Forward declarations for alias operations (defined after main)
+// ===========================================================================
+static void trace_alias_table(uint32_t scale_bits, const std::vector<uint32_t>& freqs_in);
+static void trace_enc_stream_alias(uint32_t scale_bits, const std::vector<uint32_t>& freqs_in, const std::vector<uint8_t>& input);
+static void trace_dec_stream_alias(uint32_t scale_bits, const std::vector<uint32_t>& freqs_in, const std::vector<uint8_t>& compressed, size_t num_symbols);
+static void trace_enc_stream_alias_interleaved2(uint32_t scale_bits, const std::vector<uint32_t>& freqs_in, const std::vector<uint8_t>& input);
+static void trace_dec_stream_alias_interleaved2(uint32_t scale_bits, const std::vector<uint32_t>& freqs_in, const std::vector<uint8_t>& compressed, size_t num_symbols);
+
+// ===========================================================================
 // Main dispatch
 // ===========================================================================
 
@@ -1850,10 +1865,538 @@ int main(int argc, char *argv[])
         std::vector<uint8_t> compressed = hex_decode(argv[4]);
         size_t num_symbols = parse_u32(argv[5]);
         trace_dec_stream_word_interleaved2(scale_bits, freqs, compressed, num_symbols);
+    // ---- Alias operations ----
+    } else if (strcmp(op, "trace-alias-table") == 0) {
+        if (argc != 4) usage(argv[0]);
+        trace_alias_table(parse_u32(argv[2]), parse_freq_csv(argv[3]));
+    } else if (strcmp(op, "enc-stream-alias") == 0) {
+        if (argc != 5) usage(argv[0]);
+        trace_enc_stream_alias(parse_u32(argv[2]), parse_freq_csv(argv[3]), hex_decode(argv[4]));
+    } else if (strcmp(op, "dec-stream-alias") == 0) {
+        if (argc != 6) usage(argv[0]);
+        trace_dec_stream_alias(parse_u32(argv[2]), parse_freq_csv(argv[3]), hex_decode(argv[4]), parse_u32(argv[5]));
+    } else if (strcmp(op, "enc-stream-alias-interleaved2") == 0) {
+        if (argc != 5) usage(argv[0]);
+        trace_enc_stream_alias_interleaved2(parse_u32(argv[2]), parse_freq_csv(argv[3]), hex_decode(argv[4]));
+    } else if (strcmp(op, "dec-stream-alias-interleaved2") == 0) {
+        if (argc != 6) usage(argv[0]);
+        trace_dec_stream_alias_interleaved2(parse_u32(argv[2]), parse_freq_csv(argv[3]), hex_decode(argv[4]), parse_u32(argv[5]));
     } else {
         fprintf(stderr, "Unknown operation: %s\n", op);
         usage(argv[0]);
     }
 
     return 0;
+}
+
+// ===========================================================================
+// Alias method operations
+// ===========================================================================
+// The alias method is an alternative rANS coding path that uses a precomputed
+// alias table to avoid symbol search during decoding.  It divides the
+// probability space into 256 equal-sized buckets, each holding at most 2
+// symbols.  Encoding and decoding use direct table lookups instead of
+// cumulative-frequency searches.
+//
+// Adapted from upstream ryg rANS main_alias.cpp.
+// ===========================================================================
+
+static const int ALIAS_LOG2NSYMS = 8;
+static const int ALIAS_NSYMS = 1 << ALIAS_LOG2NSYMS;
+
+// Alias-specific state built from a frequency model.
+struct AliasStats {
+    uint32_t freqs[ALIAS_NSYMS];
+    uint32_t cum_freqs[ALIAS_NSYMS + 1];
+    uint32_t divider[ALIAS_NSYMS];
+    uint32_t slot_adjust[ALIAS_NSYMS * 2];
+    uint32_t slot_freqs[ALIAS_NSYMS * 2];
+    uint8_t  sym_id[ALIAS_NSYMS * 2];
+    uint32_t* alias_remap;  // heap-allocated, size = 1 << scale_bits
+
+    void normalize_freqs(uint32_t target_total) {
+        calc_cum_freqs();
+        uint32_t cur_total = cum_freqs[ALIAS_NSYMS];
+        if (cur_total == 0) {
+            for (int i = 0; i < ALIAS_NSYMS; i++) freqs[i] = 1;
+            cur_total = ALIAS_NSYMS;
+        }
+
+        // Resample distribution based on cumulative freqs
+        for (int i = 1; i <= ALIAS_NSYMS; i++) {
+            cum_freqs[i] = (uint32_t)(((uint64_t)target_total * cum_freqs[i]) / cur_total);
+        }
+
+        // Zero-frequency theft: if a non-zero symbol was nuked to zero, steal from the
+        // smallest frequency > 1.
+        for (int i = 0; i < ALIAS_NSYMS; i++) {
+            if (freqs[i] && cum_freqs[i+1] == cum_freqs[i]) {
+                uint32_t best_freq = ~0u;
+                int best_steal = -1;
+                for (int j = 0; j < ALIAS_NSYMS; j++) {
+                    uint32_t f = cum_freqs[j+1] - cum_freqs[j];
+                    if (f > 1 && f < best_freq) {
+                        best_freq = f;
+                        best_steal = j;
+                    }
+                }
+                if (best_steal < i) {
+                    for (int j = best_steal + 1; j <= i; j++)
+                        cum_freqs[j]--;
+                } else {
+                    for (int j = i + 1; j <= best_steal; j++)
+                        cum_freqs[j]++;
+                }
+            }
+        }
+
+        // Recompute freqs from cum
+        for (int i = 0; i < ALIAS_NSYMS; i++) {
+            freqs[i] = cum_freqs[i+1] - cum_freqs[i];
+        }
+    }
+
+    void calc_cum_freqs() {
+        cum_freqs[0] = 0;
+        for (int i = 0; i < ALIAS_NSYMS; i++)
+            cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    void make_alias_table(uint32_t scale_bits) {
+        uint32_t total = 1u << scale_bits;
+        uint32_t tgt_sum = total / ALIAS_NSYMS;
+
+        delete[] alias_remap;
+        alias_remap = new uint32_t[total];
+
+        // Phase 1: Vose's alias construction
+        uint32_t remaining[ALIAS_NSYMS];
+        for (int i = 0; i < ALIAS_NSYMS; i++) {
+            remaining[i] = freqs[i];
+            divider[i] = tgt_sum;
+            sym_id[i*2 + 0] = (uint8_t)i;
+            sym_id[i*2 + 1] = (uint8_t)i;
+        }
+
+        int cur_large = 0;
+        while (cur_large < ALIAS_NSYMS && remaining[cur_large] < tgt_sum)
+            cur_large++;
+        int cur_small = 0;
+        while (cur_small < ALIAS_NSYMS && remaining[cur_small] >= tgt_sum)
+            cur_small++;
+        int next_small = cur_small + 1;
+
+        while (cur_large < ALIAS_NSYMS && cur_small < ALIAS_NSYMS) {
+            sym_id[cur_small * 2] = (uint8_t)cur_large;
+            divider[cur_small] = remaining[cur_small];
+            remaining[cur_large] -= tgt_sum - divider[cur_small];
+
+            if (remaining[cur_large] >= tgt_sum || next_small <= cur_large) {
+                cur_small = next_small;
+                while (cur_small < ALIAS_NSYMS && remaining[cur_small] >= tgt_sum)
+                    cur_small++;
+                next_small = cur_small + 1;
+            } else {
+                cur_small = cur_large;
+            }
+
+            while (cur_large < ALIAS_NSYMS && remaining[cur_large] < tgt_sum)
+                cur_large++;
+        }
+
+        // Phase 2: Distribute code slots
+        uint32_t assigned[ALIAS_NSYMS] = { 0 };
+
+        for (int i = 0; i < ALIAS_NSYMS; i++) {
+            int j = sym_id[i*2 + 0];
+            uint32_t sym0_height = divider[i];
+            uint32_t sym1_height = tgt_sum - divider[i];
+            uint32_t base0 = assigned[i];
+            uint32_t base1 = assigned[j];
+            uint32_t cbase0 = cum_freqs[i] + base0;
+            uint32_t cbase1 = cum_freqs[j] + base1;
+
+            divider[i] = (uint32_t)i * tgt_sum + sym0_height;
+
+            slot_freqs[i*2 + 1] = freqs[i];
+            slot_freqs[i*2 + 0] = freqs[j];
+            slot_adjust[i*2 + 1] = (uint32_t)i * tgt_sum - base0;
+            slot_adjust[i*2 + 0] = (uint32_t)i * tgt_sum - (base1 - sym0_height);
+
+            for (uint32_t k = 0; k < sym0_height; k++) {
+                if (cbase0 + k < total)
+                    alias_remap[cbase0 + k] = k + (uint32_t)i * tgt_sum;
+            }
+            for (uint32_t k = 0; k < sym1_height; k++) {
+                if (cbase1 + k < total)
+                    alias_remap[cbase1 + k] = (k + sym0_height) + (uint32_t)i * tgt_sum;
+            }
+
+            assigned[i] += sym0_height;
+            assigned[j] += sym1_height;
+        }
+    }
+
+    AliasStats() : alias_remap(nullptr) {}
+    ~AliasStats() { if (alias_remap) delete[] alias_remap; }
+};
+
+// Alias encode: same renormalization as standard byte rANS, then use alias_remap
+// instead of adding the cumulative-frequency offset.
+static inline void RansEncPutAlias(RansState* r, uint8_t** pptr,
+                                   uint32_t freq, uint32_t cum,
+                                   uint32_t alias_val, uint32_t scale_bits)
+{
+    RansState x = RansEncRenorm(*r, pptr, freq, scale_bits);
+    *r = ((x / freq) << scale_bits) + alias_val;
+}
+
+// Alias decode: extract bottom bits, find bucket/slot, compute new state,
+// then renormalize. Returns the decoded symbol.
+//
+// Slot assignment per the upstream main_alias.cpp convention:
+//   slot 2*b   = primary symbol (used when xm <  divider[b])
+//   slot 2*b+1 = alias symbol   (used when xm >= divider[b])
+static inline uint8_t RansDecGetAlias(RansState* r, uint8_t** pptr,
+                                      const AliasStats* syms,
+                                      uint32_t scale_bits)
+{
+    uint32_t mask = (1u << scale_bits) - 1;
+    uint32_t x = *r;
+    uint32_t xm = x & mask;
+    uint32_t bucket_id = xm >> (scale_bits - ALIAS_LOG2NSYMS);
+
+    // Decide which slot: primary (2*b) if xm < divider, alias (2*b+1) otherwise.
+    // divider[b] stores the absolute position of the split: bucket_start + primary_amount.
+    uint32_t bucket2 = bucket_id * 2;
+    if (xm < syms->divider[bucket_id]) bucket2++;
+
+    // Compute new state: freq * (x >> scale_bits) + xm - adjust
+    uint32_t new_x = syms->slot_freqs[bucket2] * (x >> scale_bits) + xm - syms->slot_adjust[bucket2];
+
+    // Renorm
+    if (new_x < RANS_BYTE_L) {
+        uint8_t* ptr = *pptr;
+        do new_x = (new_x << 8) | *ptr++; while (new_x < RANS_BYTE_L);
+        *pptr = ptr;
+    }
+
+    *r = new_x;
+    return syms->sym_id[bucket2];
+}
+
+// ---------------------------------------------------------------------------
+// trace-alias-table: output the alias table as JSON
+// ---------------------------------------------------------------------------
+static void trace_alias_table(uint32_t scale_bits,
+                              const std::vector<uint32_t>& freqs_in)
+{
+    uint32_t total = 1u << scale_bits;
+    uint32_t B = total / ALIAS_NSYMS;
+
+    AliasStats syms;
+    for (int i = 0; i < ALIAS_NSYMS && i < (int)freqs_in.size(); i++) {
+        syms.freqs[i] = freqs_in[i];
+    }
+    for (int i = (int)freqs_in.size(); i < ALIAS_NSYMS; i++) {
+        syms.freqs[i] = 0;
+    }
+    syms.normalize_freqs(total);
+    syms.make_alias_table(scale_bits);
+
+    printf("{\"op\":\"trace-alias-table\""
+           ",\"scale_bits\":%u"
+           ",\"total\":%u"
+           ",\"bucket_size\":%u"
+           ",\"freqs\":[",
+           scale_bits, total, B);
+    for (int i = 0; i < ALIAS_NSYMS; i++) {
+        if (i > 0) printf(",");
+        printf("%u", syms.freqs[i]);
+    }
+    printf("]"
+           ",\"cum_freqs\":[");
+    for (int i = 0; i <= ALIAS_NSYMS; i++) {
+        if (i > 0) printf(",");
+        printf("%u", syms.cum_freqs[i]);
+    }
+    printf("]"
+           ",\"divider\":[");
+    for (int i = 0; i < ALIAS_NSYMS; i++) {
+        if (i > 0) printf(",");
+        printf("%u", syms.divider[i]);
+    }
+    printf("]"
+           ",\"slot_freqs\":[");
+    for (int i = 0; i < ALIAS_NSYMS * 2; i++) {
+        if (i > 0) printf(",");
+        printf("%u", syms.slot_freqs[i]);
+    }
+    printf("]"
+           ",\"slot_adjust\":[");
+    for (int i = 0; i < ALIAS_NSYMS * 2; i++) {
+        if (i > 0) printf(",");
+        printf("%u", syms.slot_adjust[i]);
+    }
+    printf("]"
+           ",\"sym_id\":[");
+    for (int i = 0; i < ALIAS_NSYMS * 2; i++) {
+        if (i > 0) printf(",");
+        printf("%u", (unsigned)syms.sym_id[i]);
+    }
+    printf("]"
+           ",\"alias_remap\":[");
+    for (uint32_t i = 0; i < total; i++) {
+        if (i > 0) printf(",");
+        printf("%u", syms.alias_remap[i]);
+    }
+    printf("]"
+           "}\n");
+}
+
+// ---------------------------------------------------------------------------
+// enc-stream-alias: encode using alias method, self-decode to verify
+// ---------------------------------------------------------------------------
+static void trace_enc_stream_alias(uint32_t scale_bits,
+                                   const std::vector<uint32_t>& freqs_in,
+                                   const std::vector<uint8_t>& input)
+{
+    uint32_t total = 1u << scale_bits;
+
+    AliasStats syms;
+    for (int i = 0; i < ALIAS_NSYMS && i < (int)freqs_in.size(); i++) {
+        syms.freqs[i] = freqs_in[i];
+    }
+    for (int i = (int)freqs_in.size(); i < ALIAS_NSYMS; i++) {
+        syms.freqs[i] = 0;
+    }
+    syms.normalize_freqs(total);
+    syms.make_alias_table(scale_bits);
+
+    // Encode (reverse scan)
+    uint8_t buf[64 * 1024];
+    uint8_t* ptr = buf + sizeof(buf);
+    RansState state;
+    RansEncInit(&state);
+
+    for (size_t i = input.size(); i > 0; i--) {
+        int s = input[i - 1];
+        uint32_t freq = syms.freqs[s];
+        uint32_t cum = syms.cum_freqs[s];
+        // remainder after renormalization
+        RansState x = RansEncRenorm(state, &ptr, freq, scale_bits);
+        uint32_t rem = x % freq;
+        uint32_t offset = rem + cum;
+        state = ((x / freq) << scale_bits) + syms.alias_remap[offset];
+    }
+    RansEncFlush(&state, &ptr);
+
+    size_t comp_size = sizeof(buf) - (ptr - buf);
+    std::string comp_hex = hex_encode(ptr, comp_size);
+
+    // Self-decode to verify
+    uint8_t* dec_ptr = ptr;
+    RansState dec_state;
+    RansDecInit(&dec_state, &dec_ptr);
+
+    bool decode_ok = true;
+    for (size_t i = 0; i < input.size(); i++) {
+        uint8_t s = RansDecGetAlias(&dec_state, &dec_ptr, &syms, scale_bits);
+        if (s != input[i]) { decode_ok = false; break; }
+    }
+
+    printf("{\"op\":\"enc-stream-alias\""
+           ",\"scale_bits\":%u"
+           ",\"input_size\":%zu"
+           ",\"compressed_hex\":\"%s\""
+           ",\"decode_ok\":%s"
+           "}\n",
+           scale_bits, input.size(), comp_hex.c_str(),
+           decode_ok ? "true" : "false");
+}
+
+// ---------------------------------------------------------------------------
+// dec-stream-alias: decode an alias-encoded stream
+// ---------------------------------------------------------------------------
+static void trace_dec_stream_alias(uint32_t scale_bits,
+                                   const std::vector<uint32_t>& freqs_in,
+                                   const std::vector<uint8_t>& compressed,
+                                   size_t num_symbols)
+{
+    uint32_t total = 1u << scale_bits;
+
+    AliasStats syms;
+    for (int i = 0; i < ALIAS_NSYMS && i < (int)freqs_in.size(); i++) {
+        syms.freqs[i] = freqs_in[i];
+    }
+    for (int i = (int)freqs_in.size(); i < ALIAS_NSYMS; i++) {
+        syms.freqs[i] = 0;
+    }
+    syms.normalize_freqs(total);
+    syms.make_alias_table(scale_bits);
+
+    std::vector<uint8_t> buf(compressed.begin(), compressed.end());
+    uint8_t* ptr = buf.data();
+
+    RansState state;
+    RansDecInit(&state, &ptr);
+
+    std::vector<uint8_t> output(num_symbols);
+    for (size_t i = 0; i < num_symbols; i++) {
+        output[i] = RansDecGetAlias(&state, &ptr, &syms, scale_bits);
+    }
+
+    printf("{\"op\":\"dec-stream-alias\""
+           ",\"scale_bits\":%u"
+           ",\"num_symbols\":%zu"
+           ",\"decoded_hex\":\"%s\""
+           "}\n",
+           scale_bits, num_symbols,
+           hex_encode(output.data(), output.size()).c_str());
+}
+
+// ---------------------------------------------------------------------------
+// Alias interleaved2 encode
+// ---------------------------------------------------------------------------
+static void trace_enc_stream_alias_interleaved2(uint32_t scale_bits,
+                                                const std::vector<uint32_t>& freqs_in,
+                                                const std::vector<uint8_t>& input)
+{
+    uint32_t total = 1u << scale_bits;
+
+    AliasStats syms;
+    for (int i = 0; i < ALIAS_NSYMS && i < (int)freqs_in.size(); i++) {
+        syms.freqs[i] = freqs_in[i];
+    }
+    for (int i = (int)freqs_in.size(); i < ALIAS_NSYMS; i++) {
+        syms.freqs[i] = 0;
+    }
+    syms.normalize_freqs(total);
+    syms.make_alias_table(scale_bits);
+
+    uint8_t buf[64 * 1024];
+    uint8_t* ptr = buf + sizeof(buf);
+    RansState state0, state1;
+    RansEncInit(&state0);
+    RansEncInit(&state1);
+
+    int count = (int)input.size();
+    // Odd tail encoded into state0
+    if (count & 1) {
+        int s = input[count - 1];
+        uint32_t freq = syms.freqs[s];
+        uint32_t cum = syms.cum_freqs[s];
+        RansState x = RansEncRenorm(state0, &ptr, freq, scale_bits);
+        uint32_t rem = x % freq;
+        state0 = ((x / freq) << scale_bits) + syms.alias_remap[rem + cum];
+    }
+    // Pairs: (i-1→state1, i-2→state0)
+    for (int i = count & ~1; i > 0; i -= 2) {
+        int s1 = input[i - 1];
+        int s0 = input[i - 2];
+
+        // state1
+        { uint32_t freq = syms.freqs[s1];
+          uint32_t cum = syms.cum_freqs[s1];
+          RansState x = RansEncRenorm(state1, &ptr, freq, scale_bits);
+          uint32_t rem = x % freq;
+          state1 = ((x / freq) << scale_bits) + syms.alias_remap[rem + cum]; }
+
+        // state0
+        { uint32_t freq = syms.freqs[s0];
+          uint32_t cum = syms.cum_freqs[s0];
+          RansState x = RansEncRenorm(state0, &ptr, freq, scale_bits);
+          uint32_t rem = x % freq;
+          state0 = ((x / freq) << scale_bits) + syms.alias_remap[rem + cum]; }
+    }
+
+    RansEncFlush(&state1, &ptr);
+    RansEncFlush(&state0, &ptr);
+
+    size_t comp_size = sizeof(buf) - (ptr - buf);
+
+    printf("{\"op\":\"enc-stream-alias-interleaved2\""
+           ",\"scale_bits\":%u"
+           ",\"compressed_hex\":\"%s\""
+           ",\"compressed_size\":%zu"
+           "}\n",
+           scale_bits,
+           hex_encode(ptr, comp_size).c_str(),
+           comp_size);
+}
+
+// ---------------------------------------------------------------------------
+// Alias interleaved2 decode
+// ---------------------------------------------------------------------------
+static void trace_dec_stream_alias_interleaved2(uint32_t scale_bits,
+                                                const std::vector<uint32_t>& freqs_in,
+                                                const std::vector<uint8_t>& compressed,
+                                                size_t num_symbols)
+{
+    uint32_t total = 1u << scale_bits;
+
+    AliasStats syms;
+    for (int i = 0; i < ALIAS_NSYMS && i < (int)freqs_in.size(); i++) {
+        syms.freqs[i] = freqs_in[i];
+    }
+    for (int i = (int)freqs_in.size(); i < ALIAS_NSYMS; i++) {
+        syms.freqs[i] = 0;
+    }
+    syms.normalize_freqs(total);
+    syms.make_alias_table(scale_bits);
+
+    // Init two interleaved states from the compressed stream
+    std::vector<uint8_t> buf(compressed.begin(), compressed.end());
+    uint8_t* ptr = buf.data();
+    RansState state0, state1;
+    RansDecInit(&state0, &ptr);
+    RansDecInit(&state1, &ptr);
+
+    size_t n = num_symbols;
+    size_t even_n = n & ~(size_t)1;
+    std::vector<uint8_t> output(n);
+
+    // Decode pairs: advance both states (step), then renorm both
+    for (size_t pos = 0; pos < even_n; pos += 2) {
+        uint32_t mask = (1u << scale_bits) - 1;
+
+        // state0 → output[pos]
+        { uint32_t xm = state0 & mask;
+          uint32_t bucket_id = xm >> (scale_bits - ALIAS_LOG2NSYMS);
+          uint32_t bucket2 = bucket_id * 2;
+          if (xm < syms.divider[bucket_id]) bucket2++;
+          output[pos] = syms.sym_id[bucket2];
+          RansDecAdvanceStep(&state0, syms.slot_adjust[bucket2], syms.slot_freqs[bucket2], scale_bits); }
+
+        // state1 → output[pos+1]
+        { uint32_t xm = state1 & mask;
+          uint32_t bucket_id = xm >> (scale_bits - ALIAS_LOG2NSYMS);
+          uint32_t bucket2 = bucket_id * 2;
+          if (xm < syms.divider[bucket_id]) bucket2++;
+          output[pos + 1] = syms.sym_id[bucket2];
+          RansDecAdvanceStep(&state1, syms.slot_adjust[bucket2], syms.slot_freqs[bucket2], scale_bits); }
+
+        RansDecRenorm(&state0, &ptr);
+        RansDecRenorm(&state1, &ptr);
+    }
+
+    // Odd tail: decode last symbol from state0
+    if (even_n < n) {
+        uint32_t mask = (1u << scale_bits) - 1;
+        uint32_t xm = state0 & mask;
+        uint32_t bucket_id = xm >> (scale_bits - ALIAS_LOG2NSYMS);
+        uint32_t bucket2 = bucket_id * 2;
+        if (xm < syms.divider[bucket_id]) bucket2++;
+        output[n - 1] = syms.sym_id[bucket2];
+        // Full advance (step + renorm) for tail
+        RansDecAdvance(&state0, &ptr, syms.slot_adjust[bucket2], syms.slot_freqs[bucket2], scale_bits);
+    }
+
+    printf("{\"op\":\"dec-stream-alias-interleaved2\""
+           ",\"scale_bits\":%u"
+           ",\"num_symbols\":%zu"
+           ",\"decoded_hex\":\"%s\""
+           "}\n",
+           scale_bits, n,
+           hex_encode(output.data(), output.size()).c_str());
 }

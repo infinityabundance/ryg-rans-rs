@@ -134,6 +134,9 @@ impl fmt::Display for ModelError {
 #[cfg(feature = "std")]
 extern crate std;
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 #[cfg(feature = "std")]
 impl std::error::Error for EncodeError {}
 
@@ -1899,6 +1902,326 @@ pub fn rans_word_dec_renorm(
         state.0 = (x << 16) | w;
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Alias method — byte rANS with alias table
+// ---------------------------------------------------------------------------
+//
+// The alias method converts a non-uniform frequency distribution into 256
+// uniform buckets (each of size total/256). Each bucket may contain up to
+// two symbols: a primary and an alias, separated by a divider threshold.
+// This enables O(1) symbol lookup during decoding instead of binary search.
+//
+// Upstream source: main_alias.cpp (Vose's alias method + rANS)
+//
+// Requires the `alloc` feature for the alias_remap table.
+
+#[cfg(any(feature = "alloc", test))]
+extern crate alloc as alloc_crate;
+
+/// Log2 of the number of symbols for alias method. Always 8 for byte rANS.
+pub const ALIAS_LOG2_NSYMS: u32 = 8;
+
+/// Number of symbols for alias method. Always 256.
+pub const ALIAS_NSYMS: usize = 1 << 8;
+
+/// Alias table for O(1) symbol decoding.
+///
+/// Constructed via Vose's algorithm from a normalized frequency distribution.
+/// Each of the 256 buckets contains a threshold, with up to two symbols
+/// (primary and alias) filling the bucket.
+#[derive(Debug, Clone)]
+#[cfg(any(feature = "alloc", test))]
+pub struct AliasTable {
+    /// Threshold per bucket: if xm < divider[i], use odd slot;
+    /// otherwise use even slot. After construction, this stores
+    /// the absolute position: `i * tgt_sum + original_divider`.
+    pub divider: [u32; ALIAS_NSYMS],
+    /// Frequencies for each of the 512 slots (2 per bucket).
+    pub slot_freqs: [u32; ALIAS_NSYMS * 2],
+    /// Adjustment values for state recovery during decode.
+    pub slot_adjust: [u32; ALIAS_NSYMS * 2],
+    /// Symbol IDs for each of the 512 slots.
+    pub slot_symbols: [u8; ALIAS_NSYMS * 2],
+    /// Remap table from cumulative-range slot to alias-table position.
+    /// Sized to the total distribution (2^scale_bits entries, max 65536).
+    pub alias_remap: alloc_crate::vec::Vec<u32>,
+    /// The scale_bits used to construct this table.
+    pub scale_bits: u32,
+    /// Frequencies for each of the 256 symbols.
+    pub freqs: [u32; ALIAS_NSYMS],
+    /// Cumulative frequencies for each of the 256 symbols.
+    pub cum_freqs: [u32; ALIAS_NSYMS + 1],
+}
+
+/// Normalize frequencies to sum to exactly `target_total` (must be power of 2).
+///
+/// Equivalent to the normalization logic in `main_alias.cpp` `SymbolStats::normalize_freqs()`.
+/// Resamples the distribution using cumulative frequency scaling and steals
+/// frequency from other symbols if any non-zero symbol gets zeroed out.
+#[inline]
+pub fn rans_byte_alias_normalize_freqs(
+    freqs: &[u32],
+    num_symbols: usize,
+    target_total: u32,
+) -> Result<([u32; ALIAS_NSYMS], [u32; ALIAS_NSYMS + 1]), ModelError> {
+    if num_symbols == 0 || num_symbols > ALIAS_NSYMS {
+        return Err(ModelError::EmptyInput);
+    }
+    if target_total == 0 || (target_total & (target_total - 1)) != 0 {
+        return Err(ModelError::InvalidScaleBits);
+    }
+
+    let mut out_freqs = [0u32; ALIAS_NSYMS];
+    let mut cum = [0u32; ALIAS_NSYMS + 1];
+
+    // Copy input frequencies, compute cumulative
+    cum[0] = 0;
+    for i in 0..num_symbols {
+        out_freqs[i] = freqs[i];
+        cum[i + 1] = cum[i]
+            .checked_add(freqs[i])
+            .ok_or(ModelError::TotalMismatch)?;
+    }
+    let cur_total = cum[num_symbols];
+    if cur_total == 0 {
+        return Err(ModelError::ZeroTotal);
+    }
+
+    // Resample distribution based on cumulative freqs
+    let target = target_total as u64;
+    let cur_total_u64 = cur_total as u64;
+    for i in 1..=num_symbols {
+        cum[i] = ((target * cum[i] as u64) / cur_total_u64) as u32;
+    }
+
+    // Zero-frequency theft: any non-zero symbol that was nuked to zero gets
+    // frequency stolen from the symbol with the smallest frequency > 1.
+    for i in 0..num_symbols {
+        if out_freqs[i] != 0 && cum[i + 1] == cum[i] {
+            // Find best symbol to steal from (smallest frequency > 1)
+            let mut best_freq = u32::MAX;
+            let mut best_steal = None;
+            for j in 0..num_symbols {
+                let freq = cum[j + 1] - cum[j];
+                if freq > 1 && freq < best_freq {
+                    best_freq = freq;
+                    best_steal = Some(j);
+                }
+            }
+            let steal = best_steal.ok_or(ModelError::WorkspaceTooSmall)?;
+
+            if steal < i {
+                for j in (steal + 1)..=i {
+                    cum[j] = cum[j].wrapping_sub(1);
+                }
+            } else {
+                for j in (i + 1)..=steal {
+                    cum[j] = cum[j].wrapping_add(1);
+                }
+            }
+        }
+    }
+
+    // Recompute frequencies from cumulative
+    for i in 0..num_symbols {
+        if out_freqs[i] == 0 {
+            debug_assert!(cum[i + 1] == cum[i]);
+        } else {
+            debug_assert!(cum[i + 1] > cum[i]);
+        }
+        out_freqs[i] = cum[i + 1] - cum[i];
+    }
+
+    Ok((out_freqs, cum))
+}
+
+/// Build an alias table from a frequency distribution using Vose's algorithm.
+///
+/// Equivalent to `SymbolStats::make_alias_table()` in `main_alias.cpp`.
+/// The frequencies must sum to exactly `1 << scale_bits`.
+#[inline]
+#[cfg(any(feature = "alloc", test))]
+pub fn rans_byte_alias_build_table(
+    freqs: &[u32; ALIAS_NSYMS],
+    cum_freqs: &[u32; ALIAS_NSYMS + 1],
+    scale_bits: u32,
+) -> AliasTable {
+    let total = 1u64 << scale_bits;
+    let tgt_sum = (total / ALIAS_NSYMS as u64) as u32;
+
+    let mut divider = [0u32; ALIAS_NSYMS];
+    let mut slot_freqs = [0u32; ALIAS_NSYMS * 2];
+    let mut slot_adjust = [0u32; ALIAS_NSYMS * 2];
+    let mut slot_symbols = [0u8; ALIAS_NSYMS * 2];
+
+    // ---- Phase 1: Vose's alias construction ----
+
+    let mut remaining = [0u32; ALIAS_NSYMS];
+    for i in 0..ALIAS_NSYMS {
+        remaining[i] = freqs[i];
+        divider[i] = tgt_sum;
+        slot_symbols[i * 2] = i as u8;
+        slot_symbols[i * 2 + 1] = i as u8;
+    }
+
+    // Find initial small and large buckets
+    let mut cur_large = 0;
+    while cur_large < ALIAS_NSYMS && remaining[cur_large] < tgt_sum {
+        cur_large += 1;
+    }
+    let mut cur_small = 0;
+    while cur_small < ALIAS_NSYMS && remaining[cur_small] >= tgt_sum {
+        cur_small += 1;
+    }
+    let mut next_small = cur_small + 1;
+
+    // Top up small buckets from large buckets
+    while cur_large < ALIAS_NSYMS && cur_small < ALIAS_NSYMS {
+        slot_symbols[cur_small * 2] = cur_large as u8;
+        divider[cur_small] = remaining[cur_small];
+        remaining[cur_large] -= tgt_sum - divider[cur_small];
+
+        if remaining[cur_large] >= tgt_sum || next_small <= cur_large {
+            cur_small = next_small;
+            while cur_small < ALIAS_NSYMS && remaining[cur_small] >= tgt_sum {
+                cur_small += 1;
+            }
+            next_small = cur_small + 1;
+        } else {
+            cur_small = cur_large;
+        }
+
+        while cur_large < ALIAS_NSYMS && remaining[cur_large] < tgt_sum {
+            cur_large += 1;
+        }
+    }
+
+    // ---- Phase 2: Distribute code slots ----
+
+    let mut assigned = [0u32; ALIAS_NSYMS];
+    let total_slots = total as usize;
+    let mut alias_remap = alloc_crate::vec![0u32; total_slots];
+
+    for i in 0..ALIAS_NSYMS {
+        let j = slot_symbols[i * 2] as usize;
+        let sym0_height = divider[i]; // the small symbol's amount
+        let sym1_height = tgt_sum - divider[i]; // the large symbol's amount
+        let base0 = assigned[i];
+        let base1 = assigned[j];
+        let cbase0 = cum_freqs[i] + base0;
+        let cbase1 = cum_freqs[j] + base1;
+
+        divider[i] = i as u32 * tgt_sum + sym0_height;
+
+        slot_freqs[i * 2 + 1] = freqs[i];
+        slot_freqs[i * 2] = freqs[j];
+        slot_adjust[i * 2 + 1] = (i as u32 * tgt_sum).wrapping_sub(base0);
+        slot_adjust[i * 2] = (i as u32 * tgt_sum).wrapping_sub(base1.wrapping_sub(sym0_height));
+
+        for k in 0..sym0_height {
+            let idx = (cbase0 + k) as usize;
+            if idx < total_slots {
+                alias_remap[idx] = k + i as u32 * tgt_sum;
+            }
+        }
+        for k in 0..sym1_height {
+            let idx = (cbase1 + k) as usize;
+            if idx < total_slots {
+                alias_remap[idx] = (k + sym0_height) + i as u32 * tgt_sum;
+            }
+        }
+
+        assigned[i] += sym0_height;
+        assigned[j] += sym1_height;
+    }
+
+    AliasTable {
+        divider,
+        slot_freqs,
+        slot_adjust,
+        slot_symbols,
+        alias_remap,
+        scale_bits,
+        freqs: *freqs,
+        cum_freqs: *cum_freqs,
+    }
+}
+
+/// Alias method encoder put-symbol.
+///
+/// Equivalent to `RansEncPutAlias` in `main_alias.cpp`.
+/// Renormalizes the state, then encodes symbol `s` using the alias remap table.
+/// The encoded symbol uses division-based encoding: `((x/freq) << scale_bits) + alias_remap[...]`.
+#[inline]
+#[cfg(feature = "alloc")]
+pub fn rans_byte_alias_enc_put<W: BackwardWriter>(
+    state: &mut RansByteState,
+    writer: &mut W,
+    table: &AliasTable,
+    s: u8,
+    scale_bits: u32,
+) -> Result<(), EncodeError> {
+    let freq = table.freqs[s as usize];
+    let x = rans_byte_enc_renorm(state.0, writer, freq, scale_bits)?;
+    let slot = table.alias_remap[(x % freq + table.cum_freqs[s as usize]) as usize];
+    state.0 = ((x / freq) << scale_bits) + slot;
+    Ok(())
+}
+
+/// Alias method decoder get-symbol.
+///
+/// Equivalent to `RansDecGetAlias` in `main_alias.cpp`.
+/// Extracts the symbol from the state using the alias table.
+/// Returns the symbol and the updated state.
+#[inline]
+#[cfg(feature = "alloc")]
+pub fn rans_byte_alias_dec_get(
+    state: RansByteState,
+    table: &AliasTable,
+    scale_bits: u32,
+) -> (u8, RansByteState) {
+    let x = state.0;
+    let mask = (1u32 << scale_bits).wrapping_sub(1);
+    let xm = x & mask;
+    let bucket_id = (xm >> (scale_bits - ALIAS_LOG2_NSYMS)) as usize;
+    let mut bucket2 = bucket_id * 2;
+    if xm < table.divider[bucket_id] {
+        bucket2 += 1;
+    }
+    let s = table.slot_symbols[bucket2];
+    let new_x = table.slot_freqs[bucket2] * (x >> scale_bits) + xm - table.slot_adjust[bucket2];
+    (s, RansByteState(new_x))
+}
+
+/// Alias method decoder renormalization.
+///
+/// Delegates to the standard byte rANS renormalization (reads bytes).
+/// Equivalent to `RansDecRenorm` in `rans_byte.h`.
+#[inline]
+#[cfg(feature = "alloc")]
+pub fn rans_byte_alias_dec_renorm<R: ForwardReader>(
+    state: &mut RansByteState,
+    reader: &mut R,
+) -> Result<(), DecodeError> {
+    rans_byte_dec_renorm(state, reader)
+}
+
+/// Alias method decoder advance (get symbol + renormalize).
+/// Combines `RansDecGetAlias` + `RansDecRenorm` from the upstream.
+#[inline]
+#[cfg(feature = "alloc")]
+pub fn rans_byte_alias_dec_advance<R: ForwardReader>(
+    state: &mut RansByteState,
+    reader: &mut R,
+    table: &AliasTable,
+    scale_bits: u32,
+) -> Result<u8, DecodeError> {
+    let (s, new_state) = rans_byte_alias_dec_get(*state, table, scale_bits);
+    *state = new_state;
+    rans_byte_alias_dec_renorm(state, reader)?;
+    Ok(s)
 }
 
 // ---------------------------------------------------------------------------

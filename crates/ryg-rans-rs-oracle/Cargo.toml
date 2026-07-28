@@ -7,7 +7,7 @@ repository = { workspace = true }
 description = "Oracle harness for comparing Rust rANS against compiled C/C++ — generates court receipts and residuals"
 
 [dependencies]
-ryg-rans-rs-core = { version = "0.1.6", path = "../ryg-rans-rs-core" }
+ryg-rans-rs-core = { version = "0.1.6", path = "../ryg-rans-rs-core", features = ["alloc"] }
 ryg-rans-rs-casefile = { version = "0.1.6", path = "../ryg-rans-rs-casefile" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
