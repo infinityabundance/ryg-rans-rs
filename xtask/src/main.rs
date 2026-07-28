@@ -288,6 +288,41 @@ fn check_forbid_unsafe_core() -> Result<(), String> {
 }
 
 fn cmd_seal() -> Result<(), String> {
+    // 0. Dirty-tree gate: reject uncommitted changes to covered source
+    println!("Checking: dirty-tree gate...");
+    let dirty = std::process::Command::new("git")
+        .args(["status", "--porcelain=v1"])
+        .output()
+        .map_err(|e| format!("git status failed: {}", e))?;
+    let dirty_output = String::from_utf8_lossy(&dirty.stdout);
+    for line in dirty_output.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        // Git porcelain v1: XY[ ]<path> where the separator space after XY
+        // is omitted when either X or Y is a space character.
+        // Extract path by: skipping status chars (cols 0-1), then optional
+        // whitespace separator, then the rest is the path.
+        let path = if line.len() > 2 {
+            let after_status = &line[2..];
+            after_status.trim_start()
+        } else {
+            ""
+        };
+        if path.starts_with("evidence/")
+            || path.starts_with("docs/")
+            || path.starts_with("Cargo.lock")
+            || path.starts_with(".gitignore")
+        {
+            continue;
+        }
+        return Err(format!(
+            "dirty working tree: uncommitted change to '{}'. Commit or stash changes to covered files before sealing.",
+            path
+        ));
+    }
+    println!("  dirty-tree gate: working tree is clean for covered sources");
+
     // 1. Run cargo check --workspace
     println!("Checking: cargo check --workspace...");
     let status = Command::new("cargo")
@@ -636,9 +671,9 @@ fn cmd_seal() -> Result<(), String> {
             let allowed = allowed_prefixes.iter().any(|p| line.starts_with(p));
             // Also allow any crate's Cargo.toml (version bumps don't affect evidence)
             let is_version_bump = line.ends_with("/Cargo.toml");
-            // Oracle crate is court harness infrastructure, not algorithm
-            let is_oracle_harness = line.starts_with("crates/ryg-rans-rs-oracle/");
-            if !allowed && !is_version_bump && !is_oracle_harness {
+            // NOTE: oracle crate changes require a proper reseal — no exception here.
+            // The code_commit must identify the exact source that produced the evidence.
+            if !allowed && !is_version_bump {
                 return Err(format!(
                     "source file changed after code_commit {}: {} (not in allowed list)",
                     earliest_code, line
