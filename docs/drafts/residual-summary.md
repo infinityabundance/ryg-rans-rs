@@ -1,8 +1,8 @@
 # Residual Summary
 
-No residuals currently open. All 44 unit tests pass and cover the full
-byte rANS and 64-bit rANS surfaces. No sealed oracle receipts exist yet;
-all surface claims are backed by Rust self-tests only.
+No residuals have been recorded yet; residual discovery begins with the cross-decoding courts.
+All 44 unit tests pass and cover the full byte rANS and 64-bit rANS surfaces.
+No sealed oracle receipts exist yet; all surface claims are backed by Rust self-tests only.
 
 ## By Severity
 

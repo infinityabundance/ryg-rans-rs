@@ -1,6 +1,6 @@
 //! # ryg-rans-rs-casefile
 //!
-//! **Typed schemas and deterministic serialization for rANS forensic court evidence.**
+//! **Typed evidence schema foundation for rANS forensic court proceedings.**
 //!
 //! This crate provides the data types used throughout the ryg-rans-rs forensic
 //! testing infrastructure to record, reproduce, and track court proceedings

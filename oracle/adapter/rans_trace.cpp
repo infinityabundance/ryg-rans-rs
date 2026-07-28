@@ -47,7 +47,7 @@ static void usage(const char *prog)
     fprintf(stderr, "  r64-dec-get        state scale_bits\n");
     fprintf(stderr, "  r64-dec-advance    state start freq scale_bits\n");
     fprintf(stderr, "  r64-enc-symbol-init start freq scale_bits\n");
-    fprintf(stderr, "  r64-enc-put-symbol state x_max rcp_freq rcp_shift bias cmpl_freq\n");
+    fprintf(stderr, "  r64-enc-put-symbol state start freq scale_bits\n");
     fprintf(stderr, "  r64-mul-hi         a b\n");
     fprintf(stderr, "  r64-dec-renorm     state\n");
     exit(1);
@@ -426,37 +426,43 @@ static void trace_r64_enc_symbol_init(uint32_t start,
 }
 
 static void trace_r64_enc_put_symbol(uint64_t state,
-                                     uint64_t x_max,
-                                     uint64_t rcp_freq,
-                                     uint32_t rcp_shift,
-                                     uint32_t bias,
-                                     uint32_t cmpl_freq)
+                                     uint32_t start,
+                                     uint32_t freq,
+                                     uint32_t scale_bits)
 {
-    // We cannot call Rans64EncPutSymbol because it recomputes x_max from
-    // sym->freq internally, but we don't know freq (only cmpl_freq, which
-    // also requires scale_bits to recover freq).  The core arithmetic uses
-    // the upstream Rans64MulHi for the multiply-high part.
+    // Use real Rans64EncSymbolInit + Rans64EncPutSymbol
+    Rans64EncSymbol sym;
+    Rans64EncSymbolInit(&sym, start, freq, scale_bits);
 
-    uint64_t x       = state;
-    uint32_t emitted = 0;
-    if (x >= x_max) {
-        emitted++;
-        x >>= 32;
-    }
-    uint64_t q           = Rans64MulHi(x, rcp_freq) >> rcp_shift;
-    uint64_t state_after = x + bias + q * cmpl_freq;
+    // x_max is not stored in Rans64EncSymbol, compute it for trace output
+    uint64_t x_max = ((RANS64_L >> scale_bits) << 32) * (uint64_t)freq;
+
+    Rans64State state_after = state;
+    uint32_t buf[16];
+    uint32_t *ptr = buf + 16;
+    uint32_t *ptr_before = ptr;
+
+    // Call the real upstream function
+    Rans64EncPutSymbol(&state_after, &ptr, &sym, scale_bits);
+    uint32_t emitted = (uint32_t)(ptr_before - ptr);  // words consumed from end
 
     printf("{\"op\":\"r64-enc-put-symbol\""
            ",\"state_before\":%llu"
            ",\"x_max\":%llu"
+           ",\"rcp_freq\":%llu"
+           ",\"rcp_shift\":%u"
+           ",\"bias\":%u"
+           ",\"cmpl_freq\":%u"
            ",\"emitted_words\":%u"
-           ",\"q\":%llu"
            ",\"state_after\":%llu"
            "}\n",
            (unsigned long long)state,
            (unsigned long long)x_max,
+           (unsigned long long)sym.rcp_freq,
+           sym.rcp_shift,
+           sym.bias,
+           sym.cmpl_freq,
            emitted,
-           (unsigned long long)q,
            (unsigned long long)state_after);
 }
 
@@ -580,13 +586,11 @@ int main(int argc, char *argv[])
                                   parse_u32(argv[3]),
                                   parse_u32(argv[4]));
     } else if (strcmp(op, "r64-enc-put-symbol") == 0) {
-        if (argc != 8) usage(argv[0]);
+        if (argc != 6) usage(argv[0]);
         trace_r64_enc_put_symbol(parse_u64(argv[2]),
-                                 parse_u64(argv[3]),
-                                 parse_u64(argv[4]),
-                                 parse_u32(argv[5]),
-                                 parse_u32(argv[6]),
-                                 parse_u32(argv[7]));
+                                 parse_u32(argv[3]),
+                                 parse_u32(argv[4]),
+                                 parse_u32(argv[5]));
     } else if (strcmp(op, "r64-mul-hi") == 0) {
         if (argc != 4) usage(argv[0]);
         trace_r64_mul_hi(parse_u64(argv[2]),

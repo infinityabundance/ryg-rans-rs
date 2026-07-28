@@ -132,6 +132,15 @@ impl fmt::Display for ModelError {
 }
 
 #[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(feature = "std")]
+impl std::error::Error for EncodeError {}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DecodeError {}
+
+#[cfg(feature = "std")]
 impl std::error::Error for ModelError {}
 
 /// Lower bound of the normalization interval.
@@ -362,17 +371,40 @@ pub struct RansByteEncSymbol {
 }
 
 impl RansByteEncSymbol {
-    /// Initialize an encoder symbol.
+    /// Initialize an encoder symbol with validation.
     ///
     /// Equivalent to `RansEncSymbolInit` in `rans_byte.h`.
     ///
-    /// # Panics
-    ///
-    /// In debug builds, panics if `start` or `freq` are out of range.
-    /// In release builds, behavior is wrapping (but preconditions are
-    /// caller-validated).
+    /// Returns `Err(ModelError::InvalidScaleBits)` if `scale_bits` is not in
+    /// `1..=16`. Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
+    /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << scale_bits)`.
+    /// Returns `Err(ModelError::FrequencyOutOfRange)` if
+    /// `freq > (1 << scale_bits) - start`.
     #[inline]
-    pub fn new(start: u32, freq: u32, scale_bits: u32) -> Self {
+    pub fn new(start: u32, freq: u32, scale_bits: u32) -> Result<Self, ModelError> {
+        if !(1..=16).contains(&scale_bits) {
+            return Err(ModelError::InvalidScaleBits);
+        }
+        let max_start = 1u64 << scale_bits;
+        if (start as u64) > max_start {
+            return Err(ModelError::StartOutOfRange);
+        }
+        if freq == 0 {
+            return Err(ModelError::ZeroFrequency);
+        }
+        if (freq as u64) > max_start - (start as u64) {
+            return Err(ModelError::FrequencyOutOfRange);
+        }
+
+        Ok(Self::new_unchecked(start, freq, scale_bits))
+    }
+
+    /// Initialize an encoder symbol without validation.
+    ///
+    /// Caller must ensure preconditions are met. Prefer [`new`] for
+    /// external use.
+    #[inline]
+    pub(crate) fn new_unchecked(start: u32, freq: u32, scale_bits: u32) -> Self {
         debug_assert!(scale_bits <= 16, "scale_bits must be <= 16");
         debug_assert!(start <= (1u32 << scale_bits), "start out of range");
         debug_assert!(freq <= (1u32 << scale_bits) - start, "freq out of range");
@@ -411,32 +443,6 @@ impl RansByteEncSymbol {
             }
         }
     }
-
-    /// Initialize an encoder symbol with validation.
-    ///
-    /// Returns `Err(ModelError::InvalidScaleBits)` if `scale_bits` is not in
-    /// `1..=16`. Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
-    /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << scale_bits)`.
-    /// Returns `Err(ModelError::FrequencyOutOfRange)` if
-    /// `freq > (1 << scale_bits) - start`.
-    #[inline]
-    pub fn try_new(start: u32, freq: u32, scale_bits: u32) -> Result<Self, ModelError> {
-        if !(1..=16).contains(&scale_bits) {
-            return Err(ModelError::InvalidScaleBits);
-        }
-        let max_start = 1u64 << scale_bits;
-        if (start as u64) > max_start {
-            return Err(ModelError::StartOutOfRange);
-        }
-        if freq == 0 {
-            return Err(ModelError::ZeroFrequency);
-        }
-        if (freq as u64) > max_start - (start as u64) {
-            return Err(ModelError::FrequencyOutOfRange);
-        }
-
-        Ok(Self::new(start, freq, scale_bits))
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -455,27 +461,16 @@ pub struct RansByteDecSymbol {
 }
 
 impl RansByteDecSymbol {
-    /// Initialize a decoder symbol.
+    /// Initialize a decoder symbol with validation.
     ///
     /// Equivalent to `RansDecSymbolInit`.
-    #[inline]
-    pub fn new(start: u32, freq: u32) -> Self {
-        debug_assert!(start <= (1u32 << 16), "start out of range");
-        debug_assert!(freq <= (1u32 << 16) - start, "freq out of range");
-        Self {
-            start: start as u16,
-            freq: freq as u16,
-        }
-    }
-
-    /// Initialize a decoder symbol with validation.
     ///
     /// Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
     /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << 16)`.
     /// Returns `Err(ModelError::FrequencyOutOfRange)` if
     /// `freq > (1 << 16) - start`.
     #[inline]
-    pub fn try_new(start: u32, freq: u32) -> Result<Self, ModelError> {
+    pub fn new(start: u32, freq: u32) -> Result<Self, ModelError> {
         if freq == 0 {
             return Err(ModelError::ZeroFrequency);
         }
@@ -485,7 +480,21 @@ impl RansByteDecSymbol {
         if (freq as u64) > (1u64 << 16) - (start as u64) {
             return Err(ModelError::FrequencyOutOfRange);
         }
-        Ok(Self::new(start, freq))
+        Ok(Self::new_unchecked(start, freq))
+    }
+
+    /// Initialize a decoder symbol without validation.
+    ///
+    /// Caller must ensure preconditions are met. Prefer [`new`] for
+    /// external use.
+    #[inline]
+    pub(crate) fn new_unchecked(start: u32, freq: u32) -> Self {
+        debug_assert!(start <= (1u32 << 16), "start out of range");
+        debug_assert!(freq <= (1u32 << 16) - start, "freq out of range");
+        Self {
+            start: start as u16,
+            freq: freq as u16,
+        }
     }
 }
 
@@ -1206,18 +1215,43 @@ pub struct Rans64EncSymbol {
 }
 
 impl Rans64EncSymbol {
-    /// Initialize a 64-bit encoder symbol.
+    /// Initialize a 64-bit encoder symbol with validation.
     ///
     /// Equivalent to `Rans64EncSymbolInit` in `rans64.h`.
     ///
     /// Calculates the 64-bit reciprocal using 128-bit division:
     /// `rcp_freq = ((1 << (shift + 63)) + freq - 1) / freq`.
     ///
-    /// # Panics
-    ///
-    /// In debug builds, panics if `start` or `freq` are out of range.
+    /// Returns `Err(ModelError::InvalidScaleBits)` if `scale_bits` is not in
+    /// `1..=31`. Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
+    /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << scale_bits)`.
+    /// Returns `Err(ModelError::FrequencyOutOfRange)` if
+    /// `freq > (1 << scale_bits) - start`.
     #[inline]
-    pub fn new(start: u32, freq: u32, scale_bits: u32) -> Self {
+    pub fn new(start: u32, freq: u32, scale_bits: u32) -> Result<Self, ModelError> {
+        if !(1..=31).contains(&scale_bits) {
+            return Err(ModelError::InvalidScaleBits);
+        }
+        let max_start = 1u64 << scale_bits;
+        if (start as u64) > max_start {
+            return Err(ModelError::StartOutOfRange);
+        }
+        if freq == 0 {
+            return Err(ModelError::ZeroFrequency);
+        }
+        if (freq as u64) > max_start - (start as u64) {
+            return Err(ModelError::FrequencyOutOfRange);
+        }
+
+        Ok(Self::new_unchecked(start, freq, scale_bits))
+    }
+
+    /// Initialize a 64-bit encoder symbol without validation.
+    ///
+    /// Caller must ensure preconditions are met. Prefer [`new`] for
+    /// external use.
+    #[inline]
+    pub(crate) fn new_unchecked(start: u32, freq: u32, scale_bits: u32) -> Self {
         debug_assert!(scale_bits <= 31, "scale_bits must be <= 31");
         debug_assert!((start as u64) <= (1u64 << scale_bits), "start out of range");
         debug_assert!(
@@ -1265,32 +1299,6 @@ impl Rans64EncSymbol {
             }
         }
     }
-
-    /// Initialize a 64-bit encoder symbol with validation.
-    ///
-    /// Returns `Err(ModelError::InvalidScaleBits)` if `scale_bits` is not in
-    /// `1..=31`. Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
-    /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << scale_bits)`.
-    /// Returns `Err(ModelError::FrequencyOutOfRange)` if
-    /// `freq > (1 << scale_bits) - start`.
-    #[inline]
-    pub fn try_new(start: u32, freq: u32, scale_bits: u32) -> Result<Self, ModelError> {
-        if !(1..=31).contains(&scale_bits) {
-            return Err(ModelError::InvalidScaleBits);
-        }
-        let max_start = 1u64 << scale_bits;
-        if (start as u64) > max_start {
-            return Err(ModelError::StartOutOfRange);
-        }
-        if freq == 0 {
-            return Err(ModelError::ZeroFrequency);
-        }
-        if (freq as u64) > max_start - (start as u64) {
-            return Err(ModelError::FrequencyOutOfRange);
-        }
-
-        Ok(Self::new(start, freq, scale_bits))
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1310,27 +1318,16 @@ pub struct Rans64DecSymbol {
 }
 
 impl Rans64DecSymbol {
-    /// Initialize a 64-bit decoder symbol.
+    /// Initialize a 64-bit decoder symbol with validation.
     ///
     /// Equivalent to `Rans64DecSymbolInit`.
-    #[inline]
-    pub fn new(start: u32, freq: u32) -> Self {
-        debug_assert!((start as u64) <= (1u64 << 31), "start out of range");
-        debug_assert!(
-            (freq as u64) <= (1u64 << 31) - (start as u64),
-            "freq out of range"
-        );
-        Self { start, freq }
-    }
-
-    /// Initialize a 64-bit decoder symbol with validation.
     ///
     /// Returns `Err(ModelError::ZeroFrequency)` if `freq == 0`.
     /// Returns `Err(ModelError::StartOutOfRange)` if `start > (1 << 31)`.
     /// Returns `Err(ModelError::FrequencyOutOfRange)` if
     /// `freq > (1 << 31) - start`.
     #[inline]
-    pub fn try_new(start: u32, freq: u32) -> Result<Self, ModelError> {
+    pub fn new(start: u32, freq: u32) -> Result<Self, ModelError> {
         if freq == 0 {
             return Err(ModelError::ZeroFrequency);
         }
@@ -1340,7 +1337,21 @@ impl Rans64DecSymbol {
         if (freq as u64) > (1u64 << 31) - (start as u64) {
             return Err(ModelError::FrequencyOutOfRange);
         }
-        Ok(Self::new(start, freq))
+        Ok(Self::new_unchecked(start, freq))
+    }
+
+    /// Initialize a 64-bit decoder symbol without validation.
+    ///
+    /// Caller must ensure preconditions are met. Prefer [`new`] for
+    /// external use.
+    #[inline]
+    pub(crate) fn new_unchecked(start: u32, freq: u32) -> Self {
+        debug_assert!((start as u64) <= (1u64 << 31), "start out of range");
+        debug_assert!(
+            (freq as u64) <= (1u64 << 31) - (start as u64),
+            "freq out of range"
+        );
+        Self { start, freq }
     }
 }
 
@@ -1655,7 +1666,7 @@ mod tests {
     #[test]
     fn test_enc_symbol_init() {
         // Simple case: freq=2, scale_bits=14
-        let sym = RansByteEncSymbol::new(100, 2, 14);
+        let sym = RansByteEncSymbol::new(100, 2, 14).unwrap();
         assert!(sym.x_max > 0);
         assert!(sym.rcp_freq > 0);
         assert_eq!(sym.bias, 100);
@@ -1668,7 +1679,7 @@ mod tests {
     #[test]
     fn test_enc_symbol_init_freq_one() {
         // Special case: freq=1
-        let sym = RansByteEncSymbol::new(100, 1, 14);
+        let sym = RansByteEncSymbol::new(100, 1, 14).unwrap();
         assert!(sym.x_max > 0);
         assert_eq!(sym.rcp_freq, !0u32);
         assert_eq!(sym.rcp_shift, 0);
@@ -1681,7 +1692,7 @@ mod tests {
         let scale_bits = 14;
         let start = 0;
         let freq = 1u32 << scale_bits;
-        let sym = RansByteEncSymbol::new(start, freq, scale_bits);
+        let sym = RansByteEncSymbol::new(start, freq, scale_bits).unwrap();
         assert!(sym.x_max > 0);
     }
 
@@ -1716,7 +1727,7 @@ mod tests {
         let mut out = [0u8; 1024];
         let mut writer = BackwardByteWriter::new(&mut out);
 
-        let esym = RansByteEncSymbol::new(0, 1u32 << scale_bits, scale_bits);
+        let esym = RansByteEncSymbol::new(0, 1u32 << scale_bits, scale_bits).unwrap();
         let mut state = RansByteState::new();
 
         for _i in (0..symbols.len()).rev() {
@@ -1729,7 +1740,7 @@ mod tests {
 
         // Decode
         let mut reader = ByteReader::new(encoded);
-        let dsym = RansByteDecSymbol::new(0, 1u32 << scale_bits);
+        let dsym = RansByteDecSymbol::new(0, 1u32 << scale_bits).unwrap();
         let mut dec_state = rans_byte_dec_init(&mut reader).unwrap();
         // With one symbol occupying the entire [0, 1<<scale_bits) range,
         // all cum2sym slots map to that symbol (42).
@@ -1783,8 +1794,8 @@ mod tests {
 
         // Decode
         let mut reader = ByteReader::new(encoded);
-        let dsym0 = RansByteDecSymbol::new(0, freq0);
-        let dsym1 = RansByteDecSymbol::new(freq0, freq1);
+        let dsym0 = RansByteDecSymbol::new(0, freq0).unwrap();
+        let dsym1 = RansByteDecSymbol::new(freq0, freq1).unwrap();
 
         let mut dec_state = rans_byte_dec_init(&mut reader).unwrap();
         let cum2sym = [0u8, 0u8, 1u8, 1u8]; // slots 0-1 -> sym0, slots 2-3 -> sym1
@@ -1852,13 +1863,13 @@ mod tests {
         let freq1 = total / 3;
         let freq2 = total - freq0 - freq1;
 
-        let esym0 = RansByteEncSymbol::new(0, freq0, scale_bits);
-        let esym1 = RansByteEncSymbol::new(freq0, freq1, scale_bits);
-        let esym2 = RansByteEncSymbol::new(freq0 + freq1, freq2, scale_bits);
+        let esym0 = RansByteEncSymbol::new(0, freq0, scale_bits).unwrap();
+        let esym1 = RansByteEncSymbol::new(freq0, freq1, scale_bits).unwrap();
+        let esym2 = RansByteEncSymbol::new(freq0 + freq1, freq2, scale_bits).unwrap();
 
-        let dsym0 = RansByteDecSymbol::new(0, freq0);
-        let dsym1 = RansByteDecSymbol::new(freq0, freq1);
-        let dsym2 = RansByteDecSymbol::new(freq0 + freq1, freq2);
+        let dsym0 = RansByteDecSymbol::new(0, freq0).unwrap();
+        let dsym1 = RansByteDecSymbol::new(freq0, freq1).unwrap();
+        let dsym2 = RansByteDecSymbol::new(freq0 + freq1, freq2).unwrap();
 
         let symbols: alloc::vec::Vec<u8> = (0..50).map(|i| (i % 3) as u8).collect();
 
@@ -1920,10 +1931,10 @@ mod tests {
         let total = 1u32 << scale_bits;
         let base_freq = total / 7;
         let esyms: alloc::vec::Vec<RansByteEncSymbol> = (0..7)
-            .map(|i| RansByteEncSymbol::new(i * base_freq, base_freq, scale_bits))
+            .map(|i| RansByteEncSymbol::new(i * base_freq, base_freq, scale_bits).unwrap())
             .collect();
         let dsyms: alloc::vec::Vec<RansByteDecSymbol> = (0..7)
-            .map(|i| RansByteDecSymbol::new(i * base_freq, base_freq))
+            .map(|i| RansByteDecSymbol::new(i * base_freq, base_freq).unwrap())
             .collect();
 
         // Encode interleaved
@@ -2009,7 +2020,7 @@ mod tests {
 
         for &freq in &test_freqs {
             let start = 0;
-            let esym = RansByteEncSymbol::new(start, freq, scale_bits);
+            let esym = RansByteEncSymbol::new(start, freq, scale_bits).unwrap();
 
             let test_states = [
                 RANS_BYTE_L,
@@ -2047,7 +2058,7 @@ mod tests {
         // Verify against compiled C oracle output
 
         // freq=10, start=0, scale_bits=14
-        let sym = RansByteEncSymbol::new(0, 10, 14);
+        let sym = RansByteEncSymbol::new(0, 10, 14).unwrap();
         assert_eq!(sym.x_max, 1310720);
         assert_eq!(sym.rcp_freq, 3435973837);
         assert_eq!(sym.bias, 0);
@@ -2055,7 +2066,7 @@ mod tests {
         assert_eq!(sym.rcp_shift as u32, 3);
 
         // freq=1 special case, start=100, scale_bits=14
-        let sym = RansByteEncSymbol::new(100, 1, 14);
+        let sym = RansByteEncSymbol::new(100, 1, 14).unwrap();
         assert_eq!(sym.x_max, 131072);
         assert_eq!(sym.rcp_freq, 4294967295);
         assert_eq!(sym.bias, 16483);
@@ -2063,7 +2074,7 @@ mod tests {
         assert_eq!(sym.rcp_shift as u32, 0);
 
         // freq=16384 (full total), start=0, scale_bits=14
-        let sym = RansByteEncSymbol::new(0, 16384, 14);
+        let sym = RansByteEncSymbol::new(0, 16384, 14).unwrap();
         assert_eq!(sym.x_max, 2147483648);
         assert_eq!(sym.rcp_freq, 2147483648);
         assert_eq!(sym.bias, 0);
@@ -2071,7 +2082,7 @@ mod tests {
         assert_eq!(sym.rcp_shift as u32, 13);
 
         // freq=2, start=0, scale_bits=14
-        let sym = RansByteEncSymbol::new(0, 2, 14);
+        let sym = RansByteEncSymbol::new(0, 2, 14).unwrap();
         assert_eq!(sym.cmpl_freq as u32, 16382);
         assert_eq!(sym.rcp_shift as u32, 0);
         assert!(sym.rcp_freq == 2147483648 || sym.rcp_freq > 0);
@@ -2082,7 +2093,7 @@ mod tests {
         let scale_bits = 14;
         let freq = 1u32;
         let start = 100;
-        let esym = RansByteEncSymbol::new(start, freq, scale_bits);
+        let esym = RansByteEncSymbol::new(start, freq, scale_bits).unwrap();
 
         // The freq=1 special case should give: x_new = x * M + start
         fn expected(x: u32, start: u32, scale_bits: u32) -> u32 {
@@ -2111,7 +2122,7 @@ mod tests {
 
     #[test]
     fn test_decoder_symbol_init() {
-        let dsym = RansByteDecSymbol::new(100, 50);
+        let dsym = RansByteDecSymbol::new(100, 50).unwrap();
         assert_eq!(dsym.start, 100);
         assert_eq!(dsym.freq, 50);
     }
@@ -2190,7 +2201,7 @@ mod tests {
     #[test]
     fn test_rans64_enc_symbol_init() {
         // Simple case: freq=2, scale_bits=14
-        let sym = Rans64EncSymbol::new(100, 2, 14);
+        let sym = Rans64EncSymbol::new(100, 2, 14).unwrap();
         assert!(sym.x_max > 0);
         assert!(sym.rcp_freq > 0);
         assert_eq!(sym.bias, 100);
@@ -2204,7 +2215,7 @@ mod tests {
 
     #[test]
     fn test_rans64_enc_symbol_init_freq_one() {
-        let sym = Rans64EncSymbol::new(100, 1, 14);
+        let sym = Rans64EncSymbol::new(100, 1, 14).unwrap();
         assert!(sym.x_max > 0);
         assert_eq!(sym.rcp_freq, !0u64);
         assert_eq!(sym.rcp_shift, 0);
@@ -2217,7 +2228,7 @@ mod tests {
         let scale_bits = 30;
         let start = 0;
         let freq = (1u32 << 29) + 1; // large, irregular freq
-        let sym = Rans64EncSymbol::new(start, freq, scale_bits);
+        let sym = Rans64EncSymbol::new(start, freq, scale_bits).unwrap();
         assert!(sym.rcp_freq > 0);
         assert!(sym.x_max > 0);
         assert_eq!(sym.bias, 0);
@@ -2256,7 +2267,7 @@ mod tests {
 
         // Decode
         let mut reader = Word32Reader::new(encoded);
-        let dsym = Rans64DecSymbol::new(0, 1u32 << scale_bits);
+        let dsym = Rans64DecSymbol::new(0, 1u32 << scale_bits).unwrap();
         let mut dec_state = rans64_dec_init(&mut reader).unwrap();
         let cum2sym = [99u8; 1 << 14];
 
@@ -2299,8 +2310,8 @@ mod tests {
 
         // Decode
         let mut reader = Word32Reader::new(encoded);
-        let dsym0 = Rans64DecSymbol::new(0, freq0);
-        let dsym1 = Rans64DecSymbol::new(freq0, freq1);
+        let dsym0 = Rans64DecSymbol::new(0, freq0).unwrap();
+        let dsym1 = Rans64DecSymbol::new(freq0, freq1).unwrap();
 
         let mut dec_state = rans64_dec_init(&mut reader).unwrap();
         // Build cum2sym for these two symbols
@@ -2335,7 +2346,7 @@ mod tests {
 
         for &freq in &test_freqs {
             let start = 0u32;
-            let esym = Rans64EncSymbol::new(start, freq, scale_bits);
+            let esym = Rans64EncSymbol::new(start, freq, scale_bits).unwrap();
 
             let test_states = [
                 RANS64_L,
@@ -2377,13 +2388,13 @@ mod tests {
         let freq1 = total / 3;
         let freq2 = total - freq0 - freq1;
 
-        let esym0 = Rans64EncSymbol::new(0, freq0, scale_bits);
-        let esym1 = Rans64EncSymbol::new(freq0, freq1, scale_bits);
-        let esym2 = Rans64EncSymbol::new(freq0 + freq1, freq2, scale_bits);
+        let esym0 = Rans64EncSymbol::new(0, freq0, scale_bits).unwrap();
+        let esym1 = Rans64EncSymbol::new(freq0, freq1, scale_bits).unwrap();
+        let esym2 = Rans64EncSymbol::new(freq0 + freq1, freq2, scale_bits).unwrap();
 
-        let dsym0 = Rans64DecSymbol::new(0, freq0);
-        let dsym1 = Rans64DecSymbol::new(freq0, freq1);
-        let dsym2 = Rans64DecSymbol::new(freq0 + freq1, freq2);
+        let dsym0 = Rans64DecSymbol::new(0, freq0).unwrap();
+        let dsym1 = Rans64DecSymbol::new(freq0, freq1).unwrap();
+        let dsym2 = Rans64DecSymbol::new(freq0 + freq1, freq2).unwrap();
 
         let symbols: alloc::vec::Vec<u8> = (0..50).map(|i| (i % 3) as u8).collect();
 
@@ -2444,7 +2455,7 @@ mod tests {
         let freq = total / 2;
         let start = 0;
 
-        let dsym = Rans64DecSymbol::new(start, freq);
+        let dsym = Rans64DecSymbol::new(start, freq).unwrap();
 
         // Start with a state large enough to not need renormalization
         let state_val = RANS64_L * 4;
@@ -2487,8 +2498,8 @@ mod tests {
         let freq = 100u32;
         let start = 500u32;
 
-        let esym = Rans64EncSymbol::new(start, freq, scale_bits);
-        let _dsym = Rans64DecSymbol::new(start, freq);
+        let esym = Rans64EncSymbol::new(start, freq, scale_bits).unwrap();
+        let _dsym = Rans64DecSymbol::new(start, freq).unwrap();
 
         // Pick a test state that doesn't need renormalization
         let x = RANS64_L; // minimum valid state
@@ -2559,7 +2570,7 @@ mod tests {
 
     #[test]
     fn test_rans64_decoder_symbol_init() {
-        let dsym = Rans64DecSymbol::new(100, 50);
+        let dsym = Rans64DecSymbol::new(100, 50).unwrap();
         assert_eq!(dsym.start, 100);
         assert_eq!(dsym.freq, 50);
     }
@@ -2570,7 +2581,7 @@ mod tests {
         let scale_bits = 14;
         let freq = 1u32;
         let start = 100;
-        let esym = Rans64EncSymbol::new(start, freq, scale_bits);
+        let esym = Rans64EncSymbol::new(start, freq, scale_bits).unwrap();
 
         fn expected(x: u64, start: u64, scale_bits: u32) -> u64 {
             x * (1u64 << scale_bits) + start
@@ -2621,8 +2632,8 @@ mod tests {
         // Use a small freq so x_max is small, forcing renormalization
         let freq = 7u32;
         let start = 100;
-        let esym = Rans64EncSymbol::new(start, freq, scale_bits);
-        let dsym = Rans64DecSymbol::new(start, freq);
+        let esym = Rans64EncSymbol::new(start, freq, scale_bits).unwrap();
+        let dsym = Rans64DecSymbol::new(start, freq).unwrap();
 
         let mut out = [0u8; 4096];
         let mut writer = BackwardWord32Writer::new(&mut out);
@@ -2721,7 +2732,7 @@ mod tests {
                     continue;
                 }
 
-                let sym = Rans64EncSymbol::new(start, freq, scale_bits);
+                let sym = Rans64EncSymbol::new(start, freq, scale_bits).unwrap();
 
                 // Verify cmpl_freq is correct (u32, not truncated to u16)
                 let expected_cmpl = ((1u64 << scale_bits) - freq as u64) as u32;
@@ -2789,7 +2800,7 @@ mod tests {
                 continue;
             }
 
-            let sym = Rans64EncSymbol::new(start, freq, scale_bits);
+            let sym = Rans64EncSymbol::new(start, freq, scale_bits).unwrap();
 
             // Test several state values that are within normalization bounds
             let states = [RANS64_L, RANS64_L + 1, RANS64_L * 2, (1u64 << 62) - 1];

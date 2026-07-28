@@ -52,7 +52,7 @@
 //! let base_freq = total / 256;
 //!
 //! let esyms: Vec<_> = (0..256)
-//!     .map(|i| RansByteEncSymbol::new(i * base_freq, base_freq, scale_bits))
+//!     .map(|i| RansByteEncSymbol::new(i * base_freq, base_freq, scale_bits).unwrap())
 //!     .collect();
 //!
 //! let data = b"Hello, rANS!";
@@ -63,7 +63,7 @@
 //!     .collect();
 //!
 //! let dsyms: Vec<_> = (0..256)
-//!     .map(|i| ryg_rans_rs::byte::RansByteDecSymbol::new(i * base_freq, base_freq))
+//!     .map(|i| ryg_rans_rs::byte::RansByteDecSymbol::new(i * base_freq, base_freq).unwrap())
 //!     .collect();
 //!
 //! let decoded = alloc_utils::decode(&encoded, &cum2sym, &dsyms, scale_bits, data.len());
