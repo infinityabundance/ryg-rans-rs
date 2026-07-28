@@ -379,10 +379,12 @@ services:
       sh -c '
         set -e
         echo "=== Running ASan oracle smoke test ==="
-        # Provide a minimal valid input so ASan-exercised execution runs
+        # Write output to file (avoid pipe which swallows exit codes)
         printf "test\n" > /tmp/asan-input.txt
-        /usr/local/bin/rans_byte_asan < /tmp/asan-input.txt 2>&1 | head -10
-        /usr/local/bin/rans64_asan < /tmp/asan-input.txt 2>&1 | head -10
+        /usr/local/bin/rans_byte_asan < /tmp/asan-input.txt > /tmp/asan-byte-output.txt 2>&1
+        head -10 /tmp/asan-byte-output.txt
+        /usr/local/bin/rans64_asan < /tmp/asan-input.txt > /tmp/asan-r64-output.txt 2>&1
+        head -10 /tmp/asan-r64-output.txt
         echo "=== ASan build OK ==="
       '
 

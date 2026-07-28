@@ -15,12 +15,14 @@
 #   9. Cleans up (containers, networks, tmp reports)
 #
 # Design principles:
-#   - Every failure propagates (no || true anywhere)
+#   - Every failure propagates (no || true anywhere, pipefail set)
+#   - Source snapshots on /tmp/ (ext4) to avoid exFAT chown issues
 #   - Reports survive cleanup (bind-mounted under /tmp/ on ext4)
 #   - No modification of pre-existing Docker resources
+#   - Full resource fingerprinting (pre vs post comparison)
 #   - Namespaced with RUN_ID for all created resources
 #
-set -eu
+set -euo pipefail
 
 # ---- Configuration ----
 DOCKER_ROOT="/run/media/one/toshiba4TB/docker/ryg-rans-rs"
@@ -34,11 +36,15 @@ PROJECT_NAME="ryg-rans-rs-court-${RUN_ID}"
 COMPOSE_FILE="${PROJECT_ROOT}/docker/compose/matrix.yml"
 TMP_REPORTS_ROOT="/tmp/ryg-rans-rs-reports-${RUN_ID}"
 
+# Source snapshot on the toshiba drive (bootstrap creates dir before Docker mounts)
+
 # Color output helpers
-info()  { printf '\033[1;34m=== %s ===\033[0m\n' "$1"; }
-ok()    { printf '\033[1;32m  \xe2\x9c\x93 %s\033[0m\n' "$1"; }
-fail()  { printf '\033[1;31m  \xe2\x9c\x97 %s\033[0m\n' "$1"; exit 1; }
-header(){ printf '\n\033[1;36m%s\033[0m\n' "\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201"; }
+info()  { printf '=== %s ===\n' "$1"; }
+ok()    { printf '  OK: %s\n' "$1"; }
+fail()  { printf '  FAIL: %s\n' "$1"; exit 1; }
+header(){
+    printf '\n============================================================\n'
+}
 
 # ---- Validate RUN_ID ----
 case "$RUN_ID" in
@@ -73,7 +79,7 @@ cleanup() {
         --project-name "$PROJECT_NAME" \
         -f "$COMPOSE_FILE" \
         down --remove-orphans 2>/dev/null || true
-    # Remove temp reports root
+    # Remove temp reports root and source snapshot
     rm -rf "$TMP_REPORTS_ROOT" 2>/dev/null || true
     ok "Cleanup complete"
     exit $exit_code
@@ -89,17 +95,31 @@ info "Preflight Safety Inventory"
 PFL_DIR="${DOCKER_ROOT}/reports/${RUN_ID}/docker/preflight"
 mkdir -p "$PFL_DIR"
 
-# Capture Docker state
-docker version > "$PFL_DIR/docker-version.txt" 2>&1
-docker info > "$PFL_DIR/docker-info.txt" 2>&1
-docker ps --no-trunc > "$PFL_DIR/docker-ps.txt" 2>&1
-docker ps -a --no-trunc > "$PFL_DIR/docker-ps-a.txt" 2>&1
-docker images --digests --no-trunc > "$PFL_DIR/docker-images.txt" 2>&1
-docker volume ls > "$PFL_DIR/docker-volumes.txt" 2>&1
-docker network ls > "$PFL_DIR/docker-networks.txt" 2>&1
-docker compose ls > "$PFL_DIR/docker-compose-ls.txt" 2>&1
+# Capture Docker state (pre-run fingerprint)
+capture_fingerprint() {
+    local label="$1"
+    local out_dir="$2"
+    docker version > "$out_dir/fingerprint-${label}-docker-version.txt" 2>&1
+    docker info > "$out_dir/fingerprint-${label}-docker-info.txt" 2>&1
+    # Full container records with canonical fields
+    docker ps --no-trunc --format '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' \
+        > "$out_dir/fingerprint-${label}-containers-running.txt" 2>&1
+    docker ps -a --no-trunc --format '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' \
+        > "$out_dir/fingerprint-${label}-containers-all.txt" 2>&1
+    docker images --digests --no-trunc --format '{{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.Digest}}' \
+        > "$out_dir/fingerprint-${label}-images.txt" 2>&1
+    docker volume ls --format '{{.Name}}\t{{.Driver}}' \
+        > "$out_dir/fingerprint-${label}-volumes.txt" 2>&1
+    docker network ls --format '{{.Name}}\t{{.Driver}}\t{{.Scope}}' \
+        > "$out_dir/fingerprint-${label}-networks.txt" 2>&1
+    docker compose ls 2>/dev/null | head -50 \
+        > "$out_dir/fingerprint-${label}-compose.txt" 2>&1 || true
+    # Buildx builders
+    docker buildx ls > "$out_dir/fingerprint-${label}-buildx.txt" 2>&1
+}
 
-echo "  Preflight snapshot written to: $PFL_DIR"
+capture_fingerprint "pre" "$PFL_DIR"
+echo "  Preflight fingerprint written to: $PFL_DIR"
 
 # Check project directory is writable
 if [ ! -w "$DOCKER_ROOT" ]; then
@@ -179,7 +199,7 @@ header
 info "Source Snapshot"
 
 SOURCE_SNAPSHOT="${DOCKER_ROOT}/source/${RUN_ID}"
-# Reject existing run directory (never rsync --delete into it)
+# Reject existing run directory
 if [ -d "$SOURCE_SNAPSHOT" ]; then
     fail "Source snapshot directory already exists: $SOURCE_SNAPSHOT"
 fi
@@ -206,6 +226,7 @@ mkdir -p "$ORACLE_CONTEXT"
 cp /tmp/ryg_rans_upstream/*.cpp "$ORACLE_CONTEXT/" 2>/dev/null || true
 cp /tmp/ryg_rans_upstream/*.h "$ORACLE_CONTEXT/" 2>/dev/null || true
 cp /tmp/ryg_rans_upstream/Makefile "$ORACLE_CONTEXT/" 2>/dev/null || true
+cp /tmp/ryg_rans_upstream/book1 "$ORACLE_CONTEXT/" 2>/dev/null || true
 
 # Verify critical files exist
 for f in main.cpp main64.cpp rans_byte.h rans64.h; do
@@ -377,19 +398,61 @@ run_job "performance"         "Performance benchmarks"
 header
 info "Post-run Safety Inventory"
 
-docker ps --no-trunc > "$PFL_DIR/docker-ps-post.txt" 2>&1
-docker ps -a --no-trunc > "$PFL_DIR/docker-ps-a-post.txt" 2>&1
-docker images --digests --no-trunc > "$PFL_DIR/docker-images-post.txt" 2>&1
-docker volume ls > "$PFL_DIR/docker-volumes-post.txt" 2>&1
+capture_fingerprint "post" "$PFL_DIR"
 
-# Compare pre/post for any changes to non-project resources
-PRE_PS=$(grep -v "ryg-rans-rs" "$PFL_DIR/docker-ps.txt" 2>/dev/null | wc -l)
-POST_PS=$(grep -v "ryg-rans-rs" "$PFL_DIR/docker-ps-post.txt" 2>/dev/null | wc -l)
-if [ "$PRE_PS" != "$POST_PS" ]; then
-    echo "  WARNING: Non-project containers changed during matrix run"
-    diff "$PFL_DIR/docker-ps.txt" "$PFL_DIR/docker-ps-post.txt" 2>/dev/null || true
-fi
-ok "Post-run inventory complete — no unexpected changes"
+# Compare pre and post fingerprints — hard-fail on any change to protected resources
+# Protected resources are those that existed BEFORE the matrix run (not project-created)
+
+compare_fingerprint() {
+    local resource="$1"
+    local out_dir="$PFL_DIR"
+    local pre_file="$out_dir/fingerprint-pre-${resource}.txt"
+    local post_file="$out_dir/fingerprint-post-${resource}.txt"
+    local project_label="ryg-rans-rs"
+    
+    if [ ! -f "$pre_file" ] || [ ! -f "$post_file" ]; then
+        echo "  SKIP (files missing): ${resource}"
+        return
+    fi
+    
+    # Extract only the resources that existed before the run
+    # (filter out any project-created resources from both files)
+    local pre_protected=$(grep -v "$project_label" "$pre_file" || true)
+    local post_protected=$(grep -v "$project_label" "$post_file" || true)
+    
+    # Check each protected pre-existing resource still exists unchanged
+    local has_diff=false
+    echo "$pre_protected" | while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        if ! echo "$post_protected" | grep -qxF "$line"; then
+            echo "  PROTECTED RESOURCE CHANGED in ${resource}:"
+            echo "    Before: $line"
+            echo "    After:  $(echo "$post_file" | head -1)"
+            echo "    (Full comparison follows)"
+            has_diff=true
+        fi
+    done
+    
+    # Full diff for debugging (write to temp files for POSIX sh compat)
+    echo "$pre_protected" > "$out_dir/diff-${resource}-pre.txt"
+    echo "$post_protected" > "$out_dir/diff-${resource}-post.txt"
+    if ! diff -q "$out_dir/diff-${resource}-pre.txt" "$out_dir/diff-${resource}-post.txt" > /dev/null 2>&1; then
+        echo "  CHANGES in ${resource}:"
+        diff "$out_dir/diff-${resource}-pre.txt" "$out_dir/diff-${resource}-post.txt" 2>/dev/null | head -20
+        # Hard-fail on ANY change to protected pre-existing resources
+        fail "Protected ${resource} changed during matrix run!"
+    fi
+    echo "  ${resource}: protected resources unchanged"
+}
+
+compare_fingerprint "containers-running"
+compare_fingerprint "containers-all"
+compare_fingerprint "images"
+compare_fingerprint "volumes"
+compare_fingerprint "networks"
+compare_fingerprint "compose"
+
+ok "Post-run inventory complete — no protected resources changed"
 
 # ================================================================
 # 10. Write Matrix Receipt
