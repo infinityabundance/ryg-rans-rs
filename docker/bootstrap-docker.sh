@@ -26,8 +26,9 @@ set -eu
 DOCKER_ROOT="/run/media/one/toshiba4TB/docker/ryg-rans-rs"
 PROJECT_ROOT="/run/media/one/1tb_kingston1/ryg-rans-rs"
 GIT_SHA=$(cd "$PROJECT_ROOT" && git rev-parse --short HEAD 2>/dev/null || echo 'nogit')
-TIMESTAMP=$(date -u +%Y%m%dT%H%M%S)
-RUN_ID="${1:-ci-${TIMESTAMP}-${GIT_SHA}}"
+TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+LOWERCASE_SHA=$(echo "${GIT_SHA}" | tr '[:upper:]' '[:lower:]')
+RUN_ID="${1:-ci-${TIMESTAMP}-${LOWERCASE_SHA}}"
 
 PROJECT_NAME="ryg-rans-rs-court-${RUN_ID}"
 COMPOSE_FILE="${PROJECT_ROOT}/docker/compose/matrix.yml"
@@ -293,11 +294,17 @@ ok "Compose configuration valid"
 header
 info "Building Docker Images"
 
+# Build oracle-gcc and sanitizers first with no-cache (context changes per run)
 docker compose \
     --project-name "$PROJECT_NAME" \
     -f "$COMPOSE_FILE" \
-    build \
-    --pull
+    build --pull --no-cache-filter oracle-gcc --no-cache-filter sanitizers
+
+# Build remaining images with normal caching
+docker compose \
+    --project-name "$PROJECT_NAME" \
+    -f "$COMPOSE_FILE" \
+    build --pull
 
 ok "All images built"
 

@@ -33,6 +33,8 @@ services:
   oracle-gcc:
     build:
       context: ${DOCKER_ROOT}/runs/${RUN_ID}/oracle-context
+      args:
+        CACHE_BUST: "${RUN_ID}"
     image: ryg-rans-rs-court-oracle-gcc:${RUN_ID}
     container_name: ryg-rans-rs-court-oracle-gcc-${RUN_ID}
     volumes:
@@ -337,6 +339,8 @@ services:
     build:
       context: ${DOCKER_ROOT}/runs/${RUN_ID}/oracle-context
       dockerfile: Dockerfile.sanitizer
+      args:
+        CACHE_BUST: "${RUN_ID}"
     image: ryg-rans-rs-court-sanitizers:${RUN_ID}
     container_name: ryg-rans-rs-court-sanitizers-${RUN_ID}
     volumes:
