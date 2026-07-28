@@ -63,7 +63,8 @@ echo "Oracle context created"
 # ---- Report directories ----
 mkdir -p "${DOCKER_ROOT}/reports/${RUN_ID}/oracle" "${DOCKER_ROOT}/reports/${RUN_ID}/stable" "${DOCKER_ROOT}/reports/${RUN_ID}/musl" "${DOCKER_ROOT}/reports/${RUN_ID}/package" "${DOCKER_ROOT}/reports/${RUN_ID}/docker" "${DOCKER_ROOT}/reports/${RUN_ID}/miri"
 
-# Copy dockerfiles
+# Copy dockerfiles (contents only, not nested)
+rm -rf "$DOCKER_ROOT/dockerfiles"
 cp -r "$PROJECT_ROOT/docker/dockerfiles" "$DOCKER_ROOT/dockerfiles"
 
 # Export for compose

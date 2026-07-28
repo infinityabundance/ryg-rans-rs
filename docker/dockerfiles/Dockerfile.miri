@@ -4,8 +4,8 @@ FROM rust:1.85-slim-bookworm AS miri
 RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ gcc make ca-certificates \
     && rm -rf /var/lib/apt/lists/* && \
-    rustup component add miri && \
-    rustup target add x86_64-unknown-linux-gnu
+    rustup toolchain install nightly --component miri && \
+    rustup target add x86_64-unknown-linux-gnu --toolchain nightly
 
 LABEL org.infinityabundance.project=ryg-rans-rs
 LABEL org.infinityabundance.purpose=forensic-parity-court
