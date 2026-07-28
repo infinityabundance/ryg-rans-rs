@@ -36,9 +36,9 @@ TMP_REPORTS_ROOT="/tmp/ryg-rans-rs-reports-${RUN_ID}"
 
 # Color output helpers
 info()  { printf '\033[1;34m=== %s ===\033[0m\n' "$1"; }
-ok()    { printf '\033[1;32m  ✓ %s\033[0m\n' "$1"; }
-fail()  { printf '\033[1;31m  ✗ %s\033[0m\n' "$1"; exit 1; }
-header(){ printf '\n\033[1;36m%s\033[0m\n' "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; }
+ok()    { printf '\033[1;32m  \xe2\x9c\x93 %s\033[0m\n' "$1"; }
+fail()  { printf '\033[1;31m  \xe2\x9c\x97 %s\033[0m\n' "$1"; exit 1; }
+header(){ printf '\n\033[1;36m%s\033[0m\n' "\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201\342\224\201"; }
 
 # ---- Validate RUN_ID ----
 case "$RUN_ID" in
@@ -139,17 +139,13 @@ check_collision() {
 }
 
 # Check proposed project resource names for collisions
-PROJECT_PREFIX="ryg-rans-rs-court-${RUN_ID}"
-check_collision container "${PROJECT_PREFIX}-oracle-gcc-${RUN_ID}" || true
-check_collision container "${PROJECT_PREFIX}-rust-stable-tests-${RUN_ID}" || true
-check_collision network "${PROJECT_PREFIX}_default" || true
+check_collision container "${PROJECT_NAME}-oracle-gcc-${RUN_ID}" || true
+check_collision container "${PROJECT_NAME}-rust-stable-tests-${RUN_ID}" || true
+check_collision network "${PROJECT_NAME}_default" || true
 for vol in cargo-stable target-stable cargo-musl target-musl cargo-msrv target-msrv cargo-aarch64 target-aarch64; do
     check_collision volume "ryg-rans-rs-${vol}-${RUN_ID}" || true
 done
 ok "No resource name collisions detected"
-
-# Check host ports (none of our services bind host ports)
-# All services use network_mode: none or internal networking
 
 # Check that no proposed path resolves through a symlink into unrelated location
 for p in "$DOCKER_ROOT" "$PROJECT_ROOT"; do
@@ -355,10 +351,13 @@ run_job() {
     else
         fail "${label} failed (exit $exit_code)"
     fi
-    JOB_RESULTS="${JOB_RESULTS}{\
-      \"name\": \"${service}\",\n      \"label\": \"${label}\",\n      \"exit_code\": ${exit_code},\
-      \"started_at\": \"${started_at}\",\n      \"finished_at\": \"${finished_at}\"\n    },"
+    # Build job result as JSON using a temp file to avoid shell escaping issues
     JOB_COUNT=$((JOB_COUNT + 1))
+    if [ -z "$JOB_RESULTS" ]; then
+        JOB_RESULTS="{\"name\":\"${service}\",\"label\":\"${label}\",\"exit_code\":${exit_code},\"started_at\":\"${started_at}\",\"finished_at\":\"${finished_at}\"}"
+    else
+        JOB_RESULTS="${JOB_RESULTS},{\"name\":\"${service}\",\"label\":\"${label}\",\"exit_code\":${exit_code},\"started_at\":\"${started_at}\",\"finished_at\":\"${finished_at}\"}"
+    fi
 }
 
 run_job "oracle-gcc"          "Oracle GCC build and verify"
@@ -384,7 +383,6 @@ docker images --digests --no-trunc > "$PFL_DIR/docker-images-post.txt" 2>&1
 docker volume ls > "$PFL_DIR/docker-volumes-post.txt" 2>&1
 
 # Compare pre/post for any changes to non-project resources
-# (Only report differences — this is informational)
 PRE_PS=$(grep -v "ryg-rans-rs" "$PFL_DIR/docker-ps.txt" 2>/dev/null | wc -l)
 POST_PS=$(grep -v "ryg-rans-rs" "$PFL_DIR/docker-ps-post.txt" 2>/dev/null | wc -l)
 if [ "$PRE_PS" != "$POST_PS" ]; then
@@ -436,21 +434,20 @@ header
 info "Docker Matrix JSON Stamp"
 
 STAMP_FILE="${TMP_REPORTS_ROOT}/docker/docker-matrix.json"
-# Remove trailing comma from last job entry
-JOB_RESULTS_CLEAN="${JOB_RESULTS%,}"
+# Use printf to build proper JSON (avoid echo's literal \n)
 {
-    echo '{'
-    echo '  "schema_version": 2,'
-    echo '  "run_id": "'"$RUN_ID"'",'
-    echo '  "date": "'"$(date -u -Iseconds)"'",'
-    echo '  "git_commit": "'"$GIT_SHA"'",'
-    echo '  "upstream_commit": "'"$UPSTREAM_GIT"'",'
-    echo '  "job_count": '"$JOB_COUNT"','
-    echo '  "jobs": ['
-    echo "$JOB_RESULTS_CLEAN"
-    echo '  ],'
-    echo '  "all_passed": true'
-    echo '}'
+    printf '{\n'
+    printf '  "schema_version": 2,\n'
+    printf '  "run_id": "%s",\n' "$RUN_ID"
+    printf '  "date": "%s",\n' "$(date -u -Iseconds)"
+    printf '  "git_commit": "%s",\n' "$GIT_SHA"
+    printf '  "upstream_commit": "%s",\n' "$UPSTREAM_GIT"
+    printf '  "job_count": %d,\n' "$JOB_COUNT"
+    printf '  "jobs": [\n'
+    printf '    %s\n' "$JOB_RESULTS"
+    printf '  ],\n'
+    printf '  "all_passed": true\n'
+    printf '}\n'
 } > "$STAMP_FILE"
 
 # Copy stamp into the project source snapshot for archiving
