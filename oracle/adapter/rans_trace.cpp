@@ -57,6 +57,8 @@ static void usage(const char *prog)
     fprintf(stderr, "  dec-stream-byte    scale_bits freq_csv compressed_hex num_symbols\n");
     fprintf(stderr, "  enc-stream-r64     scale_bits freq_csv input_hex\n");
     fprintf(stderr, "  dec-stream-r64     scale_bits freq_csv compressed_hex num_symbols\n");
+    fprintf(stderr, "  enc-stream-byte-div scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  enc-stream-r64-div  scale_bits freq_csv input_hex\n");
     exit(1);
 }
 
@@ -806,6 +808,79 @@ static void trace_dec_stream_r64(uint32_t scale_bits,
 }
 
 // ===========================================================================
+// Division-mode stream operations (use RansEncPut instead of RansEncPutSymbol)
+// ===========================================================================
+
+static void trace_enc_stream_byte_div(uint32_t scale_bits,
+                                      const std::vector<uint32_t>& freqs,
+                                      const std::vector<uint8_t>& input)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    // Encode using division path
+    uint8_t buf[64 * 1024];
+    uint8_t* ptr = buf + sizeof(buf);
+    RansState state;
+    RansEncInit(&state);
+
+    for (size_t i = input.size(); i > 0; i--) {
+        int s = input[i-1];
+        RansEncPut(&state, &ptr, cum_freqs[s], freqs[s], scale_bits);
+    }
+    RansEncFlush(&state, &ptr);
+
+    size_t comp_size = sizeof(buf) - (ptr - buf);
+    std::string comp_hex = hex_encode(ptr, comp_size);
+
+    printf("{\"op\":\"enc-stream-byte-div\""
+           ",\"scale_bits\":%u"
+           ",\"input_size\":%zu"
+           ",\"compressed_size\":%zu"
+           ",\"compressed_hex\":\"%s\""
+           "}\n",
+           scale_bits, input.size(), comp_size, comp_hex.c_str());
+}
+
+static void trace_enc_stream_r64_div(uint32_t scale_bits,
+                                     const std::vector<uint32_t>& freqs,
+                                     const std::vector<uint8_t>& input)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    uint32_t buf[64 * 1024];
+    uint32_t* ptr = buf + sizeof(buf) / sizeof(buf[0]);
+    Rans64State state;
+    Rans64EncInit(&state);
+
+    for (size_t i = input.size(); i > 0; i--) {
+        int s = input[i-1];
+        Rans64EncPut(&state, &ptr, cum_freqs[s], freqs[s], scale_bits);
+    }
+    Rans64EncFlush(&state, &ptr);
+
+    size_t comp_words = (sizeof(buf) / sizeof(buf[0])) - (ptr - buf);
+    size_t comp_bytes = comp_words * sizeof(uint32_t);
+    std::string comp_hex = hex_encode((const uint8_t*)ptr, comp_bytes);
+
+    printf("{\"op\":\"enc-stream-r64-div\""
+           ",\"scale_bits\":%u"
+           ",\"input_size\":%zu"
+           ",\"compressed_words\":%zu"
+           ",\"compressed_bytes\":%zu"
+           ",\"compressed_hex\":\"%s\""
+           "}\n",
+           scale_bits, input.size(), comp_words, comp_bytes, comp_hex.c_str());
+}
+
+// ===========================================================================
 // Main dispatch
 // ===========================================================================
 
@@ -906,6 +981,16 @@ int main(int argc, char *argv[])
         trace_r64_dec_renorm(parse_u64(argv[2]));
 
     // ---- Stream operations ----
+    } else if (strcmp(op, "enc-stream-byte-div") == 0) {
+        if (argc != 5) usage(argv[0]);
+        trace_enc_stream_byte_div(parse_u32(argv[2]),
+                                  parse_freq_csv(argv[3]),
+                                  hex_decode(argv[4]));
+    } else if (strcmp(op, "enc-stream-r64-div") == 0) {
+        if (argc != 5) usage(argv[0]);
+        trace_enc_stream_r64_div(parse_u32(argv[2]),
+                                 parse_freq_csv(argv[3]),
+                                 hex_decode(argv[4]));
     } else if (strcmp(op, "enc-stream-byte") == 0) {
         if (argc != 5) usage(argv[0]);
         uint32_t scale_bits = parse_u32(argv[2]);

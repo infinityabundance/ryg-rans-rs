@@ -24,3 +24,6 @@ oracle/adapter/*.so
 
 # Reports are stored in the Docker root, not in source
 reports/
+
+# Evidence receipts are tracked in git (small canonical JSON)
+# evidence/

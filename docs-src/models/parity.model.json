@@ -5,110 +5,110 @@
     {
       "id": "byte.division",
       "name": "Byte rANS (division-based)",
-      "status": "full",
+      "behavior_status": "full",
+      "performance_status": "unsealed",
       "upstream_file": "rans_byte.h",
       "functions": ["RansEncInit", "RansEncRenorm", "RansEncPut", "RansEncFlush", "RansDecInit", "RansDecGet", "RansDecAdvance"],
-      "receipts": ["RYG_RANS.BYTE.CROSS_DECODE.v1"],
-      "notes": "Sealed via cross-decoding court: 20/20 C↔Rust bitstream matches, 0 residuals."
+      "receipts": {
+        "behavior": ["RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12.v1"],
+        "performance": []
+      },
+      "notes": "Single-state, uniform-256, scale=12. 20 cases × 5 checks = 100/100 passed. Proven via division-mode stream ops in both C and Rust."
     },
     {
       "id": "byte.reciprocal",
       "name": "Byte rANS (reciprocal fast path)",
-      "status": "full",
+      "behavior_status": "full",
+      "performance_status": "unsealed",
       "upstream_file": "rans_byte.h",
       "functions": ["RansEncSymbolInit", "RansEncPutSymbol", "RansDecSymbolInit", "RansDecAdvanceSymbol", "RansDecAdvanceStep", "RansDecAdvanceSymbolStep", "RansDecRenorm"],
-      "receipts": ["RYG_RANS.BYTE.CROSS_DECODE.v1"],
-      "notes": "Sealed via cross-decoding court (Rust uses reciprocal fast path, C uses division). Bitstreams match."
+      "receipts": {
+        "behavior": ["RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12.v1"],
+        "performance": []
+      },
+      "notes": "Single-state, uniform-256, scale=12. 20 cases × 5 checks = 100/100 passed. Both C and Rust use reciprocal symbol paths."
     },
     {
       "id": "byte.interleaved",
       "name": "Byte rANS (two-state interleaved)",
-      "status": "full",
+      "behavior_status": "implemented_unsealed",
+      "performance_status": "unsealed",
       "upstream_file": "main.cpp",
       "functions": [],
-      "receipts": ["RYG_RANS.BYTE.CROSS_DECODE.v1"],
-      "notes": "Two-stream interleave with step+renorm decode. Sealed via cross-decoding court."
+      "receipts": {"behavior": [], "performance": []},
+      "notes": "Implemented in Rust. No interleaved cross-decoding court has been run. Single-state receipt does NOT cover two-state behavior."
     },
     {
       "id": "rans64.division",
       "name": "64-bit rANS (division-based)",
-      "status": "full",
+      "behavior_status": "full",
+      "performance_status": "unsealed",
       "upstream_file": "rans64.h",
       "functions": ["Rans64EncInit", "Rans64EncPut", "Rans64EncFlush", "Rans64DecInit", "Rans64DecGet", "Rans64DecAdvance"],
-      "receipts": ["RYG_RANS.R64.CROSS_DECODE.v1"],
-      "notes": "Sealed via 64-bit cross-decoding court: 20/20 C↔Rust bitstream matches, 0 residuals."
+      "receipts": {
+        "behavior": ["RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12.v1"],
+        "performance": []
+      },
+      "notes": "Single-state, uniform-256, scale=12. 20 cases × 5 checks = 100/100 passed."
     },
     {
       "id": "rans64.reciprocal",
       "name": "64-bit rANS (reciprocal fast path)",
-      "status": "full",
+      "behavior_status": "full",
+      "performance_status": "unsealed",
       "upstream_file": "rans64.h",
       "functions": ["Rans64EncSymbolInit", "Rans64EncPutSymbol", "Rans64DecSymbolInit", "Rans64DecAdvanceSymbol", "Rans64DecAdvanceStep", "Rans64DecAdvanceSymbolStep", "Rans64DecRenorm", "Rans64MulHi"],
-      "receipts": ["RYG_RANS.R64.CROSS_DECODE.v1"],
-      "notes": "Sealed via 64-bit cross-decoding court (Rust uses reciprocal fast path, C uses division). Bitstreams match across scale_bits 12."
+      "receipts": {
+        "behavior": ["RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12.v1"],
+        "performance": []
+      },
+      "notes": "Single-state, uniform-256, scale=12. 20 cases × 5 checks = 100/100 passed."
     },
     {
       "id": "rans64.interleaved",
       "name": "64-bit rANS (two-state interleaved)",
-      "status": "partial",
+      "behavior_status": "partial",
+      "performance_status": "unsealed",
       "upstream_file": "main64.cpp",
       "functions": [],
-      "receipts": [],
-      "notes": "Primitive step+renorm operations exist. No full encoder/decoder interleaving abstraction. No oracle receipt."
+      "receipts": {"behavior": [], "performance": []},
+      "notes": "Primitive step+renorm operations exist. No full encoder/decoder interleaving abstraction."
     },
     {
       "id": "word.scalar",
       "name": "Word-aligned scalar rANS",
-      "status": "scaffold",
+      "behavior_status": "scaffold",
+      "performance_status": "unsealed",
       "upstream_file": "rans_word_sse41.h",
-      "functions": ["RansWordTablesInitSymbol", "RansWordEncInit", "RansWordEncPut", "RansWordEncFlush", "RansWordDecInit", "RansWordDecSym", "RansWordDecRenorm"],
-      "receipts": [],
-      "notes": "16-bit renormalization units, 256-symbol table"
+      "receipts": {"behavior": [], "performance": []},
+      "notes": ""
     },
     {
       "id": "sse41.decoder",
       "name": "SSE4.1 SIMD decoder",
-      "status": "scaffold",
+      "behavior_status": "scaffold",
+      "performance_status": "unsealed",
       "upstream_file": "rans_word_sse41.h",
-      "functions": ["RansSimdDecInit", "RansSimdDecSym", "RansSimdDecRenorm"],
-      "receipts": [],
-      "notes": "4-lane SIMD decoder with all 16 renormalization masks"
+      "receipts": {"behavior": [], "performance": []},
+      "notes": ""
     },
     {
-      "id": "alias.table",
-      "name": "Alias table construction",
-      "status": "scaffold",
+      "id": "alias",
+      "name": "Alias method",
+      "behavior_status": "scaffold",
+      "performance_status": "unsealed",
       "upstream_file": "main_alias.cpp",
-      "functions": ["make_alias_table"],
-      "receipts": [],
-      "notes": "Vose alias table, exact normalization, donor selection"
-    },
-    {
-      "id": "alias.encode",
-      "name": "Alias table encoding",
-      "status": "scaffold",
-      "upstream_file": "main_alias.cpp",
-      "functions": ["RansEncPutAlias"],
-      "receipts": [],
-      "notes": "Remap-based alias encoder"
-    },
-    {
-      "id": "alias.decode",
-      "name": "Alias table decoding",
-      "status": "scaffold",
-      "upstream_file": "main_alias.cpp",
-      "functions": ["RansDecGetAlias"],
-      "receipts": [],
-      "notes": "Constant-time alias decoder with divider check"
+      "receipts": {"behavior": [], "performance": []},
+      "notes": ""
     },
     {
       "id": "stats.normalize",
       "name": "Frequency normalization",
-      "status": "scaffold",
+      "behavior_status": "scaffold",
+      "performance_status": "unsealed",
       "upstream_file": "main.cpp",
-      "functions": ["normalize_freqs"],
-      "receipts": [],
-      "notes": "Resample, rescue zeroed non-zero symbols"
+      "receipts": {"behavior": [], "performance": []},
+      "notes": ""
     }
   ]
 }

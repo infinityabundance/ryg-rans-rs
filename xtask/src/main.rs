@@ -313,32 +313,44 @@ fn cmd_seal() -> Result<(), String> {
     }
     println!("  docs-src/models/upstream.json: exists");
 
-    // 5. Check that every 'full' surface has receipts
+    // 5. Check that every surface with behavior_status='full' has behavior receipts
     println!("Checking: full surfaces have receipts...");
     let parity: serde_json::Value = serde_json::from_str(&parity_content)
         .map_err(|e| format!("re-parsing parity.model.json: {}", e))?;
     if let Some(surfaces) = parity.get("surfaces").and_then(|s| s.as_array()) {
         for surface in surfaces {
-            let status = surface.get("status").and_then(|s| s.as_str()).unwrap_or("");
+            let bstatus = surface
+                .get("behavior_status")
+                .and_then(|s| s.as_str())
+                .unwrap_or("");
             let id = surface
                 .get("id")
                 .and_then(|s| s.as_str())
                 .unwrap_or("unknown");
-            let receipts = surface.get("receipts").and_then(|r| r.as_array());
-
-            if status == "full" {
-                if let Some(r) = receipts {
-                    if r.is_empty() {
+            if bstatus == "full" {
+                let receipts = surface
+                    .get("receipts")
+                    .and_then(|r| r.get("behavior"))
+                    .and_then(|r| r.as_array());
+                match receipts {
+                    Some(r) if r.is_empty() => {
                         return Err(format!(
-                            "non-scaffold surface '{}' has an empty receipts list",
+                            "surface '{}' is behavior_status=full but has empty behavior receipts",
                             id
                         ));
                     }
+                    None => {
+                        return Err(format!(
+                            "surface '{}' is behavior_status=full but has no behavior receipts field",
+                            id
+                        ));
+                    }
+                    _ => {}
                 }
             }
         }
     }
-    println!("  non-scaffold surfaces: all have receipts");
+    println!("  full surfaces: all have behavior receipts");
 
     // 5b. Verify receipt files exist on disk
     println!("Checking: receipt files exist on disk...");
@@ -348,27 +360,57 @@ fn cmd_seal() -> Result<(), String> {
                 .get("id")
                 .and_then(|s| s.as_str())
                 .unwrap_or("unknown");
-            if let Some(receipts) = surface.get("receipts").and_then(|r| r.as_array()) {
-                for receipt_val in receipts {
-                    if let Some(receipt_id) = receipt_val.as_str() {
-                        let receipt_path = format!("reports/drafts/receipt-{}.json", receipt_id);
-                        if !std::path::Path::new(&receipt_path).exists() {
-                            return Err(format!(
-                                "receipt file missing for surface '{}': {}",
-                                id, receipt_path
-                            ));
-                        }
-                        // Validate receipt JSON has admitted_match verdict
-                        let r_content = std::fs::read_to_string(&receipt_path)
-                            .map_err(|e| format!("reading receipt {}: {}", receipt_path, e))?;
-                        let r_json: serde_json::Value = serde_json::from_str(&r_content)
-                            .map_err(|e| format!("parsing receipt {}: {}", receipt_path, e))?;
-                        let verdict = r_json.get("verdict").and_then(|v| v.as_str()).unwrap_or("");
-                        if verdict != "admitted_match" {
-                            return Err(format!(
-                                "surface '{}' cites receipt '{}' with verdict '{}', not 'admitted_match'",
-                                id, receipt_id, verdict
-                            ));
+            // Check both behavior and performance receipts
+            for receipt_key in &["behavior", "performance"] {
+                if let Some(receipts) = surface
+                    .get("receipts")
+                    .and_then(|r| r.get(receipt_key))
+                    .and_then(|r| r.as_array())
+                {
+                    for receipt_val in receipts {
+                        if let Some(receipt_id) = receipt_val.as_str() {
+                            let receipt_path =
+                                format!("evidence/receipts/receipt-{}.json", receipt_id);
+                            if !std::path::Path::new(&receipt_path).exists() {
+                                return Err(format!(
+                                    "receipt file missing for surface '{}' ({}): {}",
+                                    id, receipt_key, receipt_path
+                                ));
+                            }
+                            let r_content = std::fs::read_to_string(&receipt_path)
+                                .map_err(|e| format!("reading {}: {}", receipt_path, e))?;
+                            let r_json: serde_json::Value = serde_json::from_str(&r_content)
+                                .map_err(|e| format!("parsing {}: {}", receipt_path, e))?;
+                            let verdict =
+                                r_json.get("verdict").and_then(|v| v.as_str()).unwrap_or("");
+                            if verdict != "admitted_match" {
+                                return Err(format!(
+                                    "surface '{}' cites receipt '{}' with verdict '{}'",
+                                    id, receipt_id, verdict
+                                ));
+                            }
+                            // Validate required fields
+                            let case_count = r_json
+                                .get("case_count")
+                                .and_then(|v| v.as_u64())
+                                .unwrap_or(0);
+                            if case_count == 0 {
+                                return Err(format!("receipt {} has case_count=0", receipt_id));
+                            }
+                            let matched = r_json
+                                .get("pairs_matched")
+                                .and_then(|v| v.as_u64())
+                                .unwrap_or(0);
+                            let compared = r_json
+                                .get("pairs_compared")
+                                .and_then(|v| v.as_u64())
+                                .unwrap_or(0);
+                            if matched != compared {
+                                return Err(format!(
+                                    "receipt {} matched={} != compared={}",
+                                    receipt_id, matched, compared
+                                ));
+                            }
                         }
                     }
                 }
