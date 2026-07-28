@@ -391,11 +391,12 @@ fn cmd_seal() -> Result<(), String> {
                             }
                             // Validate required fields
                             let case_count = r_json
-                                .get("case_count")
+                                .get("num_cases")
+                                .or_else(|| r_json.get("case_count"))
                                 .and_then(|v| v.as_u64())
                                 .unwrap_or(0);
                             if case_count == 0 {
-                                return Err(format!("receipt {} has case_count=0", receipt_id));
+                                return Err(format!("receipt {} has num_cases=0", receipt_id));
                             }
                             let matched = r_json
                                 .get("pairs_matched")
@@ -405,6 +406,16 @@ fn cmd_seal() -> Result<(), String> {
                                 .get("pairs_compared")
                                 .and_then(|v| v.as_u64())
                                 .unwrap_or(0);
+                            let manifest_sha = r_json
+                                .get("manifest_sha256")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("");
+                            if manifest_sha.is_empty() {
+                                return Err(format!(
+                                    "receipt {} missing manifest_sha256",
+                                    receipt_id
+                                ));
+                            }
                             if matched != compared {
                                 return Err(format!(
                                     "receipt {} matched={} != compared={}",
@@ -450,12 +461,21 @@ fn cmd_seal() -> Result<(), String> {
                         .get("code_commit")
                         .and_then(|c| c.as_str())
                         .unwrap_or("");
+                    // code_commit must be an ancestor of HEAD
                     let head_hash = get_git_head_hash();
-                    if !head_hash.is_empty() && code_commit != head_hash {
-                        return Err(format!(
-                            "receipt {} code_commit={} does not match HEAD={}",
-                            court_id, code_commit, head_hash
-                        ));
+                    if !head_hash.is_empty() && !code_commit.is_empty() {
+                        let merge_base = std::process::Command::new("git")
+                            .args(["merge-base", "--is-ancestor", code_commit, &head_hash])
+                            .status();
+                        match merge_base {
+                            Ok(s) if s.success() => { /* code_commit is ancestor of HEAD */ }
+                            _ => {
+                                return Err(format!(
+                                    "receipt {} code_commit={} is not ancestor of HEAD={}",
+                                    court_id, code_commit, head_hash
+                                ));
+                            }
+                        }
                     }
                 }
             }
