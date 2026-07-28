@@ -298,7 +298,7 @@ info "Building Docker Images"
 docker compose \
     --project-name "$PROJECT_NAME" \
     -f "$COMPOSE_FILE" \
-    build --pull --no-cache-filter oracle-gcc --no-cache-filter sanitizers
+    build --pull --no-cache oracle-gcc sanitizers
 
 # Build remaining images with normal caching
 docker compose \
