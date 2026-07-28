@@ -10,3 +10,4 @@ description = "Build system automation for ryg-rans-rs"
 pico-args = "0.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"

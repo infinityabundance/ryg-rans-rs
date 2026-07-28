@@ -10,10 +10,10 @@
       "upstream_file": "rans_byte.h",
       "functions": ["RansEncInit", "RansEncRenorm", "RansEncPut", "RansEncFlush", "RansDecInit", "RansDecGet", "RansDecAdvance"],
       "receipts": {
-        "behavior": ["RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12.v1"],
+        "behavior": ["RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12"],
         "performance": []
       },
-      "notes": "Single-state, uniform-256, scale=12. 20 cases × 5 checks = 100/100 passed. Proven via division-mode stream ops in both C and Rust."
+      "notes": "Single-state, uniform-256, scale=12. 20 cases x 5 checks = 100/100 passed."
     },
     {
       "id": "byte.reciprocal",
@@ -23,10 +23,10 @@
       "upstream_file": "rans_byte.h",
       "functions": ["RansEncSymbolInit", "RansEncPutSymbol", "RansDecSymbolInit", "RansDecAdvanceSymbol", "RansDecAdvanceStep", "RansDecAdvanceSymbolStep", "RansDecRenorm"],
       "receipts": {
-        "behavior": ["RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12.v1"],
+        "behavior": ["RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12"],
         "performance": []
       },
-      "notes": "Single-state, uniform-256, scale=12. 20 cases × 5 checks = 100/100 passed. Both C and Rust use reciprocal symbol paths."
+      "notes": "Single-state, uniform-256, scale=12. 20 cases x 5 checks = 100/100 passed."
     },
     {
       "id": "byte.interleaved",
@@ -36,7 +36,7 @@
       "upstream_file": "main.cpp",
       "functions": [],
       "receipts": {"behavior": [], "performance": []},
-      "notes": "Implemented in Rust. No interleaved cross-decoding court has been run. Single-state receipt does NOT cover two-state behavior."
+      "notes": "Implemented in Rust. No interleaved cross-decoding court has been run."
     },
     {
       "id": "rans64.division",
@@ -46,10 +46,10 @@
       "upstream_file": "rans64.h",
       "functions": ["Rans64EncInit", "Rans64EncPut", "Rans64EncFlush", "Rans64DecInit", "Rans64DecGet", "Rans64DecAdvance"],
       "receipts": {
-        "behavior": ["RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12.v1"],
+        "behavior": ["RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12"],
         "performance": []
       },
-      "notes": "Single-state, uniform-256, scale=12. 20 cases × 5 checks = 100/100 passed."
+      "notes": "Single-state, uniform-256, scale=12. 20 cases x 5 checks = 100/100 passed."
     },
     {
       "id": "rans64.reciprocal",
@@ -59,10 +59,10 @@
       "upstream_file": "rans64.h",
       "functions": ["Rans64EncSymbolInit", "Rans64EncPutSymbol", "Rans64DecSymbolInit", "Rans64DecAdvanceSymbol", "Rans64DecAdvanceStep", "Rans64DecAdvanceSymbolStep", "Rans64DecRenorm", "Rans64MulHi"],
       "receipts": {
-        "behavior": ["RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12.v1"],
+        "behavior": ["RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12"],
         "performance": []
       },
-      "notes": "Single-state, uniform-256, scale=12. 20 cases × 5 checks = 100/100 passed."
+      "notes": "Single-state, uniform-256, scale=12. 20 cases x 5 checks = 100/100 passed."
     },
     {
       "id": "rans64.interleaved",
@@ -70,9 +70,8 @@
       "behavior_status": "partial",
       "performance_status": "unsealed",
       "upstream_file": "main64.cpp",
-      "functions": [],
       "receipts": {"behavior": [], "performance": []},
-      "notes": "Primitive step+renorm operations exist. No full encoder/decoder interleaving abstraction."
+      "notes": "Primitive step+renorm operations exist. No full interleaving abstraction."
     },
     {
       "id": "word.scalar",

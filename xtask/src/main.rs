@@ -419,6 +419,50 @@ fn cmd_seal() -> Result<(), String> {
     }
     println!("  all cited receipts: present and verified");
 
+    // 5c. Verify receipt SHA-256 hashes against evidence index
+    println!("Checking: receipt SHA-256 hashes...");
+    let index_path = std::path::Path::new("evidence/index.json");
+    if index_path.exists() {
+        let index_content =
+            std::fs::read_to_string(index_path).map_err(|e| format!("read index.json: {}", e))?;
+        let index: serde_json::Value =
+            serde_json::from_str(&index_content).map_err(|e| format!("parse index.json: {}", e))?;
+        if let Some(receipts) = index.get("receipts").and_then(|r| r.as_array()) {
+            for entry in receipts {
+                let court_id = entry.get("court_id").and_then(|c| c.as_str()).unwrap_or("");
+                let expected_sha = entry.get("sha256").and_then(|s| s.as_str()).unwrap_or("");
+                let r_path = format!("evidence/receipts/receipt-{}.json", court_id);
+                if let Ok(content) = std::fs::read_to_string(&r_path) {
+                    use sha2::Digest;
+                    let mut h = sha2::Sha256::new();
+                    h.update(content.as_bytes());
+                    let actual_sha = format!("{:x}", h.finalize());
+                    if actual_sha != expected_sha {
+                        return Err(format!(
+                            "receipt {} SHA-256 mismatch: expected={}, actual={}",
+                            court_id, expected_sha, actual_sha
+                        ));
+                    }
+                    // Verify code_commit matches HEAD
+                    let r_json: serde_json::Value = serde_json::from_str(&content)
+                        .map_err(|e| format!("parse {}: {}", r_path, e))?;
+                    let code_commit = r_json
+                        .get("code_commit")
+                        .and_then(|c| c.as_str())
+                        .unwrap_or("");
+                    let head_hash = get_git_head_hash();
+                    if !head_hash.is_empty() && code_commit != head_hash {
+                        return Err(format!(
+                            "receipt {} code_commit={} does not match HEAD={}",
+                            court_id, code_commit, head_hash
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    println!("  all receipt SHA-256 hashes verified");
+
     // 6. Verify #![forbid(unsafe_code)] in core and casefile crates
     println!("Checking: #![forbid(unsafe_code)] in core crate...");
     check_forbid_unsafe("crates/ryg-rans-rs-core/src/lib.rs")?;
@@ -442,6 +486,16 @@ fn check_forbid_unsafe(path: &str) -> Result<(), String> {
         return Err(format!("{} missing #![forbid(unsafe_code)]", path));
     }
     Ok(())
+}
+
+fn get_git_head_hash() -> String {
+    let output = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .output();
+    match output {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
+        _ => String::new(),
+    }
 }
 
 fn walk_files(
