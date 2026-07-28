@@ -313,68 +313,53 @@ fn cmd_seal() -> Result<(), String> {
     }
     println!("  docs-src/models/upstream.json: exists");
 
-    // 5. Check that every surface with behavior_status='full' has behavior receipts
-    println!("Checking: full surfaces have receipts...");
+    // 5. Check that every claim with behavior_status='full' has a receipt
+    println!("Checking: full claims have receipts...");
     let parity: serde_json::Value = serde_json::from_str(&parity_content)
         .map_err(|e| format!("re-parsing parity.model.json: {}", e))?;
     if let Some(surfaces) = parity.get("surfaces").and_then(|s| s.as_array()) {
         for surface in surfaces {
-            let bstatus = surface
-                .get("behavior_status")
-                .and_then(|s| s.as_str())
-                .unwrap_or("");
             let id = surface
                 .get("id")
                 .and_then(|s| s.as_str())
                 .unwrap_or("unknown");
-            if bstatus == "full" {
-                let receipts = surface
-                    .get("receipts")
-                    .and_then(|r| r.get("behavior"))
-                    .and_then(|r| r.as_array());
-                match receipts {
-                    Some(r) if r.is_empty() => {
-                        return Err(format!(
-                            "surface '{}' is behavior_status=full but has empty behavior receipts",
-                            id
-                        ));
+            if let Some(claims) = surface.get("claims").and_then(|c| c.as_array()) {
+                for claim in claims {
+                    let bstatus = claim
+                        .get("behavior_status")
+                        .and_then(|s| s.as_str())
+                        .unwrap_or("");
+                    if bstatus == "full" {
+                        let receipt_id =
+                            claim.get("receipt").and_then(|r| r.as_str()).unwrap_or("");
+                        if receipt_id.is_empty() {
+                            return Err(format!("surface '{}' has full claim without receipt", id));
+                        }
                     }
-                    None => {
-                        return Err(format!(
-                            "surface '{}' is behavior_status=full but has no behavior receipts field",
-                            id
-                        ));
-                    }
-                    _ => {}
                 }
             }
         }
     }
-    println!("  full surfaces: all have behavior receipts");
+    println!("  full claims: all have receipts");
 
     // 5b. Verify receipt files exist on disk
     println!("Checking: receipt files exist on disk...");
     if let Some(surfaces) = parity.get("surfaces").and_then(|s| s.as_array()) {
         for surface in surfaces {
-            let id = surface
-                .get("id")
-                .and_then(|s| s.as_str())
-                .unwrap_or("unknown");
-            // Check both behavior and performance receipts
-            for receipt_key in &["behavior", "performance"] {
-                if let Some(receipts) = surface
-                    .get("receipts")
-                    .and_then(|r| r.get(receipt_key))
-                    .and_then(|r| r.as_array())
-                {
-                    for receipt_val in receipts {
-                        if let Some(receipt_id) = receipt_val.as_str() {
+            if let Some(claims) = surface.get("claims").and_then(|c| c.as_array()) {
+                for claim in claims {
+                    for receipt_key in &["receipt"] {
+                        if let Some(receipt_id) = claim.get(*receipt_key).and_then(|r| r.as_str()) {
+                            if receipt_id.is_empty() {
+                                continue;
+                            }
                             let receipt_path =
                                 format!("evidence/receipts/receipt-{}.json", receipt_id);
                             if !std::path::Path::new(&receipt_path).exists() {
                                 return Err(format!(
-                                    "receipt file missing for surface '{}' ({}): {}",
-                                    id, receipt_key, receipt_path
+                                    "receipt file missing for surface '{}': {}",
+                                    surface.get("id").and_then(|s| s.as_str()).unwrap_or(""),
+                                    receipt_path
                                 ));
                             }
                             let r_content = std::fs::read_to_string(&receipt_path)
@@ -386,7 +371,9 @@ fn cmd_seal() -> Result<(), String> {
                             if verdict != "admitted_match" {
                                 return Err(format!(
                                     "surface '{}' cites receipt '{}' with verdict '{}'",
-                                    id, receipt_id, verdict
+                                    surface.get("id").and_then(|s| s.as_str()).unwrap_or(""),
+                                    receipt_id,
+                                    verdict
                                 ));
                             }
                             // Validate required fields
@@ -430,58 +417,201 @@ fn cmd_seal() -> Result<(), String> {
     }
     println!("  all cited receipts: present and verified");
 
-    // 5c. Verify receipt SHA-256 hashes against evidence index
-    println!("Checking: receipt SHA-256 hashes...");
+    // 5c. Load evidence index
+    println!("Checking: evidence index...");
     let index_path = std::path::Path::new("evidence/index.json");
-    if index_path.exists() {
-        let index_content =
-            std::fs::read_to_string(index_path).map_err(|e| format!("read index.json: {}", e))?;
-        let index: serde_json::Value =
-            serde_json::from_str(&index_content).map_err(|e| format!("parse index.json: {}", e))?;
-        if let Some(receipts) = index.get("receipts").and_then(|r| r.as_array()) {
-            for entry in receipts {
-                let court_id = entry.get("court_id").and_then(|c| c.as_str()).unwrap_or("");
-                let expected_sha = entry.get("sha256").and_then(|s| s.as_str()).unwrap_or("");
-                let r_path = format!("evidence/receipts/receipt-{}.json", court_id);
-                if let Ok(content) = std::fs::read_to_string(&r_path) {
-                    use sha2::Digest;
-                    let mut h = sha2::Sha256::new();
-                    h.update(content.as_bytes());
-                    let actual_sha = format!("{:x}", h.finalize());
-                    if actual_sha != expected_sha {
-                        return Err(format!(
-                            "receipt {} SHA-256 mismatch: expected={}, actual={}",
-                            court_id, expected_sha, actual_sha
-                        ));
-                    }
-                    // Verify code_commit matches HEAD
-                    let r_json: serde_json::Value = serde_json::from_str(&content)
-                        .map_err(|e| format!("parse {}: {}", r_path, e))?;
-                    let code_commit = r_json
-                        .get("code_commit")
-                        .and_then(|c| c.as_str())
-                        .unwrap_or("");
-                    // code_commit must be an ancestor of HEAD
-                    let head_hash = get_git_head_hash();
-                    if !head_hash.is_empty() && !code_commit.is_empty() {
-                        let merge_base = std::process::Command::new("git")
-                            .args(["merge-base", "--is-ancestor", code_commit, &head_hash])
-                            .status();
-                        match merge_base {
-                            Ok(s) if s.success() => { /* code_commit is ancestor of HEAD */ }
-                            _ => {
-                                return Err(format!(
-                                    "receipt {} code_commit={} is not ancestor of HEAD={}",
-                                    court_id, code_commit, head_hash
-                                ));
-                            }
-                        }
-                    }
+    let index_content = if index_path.exists() {
+        Some(std::fs::read_to_string(index_path).map_err(|e| format!("read index.json: {}", e))?)
+    } else {
+        return Err("evidence/index.json not found".into());
+    };
+    let index: serde_json::Value =
+        serde_json::from_str(index_content.as_ref().map(|s| s.as_str()).unwrap_or("{}"))
+            .map_err(|e| format!("parse index.json: {}", e))?;
+    let index_receipts = index
+        .get("receipts")
+        .and_then(|r| r.as_array())
+        .map(|a| a.as_slice())
+        .unwrap_or(&[]);
+    println!("  index entries: {}", index_receipts.len());
+
+    // 5d. Verify receipt SHA-256 hashes against evidence index
+    println!("Checking: receipt SHA-256 hashes...");
+    for entry in index_receipts {
+        let court_id = entry.get("court_id").and_then(|c| c.as_str()).unwrap_or("");
+        let expected_sha = entry.get("sha256").and_then(|s| s.as_str()).unwrap_or("");
+        let r_path = format!("evidence/receipts/receipt-{}.json", court_id);
+        let content =
+            std::fs::read_to_string(&r_path).map_err(|e| format!("read {}: {}", r_path, e))?;
+        use sha2::Digest;
+        let mut h = sha2::Sha256::new();
+        h.update(content.as_bytes());
+        let actual_sha = format!("{:x}", h.finalize());
+        if actual_sha != expected_sha {
+            return Err(format!(
+                "receipt {} SHA-256 mismatch: expected={}, actual={}",
+                court_id, expected_sha, actual_sha
+            ));
+        }
+        // Verify code_commit is ancestor of HEAD
+        let r_json: serde_json::Value =
+            serde_json::from_str(&content).map_err(|e| format!("parse {}: {}", r_path, e))?;
+        let code_commit = r_json
+            .get("code_commit")
+            .and_then(|c| c.as_str())
+            .unwrap_or("");
+        let head_hash = get_git_head_hash();
+        if !head_hash.is_empty() && !code_commit.is_empty() {
+            let merge_base = std::process::Command::new("git")
+                .args(["merge-base", "--is-ancestor", code_commit, &head_hash])
+                .status();
+            match merge_base {
+                Ok(s) if s.success() => {}
+                _ => {
+                    return Err(format!(
+                        "receipt {} code_commit={} not ancestor of HEAD={}",
+                        court_id, code_commit, head_hash
+                    ));
                 }
             }
         }
     }
     println!("  all receipt SHA-256 hashes verified");
+
+    // 5e. Verify manifest SHA-256 against receipt manifest_sha256
+    println!("Checking: manifest SHA-256 hashes...");
+    for entry in index_receipts {
+        let court_id = entry.get("court_id").and_then(|c| c.as_str()).unwrap_or("");
+        let m_path_str = format!("evidence/manifests/manifest-{}.json", court_id);
+        let m_path = std::path::Path::new(&m_path_str);
+        if !m_path.exists() {
+            return Err(format!(
+                "manifest missing for court_id={}: {}",
+                court_id, m_path_str
+            ));
+        }
+        let m_content = std::fs::read_to_string(m_path)
+            .map_err(|e| format!("read manifest {}: {}", m_path_str, e))?;
+        let m_json: serde_json::Value = serde_json::from_str(&m_content)
+            .map_err(|e| format!("parse manifest {}: {}", m_path_str, e))?;
+        // Hash the manifest file content byte-for-byte
+        let computed_sha = {
+            use sha2::Digest;
+            let mut h = sha2::Sha256::new();
+            h.update(m_content.as_bytes());
+            format!("{:x}", h.finalize())
+        };
+        let r_path = format!("evidence/receipts/receipt-{}.json", court_id);
+        if let Ok(r_content) = std::fs::read_to_string(&r_path) {
+            let r_json: serde_json::Value = serde_json::from_str(&r_content)
+                .map_err(|e| format!("parse receipt {}: {}", r_path, e))?;
+            let receipt_manifest_sha = r_json
+                .get("manifest_sha256")
+                .and_then(|s| s.as_str())
+                .unwrap_or("");
+            if computed_sha != receipt_manifest_sha {
+                return Err(format!(
+                    "manifest {} SHA-256 {} does not match receipt manifest_sha256 {}",
+                    m_path_str, computed_sha, receipt_manifest_sha
+                ));
+            }
+        }
+    }
+    println!("  all manifest SHA-256 hashes verified against receipts");
+
+    // 5f. Verify receipt SHA-256 self-hash
+    println!("Checking: receipt SHA-256 self-hashes...");
+    for entry in index_receipts {
+        let court_id = entry.get("court_id").and_then(|c| c.as_str()).unwrap_or("");
+        let r_path = format!("evidence/receipts/receipt-{}.json", court_id);
+        if let Ok(content) = std::fs::read_to_string(&r_path) {
+            let r_json: serde_json::Value =
+                serde_json::from_str(&content).map_err(|e| format!("parse {}: {}", r_path, e))?;
+            let receipt_self_hash = r_json
+                .get("receipt_sha256")
+                .and_then(|s| s.as_str())
+                .unwrap_or("");
+            // Compute hash of the receipt content WITHOUT receipt_sha256 field
+            let mut hash_input = content
+                .lines()
+                .filter(|l| !l.contains("\"receipt_sha256\""))
+                .collect::<Vec<_>>()
+                .join("\n");
+            // Re-add closing brace if we filtered a line
+            if !hash_input.ends_with('}') {
+                hash_input.push('}');
+            }
+            let computed = {
+                use sha2::Digest;
+                let mut h = sha2::Sha256::new();
+                h.update(hash_input.as_bytes());
+                format!("{:x}", h.finalize())
+            };
+            if !receipt_self_hash.is_empty() && computed != receipt_self_hash {
+                return Err(format!(
+                    "receipt {} self-hash mismatch: computed={}, receipt={}",
+                    court_id, computed, receipt_self_hash
+                ));
+            }
+        }
+    }
+    println!("  all receipt SHA-256 self-hashes verified");
+
+    // 5f. Source freshness: no covered source files changed after code_commit
+    println!("Checking: source freshness...");
+    let code_commits: Vec<String> = index_receipts
+        .iter()
+        .filter_map(|e| {
+            let cid = e.get("court_id").and_then(|c| c.as_str()).unwrap_or("");
+            let rp = format!("evidence/receipts/receipt-{}.json", cid);
+            std::fs::read_to_string(&rp).ok().and_then(|c| {
+                serde_json::from_str::<serde_json::Value>(&c)
+                    .ok()
+                    .and_then(|v| {
+                        v.get("code_commit")
+                            .and_then(|s| s.as_str())
+                            .map(String::from)
+                    })
+            })
+        })
+        .collect();
+    // Use the earliest code_commit among all receipts
+    let earliest_code = code_commits.first().map(|s| s.as_str()).unwrap_or("");
+    if !earliest_code.is_empty() {
+        // Check that only evidence/, docs/, xtask/ changed after code_commit
+        let allowed_prefixes = [
+            "evidence/",
+            "docs/",
+            "xtask/",
+            "Cargo.lock",
+            "README.md",
+            ".gitignore",
+        ];
+        let changed = std::process::Command::new("git")
+            .args([
+                "diff",
+                "--name-only",
+                format!("{}..HEAD", earliest_code).as_str(),
+            ])
+            .output();
+        if let Ok(o) = changed {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            for line in stdout.lines() {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                let allowed = allowed_prefixes.iter().any(|p| line.starts_with(p));
+                if !allowed {
+                    return Err(format!(
+                        "source file changed after code_commit {}: {} (not in allowed list)",
+                        earliest_code, line
+                    ));
+                }
+            }
+        }
+    }
+    println!("  source freshness: no covered files changed after code_commit");
 
     // 6. Verify #![forbid(unsafe_code)] in core and casefile crates
     println!("Checking: #![forbid(unsafe_code)] in core crate...");

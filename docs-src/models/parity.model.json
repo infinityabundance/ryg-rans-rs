@@ -5,108 +5,115 @@
     {
       "id": "byte.division",
       "name": "Byte rANS (division-based)",
-      "behavior_status": "full",
-      "performance_status": "unsealed",
+      "implementation_status": "implemented",
       "upstream_file": "rans_byte.h",
       "functions": ["RansEncInit", "RansEncRenorm", "RansEncPut", "RansEncFlush", "RansDecInit", "RansDecGet", "RansDecAdvance"],
-      "receipts": {
-        "behavior": ["RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12"],
-        "performance": []
-      },
-      "notes": "Single-state, uniform-256, scale=12. 20 cases x 5 checks = 100/100 passed."
+      "claims": [
+        {
+          "profile": "SINGLE_STATE.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12",
+          "notes": "20 cases x 5 checks = 100/100. One state, uniform 256 symbols, scale=12, 1-64 byte inputs."
+        }
+      ]
     },
     {
       "id": "byte.reciprocal",
       "name": "Byte rANS (reciprocal fast path)",
-      "behavior_status": "full",
-      "performance_status": "unsealed",
+      "implementation_status": "implemented",
       "upstream_file": "rans_byte.h",
       "functions": ["RansEncSymbolInit", "RansEncPutSymbol", "RansDecSymbolInit", "RansDecAdvanceSymbol", "RansDecAdvanceStep", "RansDecAdvanceSymbolStep", "RansDecRenorm"],
-      "receipts": {
-        "behavior": ["RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12"],
-        "performance": []
-      },
-      "notes": "Single-state, uniform-256, scale=12. 20 cases x 5 checks = 100/100 passed."
+      "claims": [
+        {
+          "profile": "SINGLE_STATE.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12",
+          "notes": "20 cases x 5 checks = 100/100. One state, uniform 256 symbols, scale=12."
+        }
+      ]
     },
     {
       "id": "byte.interleaved",
       "name": "Byte rANS (two-state interleaved)",
-      "behavior_status": "implemented_unsealed",
-      "performance_status": "unsealed",
+      "implementation_status": "implemented",
       "upstream_file": "main.cpp",
       "functions": [],
-      "receipts": {"behavior": [], "performance": []},
-      "notes": "Implemented in Rust. No interleaved cross-decoding court has been run."
+      "claims": [],
+      "notes": "Rust implementation exists. No interleaved cross-decoding court has been run."
     },
     {
       "id": "rans64.division",
       "name": "64-bit rANS (division-based)",
-      "behavior_status": "full",
-      "performance_status": "unsealed",
+      "implementation_status": "implemented",
       "upstream_file": "rans64.h",
       "functions": ["Rans64EncInit", "Rans64EncPut", "Rans64EncFlush", "Rans64DecInit", "Rans64DecGet", "Rans64DecAdvance"],
-      "receipts": {
-        "behavior": ["RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12"],
-        "performance": []
-      },
-      "notes": "Single-state, uniform-256, scale=12. 20 cases x 5 checks = 100/100 passed."
+      "claims": [
+        {
+          "profile": "SINGLE_STATE.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12",
+          "notes": "20 cases x 5 checks = 100/100. 64-bit word format, uniform 256, scale=12."
+        }
+      ]
     },
     {
       "id": "rans64.reciprocal",
       "name": "64-bit rANS (reciprocal fast path)",
-      "behavior_status": "full",
-      "performance_status": "unsealed",
+      "implementation_status": "implemented",
       "upstream_file": "rans64.h",
       "functions": ["Rans64EncSymbolInit", "Rans64EncPutSymbol", "Rans64DecSymbolInit", "Rans64DecAdvanceSymbol", "Rans64DecAdvanceStep", "Rans64DecAdvanceSymbolStep", "Rans64DecRenorm", "Rans64MulHi"],
-      "receipts": {
-        "behavior": ["RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12"],
-        "performance": []
-      },
-      "notes": "Single-state, uniform-256, scale=12. 20 cases x 5 checks = 100/100 passed."
+      "claims": [
+        {
+          "profile": "SINGLE_STATE.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12",
+          "notes": "20 cases x 5 checks = 100/100. 64-bit word format, uniform 256, scale=12."
+        }
+      ]
     },
     {
       "id": "rans64.interleaved",
       "name": "64-bit rANS (two-state interleaved)",
-      "behavior_status": "partial",
-      "performance_status": "unsealed",
+      "implementation_status": "partial",
       "upstream_file": "main64.cpp",
-      "receipts": {"behavior": [], "performance": []},
+      "functions": [],
+      "claims": [],
       "notes": "Primitive step+renorm operations exist. No full interleaving abstraction."
     },
     {
       "id": "word.scalar",
       "name": "Word-aligned scalar rANS",
-      "behavior_status": "scaffold",
-      "performance_status": "unsealed",
+      "implementation_status": "scaffold",
       "upstream_file": "rans_word_sse41.h",
-      "receipts": {"behavior": [], "performance": []},
+      "claims": [],
       "notes": ""
     },
     {
       "id": "sse41.decoder",
       "name": "SSE4.1 SIMD decoder",
-      "behavior_status": "scaffold",
-      "performance_status": "unsealed",
+      "implementation_status": "scaffold",
       "upstream_file": "rans_word_sse41.h",
-      "receipts": {"behavior": [], "performance": []},
+      "claims": [],
       "notes": ""
     },
     {
       "id": "alias",
       "name": "Alias method",
-      "behavior_status": "scaffold",
-      "performance_status": "unsealed",
+      "implementation_status": "scaffold",
       "upstream_file": "main_alias.cpp",
-      "receipts": {"behavior": [], "performance": []},
+      "claims": [],
       "notes": ""
     },
     {
       "id": "stats.normalize",
       "name": "Frequency normalization",
-      "behavior_status": "scaffold",
-      "performance_status": "unsealed",
+      "implementation_status": "scaffold",
       "upstream_file": "main.cpp",
-      "receipts": {"behavior": [], "performance": []},
+      "claims": [],
       "notes": ""
     }
   ]
