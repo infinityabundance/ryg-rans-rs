@@ -186,6 +186,11 @@ services:
         target: /reports
       - type: tmpfs
         target: /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: []
+    # NOTE: empty cap_drop overrides inherited cap_drop:ALL from rust-base
+    # cross-court needs write access to bind-mounted workspace for g++
     command: >
       sh -c '
         set -e
