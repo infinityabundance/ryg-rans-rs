@@ -56,11 +56,9 @@ echo "  Docker:     $DOCKER_ROOT"
 echo "  Project:    $PROJECT_ROOT"
 echo "  Temp:       $TMP_REPORTS_ROOT"
 
-# ---- Cleanup trap ----
-# Cleanup removes containers, networks, and temporary host paths.
-# Named volumes (cargo, target) persist for cache reuse.
-# Reports are archived to DOCKER_ROOT/reports/ before cleanup.
+# ---- Cleanup trap - preserve original exit code ----
 cleanup() {
+    local exit_code=$?
     header
     info "Cleanup"
     # Copy reports out of tmp before removing
@@ -78,6 +76,7 @@ cleanup() {
     # Remove temp reports root
     rm -rf "$TMP_REPORTS_ROOT" 2>/dev/null || true
     ok "Cleanup complete"
+    exit $exit_code
 }
 trap cleanup EXIT INT TERM
 

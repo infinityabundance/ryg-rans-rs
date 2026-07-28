@@ -190,17 +190,18 @@ services:
       sh -c '
         set -e
         echo "=== Building oracle adapter ==="
-        g++ -o /target/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -lm
+        g++ -o /tmp/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -lm
         echo "=== Oracle adapter smoke test ==="
-        /target/rans_trace enc-symbol-init 0 10 14
+        /tmp/rans_trace enc-symbol-init 0 10 14
         echo "=== Running cross-decoding court (byte + r64) ==="
         cd /workspace
+        mkdir -p /reports/evidence && chmod 777 /reports/evidence
         echo "--- Byte division ---"
-        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /target/rans_trace 12 42 20 2>&1
+        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace 12 42 20 2>&1
         echo "--- 64-bit division ---"
-        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /target/rans_trace r64 12 42 20 2>&1
+        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace r64 12 42 20 2>&1
         echo "=== Cross-court evidence written to /reports ==="
-        ls -la /reports/evidence/ 2>/dev/null || echo "(no evidence dir yet)"
+        ls -la /reports/evidence/receipts/ 2>/dev/null || echo "(no evidence dir yet)"
         echo "=== Cross-court complete ==="
       '
 
