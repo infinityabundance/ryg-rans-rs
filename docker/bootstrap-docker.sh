@@ -101,10 +101,11 @@ capture_fingerprint() {
     local out_dir="$2"
     docker version > "$out_dir/fingerprint-${label}-docker-version.txt" 2>&1
     docker info > "$out_dir/fingerprint-${label}-docker-info.txt" 2>&1
-    # Full container records with canonical fields
-    docker ps --no-trunc --format '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' \
+    # Full container records with stable canonical fields (avoid {{.Status}} which
+    # contains relative text like "Up 3 hours")
+    docker ps --no-trunc --format '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.CreatedAt}}\t{{.Ports}}' \
         > "$out_dir/fingerprint-${label}-containers-running.txt" 2>&1
-    docker ps -a --no-trunc --format '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' \
+    docker ps -a --no-trunc --format '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.CreatedAt}}\t{{.Ports}}' \
         > "$out_dir/fingerprint-${label}-containers-all.txt" 2>&1
     docker images --digests --no-trunc --format '{{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.Digest}}' \
         > "$out_dir/fingerprint-${label}-images.txt" 2>&1
@@ -114,6 +115,7 @@ capture_fingerprint() {
         > "$out_dir/fingerprint-${label}-networks.txt" 2>&1
     docker compose ls 2>/dev/null | head -50 \
         > "$out_dir/fingerprint-${label}-compose.txt" 2>&1 || true
+    # compose ls can fail if no projects exist; that is OK
     # Buildx builders
     docker buildx ls > "$out_dir/fingerprint-${label}-buildx.txt" 2>&1
 }
@@ -159,11 +161,20 @@ check_collision() {
 }
 
 # Check proposed project resource names for collisions
-check_collision container "${PROJECT_NAME}-oracle-gcc-${RUN_ID}" || true
-check_collision container "${PROJECT_NAME}-rust-stable-tests-${RUN_ID}" || true
-check_collision network "${PROJECT_NAME}_default" || true
+# Container names from compose: ryg-rans-rs-court-{service}-{RUN_ID}
+# (NOT project_name-{service}-{RUN_ID} because PROJECT_NAME already has RUN_ID)
+for svc in oracle-gcc rust-stable-tests rust-musl-build package-audit cross-court miri msrv cross-aarch64 sanitizers performance; do
+    check_collision container "ryg-rans-rs-court-${svc}-${RUN_ID}"
+done
+# Network: compose project creates _default network
+check_collision network "${PROJECT_NAME}_default"
+# Volumes: all 8 named volumes with run-specific names
 for vol in cargo-stable target-stable cargo-musl target-musl cargo-msrv target-msrv cargo-aarch64 target-aarch64; do
-    check_collision volume "ryg-rans-rs-${vol}-${RUN_ID}" || true
+    check_collision volume "ryg-rans-rs-${vol}-${RUN_ID}"
+done
+# Images: all 10 run-specific image tags
+for svc in oracle-gcc rust-stable-tests rust-musl-build package-audit cross-court miri msrv cross-aarch64 sanitizers performance; do
+    check_collision image "ryg-rans-rs-court-${svc}:${RUN_ID}"
 done
 ok "No resource name collisions detected"
 
@@ -189,6 +200,13 @@ if [ ! -d "$PROJECT_ROOT/.git" ]; then
     fail "Project root is not a git repository: $PROJECT_ROOT"
 fi
 ok "Project root is git repository: $PROJECT_ROOT"
+
+# Pre-snapshot dirty-tree check: reject uncommitted source changes
+# before creating the snapshot (before any Docker operation)
+if ! git -C "$PROJECT_ROOT" diff --quiet -- ':!evidence/' ':!docs/' ':!Cargo.lock' ':!.gitignore' 2>/dev/null; then
+    fail "Uncommitted source changes detected in $PROJECT_ROOT. Commit or stash before running the matrix."
+fi
+ok "Working tree is clean — snapshot will match committed HEAD"
 
 info "Preflight complete — all checks passed"
 
@@ -463,6 +481,7 @@ compare_fingerprint "images"
 compare_fingerprint "volumes"
 compare_fingerprint "networks"
 compare_fingerprint "compose"
+compare_fingerprint "buildx"
 
 ok "Post-run inventory complete — no protected resources changed"
 
