@@ -310,6 +310,215 @@
       ]
     },
     {
+      "id": "word.rANS",
+      "name": "Word-aligned scalar rANS (division-based, table decode)",
+      "implementation_status": "implemented",
+      "upstream_file": "rans_word_sse41.h",
+      "functions": [
+        "RansWordEncInit",
+        "RansWordEncPut",
+        "RansWordEncFlush",
+        "RansWordDecInit",
+        "RansWordDecSym",
+        "RansWordDecRenorm",
+        "RansWordTablesInitSymbol"
+      ],
+      "claims": [
+        {
+          "profile": "SINGLE_STATE.FREQ1.RESIDUAL.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.SINGLE_STATE.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.LENGTH.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.SINGLE_STATE.LENGTH.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.PRIME.RESIDUE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.SINGLE_STATE.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.RENORM.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.SINGLE_STATE.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SKEWED.255_1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.SINGLE_STATE.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.17.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.SINGLE_STATE.SPARSE.17.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.2.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.SINGLE_STATE.SPARSE.2.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.SINGLE_STATE.UNIFORM256.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.FREQ1.RESIDUAL.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.SINGLE_STATE.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.LENGTH.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.SINGLE_STATE.LENGTH.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.PRIME.RESIDUE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.SINGLE_STATE.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.RENORM.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.SINGLE_STATE.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SKEWED.255_1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.SINGLE_STATE.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.17.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.SINGLE_STATE.SPARSE.17.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.2.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.SINGLE_STATE.SPARSE.2.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.FREQ1.RESIDUAL.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.LENGTH.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.LENGTH.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.PRIME.RESIDUE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.RENORM.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SKEWED.255_1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.17.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.SPARSE.17.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.2.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.SPARSE.2.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.UNIFORM256.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.FREQ1.RESIDUAL.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.LENGTH.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.LENGTH.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.PRIME.RESIDUE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.RENORM.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SKEWED.255_1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.17.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.SPARSE.17.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.2.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.SPARSE.2.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.WORD.RECIPROCAL.INTERLEAVED2.UNIFORM256.S12"
+        }
+      ]
+    },
+    {
       "id": "rans64.division",
       "name": "64-bit rANS (division-based)",
       "implementation_status": "implemented",
@@ -615,14 +824,6 @@
           "receipt": "RYG_RANS.R64.RECIPROCAL.INTERLEAVED2.UNIFORM256.S12"
         }
       ]
-    },
-    {
-      "id": "word.scalar",
-      "name": "Word-aligned scalar rANS",
-      "implementation_status": "scaffold",
-      "upstream_file": "rans_word_sse41.h",
-      "claims": [],
-      "notes": ""
     },
     {
       "id": "sse41.decoder",
