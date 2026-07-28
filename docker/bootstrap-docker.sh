@@ -357,27 +357,39 @@ run_job() {
     local label="$2"
     local started_at
     local finished_at
+    local log_file="${TMP_REPORTS_ROOT}/${service}/job.log"
     started_at=$(date -u -Iseconds)
     info "Running: ${label}"
+    mkdir -p "${TMP_REPORTS_ROOT}/${service}"
     set +e
+    # Write docker output to log file, capture exit code via temp file
     docker compose \
         --project-name "$PROJECT_NAME" \
         -f "$COMPOSE_FILE" \
-        run --rm "$service"
+        run --rm "$service" > "$log_file" 2>&1
     local exit_code=$?
     set -e
     finished_at=$(date -u -Iseconds)
+    # Print last 5 lines of log
+    tail -5 "$log_file" 2>/dev/null || true
     if [ "$exit_code" -eq 0 ]; then
         ok "${label} passed"
     else
         fail "${label} failed (exit $exit_code)"
     fi
-    # Build job result as JSON using a temp file to avoid shell escaping issues
+    # Compute SHA-256 of job log
+    local log_hash=""
+    if [ -f "$log_file" ]; then
+        log_hash=$(sha256sum "$log_file" | cut -d' ' -f1)
+    fi
     JOB_COUNT=$((JOB_COUNT + 1))
+    # Build job result JSON (avoid heredoc issues in sh)
+    local job_json
+    job_json="{\"name\":\"${service}\",\"label\":\"${label}\",\"exit_code\":${exit_code},\"started_at\":\"${started_at}\",\"finished_at\":\"${finished_at}\",\"log_sha256\":\"${log_hash}\"}"
     if [ -z "$JOB_RESULTS" ]; then
-        JOB_RESULTS="{\"name\":\"${service}\",\"label\":\"${label}\",\"exit_code\":${exit_code},\"started_at\":\"${started_at}\",\"finished_at\":\"${finished_at}\"}"
+        JOB_RESULTS="$job_json"
     else
-        JOB_RESULTS="${JOB_RESULTS},{\"name\":\"${service}\",\"label\":\"${label}\",\"exit_code\":${exit_code},\"started_at\":\"${started_at}\",\"finished_at\":\"${finished_at}\"}"
+        JOB_RESULTS="${JOB_RESULTS},${job_json}"
     fi
 }
 

@@ -776,15 +776,32 @@ fn check_docker_matrix() -> Result<(), String> {
     ];
     for expected in &expected_jobs {
         let found = jobs.iter().any(|j| {
-            j.get("name").and_then(|n| n.as_str()) == Some(expected)
-                && j.get("exit_code").and_then(|c| c.as_i64()) == Some(0)
+            let name_match = j.get("name").and_then(|n| n.as_str()) == Some(expected);
+            let exit_ok = j.get("exit_code").and_then(|c| c.as_i64()) == Some(0);
+            let has_log = j
+                .get("log_sha256")
+                .and_then(|h| h.as_str())
+                .map(|s| !s.is_empty())
+                .unwrap_or(false);
+            name_match && exit_ok && has_log
         });
         if !found {
             return Err(format!(
-                "docker matrix job '{}' missing or had non-zero exit",
+                "docker matrix job '{}' missing, had non-zero exit, or missing log_sha256",
                 expected
             ));
         }
+    }
+    // Verify schema version
+    let schema = json
+        .get("schema_version")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(0);
+    if schema < 2 {
+        return Err(format!(
+            "docker-matrix.json schema_version={} (expected >= 2)",
+            schema
+        ));
     }
     // Verify git_commit is an ancestor of HEAD
     let head_hash = get_git_head_hash();

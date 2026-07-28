@@ -235,6 +235,7 @@ services:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
         target: /workspace
+        read_only: true
       - type: volume
         source: cargo-stable
         target: /cargo
