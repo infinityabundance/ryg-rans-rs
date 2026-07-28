@@ -144,7 +144,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn build_court_configs() -> Vec<FullConfig> {
     let mut configs = Vec::new();
-    let variants = ["byte", "r64"];
+    let variants = ["byte", "r64", "word"];
     let paths = [CourtPath::Division, CourtPath::Reciprocal];
     let profiles = [
         ModelProfile::Uniform256,
@@ -171,8 +171,8 @@ fn build_court_configs() -> Vec<FullConfig> {
         }
     }
 
-    // Single-state scale sweep
-    for &variant in &variants {
+    // Single-state scale sweep (word rANS uses fixed scale_bits=12 per upstream)
+    for &variant in &["byte", "r64"] {
         for &path in &paths {
             configs.push(FullConfig {
                 variant,

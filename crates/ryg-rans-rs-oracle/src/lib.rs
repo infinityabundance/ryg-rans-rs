@@ -26,6 +26,7 @@ impl CourtPath {
             ("byte", CourtPath::Reciprocal) => "enc-stream-byte",
             ("r64", CourtPath::Division) => "enc-stream-r64-div",
             ("r64", CourtPath::Reciprocal) => "enc-stream-r64",
+            ("word", _) => "enc-stream-word",
             _ => unreachable!(),
         }
     }
@@ -36,6 +37,7 @@ impl CourtPath {
             ("byte", CourtPath::Reciprocal) => "dec-stream-byte",
             ("r64", CourtPath::Division) => "dec-stream-r64-div",
             ("r64", CourtPath::Reciprocal) => "dec-stream-r64",
+            ("word", _) => "dec-stream-word",
             _ => unreachable!(),
         }
     }
@@ -47,6 +49,7 @@ impl CourtPath {
             ("byte", CourtPath::Reciprocal) => "enc-stream-byte-interleaved2",
             ("r64", CourtPath::Division) => "enc-stream-r64-interleaved2-div",
             ("r64", CourtPath::Reciprocal) => "enc-stream-r64-interleaved2",
+            ("word", _) => "enc-stream-word-interleaved2",
             _ => unreachable!(),
         }
     }
@@ -58,6 +61,7 @@ impl CourtPath {
             ("byte", CourtPath::Reciprocal) => "dec-stream-byte-interleaved2",
             ("r64", CourtPath::Division) => "dec-stream-r64-interleaved2-div",
             ("r64", CourtPath::Reciprocal) => "dec-stream-r64-interleaved2",
+            ("word", _) => "dec-stream-word-interleaved2",
             _ => unreachable!(),
         }
     }
@@ -517,10 +521,32 @@ pub fn run_interleaved_court(
         let c_self_decode = call_c_dec(&c_compressed_hex, input.len())?;
 
         // Rust interleaved encode
-        let rust_compressed = if variant == "byte" {
-            rust_byte_interleaved_encode(&input, &freqs, &cum_freqs, scale_bits, num_symbols, path)?
-        } else {
-            rust_r64_interleaved_encode(&input, &freqs, &cum_freqs, scale_bits, num_symbols, path)?
+        let rust_compressed = match variant {
+            "byte" => rust_byte_interleaved_encode(
+                &input,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                num_symbols,
+                path,
+            )?,
+            "r64" => rust_r64_interleaved_encode(
+                &input,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                num_symbols,
+                path,
+            )?,
+            "word" => rust_word_interleaved_encode(
+                &input,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                num_symbols,
+                path,
+            )?,
+            _ => return Err(format!("unknown variant: {}", variant)),
         };
         let rust_compressed_hex = hex::encode(&rust_compressed);
 
@@ -536,8 +562,8 @@ pub fn run_interleaved_court(
             })
             .collect();
 
-        let rust_self_decode = if variant == "byte" {
-            rust_byte_interleaved_decode(
+        let rust_self_decode = match variant {
+            "byte" => rust_byte_interleaved_decode(
                 &rust_compressed,
                 &cum2sym,
                 &freqs,
@@ -547,9 +573,8 @@ pub fn run_interleaved_court(
                 path,
             )
             .map(|d| d == input)
-            .unwrap_or(false)
-        } else {
-            rust_r64_interleaved_decode(
+            .unwrap_or(false),
+            "r64" => rust_r64_interleaved_decode(
                 &rust_compressed,
                 &cum2sym,
                 &freqs,
@@ -559,12 +584,24 @@ pub fn run_interleaved_court(
                 path,
             )
             .map(|d| d == input)
-            .unwrap_or(false)
+            .unwrap_or(false),
+            "word" => rust_word_interleaved_decode(
+                &rust_compressed,
+                &cum2sym,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                input.len(),
+                path,
+            )
+            .map(|d| d == input)
+            .unwrap_or(false),
+            _ => false,
         };
 
         // C→Rust cross-decode: Rust decodes C's stream
-        let c_to_rust = if variant == "byte" {
-            rust_byte_interleaved_decode(
+        let c_to_rust = match variant {
+            "byte" => rust_byte_interleaved_decode(
                 &c_compressed,
                 &cum2sym,
                 &freqs,
@@ -574,9 +611,8 @@ pub fn run_interleaved_court(
                 path,
             )
             .map(|d| d == input)
-            .unwrap_or(false)
-        } else {
-            rust_r64_interleaved_decode(
+            .unwrap_or(false),
+            "r64" => rust_r64_interleaved_decode(
                 &c_compressed,
                 &cum2sym,
                 &freqs,
@@ -586,7 +622,19 @@ pub fn run_interleaved_court(
                 path,
             )
             .map(|d| d == input)
-            .unwrap_or(false)
+            .unwrap_or(false),
+            "word" => rust_word_interleaved_decode(
+                &c_compressed,
+                &cum2sym,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                input.len(),
+                path,
+            )
+            .map(|d| d == input)
+            .unwrap_or(false),
+            _ => false,
         };
 
         // Rust→C cross-decode: C decodes Rust's stream
@@ -825,10 +873,11 @@ pub fn run_court_with_profile(
             .ok_or("C enc missing decode_ok")?;
 
         // Rust encode
-        let rust_compressed = if variant == "byte" {
-            rust_byte_encode(&input, &freqs, &cum_freqs, scale_bits, path)?
-        } else {
-            rust_r64_encode(&input, &freqs, &cum_freqs, scale_bits, path)?
+        let rust_compressed = match variant {
+            "byte" => rust_byte_encode(&input, &freqs, &cum_freqs, scale_bits, path)?,
+            "r64" => rust_r64_encode(&input, &freqs, &cum_freqs, scale_bits, path)?,
+            "word" => rust_word_encode(&input, &freqs, &cum_freqs, scale_bits, num_symbols, path)?,
+            _ => return Err(format!("unknown variant: {}", variant)),
         };
         let rust_compressed_hex = hex::encode(&rust_compressed);
 
@@ -847,8 +896,8 @@ pub fn run_court_with_profile(
             })
             .collect();
 
-        let rust_self_decode = if variant == "byte" {
-            rust_byte_decode(
+        let rust_self_decode = match variant {
+            "byte" => rust_byte_decode(
                 &rust_compressed,
                 &cum2sym,
                 &freqs,
@@ -858,9 +907,8 @@ pub fn run_court_with_profile(
                 path,
             )
             .map(|d| d == input)
-            .unwrap_or(false)
-        } else {
-            rust_r64_decode(
+            .unwrap_or(false),
+            "r64" => rust_r64_decode(
                 &rust_compressed,
                 &cum2sym,
                 &freqs,
@@ -870,12 +918,24 @@ pub fn run_court_with_profile(
                 path,
             )
             .map(|d| d == input)
-            .unwrap_or(false)
+            .unwrap_or(false),
+            "word" => rust_word_decode(
+                &rust_compressed,
+                &cum2sym,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                input.len(),
+                path,
+            )
+            .map(|d| d == input)
+            .unwrap_or(false),
+            _ => false,
         };
 
         // C→Rust cross-decode
-        let c_to_rust = if variant == "byte" {
-            rust_byte_decode(
+        let c_to_rust = match variant {
+            "byte" => rust_byte_decode(
                 &c_compressed,
                 &cum2sym,
                 &freqs,
@@ -885,9 +945,8 @@ pub fn run_court_with_profile(
                 path,
             )
             .map(|d| d == input)
-            .unwrap_or(false)
-        } else {
-            rust_r64_decode(
+            .unwrap_or(false),
+            "r64" => rust_r64_decode(
                 &c_compressed,
                 &cum2sym,
                 &freqs,
@@ -897,7 +956,19 @@ pub fn run_court_with_profile(
                 path,
             )
             .map(|d| d == input)
-            .unwrap_or(false)
+            .unwrap_or(false),
+            "word" => rust_word_decode(
+                &c_compressed,
+                &cum2sym,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                input.len(),
+                path,
+            )
+            .map(|d| d == input)
+            .unwrap_or(false),
+            _ => false,
         };
 
         // Rust→C cross-decode
@@ -1115,13 +1186,15 @@ pub fn run_r64_court(
 macro_rules! use_core {
     () => {
         use ryg_rans_rs_core::{
-            BackwardByteWriter, BackwardWord32Writer, ByteInterleavedDecoder,
+            BackwardByteWriter, BackwardWord16Writer, BackwardWord32Writer, ByteInterleavedDecoder,
             ByteInterleavedEncoder, ByteReader, ForwardReader, Rans64DecSymbol, Rans64EncSymbol,
-            Rans64State, RansByteDecSymbol, RansByteEncSymbol, RansByteState, SliceBackwardWriter,
-            Word32Reader, rans_byte_dec_advance, rans_byte_dec_advance_step,
-            rans_byte_dec_advance_symbol, rans_byte_dec_advance_symbol_step, rans_byte_dec_get,
-            rans_byte_dec_init, rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put,
-            rans_byte_enc_put_symbol, rans64_dec_advance, rans64_dec_advance_step,
+            Rans64State, RansByteDecSymbol, RansByteEncSymbol, RansByteState, RansWordSlot,
+            RansWordState, RansWordTables, SliceBackwardWriter, Word16Reader, Word32Reader,
+            rans_byte_dec_advance, rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+            rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+            rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+            rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+            rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
             rans64_enc_put_symbol,
@@ -1568,6 +1641,199 @@ fn rust_r64_interleaved_decode(
                     .map_err(|e| format!("r64 int tail sym: {:?}", e))?;
             }
         }
+    }
+
+    Ok(output)
+}
+
+// ---- Word rANS encode/decode (division only, scale_bits=12 per upstream) ----
+
+fn rust_word_encode(
+    input: &[u8],
+    _freqs: &[u32],
+    cum_freqs: &[u32],
+    scale_bits: u32,
+    _num_symbols: usize,
+    _path: CourtPath,
+) -> Result<Vec<u8>, String> {
+    use_core!();
+    let mut buf = vec![0u8; input.len() * 4 + 32];
+    let mut writer = BackwardWord16Writer::new(&mut buf);
+    let mut state = RansWordState::new();
+    for &s in input.iter().rev() {
+        let start = cum_freqs[s as usize];
+        let freq = _freqs[s as usize];
+        rans_word_enc_put(&mut state, &mut writer, start, freq, scale_bits)
+            .map_err(|e| format!("word enc put: {:?}", e))?;
+    }
+    rans_word_enc_flush(&state, &mut writer).map_err(|e| format!("word enc flush: {:?}", e))?;
+    Ok(writer.encoded().to_vec())
+}
+
+fn rust_word_decode(
+    compressed: &[u8],
+    _cum2sym: &[u8],
+    freqs: &[u32],
+    cum_freqs: &[u32],
+    scale_bits: u32,
+    expected_len: usize,
+    _path: CourtPath,
+) -> Result<Vec<u8>, String> {
+    use_core!();
+    // Build word decode tables
+    let m = 1usize << scale_bits;
+    let mut slots = vec![RansWordSlot { freq: 0, bias: 0 }; m];
+    let mut slot2sym = vec![0u8; m];
+    for i in 0..freqs.len().min(256) {
+        let freq = freqs[i];
+        if freq > 0 {
+            let start = cum_freqs[i] as usize;
+            for j in 0..freq as usize {
+                let slot = start + j;
+                if slot < m {
+                    slot2sym[slot] = i as u8;
+                    slots[slot] = RansWordSlot {
+                        freq: freq as u16,
+                        bias: j as u16,
+                    };
+                }
+            }
+        }
+    }
+    let tables = RansWordTables {
+        slots: &slots,
+        slot2sym: &slot2sym,
+    };
+
+    let mut reader = Word16Reader::new(compressed);
+    let mut state =
+        rans_word_dec_init(&mut reader).map_err(|e| format!("word dec init: {:?}", e))?;
+    let mut output = vec![0u8; expected_len];
+    for i in 0..expected_len {
+        let s = rans_word_dec_sym(&mut state, &tables, scale_bits);
+        output[i] = s;
+        rans_word_dec_renorm(&mut state, &mut reader)
+            .map_err(|e| format!("word dec renorm {}: {:?}", i, e))?;
+    }
+    Ok(output)
+}
+
+fn rust_word_interleaved_encode(
+    input: &[u8],
+    _freqs: &[u32],
+    cum_freqs: &[u32],
+    scale_bits: u32,
+    _num_symbols: usize,
+    _path: CourtPath,
+) -> Result<Vec<u8>, String> {
+    use_core!();
+    let n = input.len();
+    let mut buf = vec![0u8; n * 4 + 64];
+    let mut writer = BackwardWord16Writer::new(&mut buf);
+    let mut state0 = RansWordState::new();
+    let mut state1 = RansWordState::new();
+
+    if n & 1 != 0 {
+        let s = input[n - 1] as usize;
+        rans_word_enc_put(
+            &mut state0,
+            &mut writer,
+            cum_freqs[s],
+            _freqs[s],
+            scale_bits,
+        )
+        .map_err(|e| format!("word int enc tail: {:?}", e))?;
+    }
+    let mut i = n & !1;
+    while i > 0 {
+        let s1 = input[i - 1] as usize;
+        let s0 = input[i - 2] as usize;
+        rans_word_enc_put(
+            &mut state1,
+            &mut writer,
+            cum_freqs[s1],
+            _freqs[s1],
+            scale_bits,
+        )
+        .map_err(|e| format!("word int enc s1@{}: {:?}", i, e))?;
+        rans_word_enc_put(
+            &mut state0,
+            &mut writer,
+            cum_freqs[s0],
+            _freqs[s0],
+            scale_bits,
+        )
+        .map_err(|e| format!("word int enc s0@{}: {:?}", i, e))?;
+        i = i.wrapping_sub(2);
+    }
+    rans_word_enc_flush(&mut state1, &mut writer)
+        .map_err(|e| format!("word int enc flush1: {:?}", e))?;
+    rans_word_enc_flush(&mut state0, &mut writer)
+        .map_err(|e| format!("word int enc flush0: {:?}", e))?;
+
+    Ok(writer.encoded().to_vec())
+}
+
+fn rust_word_interleaved_decode(
+    compressed: &[u8],
+    _cum2sym: &[u8],
+    freqs: &[u32],
+    cum_freqs: &[u32],
+    scale_bits: u32,
+    expected_len: usize,
+    _path: CourtPath,
+) -> Result<Vec<u8>, String> {
+    use_core!();
+    // Build word decode tables
+    let m = 1usize << scale_bits;
+    let mut slots = vec![RansWordSlot { freq: 0, bias: 0 }; m];
+    let mut slot2sym = vec![0u8; m];
+    for i in 0..freqs.len().min(256) {
+        let freq = freqs[i];
+        if freq > 0 {
+            let start = cum_freqs[i] as usize;
+            for j in 0..freq as usize {
+                let slot = start + j;
+                if slot < m {
+                    slot2sym[slot] = i as u8;
+                    slots[slot] = RansWordSlot {
+                        freq: freq as u16,
+                        bias: j as u16,
+                    };
+                }
+            }
+        }
+    }
+    let tables = RansWordTables {
+        slots: &slots,
+        slot2sym: &slot2sym,
+    };
+
+    let mut reader = Word16Reader::new(compressed);
+    let mut state0 =
+        rans_word_dec_init(&mut reader).map_err(|e| format!("word int dec init0: {:?}", e))?;
+    let mut state1 =
+        rans_word_dec_init(&mut reader).map_err(|e| format!("word int dec init1: {:?}", e))?;
+
+    let n = expected_len;
+    let even_n = n & !1;
+    let mut output = vec![0u8; n];
+
+    let mut pos = 0;
+    while pos < even_n {
+        output[pos] = rans_word_dec_sym(&mut state0, &tables, scale_bits);
+        output[pos + 1] = rans_word_dec_sym(&mut state1, &tables, scale_bits);
+        rans_word_dec_renorm(&mut state0, &mut reader)
+            .map_err(|e| format!("word int renorm0 @{}: {:?}", pos, e))?;
+        rans_word_dec_renorm(&mut state1, &mut reader)
+            .map_err(|e| format!("word int renorm1 @{}: {:?}", pos, e))?;
+        pos += 2;
+    }
+
+    if even_n < n {
+        output[even_n] = rans_word_dec_sym(&mut state0, &tables, scale_bits);
+        rans_word_dec_renorm(&mut state0, &mut reader)
+            .map_err(|e| format!("word int dec tail: {:?}", e))?;
     }
 
     Ok(output)

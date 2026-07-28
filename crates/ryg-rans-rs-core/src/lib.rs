@@ -1590,6 +1590,287 @@ pub fn rans64_dec_renorm(
 }
 
 // ---------------------------------------------------------------------------
+// Word-aligned rANS (word rANS — rans_word_sse41.h scalar path)
+// ---------------------------------------------------------------------------
+
+/// Lower bound of the normalization interval for word rANS.
+///
+/// Equivalent to `RANS_WORD_L` in `rans_word_sse41.h`.
+/// Word rANS uses L=2^16 with 16-bit renormalization words.
+pub const RANS_WORD_L: u32 = 1u32 << 16;
+
+/// Word rANS encoder/decoder state.
+///
+/// Equivalent to `RansWordEnc` / `RansWordDec` (typedef for `uint32_t`).
+/// Uses 32-bit state space with L=2^16 and 16-bit word renormalization.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RansWordState(pub u32);
+
+impl RansWordState {
+    /// Create a new state initialized to the lower bound.
+    #[inline]
+    pub const fn new() -> Self {
+        Self(RANS_WORD_L)
+    }
+
+    /// Return the raw state value.
+    #[inline]
+    pub const fn get(&self) -> u32 {
+        self.0
+    }
+}
+
+/// Backward writer for 16-bit words (word rANS encoder output).
+///
+/// Writes u16 values in little-endian order to a byte buffer,
+/// starting from the end and moving toward the beginning.
+#[derive(Debug)]
+pub struct BackwardWord16Writer<'a> {
+    buf: &'a mut [u8],
+    pos: usize,
+}
+
+impl<'a> BackwardWord16Writer<'a> {
+    /// Create a new backward word writer from a mutable byte slice.
+    ///
+    /// The writer starts at the end of the buffer.
+    #[inline]
+    pub fn new(buf: &'a mut [u8]) -> Self {
+        let len = buf.len();
+        Self { buf, pos: len }
+    }
+
+    /// Write a single u16 word in little-endian format.
+    ///
+    /// Returns `Ok(())` if there was room, `Err(())` if the buffer is exhausted.
+    #[inline]
+    pub fn write_word16(&mut self, v: u16) -> Result<(), ()> {
+        if self.pos < 2 {
+            return Err(());
+        }
+        self.pos -= 2;
+        self.buf[self.pos..self.pos + 2].copy_from_slice(&v.to_le_bytes());
+        Ok(())
+    }
+
+    /// Current write position (0 = buffer exhausted).
+    #[inline]
+    pub fn position(&self) -> usize {
+        self.pos
+    }
+
+    /// Return the encoded portion (from current position to end) as a slice.
+    #[inline]
+    pub fn encoded(&self) -> &[u8] {
+        &self.buf[self.pos..]
+    }
+
+    /// Number of bytes written so far.
+    #[inline]
+    pub fn bytes_written(&self) -> usize {
+        self.buf.len() - self.pos
+    }
+}
+
+/// Forward reader for 16-bit words (word rANS decoder input).
+///
+/// Reads u16 values in little-endian order from a byte slice,
+/// starting from the beginning and moving forward.
+#[derive(Debug, Clone)]
+pub struct Word16Reader<'a> {
+    buf: &'a [u8],
+    pos: usize,
+}
+
+impl<'a> Word16Reader<'a> {
+    /// Create a new word reader from a byte slice.
+    #[inline]
+    pub fn new(buf: &'a [u8]) -> Self {
+        Self { buf, pos: 0 }
+    }
+
+    /// Read a single u16 word in little-endian format.
+    ///
+    /// Returns `None` if fewer than 2 bytes remain.
+    #[inline]
+    pub fn read_word16(&mut self) -> Option<u16> {
+        if self.pos + 2 > self.buf.len() {
+            return None;
+        }
+        let v = u16::from_le_bytes([self.buf[self.pos], self.buf[self.pos + 1]]);
+        self.pos += 2;
+        Some(v)
+    }
+
+    /// Current read position (bytes consumed so far).
+    #[inline]
+    pub fn position(&self) -> usize {
+        self.pos
+    }
+
+    /// Number of bytes consumed.
+    #[inline]
+    pub fn bytes_consumed(&self) -> usize {
+        self.pos
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Word rANS table types
+// ---------------------------------------------------------------------------
+
+/// A single slot in the word rANS decode table.
+///
+/// Equivalent to `RansWordSlot` in `rans_word_sse41.h`.
+#[derive(Debug, Clone, Copy)]
+pub struct RansWordSlot {
+    /// Symbol frequency.
+    pub freq: u16,
+    /// Bias (position within the symbol's frequency range).
+    pub bias: u16,
+}
+
+/// Word rANS decode tables.
+///
+/// Equivalent to `RansWordTables` in `rans_word_sse41.h`.
+/// Contains `M` slots (one per cumulative frequency) and a
+/// slot-to-symbol mapping.
+pub struct RansWordTables<'a> {
+    pub slots: &'a [RansWordSlot],
+    pub slot2sym: &'a [u8],
+}
+
+// ---------------------------------------------------------------------------
+// Word rANS encoder functions
+// ---------------------------------------------------------------------------
+
+/// Initialize a word rANS encoder state.
+///
+/// Equivalent to `RansWordEncInit` in `rans_word_sse41.h`.
+#[inline]
+pub fn rans_word_enc_init() -> RansWordState {
+    RansWordState::new()
+}
+
+/// Word rANS encoder renormalization.
+///
+/// Emits the low 16 bits when the state exceeds the threshold.
+/// Returns `Err(EncodeError::OutputTooSmall)` if the buffer is exhausted.
+#[inline]
+pub fn rans_word_enc_renorm(
+    state: &mut RansWordState,
+    writer: &mut BackwardWord16Writer,
+    freq: u32,
+    scale_bits: u32,
+) -> Result<(), EncodeError> {
+    let x = state.0;
+    // Threshold: (L >> scale_bits) << 16 * freq
+    // For scale_bits=12: (0x10000 >> 12) << 16 * freq = (16) << 16 * freq = 0x100000 * freq
+    let threshold = ((RANS_WORD_L >> scale_bits) << 16) * freq;
+    if x >= threshold {
+        writer
+            .write_word16((x & 0xffff) as u16)
+            .map_err(|_| EncodeError::OutputTooSmall)?;
+        state.0 = x >> 16;
+    }
+    Ok(())
+}
+
+/// Word rANS encoder — encode a single symbol using division.
+///
+/// Equivalent to `RansWordEncPut` in `rans_word_sse41.h`.
+/// Formula: x = C(s,x) = ((x/freq) << scale_bits) + (x%freq) + start
+#[inline]
+pub fn rans_word_enc_put(
+    state: &mut RansWordState,
+    writer: &mut BackwardWord16Writer,
+    start: u32,
+    freq: u32,
+    scale_bits: u32,
+) -> Result<(), EncodeError> {
+    // Renormalize
+    rans_word_enc_renorm(state, writer, freq, scale_bits)?;
+
+    // x = C(s,x)
+    let x = state.0;
+    state.0 = ((x / freq) << scale_bits) + (x % freq) + start;
+    Ok(())
+}
+
+/// Flush a word rANS encoder — write the final state to the buffer.
+///
+/// Equivalent to `RansWordEncFlush` in `rans_word_sse41.h`.
+/// Writes 2 u16 words (4 bytes total).
+#[inline]
+pub fn rans_word_enc_flush(
+    state: &RansWordState,
+    writer: &mut BackwardWord16Writer,
+) -> Result<(), EncodeError> {
+    let x = state.0;
+    writer
+        .write_word16((x >> 16) as u16)
+        .map_err(|_| EncodeError::OutputTooSmall)?;
+    writer
+        .write_word16((x & 0xffff) as u16)
+        .map_err(|_| EncodeError::OutputTooSmall)?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Word rANS decoder functions
+// ---------------------------------------------------------------------------
+
+/// Initialize a word rANS decoder from a compressed stream.
+///
+/// Equivalent to `RansWordDecInit` in `rans_word_sse41.h`.
+/// Reads 2 u16 words (4 bytes) from the stream.
+#[inline]
+pub fn rans_word_dec_init(reader: &mut Word16Reader) -> Result<RansWordState, DecodeError> {
+    let lo = reader.read_word16().ok_or(DecodeError::InputTooShort)? as u32;
+    let hi = reader.read_word16().ok_or(DecodeError::InputTooShort)? as u32;
+    Ok(RansWordState(lo | (hi << 16)))
+}
+
+/// Word rANS decoder — decode one symbol and advance the state.
+///
+/// Equivalent to `RansWordDecSym` in `rans_word_sse41.h`.
+/// Uses the table-based decoder: slot = x & (M-1), then
+/// x' = slots[slot].freq * (x >> scale_bits) + slots[slot].bias
+/// Returns the decoded symbol.
+#[inline]
+pub fn rans_word_dec_sym(
+    state: &mut RansWordState,
+    tables: &RansWordTables<'_>,
+    scale_bits: u32,
+) -> u8 {
+    let x = state.0;
+    let mask = (1u32 << scale_bits) - 1;
+    let slot = (x & mask) as usize;
+    state.0 =
+        (tables.slots[slot].freq as u32) * (x >> scale_bits) + (tables.slots[slot].bias as u32);
+    tables.slot2sym[slot]
+}
+
+/// Word rANS decoder renormalization.
+///
+/// Equivalent to `RansWordDecRenorm` in `rans_word_sse41.h`.
+/// Reads a u16 word from the stream when the state falls below L.
+/// At most 1 iteration because L=2^16 and state < L implies
+/// (state << 16) | word < 2^32, which covers the full u32 range.
+#[inline]
+pub fn rans_word_dec_renorm(
+    state: &mut RansWordState,
+    reader: &mut Word16Reader,
+) -> Result<(), DecodeError> {
+    let x = state.0;
+    if x < RANS_WORD_L {
+        let w = reader.read_word16().ok_or(DecodeError::InputTooShort)? as u32;
+        state.0 = (x << 16) | w;
+    }
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 

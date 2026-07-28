@@ -12,6 +12,7 @@
 #include "platform.h"
 #include "rans_byte.h"
 #include "rans64.h"
+#include "rans_word_sse41.h"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -69,6 +70,10 @@ static void usage(const char *prog)
     fprintf(stderr, "  enc-stream-r64-interleaved2-div    scale_bits freq_csv input_hex\n");
     fprintf(stderr, "  dec-stream-r64-interleaved2       scale_bits freq_csv compressed_hex num_symbols\n");
     fprintf(stderr, "  dec-stream-r64-interleaved2-div    scale_bits freq_csv compressed_hex num_symbols\n");
+    fprintf(stderr, "  enc-stream-word                   scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  dec-stream-word                   scale_bits freq_csv compressed_hex num_symbols\n");
+    fprintf(stderr, "  enc-stream-word-interleaved2       scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  dec-stream-word-interleaved2       scale_bits freq_csv compressed_hex num_symbols\n");
     exit(1);
 }
 
@@ -1394,6 +1399,231 @@ static void trace_dec_stream_r64_interleaved2_div(uint32_t scale_bits,
 }
 
 // ===========================================================================
+// Word rANS stream operations (rans_word_sse41.h scalar path)
+// ===========================================================================
+
+// Helper: build word rANS tables from a frequency model
+static void build_word_tables(RansWordTables* tab, const std::vector<uint32_t>& freqs, uint32_t scale_bits)
+{
+    uint32_t cum = 0;
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansWordTablesInitSymbol(tab, (uint8_t)i, cum, freqs[i]);
+            cum += freqs[i];
+        }
+    }
+}
+
+// enc-stream-word: word rANS encode with self-decode
+static void trace_enc_stream_word(uint32_t scale_bits,
+                                  const std::vector<uint32_t>& freqs,
+                                  const std::vector<uint8_t>& input)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    // Build word decoder tables for self-decode
+    RansWordTables tab;
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansWordTablesInitSymbol(&tab, (uint8_t)i, cum_freqs[i], freqs[i]);
+        }
+    }
+
+    uint16_t buf[64 * 1024];
+    uint16_t* ptr = buf + sizeof(buf) / sizeof(buf[0]);
+    RansWordEnc state = RansWordEncInit();
+
+    for (size_t i = input.size(); i > 0; i--) {
+        int s = input[i-1];
+        RansWordEncPut(&state, &ptr, cum_freqs[s], freqs[s]);
+    }
+    RansWordEncFlush(&state, &ptr);
+
+    size_t comp_words = (size_t)((buf + sizeof(buf) / sizeof(buf[0])) - ptr);
+    size_t comp_bytes = comp_words * sizeof(uint16_t);
+    std::string comp_hex = hex_encode((const uint8_t*)ptr, comp_bytes);
+
+    // Self-decode to verify
+    std::vector<uint16_t> words(comp_words + 2, 0);
+    memcpy(words.data(), ptr, comp_bytes);
+    uint16_t* dec_ptr = words.data();
+    RansWordDec dec_state;
+    RansWordDecInit(&dec_state, &dec_ptr);
+    bool decode_ok = true;
+    for (size_t i = 0; i < input.size(); i++) {
+        uint8_t s = RansWordDecSym(&dec_state, &tab);
+        RansWordDecRenorm(&dec_state, &dec_ptr);
+        if (s != input[i]) { decode_ok = false; break; }
+    }
+
+    printf("{\"op\":\"enc-stream-word\""
+           ",\"scale_bits\":%u"
+           ",\"input_size\":%zu"
+           ",\"compressed_hex\":\"%s\""
+           ",\"compressed_size\":%zu"
+           ",\"decode_ok\":%s"
+           "}\n",
+           scale_bits, input.size(), comp_hex.c_str(), comp_bytes,
+           decode_ok ? "true" : "false");
+}
+
+// dec-stream-word: word rANS decode (table-based)
+static void trace_dec_stream_word(uint32_t scale_bits,
+                                  const std::vector<uint32_t>& freqs,
+                                  const std::vector<uint8_t>& compressed,
+                                  size_t num_symbols)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    // Build word tables
+    RansWordTables tab;
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansWordTablesInitSymbol(&tab, (uint8_t)i, cum_freqs[i], freqs[i]);
+        }
+    }
+
+    // Decode: read u16 words from the compressed stream
+    std::vector<uint16_t> words(compressed.size() / 2 + 2, 0);
+    memcpy(words.data(), compressed.data(), compressed.size());
+    uint16_t* ptr = words.data();
+
+    RansWordDec state;
+    RansWordDecInit(&state, &ptr);
+
+    std::vector<uint8_t> output(num_symbols);
+    for (size_t i = 0; i < num_symbols; i++) {
+        uint8_t s = RansWordDecSym(&state, &tab);
+        RansWordDecRenorm(&state, &ptr);
+        output[i] = s;
+    }
+
+    printf("{\"op\":\"dec-stream-word\""
+           ",\"scale_bits\":%u"
+           ",\"num_symbols\":%zu"
+           ",\"decoded_hex\":\"%s\""
+           "}\n",
+           scale_bits, num_symbols,
+           hex_encode(output.data(), output.size()).c_str());
+}
+
+// enc-stream-word-interleaved2: two-state interleaved word rANS encode
+static void trace_enc_stream_word_interleaved2(uint32_t scale_bits,
+                                               const std::vector<uint32_t>& freqs,
+                                               const std::vector<uint8_t>& input)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    RansWordTables tab;
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansWordTablesInitSymbol(&tab, (uint8_t)i, cum_freqs[i], freqs[i]);
+        }
+    }
+
+    uint16_t buf[64 * 1024];
+    uint16_t* ptr = buf + sizeof(buf) / sizeof(buf[0]);
+    RansWordEnc state0, state1;
+    state0 = RansWordEncInit();
+    state1 = RansWordEncInit();
+    int count = (int)input.size();
+
+    // Two-state interleaved: same pair pattern as byte/R64
+    // odd tail to state0, pairs (i-1→state1, i-2→state0) in reverse
+    if (count & 1) {
+        int s = input[count - 1];
+        RansWordEncPut(&state0, &ptr, cum_freqs[s], freqs[s]);
+    }
+    for (int i = count & ~1; i > 0; i -= 2) {
+        int s1 = input[i - 1];
+        int s0 = input[i - 2];
+        RansWordEncPut(&state1, &ptr, cum_freqs[s1], freqs[s1]);
+        RansWordEncPut(&state0, &ptr, cum_freqs[s0], freqs[s0]);
+    }
+    RansWordEncFlush(&state1, &ptr);
+    RansWordEncFlush(&state0, &ptr);
+
+    size_t comp_words = (size_t)((buf + sizeof(buf) / sizeof(buf[0])) - ptr);
+    size_t comp_bytes = comp_words * sizeof(uint16_t);
+
+    printf("{\"op\":\"enc-stream-word-interleaved2\""
+           ",\"scale_bits\":%u"
+           ",\"compressed_hex\":\"%s\""
+           ",\"compressed_size\":%zu"
+           "}\n",
+           scale_bits,
+           hex_encode((const uint8_t*)ptr, comp_bytes).c_str(),
+           comp_bytes);
+}
+
+// dec-stream-word-interleaved2: two-state interleaved word rANS decode
+static void trace_dec_stream_word_interleaved2(uint32_t scale_bits,
+                                               const std::vector<uint32_t>& freqs,
+                                               const std::vector<uint8_t>& compressed,
+                                               size_t num_symbols)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    RansWordTables tab;
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansWordTablesInitSymbol(&tab, (uint8_t)i, cum_freqs[i], freqs[i]);
+        }
+    }
+
+    // Decode: read u16 words, init two interleaved states
+    std::vector<uint16_t> words(compressed.size() / 2 + 4, 0);
+    memcpy(words.data(), compressed.data(), compressed.size());
+    uint16_t* ptr = words.data();
+
+    RansWordDec state0, state1;
+    RansWordDecInit(&state0, &ptr);
+    RansWordDecInit(&state1, &ptr);
+
+    size_t n = num_symbols;
+    size_t even_n = n & ~(size_t)1;
+    std::vector<uint8_t> output(n);
+
+    // Decode pairs: sym both states, then renorm both
+    for (size_t pos = 0; pos < even_n; pos += 2) {
+        output[pos] = RansWordDecSym(&state0, &tab);
+        output[pos + 1] = RansWordDecSym(&state1, &tab);
+        RansWordDecRenorm(&state0, &ptr);
+        RansWordDecRenorm(&state1, &ptr);
+    }
+
+    // Odd tail from state0
+    if (even_n < n) {
+        output[n - 1] = RansWordDecSym(&state0, &tab);
+        RansWordDecRenorm(&state0, &ptr);
+    }
+
+    printf("{\"op\":\"dec-stream-word-interleaved2\""
+           ",\"scale_bits\":%u"
+           ",\"num_symbols\":%zu"
+           ",\"decoded_hex\":\"%s\""
+           "}\n",
+           scale_bits, n,
+           hex_encode(output.data(), output.size()).c_str());
+}
+
+// ===========================================================================
 // Main dispatch
 // ===========================================================================
 
@@ -1594,6 +1824,32 @@ int main(int argc, char *argv[])
         std::vector<uint8_t> compressed = hex_decode(argv[4]);
         size_t num_symbols = parse_u32(argv[5]);
         trace_dec_stream_r64_interleaved2_div(scale_bits, freqs, compressed, num_symbols);
+    } else if (strcmp(op, "enc-stream-word") == 0) {
+        if (argc != 5) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> input = hex_decode(argv[4]);
+        trace_enc_stream_word(scale_bits, freqs, input);
+    } else if (strcmp(op, "dec-stream-word") == 0) {
+        if (argc != 6) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> compressed = hex_decode(argv[4]);
+        size_t num_symbols = parse_u32(argv[5]);
+        trace_dec_stream_word(scale_bits, freqs, compressed, num_symbols);
+    } else if (strcmp(op, "enc-stream-word-interleaved2") == 0) {
+        if (argc != 5) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> input = hex_decode(argv[4]);
+        trace_enc_stream_word_interleaved2(scale_bits, freqs, input);
+    } else if (strcmp(op, "dec-stream-word-interleaved2") == 0) {
+        if (argc != 6) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> compressed = hex_decode(argv[4]);
+        size_t num_symbols = parse_u32(argv[5]);
+        trace_dec_stream_word_interleaved2(scale_bits, freqs, compressed, num_symbols);
     } else {
         fprintf(stderr, "Unknown operation: %s\n", op);
         usage(argv[0]);
