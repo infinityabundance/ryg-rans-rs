@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1
+FROM debian:12-slim AS oracle-gcc
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    g++ gcc make ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY upstream/ /workspace/upstream/
+
+RUN cd /workspace/upstream && \
+    g++ -o /usr/local/bin/rans_byte_oracle main.cpp -O3 -lm -lrt -D_POSIX_C_SOURCE=199309L && \
+    g++ -o /usr/local/bin/rans64_oracle main64.cpp -O3 -lm -lrt -D_POSIX_C_SOURCE=199309L && \
+    g++ -o /usr/local/bin/rans_alias_oracle main_alias.cpp -O3 -lm -lrt -D_POSIX_C_SOURCE=199309L && \
+    g++ -o /usr/local/bin/rans_sse41_oracle main_simd.cpp -O3 -msse4.1 -lm -lrt -D_POSIX_C_SOURCE=199309L
+
+LABEL org.infinityabundance.project=ryg-rans-rs
+LABEL org.infinityabundance.purpose=forensic-parity-court
+LABEL org.infinityabundance.managed-by=ryg-rans-rs-xtask

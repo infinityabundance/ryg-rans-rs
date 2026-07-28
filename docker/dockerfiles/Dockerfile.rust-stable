@@ -1,0 +1,10 @@
+# syntax=docker/dockerfile:1
+FROM rust:1.85-slim-bookworm AS rust-stable
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates pkg-config libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+LABEL org.infinityabundance.project=ryg-rans-rs
+LABEL org.infinityabundance.purpose=forensic-parity-court
+LABEL org.infinityabundance.managed-by=ryg-rans-rs-xtask
