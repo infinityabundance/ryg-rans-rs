@@ -150,7 +150,7 @@ fn run_court(
     path: CourtPath,
     variant: &str,
     court_id: &str,
-) -> Result<(Receipt, CaseManifest), String> {
+) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
     let c_enc_op = path.c_enc_op(variant);
     let c_dec_op = path.c_dec_op(variant);
 
@@ -184,6 +184,7 @@ fn run_court(
     }
 
     // Build manifest struct first, then serialize to bytes
+    // Clone cases to avoid move into manifest before receipt computation
     let manifest = CaseManifest {
         schema_version: 1,
         court_id: court_id.to_string(),
@@ -191,7 +192,7 @@ fn run_court(
         variant: variant.to_string(),
         scale_bits,
         seed,
-        cases,
+        cases: cases.clone(),
     };
     // Serialize exactly once — hash and write use same bytes
     let manifest_bytes =

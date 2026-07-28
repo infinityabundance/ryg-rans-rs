@@ -478,19 +478,36 @@ fn cmd_seal() -> Result<(), String> {
     }
     println!("  all receipt SHA-256 hashes verified");
 
-    // 5e. Verify manifest files exist
-    println!("Checking: manifest files exist...");
+    // 5e. Verify manifest SHA-256 against receipt manifest_sha256
+    println!("Checking: manifest SHA-256 hashes...");
     for entry in index_receipts {
         let court_id = entry.get("court_id").and_then(|c| c.as_str()).unwrap_or("");
-        let m_path = format!("evidence/manifests/manifest-{}.json", court_id);
-        if !std::path::Path::new(&m_path).exists() {
+        let m_path_str = format!("evidence/manifests/manifest-{}.json", court_id);
+        let m_content = std::fs::read_to_string(&m_path_str)
+            .map_err(|e| format!("read {}: {}", m_path_str, e))?;
+        let computed_sha = {
+            use sha2::Digest;
+            let mut h = sha2::Sha256::new();
+            h.update(m_content.as_bytes());
+            format!("{:x}", h.finalize())
+        };
+        let r_path = format!("evidence/receipts/receipt-{}.json", court_id);
+        let r_content =
+            std::fs::read_to_string(&r_path).map_err(|e| format!("read {}: {}", r_path, e))?;
+        let r_json: serde_json::Value =
+            serde_json::from_str(&r_content).map_err(|e| format!("parse {}: {}", r_path, e))?;
+        let receipt_sha = r_json
+            .get("manifest_sha256")
+            .and_then(|s| s.as_str())
+            .unwrap_or("");
+        if computed_sha != receipt_sha {
             return Err(format!(
-                "manifest missing for court_id={}: {}",
-                court_id, m_path
+                "manifest {} SHA-256 {} != receipt manifest_sha256 {}",
+                m_path_str, computed_sha, receipt_sha
             ));
         }
     }
-    println!("  all manifest files present");
+    println!("  all manifest SHA-256 hashes verified");
 
     // 5f. Verify receipt SHA-256 self-hash (skip self-referential field)
     println!("Checking: receipt SHA-256 self-hashes...");
@@ -584,20 +601,21 @@ fn cmd_seal() -> Result<(), String> {
                 format!("{}..HEAD", earliest_code).as_str(),
             ])
             .output();
-        if let Ok(o) = changed {
-            let stdout = String::from_utf8_lossy(&o.stdout);
-            for line in stdout.lines() {
-                let line = line.trim();
-                if line.is_empty() {
-                    continue;
-                }
-                let allowed = allowed_prefixes.iter().any(|p| line.starts_with(p));
-                if !allowed {
-                    return Err(format!(
-                        "source file changed after code_commit {}: {} (not in allowed list)",
-                        earliest_code, line
-                    ));
-                }
+        let changed_output = match changed {
+            Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).to_string(),
+            _ => return Err("source freshness: git diff failed or .git not available".into()),
+        };
+        for line in changed_output.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let allowed = allowed_prefixes.iter().any(|p| line.starts_with(p));
+            if !allowed {
+                return Err(format!(
+                    "source file changed after code_commit {}: {} (not in allowed list)",
+                    earliest_code, line
+                ));
             }
         }
     }

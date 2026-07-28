@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let court_configs: Vec<(
         &str,
         CourtPath,
-        fn(&str, u32, u64, usize, CourtPath) -> Result<(Receipt, CaseManifest), String>,
+        fn(&str, u32, u64, usize, CourtPath) -> Result<(Receipt, CaseManifest, Vec<u8>), String>,
     )> = vec![
         (
             "BYTE.DIVISION",
