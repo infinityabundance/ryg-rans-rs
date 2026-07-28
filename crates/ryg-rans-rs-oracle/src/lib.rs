@@ -41,6 +41,234 @@ impl CourtPath {
     }
 }
 
+/// Model profile for generating frequency tables and input data.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ModelProfile {
+    /// 256 symbols with equal frequency (the baseline)
+    Uniform256,
+    /// Frequency-one special path for every symbol
+    Freq1,
+    /// Extreme skew: one symbol gets 255/256 of total
+    Skewed2551,
+    /// Only 2 active symbols (sparse alphabet)
+    Sparse2,
+    /// 17 active symbols
+    Sparse17,
+    /// Prime-number frequencies producing uneven cumulative ranges
+    PrimeResidue,
+    /// Frequencies that force renormalization at state-threshold boundaries
+    RenormBoundary,
+    /// Sweep across scale_bits 10–16
+    ScaleSweep,
+    /// Input-length boundary cases: 0, 1, odd, even, 255, 256, 257, large
+    LengthBoundary,
+}
+
+impl ModelProfile {
+    pub fn label(&self) -> &'static str {
+        match self {
+            ModelProfile::Uniform256 => "UNIFORM256",
+            ModelProfile::Freq1 => "FREQ1",
+            ModelProfile::Skewed2551 => "SKEWED.255_1",
+            ModelProfile::Sparse2 => "SPARSE.2",
+            ModelProfile::Sparse17 => "SPARSE.17",
+            ModelProfile::PrimeResidue => "PRIME.RESIDUE",
+            ModelProfile::RenormBoundary => "RENORM.BOUNDARY",
+            ModelProfile::ScaleSweep => "SCALE.SWEEP",
+            ModelProfile::LengthBoundary => "LENGTH.BOUNDARY",
+        }
+    }
+
+    /// Returns the scale_bits for this profile (None = use the passed-in default)
+    pub fn scale_bits(&self) -> Option<u32> {
+        match self {
+            ModelProfile::ScaleSweep => None, // will iterate
+            _ => Some(12),
+        }
+    }
+
+    /// Generates frequency table for this profile.
+    pub fn generate_frequencies(&self, scale_bits: u32) -> Vec<u32> {
+        let total = 1u64 << scale_bits;
+        match self {
+            ModelProfile::Uniform256 => {
+                let mut freqs = vec![0u32; 256];
+                let base = (total / 256) as u32;
+                for f in freqs.iter_mut() {
+                    *f = base;
+                }
+                let rem = (total as u32) - (base * 256);
+                if rem > 0 {
+                    freqs[255] += rem;
+                }
+                freqs
+            }
+            ModelProfile::Freq1 => {
+                // Every symbol gets frequency 1, up to 256 symbols
+                let num_syms = total.min(256) as usize;
+                let mut freqs = vec![0u32; num_syms];
+                for f in freqs.iter_mut() {
+                    *f = 1;
+                }
+                // Adjust last frequency to reach exact total
+                let sum = num_syms as u64;
+                if sum < total {
+                    freqs[num_syms - 1] += (total - sum) as u32;
+                }
+                freqs
+            }
+            ModelProfile::Skewed2551 => {
+                // One symbol gets almost everything
+                let mut freqs = vec![0u32; 2];
+                freqs[0] = ((total as u64 * 255) / 256) as u32;
+                freqs[1] = (total as u32).saturating_sub(freqs[0]);
+                freqs
+            }
+            ModelProfile::Sparse2 => {
+                // Only 2 active symbols — the C oracle cannot receive freq=0
+                let mut freqs = vec![0u32; 2];
+                freqs[0] = (total / 2) as u32;
+                freqs[1] = (total as u32) - freqs[0];
+                freqs
+            }
+            ModelProfile::Sparse17 => {
+                // Only 17 active symbols
+                let mut freqs = vec![0u32; 17];
+                let base = (total / 17) as u32;
+                for f in freqs.iter_mut() {
+                    *f = base;
+                }
+                let rem = (total as u32) - (base * 17);
+                if rem > 0 {
+                    freqs[16] += rem;
+                }
+                freqs
+            }
+            ModelProfile::PrimeResidue => {
+                // Use prime-like frequencies that don't divide evenly
+                let mut freqs = vec![0u32; 256];
+                let primes = [2u32, 3, 5, 7, 11, 13, 17, 19];
+                let mut sum = 0u64;
+                for i in 0..256 {
+                    let p = primes[i % 8];
+                    // Scale prime so total sums to ~total
+                    let f = ((total / 256) as u64 / p as u64).max(1);
+                    freqs[i] = f as u32;
+                    sum += f as u64;
+                }
+                // Adjust last frequency to hit exact total
+                if let Some(last) = freqs.last_mut() {
+                    let diff = (total as i64) - sum as i64;
+                    if diff > 0 {
+                        *last = last.saturating_add(diff as u32);
+                    } else if diff < 0 {
+                        *last = last.saturating_sub((-diff) as u32);
+                    }
+                }
+                freqs
+            }
+            ModelProfile::RenormBoundary => {
+                // Frequencies designed to trigger renormalization at boundary states
+                let mut freqs = vec![0u32; 256];
+                // Use very large frequency for first symbol and tiny for others
+                // to force frequent renormalization
+                freqs[0] = (total / 2) as u32;
+                let remaining = (total as u32) - freqs[0];
+                let base = remaining / 255;
+                for i in 1..256 {
+                    freqs[i] = base;
+                }
+                let sum_others = base * 255;
+                if sum_others < remaining {
+                    freqs[255] += remaining - sum_others;
+                }
+                freqs
+            }
+            ModelProfile::ScaleSweep => {
+                // Used for all scale_bits values; generate uniform frequencies
+                let mut freqs = vec![0u32; 256];
+                let base = (total / 256) as u32;
+                for f in freqs.iter_mut() {
+                    *f = base;
+                }
+                let rem = (total as u32) - (base * 256);
+                if rem > 0 {
+                    freqs[255] += rem;
+                }
+                freqs
+            }
+            ModelProfile::LengthBoundary => {
+                // Standard uniform frequencies; input length varies
+                let mut freqs = vec![0u32; 256];
+                let base = (total / 256) as u32;
+                for f in freqs.iter_mut() {
+                    *f = base;
+                }
+                let rem = (total as u32) - (base * 256);
+                if rem > 0 {
+                    freqs[255] += rem;
+                }
+                freqs
+            }
+        }
+    }
+
+    /// Returns the number of cases to generate for this profile.
+    pub fn num_cases(&self) -> usize {
+        match self {
+            ModelProfile::Uniform256 => 20,
+            ModelProfile::Freq1 => 20,
+            ModelProfile::Skewed2551 => 20,
+            ModelProfile::Sparse2 => 20,
+            ModelProfile::Sparse17 => 20,
+            ModelProfile::PrimeResidue => 20,
+            ModelProfile::RenormBoundary => 20,
+            ModelProfile::ScaleSweep => 5,     // per scale_bits value
+            ModelProfile::LengthBoundary => 8, // one per boundary case
+        }
+    }
+
+    /// Generate input of appropriate length for this profile.
+    /// Input bytes are constrained to the number of symbols in the frequency table.
+    pub fn generate_input(&self, seed: u64, case_idx: usize, scale_bits: u32) -> Vec<u8> {
+        let freqs = self.generate_frequencies(scale_bits);
+        let num_symbols = freqs.len();
+        match self {
+            ModelProfile::LengthBoundary => {
+                let lengths = [0, 1, 63, 64, 65, 127, 128, 129, 255, 256, 257, 1023];
+                let len = lengths[case_idx.min(lengths.len() - 1)];
+                let mut rng = SimpleRng::new(seed.wrapping_add(case_idx as u64));
+                (0..len)
+                    .map(|_| (rng.next() as usize % num_symbols) as u8)
+                    .collect()
+            }
+            _ => {
+                let len = 64usize;
+                let mut rng = SimpleRng::new(seed);
+                (0..len)
+                    .map(|_| (rng.next() as usize % num_symbols) as u8)
+                    .collect()
+            }
+        }
+    }
+}
+
+/// Simple deterministic RNG for repeatable test generation.
+struct SimpleRng(u64);
+
+impl SimpleRng {
+    fn new(seed: u64) -> Self {
+        Self(seed.wrapping_add(0x9e3779b97f4a7c15))
+    }
+    fn next(&mut self) -> u64 {
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        self.0
+    }
+}
+
 /// Result of a single cross-decoding test case.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CaseResult {
@@ -64,6 +292,7 @@ pub struct CaseManifest {
     pub court_id: String,
     pub court_path: String,
     pub variant: String,
+    pub profile: String,
     pub scale_bits: u32,
     pub seed: u64,
     pub cases: Vec<CaseResult>,
@@ -76,6 +305,7 @@ pub struct Receipt {
     pub court_id: String,
     pub court_path: String,
     pub variant: String,
+    pub profile: String,
     pub scale_bits: u32,
     pub seed: u64,
     pub num_cases: u32,
@@ -92,83 +322,246 @@ pub struct Receipt {
     pub oracle_compiler: String,
 }
 
-/// Run a byte cross-decoding court.
-pub fn run_byte_court(
-    oracle_path: &str,
-    scale_bits: u32,
-    seed: u64,
-    num_cases: usize,
-    path: CourtPath,
-) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
-    let variant = "byte";
-    let court_id = format!(
-        "RYG_RANS.BYTE.{}.SINGLE_STATE.UNIFORM256.S{}",
-        path.label(),
-        scale_bits
-    );
-    run_court(
-        oracle_path,
-        scale_bits,
-        seed,
-        num_cases,
-        path,
-        variant,
-        &court_id,
-    )
+/// Court configuration tuple.
+pub struct CourtConfig {
+    pub variant: &'static str,
+    pub path: CourtPath,
+    pub profile: ModelProfile,
 }
 
-/// Run a 64-bit cross-decoding court.
-pub fn run_r64_court(
-    oracle_path: &str,
-    scale_bits: u32,
-    seed: u64,
-    num_cases: usize,
-    path: CourtPath,
-) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
-    let variant = "r64";
-    let court_id = format!(
-        "RYG_RANS.R64.{}.SINGLE_STATE.UNIFORM256.S{}",
-        path.label(),
-        scale_bits
-    );
-    run_court(
-        oracle_path,
-        scale_bits,
-        seed,
-        num_cases,
-        path,
-        variant,
-        &court_id,
-    )
+/// Generate all court configurations for the full model profile suite.
+pub fn all_court_configs() -> Vec<CourtConfig> {
+    let variants = ["byte", "r64"];
+    let paths = [CourtPath::Division, CourtPath::Reciprocal];
+    let profiles = [
+        ModelProfile::Uniform256,
+        ModelProfile::Freq1,
+        ModelProfile::Skewed2551,
+        ModelProfile::Sparse2,
+        ModelProfile::Sparse17,
+        ModelProfile::PrimeResidue,
+        ModelProfile::RenormBoundary,
+        ModelProfile::LengthBoundary,
+    ];
+    let mut configs = Vec::new();
+    // ScaleSweep is special: we run it at multiple scale_bits values
+    for &variant in &variants {
+        for &path in &paths {
+            configs.push(CourtConfig {
+                variant,
+                path,
+                profile: ModelProfile::ScaleSweep,
+            });
+        }
+    }
+    for &variant in &variants {
+        for &path in &paths {
+            for &profile in &profiles {
+                configs.push(CourtConfig {
+                    variant,
+                    path,
+                    profile,
+                });
+            }
+        }
+    }
+    configs
 }
 
-fn run_court(
+/// Run a cross-decoding court with a specific model profile.
+pub fn run_court_with_profile(
     oracle_path: &str,
     scale_bits: u32,
     seed: u64,
-    num_cases: usize,
     path: CourtPath,
     variant: &str,
-    court_id: &str,
+    profile: ModelProfile,
 ) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
+    let num_cases = profile.num_cases();
+    let profile_label = profile.label();
+    let court_id = format!(
+        "RYG_RANS.{}.{}.SINGLE_STATE.{}.S{}",
+        variant.to_uppercase(),
+        path.label(),
+        profile_label,
+        scale_bits
+    );
+
     let c_enc_op = path.c_enc_op(variant);
     let c_dec_op = path.c_dec_op(variant);
+
+    let mut freqs = profile.generate_frequencies(scale_bits);
+    let total: u64 = 1u64 << scale_bits;
+    let num_symbols = freqs.len();
+
+    // Pad frequencies to exactly 256 for the C oracle (which expects 256 entries)
+    while freqs.len() < 256 {
+        freqs.push(0);
+    }
+
+    // Cumulative frequencies (use the actual active symbols, not the padded zeros)
+    let cum_freqs: Vec<u32> = {
+        let mut cum = 0u32;
+        let mut cums = Vec::with_capacity(num_symbols + 1);
+        cums.push(0);
+        for &f in freqs.iter().take(num_symbols) {
+            cum += f;
+            cums.push(cum);
+        }
+        cums
+    };
+    let freq_csv = freqs
+        .iter()
+        .map(|f| f.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
 
     let mut cases = Vec::with_capacity(num_cases);
     let mut residuals = Vec::new();
 
     for case_idx in 0..num_cases {
+        let input = profile.generate_input(seed, case_idx, scale_bits);
+        let input_hex = hex::encode(&input);
         let case_seed = seed.wrapping_add(case_idx as u64);
-        let result = run_single_case(
-            oracle_path,
+
+        // C encode
+        let c_enc_out = Command::new(oracle_path)
+            .args([c_enc_op, &scale_bits.to_string(), &freq_csv, &input_hex])
+            .output()
+            .map_err(|e| format!("C enc: {}", e))?;
+        if !c_enc_out.status.success() {
+            return Err(format!(
+                "C enc exit {} for case {}",
+                c_enc_out.status, case_idx
+            ));
+        }
+        let c_enc_json: serde_json::Value =
+            serde_json::from_slice(&c_enc_out.stdout).map_err(|e| format!("C enc JSON: {}", e))?;
+        let c_compressed_hex = c_enc_json["compressed_hex"]
+            .as_str()
+            .ok_or("C enc missing compressed_hex")?
+            .to_string();
+        let c_compressed = hex::decode(&c_compressed_hex).map_err(|e| format!("C hex: {}", e))?;
+
+        let c_self_decode = c_enc_json
+            .get("decode_ok")
+            .and_then(|v| v.as_bool())
+            .ok_or("C enc missing decode_ok")?;
+
+        // Rust encode
+        let rust_compressed = if variant == "byte" {
+            rust_byte_encode(&input, &freqs, &cum_freqs, scale_bits, path)?
+        } else {
+            rust_r64_encode(&input, &freqs, &cum_freqs, scale_bits, path)?
+        };
+        let rust_compressed_hex = hex::encode(&rust_compressed);
+
+        // Rust self-decode
+        let cum2sym: Vec<u8> = (0..(total as usize))
+            .map(|i| {
+                for s in 0..freqs.len() {
+                    if s >= cum_freqs.len() - 1 {
+                        break;
+                    }
+                    if i >= cum_freqs[s] as usize && i < cum_freqs[s + 1] as usize {
+                        return s as u8;
+                    }
+                }
+                0
+            })
+            .collect();
+
+        let rust_self_decode = if variant == "byte" {
+            rust_byte_decode(
+                &rust_compressed,
+                &cum2sym,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                input.len(),
+                path,
+            )
+            .map(|d| d == input)
+            .unwrap_or(false)
+        } else {
+            rust_r64_decode(
+                &rust_compressed,
+                &cum2sym,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                input.len(),
+                path,
+            )
+            .map(|d| d == input)
+            .unwrap_or(false)
+        };
+
+        // C→Rust cross-decode
+        let c_to_rust = if variant == "byte" {
+            rust_byte_decode(
+                &c_compressed,
+                &cum2sym,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                input.len(),
+                path,
+            )
+            .map(|d| d == input)
+            .unwrap_or(false)
+        } else {
+            rust_r64_decode(
+                &c_compressed,
+                &cum2sym,
+                &freqs,
+                &cum_freqs,
+                scale_bits,
+                input.len(),
+                path,
+            )
+            .map(|d| d == input)
+            .unwrap_or(false)
+        };
+
+        // Rust→C cross-decode
+        let dec_output = Command::new(oracle_path)
+            .args([
+                c_dec_op,
+                &scale_bits.to_string(),
+                &freq_csv,
+                &rust_compressed_hex,
+                &input.len().to_string(),
+            ])
+            .output()
+            .map_err(|e| format!("C dec: {}", e))?;
+        let rust_to_c = if dec_output.status.success() {
+            let dec_json: serde_json::Value = serde_json::from_slice(&dec_output.stdout)
+                .map_err(|e| format!("C dec JSON: {}", e))?;
+            let decoded_hex = dec_json["decoded_hex"]
+                .as_str()
+                .ok_or("C dec missing decoded_hex")?;
+            hex::decode(decoded_hex).unwrap_or_default() == input
+        } else {
+            false
+        };
+
+        let compressed_match = rust_compressed_hex == c_compressed_hex;
+        let case_id = format!("CASE.{:06}", case_idx);
+
+        let result = CaseResult {
+            case_id,
+            input_hex,
+            frequencies: freqs.clone(),
             scale_bits,
-            case_seed,
-            case_idx,
-            path,
-            variant,
-            c_enc_op,
-            c_dec_op,
-        )?;
+            c_compressed_hex,
+            rust_compressed_hex,
+            compressed_match,
+            c_self_decode,
+            rust_self_decode,
+            c_to_rust,
+            rust_to_c,
+        };
 
         let all_ok = result.c_self_decode
             && result.rust_self_decode
@@ -183,18 +576,17 @@ fn run_court(
         cases.push(result);
     }
 
-    // Build manifest struct first, then serialize to bytes
-    // Clone cases to avoid move into manifest before receipt computation
     let manifest = CaseManifest {
         schema_version: 1,
-        court_id: court_id.to_string(),
+        court_id: court_id.clone(),
         court_path: path.label().to_string(),
         variant: variant.to_string(),
+        profile: profile_label.to_string(),
         scale_bits,
         seed,
         cases: cases.clone(),
     };
-    // Serialize exactly once — hash and write use same bytes
+
     let manifest_bytes =
         serde_json::to_vec_pretty(&manifest).map_err(|e| format!("manifest serialize: {}", e))?;
     let manifest_sha256 = {
@@ -204,7 +596,6 @@ fn run_court(
         format!("{:x}", h.finalize())
     };
 
-    // Calculate receipt hash
     let pairs_compared = cases.len() as u64 * 5;
     let pairs_matched: u64 = cases
         .iter()
@@ -244,9 +635,10 @@ fn run_court(
 
     let receipt_json = serde_json::to_string_pretty(&serde_json::json!({
         "schema_version": 1,
-        "court_id": court_id,
+        "court_id": &court_id,
         "court_path": path.label(),
         "variant": variant,
+        "profile": profile_label,
         "scale_bits": scale_bits,
         "seed": seed,
         "num_cases": num_cases,
@@ -274,13 +666,13 @@ fn run_court(
         format!("{:x}", h.finalize())
     };
 
-    // Final receipt with SHA-256 self-hash
     let receipt: Receipt = serde_json::from_str(
         &serde_json::to_string(&serde_json::json!({
             "schema_version": 1,
-            "court_id": court_id,
+            "court_id": &court_id,
             "court_path": path.label(),
             "variant": variant,
+            "profile": profile_label,
             "scale_bits": scale_bits,
             "seed": seed,
             "num_cases": num_cases,
@@ -306,193 +698,56 @@ fn run_court(
     Ok((receipt, manifest, manifest_bytes))
 }
 
-fn run_single_case(
+// ---- Legacy court entry points (kept for backward compat) ----
+
+pub fn run_byte_court(
     oracle_path: &str,
     scale_bits: u32,
     seed: u64,
-    case_idx: usize,
+    num_cases: usize,
     path: CourtPath,
-    variant: &str,
-    c_enc_op: &str,
-    c_dec_op: &str,
-) -> Result<CaseResult, String> {
-    let input = generate_input(seed, case_idx);
-
-    // Build frequency model: uniform 256, total = 1 << scale_bits
-    let total: u64 = 1u64 << scale_bits;
-    let mut freqs = vec![0u32; 256];
-    let base = if variant == "byte" {
-        (total / 256) as u32
-    } else {
-        (total / 256) as u32
-    };
-    for f in freqs.iter_mut() {
-        *f = base;
-    }
-    let rem = if variant == "byte" {
-        (total as u32) - (base * 256)
-    } else {
-        (total as u32) - (base * 256)
-    };
-    if rem > 0 {
-        freqs[255] += rem;
-    }
-
-    let freq_csv = freqs
-        .iter()
-        .map(|f| f.to_string())
-        .collect::<Vec<_>>()
-        .join(",");
-    let input_hex = hex::encode(&input);
-
-    // Cumulative frequencies
-    let cum_freqs: Vec<u32> = {
-        let mut cum = 0u32;
-        let mut cums = Vec::with_capacity(257);
-        cums.push(0);
-        for &f in &freqs {
-            cum += f;
-            cums.push(cum);
-        }
-        cums
-    };
-
-    // C encode
-    let c_enc_out = Command::new(oracle_path)
-        .args([c_enc_op, &scale_bits.to_string(), &freq_csv, &input_hex])
-        .output()
-        .map_err(|e| format!("C enc: {}", e))?;
-    if !c_enc_out.status.success() {
-        return Err(format!("C enc exit {}", c_enc_out.status));
-    }
-    let c_enc_json: serde_json::Value =
-        serde_json::from_slice(&c_enc_out.stdout).map_err(|e| format!("C enc JSON: {}", e))?;
-    let c_compressed_hex = c_enc_json["compressed_hex"]
-        .as_str()
-        .ok_or("C enc missing compressed_hex")?
-        .to_string();
-    let c_compressed = hex::decode(&c_compressed_hex).map_err(|e| format!("C hex: {}", e))?;
-
-    // C self-decode (fail-closed: must be present)
-    let c_self_decode = c_enc_json
-        .get("decode_ok")
-        .and_then(|v| v.as_bool())
-        .ok_or("C enc missing decode_ok")?;
-
-    // Rust encode using the correct path
-    let rust_compressed = if variant == "byte" {
-        rust_byte_encode(&input, &freqs, &cum_freqs, scale_bits, path)?
-    } else {
-        rust_r64_encode(&input, &freqs, &cum_freqs, scale_bits, path)?
-    };
-    let rust_compressed_hex = hex::encode(&rust_compressed);
-
-    // Rust self-decode
-    let cum2sym: Vec<u8> = (0..(total as usize))
-        .map(|i| {
-            for s in 0..256 {
-                if i >= cum_freqs[s] as usize && i < cum_freqs[s + 1] as usize {
-                    return s as u8;
-                }
-            }
-            0
-        })
-        .collect();
-
-    let rust_self_decode = if variant == "byte" {
-        rust_byte_decode(
-            &rust_compressed,
-            &cum2sym,
-            &freqs,
-            &cum_freqs,
-            scale_bits,
-            input.len(),
-            path,
-        )
-        .map(|d| d == input)
-        .unwrap_or(false)
-    } else {
-        rust_r64_decode(
-            &rust_compressed,
-            &cum2sym,
-            &freqs,
-            &cum_freqs,
-            scale_bits,
-            input.len(),
-            path,
-        )
-        .map(|d| d == input)
-        .unwrap_or(false)
-    };
-
-    // C→Rust cross-decode
-    let c_to_rust = if variant == "byte" {
-        rust_byte_decode(
-            &c_compressed,
-            &cum2sym,
-            &freqs,
-            &cum_freqs,
-            scale_bits,
-            input.len(),
-            path,
-        )
-        .map(|d| d == input)
-        .unwrap_or(false)
-    } else {
-        rust_r64_decode(
-            &c_compressed,
-            &cum2sym,
-            &freqs,
-            &cum_freqs,
-            scale_bits,
-            input.len(),
-            path,
-        )
-        .map(|d| d == input)
-        .unwrap_or(false)
-    };
-
-    // Rust→C cross-decode
-    let dec_output = Command::new(oracle_path)
-        .args([
-            c_dec_op,
-            &scale_bits.to_string(),
-            &freq_csv,
-            &rust_compressed_hex,
-            &input.len().to_string(),
-        ])
-        .output()
-        .map_err(|e| format!("C dec: {}", e))?;
-    let rust_to_c = if dec_output.status.success() {
-        let dec_json: serde_json::Value =
-            serde_json::from_slice(&dec_output.stdout).map_err(|e| format!("C dec JSON: {}", e))?;
-        let decoded_hex = dec_json["decoded_hex"]
-            .as_str()
-            .ok_or("C dec missing decoded_hex")?;
-        hex::decode(decoded_hex).unwrap_or_default() == input
-    } else {
-        false
-    };
-
-    let compressed_match = rust_compressed_hex == c_compressed_hex;
-    let case_id = format!("CASE.{:06}", case_idx);
-
-    Ok(CaseResult {
-        case_id,
-        input_hex,
-        frequencies: freqs,
+) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
+    run_court_with_profile(
+        oracle_path,
         scale_bits,
-        c_compressed_hex,
-        rust_compressed_hex,
-        compressed_match,
-        c_self_decode,
-        rust_self_decode,
-        c_to_rust,
-        rust_to_c,
-    })
+        seed,
+        path,
+        "byte",
+        ModelProfile::Uniform256,
+    )
 }
 
-// ---- Rust byte encode (correct path dispatch) ----
+pub fn run_r64_court(
+    oracle_path: &str,
+    scale_bits: u32,
+    seed: u64,
+    num_cases: usize,
+    path: CourtPath,
+) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
+    run_court_with_profile(
+        oracle_path,
+        scale_bits,
+        seed,
+        path,
+        "r64",
+        ModelProfile::Uniform256,
+    )
+}
+
+// ---- Rust byte encode/decode (correct path dispatch) ----
+
+macro_rules! use_core {
+    () => {
+        use ryg_rans_rs_core::{
+            BackwardByteWriter, BackwardWord32Writer, ByteReader, Rans64DecSymbol, Rans64EncSymbol,
+            Rans64State, RansByteDecSymbol, RansByteEncSymbol, RansByteState, Word32Reader,
+            rans_byte_dec_advance, rans_byte_dec_advance_symbol, rans_byte_dec_get,
+            rans_byte_dec_init, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+            rans64_dec_advance, rans64_dec_advance_symbol, rans64_dec_get, rans64_dec_init,
+            rans64_enc_flush, rans64_enc_put, rans64_enc_put_symbol,
+        };
+    };
+}
 
 fn rust_byte_encode(
     input: &[u8],
@@ -501,38 +756,40 @@ fn rust_byte_encode(
     scale_bits: u32,
     path: CourtPath,
 ) -> Result<Vec<u8>, String> {
-    let mut out = vec![0u8; input.len() * 4 + 16 + 4];
-    let mut writer = ryg_rans_rs_core::BackwardByteWriter::new(&mut out);
-    let mut state = ryg_rans_rs_core::RansByteState::new();
-
-    for idx in (0..input.len()).rev() {
-        let s = input[idx] as usize;
-        match path {
-            CourtPath::Division => {
-                ryg_rans_rs_core::rans_byte_enc_put(
-                    &mut state,
-                    &mut writer,
-                    cum_freqs[s],
-                    freqs[s],
-                    scale_bits,
-                )
-                .map_err(|_| "byte div enc")?;
+    use_core!();
+    match path {
+        CourtPath::Division => {
+            let mut buf = vec![0u8; input.len() * 4 + 32];
+            let mut writer = BackwardByteWriter::new(&mut buf);
+            let mut state = RansByteState::new();
+            for &s in input.iter().rev() {
+                let start = cum_freqs[s as usize];
+                let freq = freqs[s as usize];
+                rans_byte_enc_put(&mut state, &mut writer, start, freq, scale_bits)
+                    .map_err(|e| format!("byte enc put: {:?}", e))?;
             }
-            CourtPath::Reciprocal => {
-                let esym =
-                    ryg_rans_rs_core::RansByteEncSymbol::new(cum_freqs[s], freqs[s], scale_bits)
-                        .map_err(|_| "byte recip sym")?;
-                ryg_rans_rs_core::rans_byte_enc_put_symbol(&mut state, &mut writer, &esym)
-                    .map_err(|_| "byte recip enc")?;
+            rans_byte_enc_flush(&state, &mut writer)
+                .map_err(|e| format!("byte enc flush: {:?}", e))?;
+            Ok(writer.encoded().to_vec())
+        }
+        CourtPath::Reciprocal => {
+            let mut buf = vec![0u8; input.len() * 4 + 32];
+            let mut writer = BackwardByteWriter::new(&mut buf);
+            let mut state = RansByteState::new();
+            for &s in input.iter().rev() {
+                let start = cum_freqs[s as usize];
+                let freq = freqs[s as usize];
+                let sym = RansByteEncSymbol::new(start, freq, scale_bits)
+                    .map_err(|e| format!("byte sym create: {:?}", e))?;
+                rans_byte_enc_put_symbol(&mut state, &mut writer, &sym)
+                    .map_err(|e| format!("byte enc put sym: {:?}", e))?;
             }
+            rans_byte_enc_flush(&state, &mut writer)
+                .map_err(|e| format!("byte enc flush: {:?}", e))?;
+            Ok(writer.encoded().to_vec())
         }
     }
-    ryg_rans_rs_core::rans_byte_enc_flush(&state, &mut writer).map_err(|_| "byte flush")?;
-
-    Ok(writer.encoded().to_vec())
 }
-
-// ---- Rust byte decode (correct path dispatch) ----
 
 fn rust_byte_decode(
     compressed: &[u8],
@@ -540,46 +797,39 @@ fn rust_byte_decode(
     freqs: &[u32],
     cum_freqs: &[u32],
     scale_bits: u32,
-    num: usize,
+    expected_len: usize,
     path: CourtPath,
 ) -> Result<Vec<u8>, String> {
-    let mut reader = ryg_rans_rs_core::ByteReader::new(compressed);
+    use_core!();
+    let mut reader = ByteReader::new(compressed);
     let mut state =
-        ryg_rans_rs_core::rans_byte_dec_init(&mut reader).map_err(|_| "byte dec init")?;
-    let mut output = vec![0u8; num];
-
-    for i in 0..num {
-        let cf = ryg_rans_rs_core::rans_byte_dec_get(&state, scale_bits);
-        let s = cum2sym.get(cf as usize).copied().unwrap_or(0) as usize;
-        output[i] = s as u8;
+        rans_byte_dec_init(&mut reader).map_err(|e| format!("byte dec init: {:?}", e))?;
+    let mut output = Vec::with_capacity(expected_len);
+    for _ in 0..expected_len {
+        let cf = rans_byte_dec_get(&state, scale_bits);
+        let s = cum2sym[cf as usize];
+        output.push(s);
         match path {
             CourtPath::Division => {
-                ryg_rans_rs_core::rans_byte_dec_advance(
-                    &mut state,
-                    &mut reader,
-                    cum_freqs[s],
-                    freqs[s],
-                    scale_bits,
-                )
-                .map_err(|_| "byte div dec")?;
+                let start = cum_freqs[s as usize];
+                let freq = freqs[s as usize];
+                rans_byte_dec_advance(&mut state, &mut reader, start, freq, scale_bits)
+                    .map_err(|e| format!("byte dec advance: {:?}", e))?;
             }
             CourtPath::Reciprocal => {
-                let dsym = ryg_rans_rs_core::RansByteDecSymbol::new(cum_freqs[s], freqs[s])
-                    .map_err(|_| "byte dec sym")?;
-                ryg_rans_rs_core::rans_byte_dec_advance_symbol(
-                    &mut state,
-                    &mut reader,
-                    &dsym,
-                    scale_bits,
-                )
-                .map_err(|_| "byte recip dec")?;
+                let start = cum_freqs[s as usize];
+                let freq = freqs[s as usize];
+                let dsym = RansByteDecSymbol::new(start, freq)
+                    .map_err(|e| format!("byte dec sym: {:?}", e))?;
+                rans_byte_dec_advance_symbol(&mut state, &mut reader, &dsym, scale_bits)
+                    .map_err(|e| format!("byte dec advance sym: {:?}", e))?;
             }
         }
     }
     Ok(output)
 }
 
-// ---- Rust 64-bit encode (correct path dispatch) ----
+// ---- Rust 64-bit encode/decode (correct path dispatch) ----
 
 fn rust_r64_encode(
     input: &[u8],
@@ -588,38 +838,38 @@ fn rust_r64_encode(
     scale_bits: u32,
     path: CourtPath,
 ) -> Result<Vec<u8>, String> {
-    let mut out = vec![0u8; (input.len() * 2 + 4) * 4];
-    let mut writer = ryg_rans_rs_core::BackwardWord32Writer::new(&mut out);
-    let mut state = ryg_rans_rs_core::Rans64State::new();
-
-    for idx in (0..input.len()).rev() {
-        let s = input[idx] as usize;
-        match path {
-            CourtPath::Division => {
-                ryg_rans_rs_core::rans64_enc_put(
-                    &mut state,
-                    &mut writer,
-                    cum_freqs[s],
-                    freqs[s],
-                    scale_bits,
-                )
-                .map_err(|_| "r64 div enc")?;
+    use_core!();
+    match path {
+        CourtPath::Division => {
+            let mut buf = vec![0u8; input.len() * 8 + 32];
+            let mut writer = BackwardWord32Writer::new(&mut buf);
+            let mut state = Rans64State::new();
+            for &s in input.iter().rev() {
+                let start = cum_freqs[s as usize];
+                let freq = freqs[s as usize];
+                rans64_enc_put(&mut state, &mut writer, start, freq, scale_bits)
+                    .map_err(|e| format!("r64 enc put: {:?}", e))?;
             }
-            CourtPath::Reciprocal => {
-                let esym =
-                    ryg_rans_rs_core::Rans64EncSymbol::new(cum_freqs[s], freqs[s], scale_bits)
-                        .map_err(|_| "r64 recip sym")?;
-                ryg_rans_rs_core::rans64_enc_put_symbol(&mut state, &mut writer, &esym)
-                    .map_err(|_| "r64 recip enc")?;
+            rans64_enc_flush(&state, &mut writer).map_err(|e| format!("r64 enc flush: {:?}", e))?;
+            Ok(writer.encoded().to_vec())
+        }
+        CourtPath::Reciprocal => {
+            let mut buf = vec![0u8; input.len() * 8 + 32];
+            let mut writer = BackwardWord32Writer::new(&mut buf);
+            let mut state = Rans64State::new();
+            for &s in input.iter().rev() {
+                let start = cum_freqs[s as usize];
+                let freq = freqs[s as usize];
+                let sym = Rans64EncSymbol::new(start, freq, scale_bits)
+                    .map_err(|e| format!("r64 sym create: {:?}", e))?;
+                rans64_enc_put_symbol(&mut state, &mut writer, &sym)
+                    .map_err(|e| format!("r64 enc put sym: {:?}", e))?;
             }
+            rans64_enc_flush(&state, &mut writer).map_err(|e| format!("r64 enc flush: {:?}", e))?;
+            Ok(writer.encoded().to_vec())
         }
     }
-    ryg_rans_rs_core::rans64_enc_flush(&state, &mut writer).map_err(|_| "r64 flush")?;
-
-    Ok(writer.encoded().to_vec())
 }
-
-// ---- Rust 64-bit decode (correct path dispatch) ----
 
 fn rust_r64_decode(
     compressed: &[u8],
@@ -627,54 +877,33 @@ fn rust_r64_decode(
     freqs: &[u32],
     cum_freqs: &[u32],
     scale_bits: u32,
-    num: usize,
+    expected_len: usize,
     path: CourtPath,
 ) -> Result<Vec<u8>, String> {
-    let mut reader = ryg_rans_rs_core::Word32Reader::new(compressed);
-    let mut state = ryg_rans_rs_core::rans64_dec_init(&mut reader).map_err(|_| "r64 dec init")?;
-    let mut output = vec![0u8; num];
-
-    for i in 0..num {
-        let cf = ryg_rans_rs_core::rans64_dec_get(&state, scale_bits);
-        let s = cum2sym.get(cf as usize).copied().unwrap_or(0) as usize;
-        output[i] = s as u8;
+    use_core!();
+    let mut reader = Word32Reader::new(compressed);
+    let mut state = rans64_dec_init(&mut reader).map_err(|e| format!("r64 dec init: {:?}", e))?;
+    let mut output = Vec::with_capacity(expected_len);
+    for _ in 0..expected_len {
+        let cf = rans64_dec_get(&state, scale_bits);
+        let s = cum2sym[cf as usize];
+        output.push(s);
         match path {
             CourtPath::Division => {
-                ryg_rans_rs_core::rans64_dec_advance(
-                    &mut state,
-                    &mut reader,
-                    cum_freqs[s],
-                    freqs[s],
-                    scale_bits,
-                )
-                .map_err(|_| "r64 div dec")?;
+                let start = cum_freqs[s as usize];
+                let freq = freqs[s as usize];
+                rans64_dec_advance(&mut state, &mut reader, start, freq, scale_bits)
+                    .map_err(|e| format!("r64 dec advance: {:?}", e))?;
             }
             CourtPath::Reciprocal => {
-                let dsym = ryg_rans_rs_core::Rans64DecSymbol::new(cum_freqs[s], freqs[s])
-                    .map_err(|_| "r64 dec sym")?;
-                ryg_rans_rs_core::rans64_dec_advance_symbol(
-                    &mut state,
-                    &mut reader,
-                    &dsym,
-                    scale_bits,
-                )
-                .map_err(|_| "r64 recip dec")?;
+                let start = cum_freqs[s as usize];
+                let freq = freqs[s as usize];
+                let dsym = Rans64DecSymbol::new(start, freq)
+                    .map_err(|e| format!("r64 dec sym: {:?}", e))?;
+                rans64_dec_advance_symbol(&mut state, &mut reader, &dsym, scale_bits)
+                    .map_err(|e| format!("r64 dec advance sym: {:?}", e))?;
             }
         }
     }
     Ok(output)
-}
-
-fn generate_input(seed: u64, case_idx: usize) -> Vec<u8> {
-    let s = seed
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    let len = 1 + ((s >> 32) as usize) % 64;
-    let mut rng_state = s.wrapping_add(case_idx as u64);
-    let mut data = Vec::with_capacity(len);
-    for _ in 0..len {
-        rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1);
-        data.push(((rng_state >> 32) & 0xff) as u8);
-    }
-    data
 }

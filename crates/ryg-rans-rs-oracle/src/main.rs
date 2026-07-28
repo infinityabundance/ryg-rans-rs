@@ -1,4 +1,4 @@
-use ryg_rans_rs_oracle::{CaseManifest, CourtPath, Receipt};
+use ryg_rans_rs_oracle::{CourtConfig, CourtPath, ModelProfile};
 use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let scale_bits: u32 = args.get(2).map(|s| s.parse().unwrap_or(12)).unwrap_or(12);
     let seed: u64 = args.get(3).map(|s| s.parse().unwrap_or(42)).unwrap_or(42);
-    let num_cases: usize = args.get(4).map(|s| s.parse().unwrap_or(20)).unwrap_or(20);
+    let _num_cases: usize = args.get(4).map(|s| s.parse().unwrap_or(20)).unwrap_or(20);
 
     let evidence_root =
         std::env::var("RANS_EVIDENCE_DIR").unwrap_or_else(|_| "evidence".to_string());
@@ -31,78 +31,71 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(&receipt_dir)?;
     std::fs::create_dir_all(&manifest_dir)?;
 
-    // Run all 4 courts
-    let court_configs: Vec<(
-        &str,
-        CourtPath,
-        fn(&str, u32, u64, usize, CourtPath) -> Result<(Receipt, CaseManifest, Vec<u8>), String>,
-    )> = vec![
-        (
-            "BYTE.DIVISION",
-            CourtPath::Division,
-            ryg_rans_rs_oracle::run_byte_court,
-        ),
-        (
-            "BYTE.RECIPROCAL",
-            CourtPath::Reciprocal,
-            ryg_rans_rs_oracle::run_byte_court,
-        ),
-        (
-            "R64.DIVISION",
-            CourtPath::Division,
-            ryg_rans_rs_oracle::run_r64_court,
-        ),
-        (
-            "R64.RECIPROCAL",
-            CourtPath::Reciprocal,
-            ryg_rans_rs_oracle::run_r64_court,
-        ),
-    ];
+    // Build court configurations
+    let court_configs = build_court_configs();
 
+    let mut index = Vec::new();
     let mut all_passed = true;
 
-    for (name, path, court_fn) in &court_configs {
-        println!("--- Court: {} ---", name);
-        let (receipt, manifest, manifest_bytes) =
-            court_fn(oracle, scale_bits, seed, num_cases, *path)?;
-        println!(
-            "  Verdict: {}  ({}/{})  residuals={}",
-            receipt.verdict, receipt.pairs_matched, receipt.pairs_compared, receipt.residual_count
-        );
-        println!("  Manifest SHA-256: {}", receipt.manifest_sha256);
-        println!("  Receipt SHA-256:  {}", receipt.receipt_sha256);
+    for config in &court_configs {
+        // For ScaleSweep, run at each scale_bits value from 10 to 16
+        let scales: &[u32] = if config.profile == ModelProfile::ScaleSweep {
+            &[10, 11, 13, 14, 15, 16]
+        } else {
+            &[config.profile.scale_bits().unwrap_or(scale_bits)]
+        };
+        for &scale in scales {
+            let (receipt, _manifest, manifest_bytes) = ryg_rans_rs_oracle::run_court_with_profile(
+                oracle,
+                scale,
+                seed,
+                config.path,
+                config.variant,
+                config.profile,
+            )?;
 
-        if receipt.verdict != "admitted_match" {
-            all_passed = false;
-        }
+            println!("--- Court: {} ---", receipt.court_id);
+            println!(
+                "  Verdict: {}  ({}/{})  residuals={}",
+                receipt.verdict,
+                receipt.pairs_matched,
+                receipt.pairs_compared,
+                receipt.residual_count
+            );
+            println!("  Profile: {}", receipt.profile);
+            println!("  scale_bits: {}", receipt.scale_bits);
+            println!("  Manifest SHA-256: {}", receipt.manifest_sha256);
+            println!("  Receipt SHA-256:  {}", receipt.receipt_sha256);
 
-        // Write receipt and manifest
-        let r_path = format!("{}/receipt-{}.json", receipt_dir, receipt.court_id);
-        std::fs::write(&r_path, serde_json::to_string_pretty(&receipt)?)?;
-        println!("  Receipt: {}", r_path);
+            if receipt.verdict != "admitted_match" {
+                all_passed = false;
+            }
 
-        let m_path = format!("{}/manifest-{}.json", manifest_dir, receipt.court_id);
-        std::fs::write(&m_path, &manifest_bytes)?;
-        println!("  Manifest: {}", m_path);
-        println!();
+            // Write receipt and manifest
+            let r_path = format!("{}/receipt-{}.json", receipt_dir, receipt.court_id);
+            std::fs::write(&r_path, serde_json::to_string_pretty(&receipt)?)?;
+            println!("  Receipt: {}", r_path);
+
+            let m_path = format!("{}/manifest-{}.json", manifest_dir, receipt.court_id);
+            std::fs::write(&m_path, &manifest_bytes)?;
+            println!("  Manifest: {}", m_path);
+            println!();
+
+            // Add to index
+            if let Ok(content) = std::fs::read_to_string(&r_path) {
+                use sha2::Digest;
+                let mut h = sha2::Sha256::new();
+                h.update(content.as_bytes());
+                let sha = format!("{:x}", h.finalize());
+                index.push(serde_json::json!({
+                    "court_id": receipt.court_id,
+                    "sha256": sha,
+                }));
+            }
+        } // end for &scale
     }
 
-    // Generate evidence index
-    let mut index = Vec::new();
-    for (name, path, _) in &court_configs {
-        let court_id = format!("RYG_RANS.{}.SINGLE_STATE.UNIFORM256.S{}", name, scale_bits);
-        let r_path = format!("{}/receipt-{}.json", receipt_dir, court_id);
-        if let Ok(content) = std::fs::read_to_string(&r_path) {
-            use sha2::Digest;
-            let mut h = sha2::Sha256::new();
-            h.update(content.as_bytes());
-            let sha = format!("{:x}", h.finalize());
-            index.push(serde_json::json!({
-                "court_id": court_id,
-                "sha256": sha,
-            }));
-        }
-    }
+    // Write evidence index
     std::fs::write(
         format!("{}/index.json", evidence_root),
         serde_json::to_string_pretty(&serde_json::json!({
@@ -126,4 +119,46 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("SOME COURTS FAILED");
         std::process::exit(1);
     }
+}
+
+fn build_court_configs() -> Vec<CourtConfig> {
+    let mut configs = Vec::new();
+    let variants = ["byte", "r64"];
+    let paths = [CourtPath::Division, CourtPath::Reciprocal];
+    let profiles = [
+        ModelProfile::Uniform256,
+        ModelProfile::Freq1,
+        ModelProfile::Skewed2551,
+        ModelProfile::Sparse2,
+        ModelProfile::Sparse17,
+        ModelProfile::PrimeResidue,
+        ModelProfile::RenormBoundary,
+        ModelProfile::LengthBoundary,
+    ];
+
+    // Standard profiles at scale_bits=12
+    for &variant in &variants {
+        for &path in &paths {
+            for &profile in &profiles {
+                configs.push(CourtConfig {
+                    variant,
+                    path,
+                    profile,
+                });
+            }
+        }
+    }
+
+    // Scale sweep: Uniform256 at scale_bits 10, 11, 13, 14, 15, 16
+    for &variant in &variants {
+        for &path in &paths {
+            configs.push(CourtConfig {
+                variant,
+                path,
+                profile: ModelProfile::ScaleSweep,
+            });
+        }
+    }
+
+    configs
 }
