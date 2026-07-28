@@ -232,12 +232,17 @@ services:
     environment:
       <<: *cargo-env
       RUSTUP_TOOLCHAIN: nightly-2025-11-25
+      RUSTUP_HOME: /cargo/.rustup
+      RUSTUP_DIST_SERVER: https://static.rust-lang.org
       MIRIFLAGS: "-Zmiri-disable-isolation"
       TMPDIR: /target/.miri-tmp
     command: >
       sh -c '
         set -e
-        mkdir -p "$$TMPDIR"
+        mkdir -p "$$TMPDIR" /cargo/.rustup
+        echo "=== Installing nightly toolchain ==="
+        rustup toolchain install nightly-2025-11-25 --component miri --no-self-update 2>&1
+        rustup target add x86_64-unknown-linux-gnu --toolchain nightly-2025-11-25 2>&1
         echo "=== Toolchain info ==="
         rustc --version
         cargo miri --version
