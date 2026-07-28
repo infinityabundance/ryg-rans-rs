@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "last_updated": null,
+  "surfaces": [
+    {
+      "id": "byte.division",
+      "name": "Byte rANS (division-based)",
+      "status": "implemented_unsealed",
+      "upstream_file": "rans_byte.h",
+      "functions": ["RansEncInit", "RansEncRenorm", "RansEncPut", "RansEncFlush", "RansDecInit", "RansDecGet", "RansDecAdvance"],
+      "receipts": [],
+      "notes": "Reference path with integer division. No oracle receipt yet."
+    },
+    {
+      "id": "byte.reciprocal",
+      "name": "Byte rANS (reciprocal fast path)",
+      "status": "implemented_unsealed",
+      "upstream_file": "rans_byte.h",
+      "functions": ["RansEncSymbolInit", "RansEncPutSymbol", "RansDecSymbolInit", "RansDecAdvanceSymbol", "RansDecAdvanceStep", "RansDecAdvanceSymbolStep", "RansDecRenorm"],
+      "receipts": [],
+      "notes": "Multiply-high reciprocal approximation, freq=1 special case. One oracle parameter probe only."
+    },
+    {
+      "id": "byte.interleaved",
+      "name": "Byte rANS (two-state interleaved)",
+      "status": "implemented_unsealed",
+      "upstream_file": "main.cpp",
+      "functions": [],
+      "receipts": [],
+      "notes": "Two-stream interleave with step+renorm decode. No oracle receipt yet."
+    },
+    {
+      "id": "rans64.division",
+      "name": "64-bit rANS (division-based)",
+      "status": "implemented_unsealed",
+      "upstream_file": "rans64.h",
+      "functions": ["Rans64EncInit", "Rans64EncPut", "Rans64EncFlush", "Rans64DecInit", "Rans64DecGet", "Rans64DecAdvance"],
+      "receipts": [],
+      "notes": "64-bit state, 32-bit word renormalization. No oracle receipt yet."
+    },
+    {
+      "id": "rans64.reciprocal",
+      "name": "64-bit rANS (reciprocal fast path)",
+      "status": "partial",
+      "upstream_file": "rans64.h",
+      "functions": ["Rans64EncSymbolInit", "Rans64EncPutSymbol", "Rans64DecSymbolInit", "Rans64DecAdvanceSymbol", "Rans64DecAdvanceStep", "Rans64DecAdvanceSymbolStep", "Rans64DecRenorm", "Rans64MulHi"],
+      "receipts": [],
+      "notes": "cmpl_freq width bug fixed (was u16, now u32). No oracle comparison for scale_bits > 16. Large-scale and cross-decoding courts needed."
+    },
+    {
+      "id": "rans64.interleaved",
+      "name": "64-bit rANS (two-state interleaved)",
+      "status": "partial",
+      "upstream_file": "main64.cpp",
+      "functions": [],
+      "receipts": [],
+      "notes": "Primitive step+renorm operations exist. No full encoder/decoder interleaving abstraction. No oracle receipt."
+    },
+    {
+      "id": "word.scalar",
+      "name": "Word-aligned scalar rANS",
+      "status": "scaffold",
+      "upstream_file": "rans_word_sse41.h",
+      "functions": ["RansWordTablesInitSymbol", "RansWordEncInit", "RansWordEncPut", "RansWordEncFlush", "RansWordDecInit", "RansWordDecSym", "RansWordDecRenorm"],
+      "receipts": [],
+      "notes": "16-bit renormalization units, 256-symbol table"
+    },
+    {
+      "id": "sse41.decoder",
+      "name": "SSE4.1 SIMD decoder",
+      "status": "scaffold",
+      "upstream_file": "rans_word_sse41.h",
+      "functions": ["RansSimdDecInit", "RansSimdDecSym", "RansSimdDecRenorm"],
+      "receipts": [],
+      "notes": "4-lane SIMD decoder with all 16 renormalization masks"
+    },
+    {
+      "id": "alias.table",
+      "name": "Alias table construction",
+      "status": "scaffold",
+      "upstream_file": "main_alias.cpp",
+      "functions": ["make_alias_table"],
+      "receipts": [],
+      "notes": "Vose alias table, exact normalization, donor selection"
+    },
+    {
+      "id": "alias.encode",
+      "name": "Alias table encoding",
+      "status": "scaffold",
+      "upstream_file": "main_alias.cpp",
+      "functions": ["RansEncPutAlias"],
+      "receipts": [],
+      "notes": "Remap-based alias encoder"
+    },
+    {
+      "id": "alias.decode",
+      "name": "Alias table decoding",
+      "status": "scaffold",
+      "upstream_file": "main_alias.cpp",
+      "functions": ["RansDecGetAlias"],
+      "receipts": [],
+      "notes": "Constant-time alias decoder with divider check"
+    },
+    {
+      "id": "stats.normalize",
+      "name": "Frequency normalization",
+      "status": "scaffold",
+      "upstream_file": "main.cpp",
+      "functions": ["normalize_freqs"],
+      "receipts": [],
+      "notes": "Resample, rescue zeroed non-zero symbols"
+    }
+  ]
+}

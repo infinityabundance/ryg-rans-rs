@@ -1,0 +1,10 @@
+[package]
+name = "ryg-rans-rs-simd"
+version = "0.1.0"
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "SSE4.1 accelerated rANS decoder kernels"
+
+[dependencies]
+ryg-rans-rs-core = { path = "../ryg-rans-rs-core" }

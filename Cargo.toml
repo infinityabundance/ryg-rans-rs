@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "crates/ryg-rans-rs-core",
+    "crates/ryg-rans-rs-simd",
+    "crates/ryg-rans-rs",
+    "crates/ryg-rans-rs-oracle",
+    "crates/ryg-rans-rs-casefile",
+    "crates/ryg-rans-rs-cli",
+    "xtask",
+]
+
+[workspace.package]
+repository = "https://github.com/infinityabundance/ryg-rans-rs"
+license = "MIT OR Apache-2.0"
+edition = "2024"
