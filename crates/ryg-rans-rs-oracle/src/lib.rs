@@ -99,7 +99,7 @@ pub fn run_byte_court(
     seed: u64,
     num_cases: usize,
     path: CourtPath,
-) -> Result<(Receipt, CaseManifest), String> {
+) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
     let variant = "byte";
     let court_id = format!(
         "RYG_RANS.BYTE.{}.SINGLE_STATE.UNIFORM256.S{}",
@@ -124,7 +124,7 @@ pub fn run_r64_court(
     seed: u64,
     num_cases: usize,
     path: CourtPath,
-) -> Result<(Receipt, CaseManifest), String> {
+) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
     let variant = "r64";
     let court_id = format!(
         "RYG_RANS.R64.{}.SINGLE_STATE.UNIFORM256.S{}",
@@ -183,22 +183,23 @@ fn run_court(
         cases.push(result);
     }
 
-    // Build canonical manifest (without manifest_sha256)
-    let manifest_json = serde_json::to_string_pretty(&serde_json::json!({
-        "schema_version": 1,
-        "court_id": court_id,
-        "court_path": path.label(),
-        "variant": variant,
-        "scale_bits": scale_bits,
-        "seed": seed,
-        "cases": cases,
-    }))
-    .map_err(|e| format!("manifest serialize: {}", e))?;
-
+    // Build manifest struct first, then serialize to bytes
+    let manifest = CaseManifest {
+        schema_version: 1,
+        court_id: court_id.to_string(),
+        court_path: path.label().to_string(),
+        variant: variant.to_string(),
+        scale_bits,
+        seed,
+        cases,
+    };
+    // Serialize exactly once — hash and write use same bytes
+    let manifest_bytes =
+        serde_json::to_vec_pretty(&manifest).map_err(|e| format!("manifest serialize: {}", e))?;
     let manifest_sha256 = {
         use sha2::Digest;
         let mut h = sha2::Sha256::new();
-        h.update(manifest_json.as_bytes());
+        h.update(&manifest_bytes);
         format!("{:x}", h.finalize())
     };
 
@@ -296,17 +297,7 @@ fn run_court(
     )
     .map_err(|e| format!("receipt deserialize: {}", e))?;
 
-    let manifest = CaseManifest {
-        schema_version: 1,
-        court_id: court_id.to_string(),
-        court_path: path.label().to_string(),
-        variant: variant.to_string(),
-        scale_bits,
-        seed,
-        cases,
-    };
-
-    Ok((receipt, manifest))
+    Ok((receipt, manifest, manifest_bytes))
 }
 
 fn run_single_case(

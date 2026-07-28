@@ -61,7 +61,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for (name, path, court_fn) in &court_configs {
         println!("--- Court: {} ---", name);
-        let (receipt, manifest) = court_fn(oracle, scale_bits, seed, num_cases, *path)?;
+        let (receipt, manifest, manifest_bytes) =
+            court_fn(oracle, scale_bits, seed, num_cases, *path)?;
         println!(
             "  Verdict: {}  ({}/{})  residuals={}",
             receipt.verdict, receipt.pairs_matched, receipt.pairs_compared, receipt.residual_count
@@ -79,7 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  Receipt: {}", r_path);
 
         let m_path = format!("{}/manifest-{}.json", manifest_dir, receipt.court_id);
-        std::fs::write(&m_path, serde_json::to_string_pretty(&manifest)?)?;
+        std::fs::write(&m_path, &manifest_bytes)?;
         println!("  Manifest: {}", m_path);
         println!();
     }
