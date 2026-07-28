@@ -140,24 +140,25 @@ ok "Temp reports root writable: $TMP_REPORTS_ROOT"
 check_collision() {
     local resource_type="$1"
     local name="$2"
+    local found=1
     case "$resource_type" in
         container)
-            docker ps -a --no-trunc --format '{{.Names}}' | grep -qxF "$name" && \
-                fail "Collision: container '$name' already exists"
+            docker ps -a --no-trunc --format '{{.Names}}' | grep -qxF "$name" && found=0 || true
             ;;
         volume)
-            docker volume ls --format '{{.Name}}' | grep -qxF "$name" && \
-                fail "Collision: volume '$name' already exists"
+            docker volume ls --format '{{.Name}}' | grep -qxF "$name" && found=0 || true
             ;;
         image)
-            docker images --no-trunc --format '{{.Repository}}:{{.Tag}}' | grep -qxF "$name" && \
-                fail "Collision: image '$name' already exists"
+            docker images --no-trunc --format '{{.Repository}}:{{.Tag}}' | grep -qxF "$name" && found=0 || true
             ;;
         network)
-            docker network ls --format '{{.Name}}' | grep -qxF "$name" && \
-                fail "Collision: network '$name' already exists"
+            docker network ls --format '{{.Name}}' | grep -qxF "$name" && found=0 || true
             ;;
     esac
+    if [ "$found" -eq 0 ]; then
+        fail "Collision: $resource_type '$name' already exists"
+    fi
+    return 0
 }
 
 # Check proposed project resource names for collisions
