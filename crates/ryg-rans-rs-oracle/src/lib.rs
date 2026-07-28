@@ -229,13 +229,18 @@ fn run_court(
         "admitted_partial"
     };
 
-    let code_commit = Command::new("git")
-        .args(["rev-parse", "HEAD"])
-        .output()
+    let code_commit = std::env::var("RANS_GIT_COMMIT")
         .ok()
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| "unknown".to_string())
+        });
 
     let receipt_json = serde_json::to_string_pretty(&serde_json::json!({
         "schema_version": 1,

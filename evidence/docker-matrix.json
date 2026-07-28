@@ -1,20 +1,12 @@
 {
-  "schema_version": 1,
-  "run_id": "phase-b-20260728-092358-f07b1f1",
-  "date": "2026-07-28T09:25:24+00:00",
-  "git_commit": "f07b1f1",
+  "schema_version": 2,
+  "run_id": "phase-b-20260728-095934-ba64aac",
+  "date": "2026-07-28T10:01:12+00:00",
+  "git_commit": "ba64aac",
   "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
-  "all_passed": true,
+  "job_count": 10,
   "jobs": [
-    "oracle-gcc",
-    "package-audit",
-    "msrv",
-    "cross-aarch64",
-    "rust-musl-build",
-    "sanitizers",
-    "rust-stable-tests",
-    "cross-court",
-    "miri",
-    "performance"
-  ]
+{      "name": "oracle-gcc",\n      "label": "Oracle GCC build and verify",\n      "exit_code": 0,      "started_at": "2026-07-28T10:00:06+00:00",\n      "finished_at": "2026-07-28T10:00:06+00:00"\n    },{      "name": "package-audit",\n      "label": "Package audit",\n      "exit_code": 0,      "started_at": "2026-07-28T10:00:06+00:00",\n      "finished_at": "2026-07-28T10:00:09+00:00"\n    },{      "name": "msrv",\n      "label": "MSRV build",\n      "exit_code": 0,      "started_at": "2026-07-28T10:00:09+00:00",\n      "finished_at": "2026-07-28T10:00:14+00:00"\n    },{      "name": "cross-aarch64",\n      "label": "aarch64 cross-compilation",\n      "exit_code": 0,      "started_at": "2026-07-28T10:00:14+00:00",\n      "finished_at": "2026-07-28T10:00:18+00:00"\n    },{      "name": "rust-musl-build",\n      "label": "musl build",\n      "exit_code": 0,      "started_at": "2026-07-28T10:00:18+00:00",\n      "finished_at": "2026-07-28T10:00:23+00:00"\n    },{      "name": "sanitizers",\n      "label": "ASan oracle build",\n      "exit_code": 0,      "started_at": "2026-07-28T10:00:23+00:00",\n      "finished_at": "2026-07-28T10:00:23+00:00"\n    },{      "name": "rust-stable-tests",\n      "label": "Rust stable tests",\n      "exit_code": 0,      "started_at": "2026-07-28T10:00:23+00:00",\n      "finished_at": "2026-07-28T10:00:28+00:00"\n    },{      "name": "cross-court",\n      "label": "Cross-decoding courts",\n      "exit_code": 0,      "started_at": "2026-07-28T10:00:28+00:00",\n      "finished_at": "2026-07-28T10:00:32+00:00"\n    },{      "name": "miri",\n      "label": "Miri (nightly)",\n      "exit_code": 0,      "started_at": "2026-07-28T10:00:32+00:00",\n      "finished_at": "2026-07-28T10:01:08+00:00"\n    },{      "name": "performance",\n      "label": "Performance benchmarks",\n      "exit_code": 0,      "started_at": "2026-07-28T10:01:08+00:00",\n      "finished_at": "2026-07-28T10:01:12+00:00"\n    }
+  ],
+  "all_passed": true
 }

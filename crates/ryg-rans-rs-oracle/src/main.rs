@@ -107,11 +107,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         format!("{}/index.json", evidence_root),
         serde_json::to_string_pretty(&serde_json::json!({
             "schema_version": 1,
-            "code_commit": std::process::Command::new("git")
-                .args(["rev-parse", "HEAD"]).output().ok()
-                .and_then(|o| String::from_utf8(o.stdout).ok())
-                .map(|s| s.trim().to_string())
-                .unwrap_or_else(|| "unknown".to_string()),
+            "code_commit": std::env::var("RANS_GIT_COMMIT").ok().filter(|s| !s.is_empty()).unwrap_or_else(|| {
+                std::process::Command::new("git")
+                    .args(["rev-parse", "HEAD"]).output().ok()
+                    .and_then(|o| String::from_utf8(o.stdout).ok())
+                    .map(|s| s.trim().to_string())
+                    .unwrap_or_else(|| "unknown".to_string())
+            }),
             "receipts": index,
         }))?,
     )?;

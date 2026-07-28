@@ -200,6 +200,9 @@ services:
     # Empty cap_drop overrides inherited cap_drop:ALL from rust-base.
     # cross-court needs write access to /target/ and /reports/.
     # Source snapshot stays read-only.
+    environment:
+      <<: *cargo-env
+      RANS_GIT_COMMIT: "${GIT_SHA}"
     command: >
       sh -c '
         set -e

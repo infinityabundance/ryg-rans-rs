@@ -286,6 +286,7 @@ ok "Report directories created"
 export RUN_ID
 export DOCKER_ROOT
 export TMP_REPORTS="${TMP_REPORTS_ROOT}"
+export GIT_SHA
 
 # ================================================================
 # 6. Validate Compose configuration
