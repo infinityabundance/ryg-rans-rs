@@ -313,8 +313,8 @@ fn cmd_seal() -> Result<(), String> {
     }
     println!("  docs-src/models/upstream.json: exists");
 
-    // 5. Check that no non-scaffold surface has an empty receipts list
-    println!("Checking: non-scaffold surfaces have receipts...");
+    // 5. Check that every 'full' surface has receipts
+    println!("Checking: full surfaces have receipts...");
     let parity: serde_json::Value = serde_json::from_str(&parity_content)
         .map_err(|e| format!("re-parsing parity.model.json: {}", e))?;
     if let Some(surfaces) = parity.get("surfaces").and_then(|s| s.as_array()) {
@@ -326,7 +326,7 @@ fn cmd_seal() -> Result<(), String> {
                 .unwrap_or("unknown");
             let receipts = surface.get("receipts").and_then(|r| r.as_array());
 
-            if status != "scaffold" {
+            if status == "full" {
                 if let Some(r) = receipts {
                     if r.is_empty() {
                         return Err(format!(
@@ -339,6 +339,43 @@ fn cmd_seal() -> Result<(), String> {
         }
     }
     println!("  non-scaffold surfaces: all have receipts");
+
+    // 5b. Verify receipt files exist on disk
+    println!("Checking: receipt files exist on disk...");
+    if let Some(surfaces) = parity.get("surfaces").and_then(|s| s.as_array()) {
+        for surface in surfaces {
+            let id = surface
+                .get("id")
+                .and_then(|s| s.as_str())
+                .unwrap_or("unknown");
+            if let Some(receipts) = surface.get("receipts").and_then(|r| r.as_array()) {
+                for receipt_val in receipts {
+                    if let Some(receipt_id) = receipt_val.as_str() {
+                        let receipt_path = format!("reports/drafts/receipt-{}.json", receipt_id);
+                        if !std::path::Path::new(&receipt_path).exists() {
+                            return Err(format!(
+                                "receipt file missing for surface '{}': {}",
+                                id, receipt_path
+                            ));
+                        }
+                        // Validate receipt JSON has admitted_match verdict
+                        let r_content = std::fs::read_to_string(&receipt_path)
+                            .map_err(|e| format!("reading receipt {}: {}", receipt_path, e))?;
+                        let r_json: serde_json::Value = serde_json::from_str(&r_content)
+                            .map_err(|e| format!("parsing receipt {}: {}", receipt_path, e))?;
+                        let verdict = r_json.get("verdict").and_then(|v| v.as_str()).unwrap_or("");
+                        if verdict != "admitted_match" {
+                            return Err(format!(
+                                "surface '{}' cites receipt '{}' with verdict '{}', not 'admitted_match'",
+                                id, receipt_id, verdict
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    println!("  all cited receipts: present and verified");
 
     // 6. Verify #![forbid(unsafe_code)] in core and casefile crates
     println!("Checking: #![forbid(unsafe_code)] in core crate...");

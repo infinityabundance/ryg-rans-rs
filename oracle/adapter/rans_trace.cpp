@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <vector>
+#include <string>
 
 #include "platform.h"
 #include "rans_byte.h"
@@ -50,6 +52,11 @@ static void usage(const char *prog)
     fprintf(stderr, "  r64-enc-put-symbol state start freq scale_bits\n");
     fprintf(stderr, "  r64-mul-hi         a b\n");
     fprintf(stderr, "  r64-dec-renorm     state\n");
+    fprintf(stderr, "\nStream operations (full encode/decode):\n");
+    fprintf(stderr, "  enc-stream-byte    scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  dec-stream-byte    scale_bits freq_csv compressed_hex num_symbols\n");
+    fprintf(stderr, "  enc-stream-r64     scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  dec-stream-r64     scale_bits freq_csv compressed_hex num_symbols\n");
     exit(1);
 }
 
@@ -500,6 +507,305 @@ static void trace_r64_dec_renorm(uint64_t state)
 }
 
 // ===========================================================================
+// Hex helpers
+// ===========================================================================
+
+static uint8_t hex_nibble(char c)
+{
+    if (c >= '0' && c <= '9') return (uint8_t)(c - '0');
+    if (c >= 'a' && c <= 'f') return (uint8_t)(c - 'a' + 10);
+    if (c >= 'A' && c <= 'F') return (uint8_t)(c - 'A' + 10);
+    return 0;
+}
+
+static std::vector<uint8_t> hex_decode(const char* hex)
+{
+    size_t len = strlen(hex);
+    std::vector<uint8_t> out;
+    for (size_t i = 0; i + 1 < len; i += 2) {
+        out.push_back((hex_nibble(hex[i]) << 4) | hex_nibble(hex[i+1]));
+    }
+    return out;
+}
+
+static std::string hex_encode(const uint8_t* data, size_t len)
+{
+    static const char hex[] = "0123456789abcdef";
+    std::string out;
+    for (size_t i = 0; i < len; i++) {
+        out += hex[data[i] >> 4];
+        out += hex[data[i] & 0xf];
+    }
+    return out;
+}
+
+static std::vector<uint32_t> parse_freq_csv(const char* csv)
+{
+    std::vector<uint32_t> freqs;
+    const char* p = csv;
+    while (*p) {
+        unsigned long v = strtoul(p, NULL, 10);
+        freqs.push_back((uint32_t)v);
+        while (*p && *p != ',') p++;
+        if (*p == ',') p++;
+    }
+    return freqs;
+}
+
+// ===========================================================================
+// Stream operations (full encode/decode for cross-decoding courts)
+// ===========================================================================
+
+// enc-stream-byte: encode a full input using byte rANS with given frequencies
+// Usage: enc-stream-byte scale_bits freq_csv input_hex
+//   freq_csv: 256 comma-separated frequencies summing to 1<<scale_bits
+//   input_hex: hex-encoded input symbols
+// Output: JSON with hex-encoded compressed data and metadata
+static void trace_enc_stream_byte(uint32_t scale_bits,
+                                  const std::vector<uint32_t>& freqs,
+                                  const std::vector<uint8_t>& input)
+{
+    uint32_t total = 1u << scale_bits;
+    
+    // Build cumulative frequencies and symbols
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+    
+    // Precompute encoder symbols
+    RansEncSymbol esyms[256];
+    RansDecSymbol dsyms[256];
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansEncSymbolInit(&esyms[i], cum_freqs[i], freqs[i], scale_bits);
+            RansDecSymbolInit(&dsyms[i], cum_freqs[i], freqs[i]);
+        }
+    }
+    
+    // Encode
+    uint8_t buf[64 * 1024];
+    uint8_t* ptr = buf + sizeof(buf);
+    RansState state;
+    RansEncInit(&state);
+    
+    for (size_t i = input.size(); i > 0; i--) {
+        int s = input[i-1];
+        RansEncPutSymbol(&state, &ptr, &esyms[s]);
+    }
+    RansEncFlush(&state, &ptr);
+    
+    size_t comp_size = sizeof(buf) - (ptr - buf);
+    std::string comp_hex = hex_encode(ptr, comp_size);
+    
+    // Decode back to verify
+    uint8_t* dec_ptr = ptr;
+    RansState dec_state;
+    RansDecInit(&dec_state, &dec_ptr);
+    
+    std::vector<uint8_t> decoded(input.size());
+    for (size_t i = 0; i < input.size(); i++) {
+        uint32_t cf = RansDecGet(&dec_state, scale_bits);
+        // Brute-force symbol lookup
+        int s = 0;
+        for (int j = 0; j < 256; j++) {
+            if (cf >= cum_freqs[j] && cf < cum_freqs[j+1]) { s = j; break; }
+        }
+        decoded[i] = (uint8_t)s;
+        RansDecAdvanceSymbol(&dec_state, &dec_ptr, &dsyms[s], scale_bits);
+    }
+    
+    bool decode_ok = (decoded == input);
+    
+    printf("{\"op\":\"enc-stream-byte\""
+           ",\"scale_bits\":%u"
+           ",\"input_size\":%zu"
+           ",\"compressed_size\":%zu"
+           ",\"compressed_hex\":\"%s\""
+           ",\"decode_ok\":%s"
+           ",\"final_state\":%u"
+           "}\n",
+           scale_bits,
+           input.size(),
+           comp_size,
+           comp_hex.c_str(),
+           decode_ok ? "true" : "false",
+           dec_state);
+}
+
+// dec-stream-byte: decode a compressed stream using byte rANS
+static void trace_dec_stream_byte(uint32_t scale_bits,
+                                  const std::vector<uint32_t>& freqs,
+                                  const std::vector<uint8_t>& compressed,
+                                  size_t num_symbols)
+{
+    uint32_t total = 1u << scale_bits;
+    
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+    
+    RansDecSymbol dsyms[256];
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansDecSymbolInit(&dsyms[i], cum_freqs[i], freqs[i]);
+        }
+    }
+    
+    // Prepare mutable buffer (decoder advances the pointer)
+    std::vector<uint8_t> buf(compressed.begin(), compressed.end());
+    uint8_t* ptr = buf.data();
+    
+    RansState state;
+    RansDecInit(&state, &ptr);
+    
+    std::vector<uint8_t> output(num_symbols);
+    for (size_t i = 0; i < num_symbols; i++) {
+        uint32_t cf = RansDecGet(&state, scale_bits);
+        int s = 0;
+        for (int j = 0; j < 256; j++) {
+            if (cf >= cum_freqs[j] && cf < cum_freqs[j+1]) { s = j; break; }
+        }
+        output[i] = (uint8_t)s;
+        RansDecAdvanceSymbol(&state, &ptr, &dsyms[s], scale_bits);
+    }
+    
+    printf("{\"op\":\"dec-stream-byte\""
+           ",\"scale_bits\":%u"
+           ",\"num_symbols\":%zu"
+           ",\"decoded_hex\":\"%s\""
+           ",\"consumed\":%zu"
+           "}\n",
+           scale_bits,
+           num_symbols,
+           hex_encode(output.data(), output.size()).c_str(),
+           (size_t)(ptr - buf.data()));
+}
+
+// enc-stream-r64: encode using 64-bit rANS
+static void trace_enc_stream_r64(uint32_t scale_bits,
+                                 const std::vector<uint32_t>& freqs,
+                                 const std::vector<uint8_t>& input)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+    
+    Rans64EncSymbol esyms[256];
+    Rans64DecSymbol dsyms[256];
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            Rans64EncSymbolInit(&esyms[i], cum_freqs[i], freqs[i], scale_bits);
+            Rans64DecSymbolInit(&dsyms[i], cum_freqs[i], freqs[i]);
+        }
+    }
+    
+    uint32_t buf[64 * 1024];
+    uint32_t* ptr = buf + sizeof(buf) / sizeof(buf[0]);
+    Rans64State state;
+    Rans64EncInit(&state);
+    
+    for (size_t i = input.size(); i > 0; i--) {
+        int s = input[i-1];
+        Rans64EncPutSymbol(&state, &ptr, &esyms[s], scale_bits);
+    }
+    Rans64EncFlush(&state, &ptr);
+    
+    size_t comp_words = (sizeof(buf) / sizeof(buf[0])) - (ptr - buf);
+    size_t comp_bytes = comp_words * sizeof(uint32_t);
+    
+    // Decode back to verify
+    uint32_t* dec_ptr = ptr;
+    Rans64State dec_state;
+    Rans64DecInit(&dec_state, &dec_ptr);
+    
+    std::vector<uint8_t> decoded(input.size());
+    for (size_t i = 0; i < input.size(); i++) {
+        uint32_t cf = Rans64DecGet(&dec_state, scale_bits);
+        int s = 0;
+        for (int j = 0; j < 256; j++) {
+            if (cf >= cum_freqs[j] && cf < cum_freqs[j+1]) { s = j; break; }
+        }
+        decoded[i] = (uint8_t)s;
+        Rans64DecAdvanceSymbol(&dec_state, &dec_ptr, &dsyms[s], scale_bits);
+    }
+    
+    bool decode_ok = (decoded == input);
+    std::string comp_hex = hex_encode((const uint8_t*)ptr, comp_bytes);
+    
+    printf("{\"op\":\"enc-stream-r64\""
+           ",\"scale_bits\":%u"
+           ",\"input_size\":%zu"
+           ",\"compressed_words\":%zu"
+           ",\"compressed_bytes\":%zu"
+           ",\"compressed_hex\":\"%s\""
+           ",\"decode_ok\":%s"
+           "}\n",
+           scale_bits,
+           input.size(),
+           comp_words,
+           comp_bytes,
+           comp_hex.c_str(),
+           decode_ok ? "true" : "false");
+}
+
+// dec-stream-r64: decode using 64-bit rANS
+static void trace_dec_stream_r64(uint32_t scale_bits,
+                                 const std::vector<uint32_t>& freqs,
+                                 const std::vector<uint8_t>& compressed,
+                                 size_t num_symbols)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+    
+    Rans64DecSymbol dsyms[256];
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            Rans64DecSymbolInit(&dsyms[i], cum_freqs[i], freqs[i]);
+        }
+    }
+    
+    // 64-bit decoder reads uint32_t words from the stream.
+    // Ensure compressed size is a multiple of 4.
+    std::vector<uint32_t> words(compressed.size() / 4 + 1, 0);
+    memcpy(words.data(), compressed.data(), compressed.size());
+    uint32_t* ptr = words.data();
+    
+    Rans64State state;
+    Rans64DecInit(&state, &ptr);
+    
+    std::vector<uint8_t> output(num_symbols);
+    for (size_t i = 0; i < num_symbols; i++) {
+        uint32_t cf = Rans64DecGet(&state, scale_bits);
+        int s = 0;
+        for (int j = 0; j < 256; j++) {
+            if (cf >= cum_freqs[j] && cf < cum_freqs[j+1]) { s = j; break; }
+        }
+        output[i] = (uint8_t)s;
+        Rans64DecAdvanceSymbol(&state, &ptr, &dsyms[s], scale_bits);
+    }
+    
+    printf("{\"op\":\"dec-stream-r64\""
+           ",\"scale_bits\":%u"
+           ",\"num_symbols\":%zu"
+           ",\"decoded_hex\":\"%s\""
+           ",\"consumed_words\":%zu"
+           "}\n",
+           scale_bits,
+           num_symbols,
+           hex_encode(output.data(), output.size()).c_str(),
+           (size_t)(ptr - words.data()));
+}
+
+// ===========================================================================
 // Main dispatch
 // ===========================================================================
 
@@ -598,6 +904,34 @@ int main(int argc, char *argv[])
     } else if (strcmp(op, "r64-dec-renorm") == 0) {
         if (argc != 3) usage(argv[0]);
         trace_r64_dec_renorm(parse_u64(argv[2]));
+
+    // ---- Stream operations ----
+    } else if (strcmp(op, "enc-stream-byte") == 0) {
+        if (argc != 5) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> input = hex_decode(argv[4]);
+        trace_enc_stream_byte(scale_bits, freqs, input);
+    } else if (strcmp(op, "dec-stream-byte") == 0) {
+        if (argc != 6) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> compressed = hex_decode(argv[4]);
+        size_t num_symbols = parse_u32(argv[5]);
+        trace_dec_stream_byte(scale_bits, freqs, compressed, num_symbols);
+    } else if (strcmp(op, "enc-stream-r64") == 0) {
+        if (argc != 5) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> input = hex_decode(argv[4]);
+        trace_enc_stream_r64(scale_bits, freqs, input);
+    } else if (strcmp(op, "dec-stream-r64") == 0) {
+        if (argc != 6) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> compressed = hex_decode(argv[4]);
+        size_t num_symbols = parse_u32(argv[5]);
+        trace_dec_stream_r64(scale_bits, freqs, compressed, num_symbols);
     } else {
         fprintf(stderr, "Unknown operation: %s\n", op);
         usage(argv[0]);
