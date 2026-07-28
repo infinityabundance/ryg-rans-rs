@@ -591,6 +591,7 @@ fn cmd_seal() -> Result<(), String> {
             "court_id": r_json.get("court_id"),
             "court_path": r_json.get("court_path"),
             "variant": r_json.get("variant"),
+            "profile": r_json.get("profile"),
             "scale_bits": r_json.get("scale_bits"),
             "seed": r_json.get("seed"),
             "num_cases": r_json.get("num_cases"),

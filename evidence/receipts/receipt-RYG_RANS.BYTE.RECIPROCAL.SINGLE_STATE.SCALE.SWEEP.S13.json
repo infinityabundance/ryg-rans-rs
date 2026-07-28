@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S13",
+  "court_path": "RECIPROCAL",
+  "variant": "byte",
+  "profile": "SCALE.SWEEP",
+  "scale_bits": 13,
+  "seed": 42,
+  "num_cases": 5,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "d04caea87d6b6493ee08bd888dabb64a618727ba",
+  "pairs_compared": 25,
+  "pairs_matched": 25,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "9b8ecd0be6a0bddcfc461242767837a7cafe17bcd16f2c9324c025b9f62aa7de",
+  "receipt_sha256": "c8cf450287b7bb39bf1843b1bcfec98904513c004d49a84520ca53520fef22c8",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_final 13 42 5",
+  "oracle_compiler": "g++ -O3"
+}

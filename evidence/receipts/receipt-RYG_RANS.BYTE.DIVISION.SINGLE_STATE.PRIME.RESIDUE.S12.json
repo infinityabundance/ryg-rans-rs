@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.PRIME.RESIDUE.S12",
+  "court_path": "DIVISION",
+  "variant": "byte",
+  "profile": "PRIME.RESIDUE",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "d04caea87d6b6493ee08bd888dabb64a618727ba",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "3cc9e57379ad51a1c8bd8061bd70789e96a261b4da00153e91ae33664d7dd67e",
+  "receipt_sha256": "40aa1f1914592fa9fc05efa08309c10f450a558fbf7a8339e267438aa58238e2",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_final 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}

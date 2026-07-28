@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SPARSE.17.S12",
+  "court_path": "RECIPROCAL",
+  "variant": "r64",
+  "profile": "SPARSE.17",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "d04caea87d6b6493ee08bd888dabb64a618727ba",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "40d697984e67c4717c69b64613d5321522336f4d943b7a10da00b9c01c28f48e",
+  "receipt_sha256": "868bf2eab9c6c6809136c5ee34654dc6be728d4be6dc7ccf1fa4207a699cebff",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_final 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}

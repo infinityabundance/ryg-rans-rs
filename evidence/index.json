@@ -1,21 +1,229 @@
 {
-  "code_commit": "a7eab35",
+  "code_commit": "d04caea87d6b6493ee08bd888dabb64a618727ba",
   "receipts": [
     {
       "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12",
-      "sha256": "d37d6914b2d2ccf55af85c81fe0cd040c2d3fd6320557fcaf66980522d81fba6"
+      "sha256": "e42d49402987a685b6ca7852d73190bfdf6166a50d7df13d1eb33505b0afa8c3"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.FREQ1.S12",
+      "sha256": "e883f2ed7d197c77e964937f9c0255fea0ee6ee9d6ee4a1c7649cdabf87e627d"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SKEWED.255_1.S12",
+      "sha256": "90f0910c97ab9a3d18619333b7a0989f8b2c6ecd8121bfd838fe15cdb90e103a"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SPARSE.2.S12",
+      "sha256": "5ca53b3aecbbb179fb354ba63cb3022ae6ca9b32875bad98b8a1de2712a76ab0"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SPARSE.17.S12",
+      "sha256": "5ac620ed1ad9bd4dbbc6b02e30dc09ec5f3a777309ca39a7430f5b1520b49d2f"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.PRIME.RESIDUE.S12",
+      "sha256": "41c4726e7b7f8c1f787dc96bc48eef5aa5634b7bbce922323449bdef0e51fc51"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.RENORM.BOUNDARY.S12",
+      "sha256": "4727bea78b77aeae16825e2ffee0ee5a2ec5378593c50b725bb4778062883ebc"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.LENGTH.BOUNDARY.S12",
+      "sha256": "474ef28a61abfe7c2bb54cd0fc935cf7effd1355da511e3abab49241b4ca0880"
     },
     {
       "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12",
-      "sha256": "f00aa6f888ce242c52909db701bec4b092c2629a893e05a94bd910f8eb7bf8db"
+      "sha256": "af3f5b07059bdf3b1d740637664521c59475bf953662255779d3b3bb6e6a6569"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.FREQ1.S12",
+      "sha256": "b9ed02dc50c529d2cebc79e9948cc257150d6e5ac37f00e622921ab12638a61f"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SKEWED.255_1.S12",
+      "sha256": "ee365f36db5864598e5d2f0956de2cec2fda23ceb79e47ce6b3feec07977f70e"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SPARSE.2.S12",
+      "sha256": "c1d31d316e599c26325c55038cebb41c9c0e4b73285cdbacc6c0d53537f5ccf7"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SPARSE.17.S12",
+      "sha256": "acff7b4f720337bf92704afbb52a129109573e1301c7d994d9728b414e9124ae"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.PRIME.RESIDUE.S12",
+      "sha256": "0896b3a6f1fcf20dd462addc931b399ca1ca65342b2082adaac85200d4b34d04"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.RENORM.BOUNDARY.S12",
+      "sha256": "2071b4e3275b571c92575a14dce401e14b18505859e580b2e30b48c190724221"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.LENGTH.BOUNDARY.S12",
+      "sha256": "b40f4584f5b4147ebde73fb3f20d457f9ef756594d719b13397549430bf8daf0"
     },
     {
       "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12",
-      "sha256": "7edbac08d34741a069566151af5a7d4c7d365028ee16b17e1043112e6699bd50"
+      "sha256": "6e2b6e20861b1ea818c0619722f25e810f81eb436f01c842afbf68df21ef11b5"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.FREQ1.S12",
+      "sha256": "53552e25f73d07a4d935274f35edaddf9df8f3a1fbe1b881f058f3dd3d1f57f5"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SKEWED.255_1.S12",
+      "sha256": "40838b28dbc884fbae91c042fefdbdf5bd9f0be39ade5e8a5fe1666457b3ad90"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SPARSE.2.S12",
+      "sha256": "257a756e2a486ff3666e3135860e00a4aea43e14466ff8fb5b365d1883672493"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SPARSE.17.S12",
+      "sha256": "3b47c6a2c044c68e140992c75171ee80bf638404990fb8f1f0eec85f3eb5f99a"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.PRIME.RESIDUE.S12",
+      "sha256": "c44125e17066bbeed9b652a5eac4c7c856a4943e97747714acf71e90ee473476"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.RENORM.BOUNDARY.S12",
+      "sha256": "3234c2a33007ca72ecddab3bfc9adc011ba1f37b7f285f0042b55ff9cecca693"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.LENGTH.BOUNDARY.S12",
+      "sha256": "bf6e3a1597fa8437c863f82ed4da5d356d0be4662d4c6c0c1733528df9420658"
     },
     {
       "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12",
-      "sha256": "40d3ffe7593436819539404d6d2c4a8143da30d07982c0bd0f28b513badb8585"
+      "sha256": "39318fcd541c82b2f9eb15aab93dd9d62c3b57ce846f929b83ab465ff5128780"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.FREQ1.S12",
+      "sha256": "821587d538e33e3d04a4bc35e76c2f536fd11922849cd1cfb618687d6307ac14"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SKEWED.255_1.S12",
+      "sha256": "4685bae5a972f9a87bec499e388b88068b51aa2cf4d10a196e0257fe7bbb9eaa"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SPARSE.2.S12",
+      "sha256": "db4809d9d5e0b46824a3d51a3615e3f9664cda450535d487ac6866519c56baab"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SPARSE.17.S12",
+      "sha256": "9caab310bf28eb1582de54a11fe0048b1d65995093ff0a2ad94737eea988d86a"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.PRIME.RESIDUE.S12",
+      "sha256": "5241aa60f9ec3f4f8656876c1e88fbaf164801878663826fd07b7ac9d3676253"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.RENORM.BOUNDARY.S12",
+      "sha256": "f934c8ed892d498e12f21ae9786b14d28fd66dbc20e9ef264102141f39d8d36e"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.LENGTH.BOUNDARY.S12",
+      "sha256": "bb2ebea3a1190a18c511b4585d3156fa85aa7479bced9216d8843c2fd16c1f8c"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S10",
+      "sha256": "1d9f352465ee2c66cf334c5b00ff827333afb816ab277edb00d47a6a06f6a3e9"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S11",
+      "sha256": "88a73c1f2f1c000142cc3f1e11b8706f9835a2ccfbcd82f37d5cb84316c16688"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S13",
+      "sha256": "d76d7c7bb98f63bca79b5f2ff9153b94972f56f44095ab27ce55a1e6a62d29b0"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S14",
+      "sha256": "6e1c1c77b1ce168c6126b91937d4536fc89c248f4891103cc5f2ce12d5a40d99"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S15",
+      "sha256": "56dc73676a2899eb1e8e874cf505c0b5df6f640d91ed74a6a668400cda96ab94"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S16",
+      "sha256": "ed2dec6bc0276786228ae33bff0cab3d0d90dd60cc7dbcc45fc7cd24dcf20a00"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S10",
+      "sha256": "749894adfdbe8d3ea7da928af135611c436eed8b9ebf23a5d9477648dc3561f2"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S11",
+      "sha256": "e5a37ffa1277c02b32a447c44049bcf7ca005efffe974b07bbede092f90285b4"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S13",
+      "sha256": "8f08ea4ded5789027d9fc19be921cef4e2fa004e0ca87a0073e57b02eba20618"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S14",
+      "sha256": "182768da17eff0c3883942460c20c97e603cbbe56198170e445e741e85660eb9"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S15",
+      "sha256": "964eb1099f9b53f09ff7cf7db6aea6933b088e9ecba3d06715f9423ae197e366"
+    },
+    {
+      "court_id": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S16",
+      "sha256": "1f5e194f72baee21af495ed017972ab6e1af9d2c39d149c98730c18ad5247226"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S10",
+      "sha256": "be8e3dca26cce154e55dd3940d44b08d8ab84521c62d905198d6ea747128fe39"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S11",
+      "sha256": "80db0dcc8c2c523dd1c9d1e1e9d82595568590800c8d698075179942a5b91e41"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S13",
+      "sha256": "e2e16fdc8f19dd2eb2625bc7d952e340f508c8ed7a5dbd3316cc8f9e578e4b46"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S14",
+      "sha256": "00684577f3c9356ff95451d654ed5194c83178368dcf43da1e3dbaaec4b246dc"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S15",
+      "sha256": "d17ba250af85589e10b1eec87bc1693610ddf73a8605056dc36fa76175071e8b"
+    },
+    {
+      "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S16",
+      "sha256": "64d4fa3166e018df7cdd2b5c1b0aefe74b0a0d2d10313012bd104675217da622"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S10",
+      "sha256": "885146e68c2d9bff7f8ac99b424e2822e859f320466798fad11a00911586ec42"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S11",
+      "sha256": "2deb6ee7ed630d5718bcfe4a5e9ca732a1855f32b79145aa721a5f8a38381882"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S13",
+      "sha256": "53bcc427362da5708788f4bc80b2ace88fad922ed50544f3ad2bf17dd57e8dff"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S14",
+      "sha256": "a0c452a7f5f688c550b37fb8cba2260b4e8c3dc7d31434480a46aee4952691c1"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S15",
+      "sha256": "5848b78325b74e22f86b5b86b305550bc307149763c3e7be54a6d2a0218deeb7"
+    },
+    {
+      "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S16",
+      "sha256": "9541e213475803c7dad20c0a589ea7a909150d35dcaa049ef59584281db67c4a"
     }
   ],
   "schema_version": 1

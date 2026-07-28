@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.LENGTH.BOUNDARY.S12",
+  "court_path": "RECIPROCAL",
+  "variant": "r64",
+  "profile": "LENGTH.BOUNDARY",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 8,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "d04caea87d6b6493ee08bd888dabb64a618727ba",
+  "pairs_compared": 40,
+  "pairs_matched": 40,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "663a2383034fb491199804afa02d396429f50ef52a4dbd523f732b3350503363",
+  "receipt_sha256": "8e0530cab27cc453f7cb3c89dd67613a33651c80431e7463efd1727b8d8e92f9",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_final 12 42 8",
+  "oracle_compiler": "g++ -O3"
+}

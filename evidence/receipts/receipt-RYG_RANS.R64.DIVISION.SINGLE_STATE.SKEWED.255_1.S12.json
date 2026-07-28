@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SKEWED.255_1.S12",
+  "court_path": "DIVISION",
+  "variant": "r64",
+  "profile": "SKEWED.255_1",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "d04caea87d6b6493ee08bd888dabb64a618727ba",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "24b57aeda4fe5e2ac2b51f24a10fb75209368b483ce4b494972edf8d54cd7350",
+  "receipt_sha256": "8dd768d5316f8c7782e5593eacfe110bbb5b9761cf5aedb25f32fcf95dad87f5",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_final 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}

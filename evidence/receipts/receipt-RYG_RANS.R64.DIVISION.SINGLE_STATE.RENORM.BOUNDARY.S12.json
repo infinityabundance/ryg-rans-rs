@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.RENORM.BOUNDARY.S12",
+  "court_path": "DIVISION",
+  "variant": "r64",
+  "profile": "RENORM.BOUNDARY",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "d04caea87d6b6493ee08bd888dabb64a618727ba",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "76998c510706c89384ef416339e206a8b7eb747a48f7fe3c0d8b594e9671fecd",
+  "receipt_sha256": "fd7349c26e8749c46722408b8fb8dfe8757ed0aed37157cf8a60a45399890e72",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_final 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S11",
+  "court_path": "DIVISION",
+  "variant": "r64",
+  "profile": "SCALE.SWEEP",
+  "scale_bits": 11,
+  "seed": 42,
+  "num_cases": 5,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "d04caea87d6b6493ee08bd888dabb64a618727ba",
+  "pairs_compared": 25,
+  "pairs_matched": 25,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "431046f9a41da26fc89363d8dc3a02f3a8698b3efc253f90706b758f96d57556",
+  "receipt_sha256": "2dd7c3dde6475786b45c5cc5e5566d259f8464e7d4f65c60811339d04d565424",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_final 11 42 5",
+  "oracle_compiler": "g++ -O3"
+}
