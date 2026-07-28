@@ -182,13 +182,54 @@ services:
         set -e
         echo "=== Building oracle adapter ==="
         g++ -o /workspace/oracle/adapter/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -lm
-        echo "=== Oracle built ==="
         /workspace/oracle/adapter/rans_trace enc-symbol-init 0 10 14
         echo "=== Running cross-decoding court ==="
         cd /workspace && cargo run -p ryg-rans-rs-oracle -- /workspace/oracle/adapter/rans_trace 12 42 20 2>&1
-        echo "=== Copying receipts to /reports ==="
-        cp /workspace/reports/drafts/receipt-*.json /reports/ 2>/dev/null || true
+        echo "=== Copying evidence to /reports ==="
+        cp -r /workspace/evidence /reports/ 2>/dev/null || true
         echo "=== Cross-court complete ==="
+      '
+
+  miri:
+    build:
+      context: ${DOCKER_ROOT}
+      dockerfile: dockerfiles/Dockerfile.miri
+    image: ryg-rans-rs-court-miri:${RUN_ID}
+    container_name: ryg-rans-rs-court-miri-${RUN_ID}
+    working_dir: /workspace
+    volumes:
+      - type: bind
+        source: ${DOCKER_ROOT}/source/${RUN_ID}
+        target: /workspace
+      - type: volume
+        source: cargo-stable
+        target: /cargo
+      - type: volume
+        source: target-stable
+        target: /target
+      - type: bind
+        source: ${DOCKER_ROOT}/reports/${RUN_ID}/miri
+        target: /reports
+      - type: tmpfs
+        target: /tmp
+    environment:
+      - CARGO_HOME=/cargo
+      - CARGO_TARGET_DIR=/target
+      - MIRIFLAGS=-Zmiri-disable-isolation
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      org.infinityabundance.project: "ryg-rans-rs"
+      org.infinityabundance.purpose: "forensic-parity-court"
+      org.infinityabundance.managed-by: "ryg-rans-rs-xtask"
+      org.infinityabundance.run-id: "${RUN_ID}"
+    command: >
+      sh -c '
+        set -e
+        echo "=== Running Miri on core crate ==="
+        cd /workspace
+        cargo miri test -p ryg-rans-rs-core --no-default-features 2>&1
+        echo "=== Miri complete ==="
       '
 
 volumes:
