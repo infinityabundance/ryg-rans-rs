@@ -702,6 +702,7 @@ fn cmd_seal() -> Result<(), String> {
         let allowed_prefixes = [
             "evidence/",
             "docs/",
+            "docs-src/",
             "xtask/",
             "docker/",
             ".cargo/",
