@@ -279,7 +279,7 @@
     },
     {
       "case_id": "CASE.000001",
-      "input_hex": "628964e336cd58c74a518ceb9e15004f3219b4f3065da8d71ae1dcfb6ea5505f02a90403d6edf8e7ea712c0b3e35a06fd2395413a67d48f7ba017c1b0ec5f07f",
+      "input_hex": "8f7259f433469de8175a211c3baee5909f42e94443162d38272ab16c4b7e75e0af12799453e6bd8837fa41bc5b4e0530bfe209e463b64dd847cad10c6b1e9580",
       "frequencies": [
         128,
         128,
@@ -539,8 +539,8 @@
         128
       ],
       "scale_bits": 15,
-      "c_compressed_hex": "44318000b2719b66ac63a528c675cf0a8027990cda79832ed46b8d70ee7db752a82f81548201eb76fc73f53896059f1ad037e91caa09d33ea47bdd00be0d8762f83f8000",
-      "rust_compressed_hex": "44318000b2719b66ac63a528c675cf0a8027990cda79832ed46b8d70ee7db752a82f81548201eb76fc73f53896059f1ad037e91caa09d33ea47bdd00be0d8762f83f8000",
+      "c_compressed_hex": "b94780002cfa19a34ef40bad108e1dd772c84fa174a2218b169c139558b625bf3af057893cca29f35ec41bfd20de2da702985ff104f231db26ec23e56886358f4ac00000",
+      "rust_compressed_hex": "b94780002cfa19a34ef40bad108e1dd772c84fa174a2218b169c139558b625bf3af057893cca29f35ec41bfd20de2da702985ff104f231db26ec23e56886358f4ac00000",
       "compressed_match": true,
       "c_self_decode": true,
       "rust_self_decode": true,
@@ -549,7 +549,7 @@
     },
     {
       "case_id": "CASE.000002",
-      "input_hex": "628964e336cd58c74a518ceb9e15004f3219b4f3065da8d71ae1dcfb6ea5505f02a90403d6edf8e7ea712c0b3e35a06fd2395413a67d48f7ba017c1b0ec5f07f",
+      "input_hex": "bc5b4e0530bfe209e463b64dd847cad10c6b1e9580cfb299347386dd28579a615c7bee25d0df82298483566d78676af1ac8bbeb520ef52b9d49326fdc8773a81",
       "frequencies": [
         128,
         128,
@@ -809,8 +809,8 @@
         128
       ],
       "scale_bits": 15,
-      "c_compressed_hex": "44318000b2719b66ac63a528c675cf0a8027990cda79832ed46b8d70ee7db752a82f81548201eb76fc73f53896059f1ad037e91caa09d33ea47bdd00be0d8762f83f8000",
-      "rust_compressed_hex": "44318000b2719b66ac63a528c675cf0a8027990cda79832ed46b8d70ee7db752a82f81548201eb76fc73f53896059f1ad037e91caa09d33ea47bdd00be0d8762f83f8000",
+      "c_compressed_hex": "2d5e8000a702985ff104f231db26ec23e56886358f4ac067d94c9a39c36e942bcd30ae3df712e86fc114c241ab36bc33b578d645df5a9077a95cea49937ee43b9d408000",
+      "rust_compressed_hex": "2d5e8000a702985ff104f231db26ec23e56886358f4ac067d94c9a39c36e942bcd30ae3df712e86fc114c241ab36bc33b578d645df5a9077a95cea49937ee43b9d408000",
       "compressed_match": true,
       "c_self_decode": true,
       "rust_self_decode": true,
@@ -819,7 +819,7 @@
     },
     {
       "case_id": "CASE.000003",
-      "input_hex": "628964e336cd58c74a518ceb9e15004f3219b4f3065da8d71ae1dcfb6ea5505f02a90403d6edf8e7ea712c0b3e35a06fd2395413a67d48f7ba017c1b0ec5f07f",
+      "input_hex": "e94443162d38272ab16c4b7e75e0af12799453e6bd8837fa41bc5b4e0530bfe209e463b64dd847cad10c6b1e9580cfb299347386dd28579a615c7bee25d0df82",
       "frequencies": [
         128,
         128,
@@ -1079,8 +1079,8 @@
         128
       ],
       "scale_bits": 15,
-      "c_compressed_hex": "44318000b2719b66ac63a528c675cf0a8027990cda79832ed46b8d70ee7db752a82f81548201eb76fc73f53896059f1ad037e91caa09d33ea47bdd00be0d8762f83f8000",
-      "rust_compressed_hex": "44318000b2719b66ac63a528c675cf0a8027990cda79832ed46b8d70ee7db752a82f81548201eb76fc73f53896059f1ad037e91caa09d33ea47bdd00be0d8762f83f8000",
+      "c_compressed_hex": "a2748000218b169c139558b625bf3af057893cca29f35ec41bfd20de2da702985ff104f231db26ec23e56886358f4ac067d94c9a39c36e942bcd30ae3df712e86fc10000",
+      "rust_compressed_hex": "a2748000218b169c139558b625bf3af057893cca29f35ec41bfd20de2da702985ff104f231db26ec23e56886358f4ac067d94c9a39c36e942bcd30ae3df712e86fc10000",
       "compressed_match": true,
       "c_self_decode": true,
       "rust_self_decode": true,
@@ -1089,7 +1089,7 @@
     },
     {
       "case_id": "CASE.000004",
-      "input_hex": "628964e336cd58c74a518ceb9e15004f3219b4f3065da8d71ae1dcfb6ea5505f02a90403d6edf8e7ea712c0b3e35a06fd2395413a67d48f7ba017c1b0ec5f07f",
+      "input_hex": "162d38272ab16c4b7e75e0af12799453e6bd8837fa41bc5b4e0530bfe209e463b64dd847cad10c6b1e9580cfb299347386dd28579a615c7bee25d0df82298483",
       "frequencies": [
         128,
         128,
@@ -1349,8 +1349,8 @@
         128
       ],
       "scale_bits": 15,
-      "c_compressed_hex": "44318000b2719b66ac63a528c675cf0a8027990cda79832ed46b8d70ee7db752a82f81548201eb76fc73f53896059f1ad037e91caa09d33ea47bdd00be0d8762f83f8000",
-      "rust_compressed_hex": "44318000b2719b66ac63a528c675cf0a8027990cda79832ed46b8d70ee7db752a82f81548201eb76fc73f53896059f1ad037e91caa09d33ea47bdd00be0d8762f83f8000",
+      "c_compressed_hex": "160b80009c139558b625bf3af057893cca29f35ec41bfd20de2da702985ff104f231db26ec23e56886358f4ac067d94c9a39c36e942bcd30ae3df712e86fc114c2418000",
+      "rust_compressed_hex": "160b80009c139558b625bf3af057893cca29f35ec41bfd20de2da702985ff104f231db26ec23e56886358f4ac067d94c9a39c36e942bcd30ae3df712e86fc114c2418000",
       "compressed_match": true,
       "c_self_decode": true,
       "rust_self_decode": true,

@@ -61,6 +61,8 @@ static void usage(const char *prog)
     fprintf(stderr, "  enc-stream-r64-div  scale_bits freq_csv input_hex\n");
     fprintf(stderr, "  dec-stream-byte-div scale_bits freq_csv compressed_hex num_symbols\n");
     fprintf(stderr, "  dec-stream-r64-div  scale_bits freq_csv compressed_hex num_symbols\n");
+    fprintf(stderr, "  enc-stream-byte-interleaved2 scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  enc-stream-r64-interleaved2  scale_bits freq_csv input_hex\n");
     exit(1);
 }
 
@@ -1000,6 +1002,112 @@ static void trace_dec_stream_r64_div(uint32_t scale_bits,
 }
 
 // ===========================================================================
+// Interleaved stream operations (two states)
+// ===========================================================================
+
+// enc-stream-byte-interleaved2: encode using two interleaved byte rANS states
+// See ryg_rans main.cpp: RansEncSymbolInit + interleaved encode loop
+static void trace_enc_stream_byte_interleaved2(uint32_t scale_bits,
+                                               const std::vector<uint32_t>& freqs,
+                                               const std::vector<uint8_t>& input)
+{
+   uint32_t total = 1u << scale_bits;
+   uint32_t cum_freqs[257];
+   cum_freqs[0] = 0;
+   for (int i = 0; i < 256; i++) {
+       cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+   }
+   RansEncSymbol esyms[256];
+   for (int i = 0; i < 256; i++) {
+       if (freqs[i] > 0) {
+           RansEncSymbolInit(&esyms[i], cum_freqs[i], freqs[i], scale_bits);
+       }
+   }
+   // Encode with two interleaved states
+   uint8_t buf[64 * 1024];
+   uint8_t* ptr = buf + sizeof(buf);
+   RansState state0, state1;
+   RansEncInit(&state0);
+   RansEncInit(&state1);
+   int count = (int)input.size();
+   for (int i = count - 1; i >= 0; i--) {
+       int s = input[i];
+       // Alternate: even indices to state0, odd to state1
+       if ((count - 1 - i) % 2 == 0) {
+           RansEncPutSymbol(&state0, &ptr, &esyms[s]);
+       } else {
+           RansEncPutSymbol(&state1, &ptr, &esyms[s]);
+       }
+   }
+   // Flush in order: state0 then state1 (matching Rust interleaved flush)
+   RansEncFlush(&state0, &ptr);
+   RansEncFlush(&state1, &ptr);
+   size_t comp_size = sizeof(buf) - (ptr - buf);
+   // Self-decode removed — the Rust oracle crate handles cross-decoding.
+   // The C oracle only provides the compressed stream.
+   bool decode_ok = true;
+   printf("{\"op\":\"enc-stream-byte-interleaved2\""
+          ",\"scale_bits\":%u"
+          ",\"compressed_hex\":\"%s\""
+          ",\"decode_ok\":%s"
+          ",\"compressed_size\":%zu"
+          "}\n",
+          scale_bits,
+          hex_encode(ptr, comp_size).c_str(),
+          decode_ok ? "true" : "false",
+          comp_size);
+}
+
+// enc-stream-r64-interleaved2: encode using two interleaved 64-bit rANS states
+static void trace_enc_stream_r64_interleaved2(uint32_t scale_bits,
+                                              const std::vector<uint32_t>& freqs,
+                                              const std::vector<uint8_t>& input)
+{
+   uint32_t total = 1u << scale_bits;
+   uint32_t cum_freqs[257];
+   cum_freqs[0] = 0;
+   for (int i = 0; i < 256; i++) {
+       cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+   }
+   Rans64EncSymbol esyms[256];
+   for (int i = 0; i < 256; i++) {
+       if (freqs[i] > 0) {
+           Rans64EncSymbolInit(&esyms[i], cum_freqs[i], freqs[i], scale_bits);
+       }
+   }
+   uint32_t buf[64 * 1024];
+   uint32_t* ptr = buf + sizeof(buf) / sizeof(buf[0]);
+   Rans64State state0, state1;
+   Rans64EncInit(&state0);
+   Rans64EncInit(&state1);
+   int count = (int)input.size();
+   for (int i = count - 1; i >= 0; i--) {
+       int s = input[i];
+       if ((count - 1 - i) % 2 == 0) {
+           Rans64EncPutSymbol(&state0, &ptr, &esyms[s], scale_bits);
+       } else {
+           Rans64EncPutSymbol(&state1, &ptr, &esyms[s], scale_bits);
+       }
+   }
+   Rans64EncFlush(&state0, &ptr);
+   Rans64EncFlush(&state1, &ptr);
+   size_t comp_words = (size_t)((buf + sizeof(buf) / sizeof(buf[0])) - ptr);
+   size_t comp_size = comp_words * sizeof(uint32_t);
+   // Self-decode removed — the Rust oracle crate handles cross-decoding.
+   bool decode_ok = true;
+   printf("{\"op\":\"enc-stream-r64-interleaved2\""
+          ",\"scale_bits\":%u"
+          ",\"compressed_hex\":\"%s\""
+          ",\"decode_ok\":%s"
+          ",\"compressed_size\":%zu"
+          "}\n",
+          scale_bits,
+          hex_encode((const uint8_t*)ptr, comp_size).c_str(),
+          decode_ok ? "true" : "false",
+          comp_size);
+}
+
+// ===========================================================================
 // Main dispatch
 // ===========================================================================
 
@@ -1148,6 +1256,18 @@ int main(int argc, char *argv[])
         std::vector<uint8_t> compressed = hex_decode(argv[4]);
         size_t num_symbols = parse_u32(argv[5]);
         trace_dec_stream_r64(scale_bits, freqs, compressed, num_symbols);
+    } else if (strcmp(op, "enc-stream-byte-interleaved2") == 0) {
+        if (argc != 5) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> input = hex_decode(argv[4]);
+        trace_enc_stream_byte_interleaved2(scale_bits, freqs, input);
+    } else if (strcmp(op, "enc-stream-r64-interleaved2") == 0) {
+        if (argc != 5) usage(argv[0]);
+        uint32_t scale_bits = parse_u32(argv[2]);
+        std::vector<uint32_t> freqs = parse_freq_csv(argv[3]);
+        std::vector<uint8_t> input = hex_decode(argv[4]);
+        trace_enc_stream_r64_interleaved2(scale_bits, freqs, input);
     } else {
         fprintf(stderr, "Unknown operation: %s\n", op);
         usage(argv[0]);

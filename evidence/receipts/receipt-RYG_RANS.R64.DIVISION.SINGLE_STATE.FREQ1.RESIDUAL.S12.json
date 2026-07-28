@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "court_id": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.RENORM.BOUNDARY.S12",
-  "court_path": "RECIPROCAL",
+  "court_id": "RYG_RANS.R64.DIVISION.SINGLE_STATE.FREQ1.RESIDUAL.S12",
+  "court_path": "DIVISION",
   "variant": "r64",
-  "profile": "RENORM.BOUNDARY",
+  "profile": "FREQ1.RESIDUAL",
   "scale_bits": 12,
   "seed": 42,
   "num_cases": 20,
@@ -14,8 +14,8 @@
   "pairs_matched": 100,
   "residual_count": 0,
   "residual_ids": [],
-  "manifest_sha256": "6e11fd0449b432b99db38ea3f00ad877e03ff77d81137cf41c800fce9790e8e6",
-  "receipt_sha256": "536884a53c064a37225501b9b4fb268a961aeb2b1c1483b77b0858a93d7a259f",
+  "manifest_sha256": "6e91a2ee5535fc32bbc250eeeb182f18e1da1063fb6e68ea4e96c4da7ae230ba",
+  "receipt_sha256": "0e54f826b669c7d094fc143ce3c7dffcd7779bd64c0e8c763777583c02079835",
   "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_full 12 42 20",
   "oracle_compiler": "g++ -O3"
 }

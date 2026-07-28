@@ -1,5 +1,17 @@
-use ryg_rans_rs_oracle::{CourtConfig, CourtPath, ModelProfile};
+use ryg_rans_rs_oracle::{CaseManifest, CourtConfig, CourtPath, ModelProfile, Receipt};
 use std::path::Path;
+
+enum CourtMode {
+    SingleState,
+    Interleaved2,
+}
+
+struct FullConfig {
+    variant: &'static str,
+    path: CourtPath,
+    profile: ModelProfile,
+    mode: CourtMode,
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
@@ -38,21 +50,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut all_passed = true;
 
     for config in &court_configs {
-        // For ScaleSweep, run at each scale_bits value from 10 to 16
         let scales: &[u32] = if config.profile == ModelProfile::ScaleSweep {
             &[10, 11, 13, 14, 15, 16]
         } else {
             &[config.profile.scale_bits().unwrap_or(scale_bits)]
         };
         for &scale in scales {
-            let (receipt, _manifest, manifest_bytes) = ryg_rans_rs_oracle::run_court_with_profile(
-                oracle,
-                scale,
-                seed,
-                config.path,
-                config.variant,
-                config.profile,
-            )?;
+            let (receipt, _manifest, manifest_bytes) = match config.mode {
+                CourtMode::SingleState => ryg_rans_rs_oracle::run_court_with_profile(
+                    oracle,
+                    scale,
+                    seed,
+                    config.path,
+                    config.variant,
+                    config.profile,
+                )?,
+                CourtMode::Interleaved2 => ryg_rans_rs_oracle::run_interleaved_court(
+                    oracle,
+                    scale,
+                    seed,
+                    config.path,
+                    config.variant,
+                    config.profile,
+                )?,
+            };
 
             println!("--- Court: {} ---", receipt.court_id);
             println!(
@@ -92,7 +113,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "sha256": sha,
                 }));
             }
-        } // end for &scale
+        }
     }
 
     // Write evidence index
@@ -121,13 +142,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-fn build_court_configs() -> Vec<CourtConfig> {
+fn build_court_configs() -> Vec<FullConfig> {
     let mut configs = Vec::new();
     let variants = ["byte", "r64"];
     let paths = [CourtPath::Division, CourtPath::Reciprocal];
     let profiles = [
         ModelProfile::Uniform256,
-        ModelProfile::Freq1,
+        ModelProfile::Freq1Residual,
         ModelProfile::Skewed2551,
         ModelProfile::Sparse2,
         ModelProfile::Sparse17,
@@ -136,26 +157,43 @@ fn build_court_configs() -> Vec<CourtConfig> {
         ModelProfile::LengthBoundary,
     ];
 
-    // Standard profiles at scale_bits=12
+    // Single-state standard profiles at scale_bits=12
     for &variant in &variants {
         for &path in &paths {
             for &profile in &profiles {
-                configs.push(CourtConfig {
+                configs.push(FullConfig {
                     variant,
                     path,
                     profile,
+                    mode: CourtMode::SingleState,
                 });
             }
         }
     }
 
-    // Scale sweep: Uniform256 at scale_bits 10, 11, 13, 14, 15, 16
+    // Single-state scale sweep
     for &variant in &variants {
         for &path in &paths {
-            configs.push(CourtConfig {
+            configs.push(FullConfig {
                 variant,
                 path,
                 profile: ModelProfile::ScaleSweep,
+                mode: CourtMode::SingleState,
+            });
+        }
+    }
+
+    // Interleaved2: byte only (R64 interleaving not yet implemented in core)
+    for &path in &paths {
+        for &profile in &profiles {
+            if profile == ModelProfile::ScaleSweep {
+                continue;
+            }
+            configs.push(FullConfig {
+                variant: "byte",
+                path,
+                profile,
+                mode: CourtMode::Interleaved2,
             });
         }
     }
