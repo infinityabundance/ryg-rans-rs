@@ -1,12 +1,12 @@
 [package]
 name = "ryg-rans-rs-cli"
-version = "0.1.2"
+version = "0.1.3"
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 description = "CLI tools for rANS encoding, decoding, inspection, tracing, comparison, and benchmarking"
 
 [dependencies]
-ryg-rans-rs = { version = "0.1.2", path = "../ryg-rans-rs" }
-ryg-rans-rs-core = { version = "0.1.2", path = "../ryg-rans-rs-core" }
+ryg-rans-rs = { version = "0.1.3", path = "../ryg-rans-rs" }
+ryg-rans-rs-core = { version = "0.1.3", path = "../ryg-rans-rs-core" }
 clap = { version = "4", features = ["derive"] }

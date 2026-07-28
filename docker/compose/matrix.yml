@@ -75,6 +75,7 @@ services:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
         target: /workspace
+        read_only: true
       - type: volume
         source: cargo-stable
         target: /cargo
@@ -116,6 +117,7 @@ services:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
         target: /workspace
+        read_only: true
       - type: volume
         source: cargo-musl
         target: /cargo
@@ -147,6 +149,11 @@ services:
       dockerfile: dockerfiles/Dockerfile.package-audit
     image: ryg-rans-rs-court-package-audit:${RUN_ID}
     container_name: ryg-rans-rs-court-package-audit-${RUN_ID}
+    volumes:
+      - type: bind
+        source: ${DOCKER_ROOT}/source/${RUN_ID}
+        target: /workspace
+        read_only: true
     command: >
       sh -c '
         set -e
@@ -175,6 +182,7 @@ services:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
         target: /workspace
+        read_only: true
       - type: volume
         source: cargo-stable
         target: /cargo
@@ -189,23 +197,22 @@ services:
     security_opt:
       - no-new-privileges:true
     cap_drop: []
-    # NOTE: empty cap_drop overrides inherited cap_drop:ALL from rust-base
-    # cross-court needs write access to bind-mounted workspace for g++
+    # Empty cap_drop overrides inherited cap_drop:ALL from rust-base.
+    # cross-court needs write access to /target/ and /reports/.
+    # Source snapshot stays read-only.
     command: >
       sh -c '
         set -e
-        echo "=== Building oracle adapter ==="
-        mkdir -p /workspace/.bin
-        g++ -o /workspace/.bin/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -lm
+        echo "=== Building oracle adapter (/target/court-bin/) ==="
+        mkdir -p /target/court-bin
+        g++ -o /target/court-bin/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -lm
         echo "=== Oracle adapter smoke test ==="
-        /workspace/.bin/rans_trace enc-symbol-init 0 10 14
+        /target/court-bin/rans_trace enc-symbol-init 0 10 14
         echo "=== Running cross-decoding court (byte + r64) ==="
         cd /workspace
         mkdir -p /reports/evidence && chmod 777 /reports/evidence
-        echo "--- Byte division ---"
-        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /workspace/.bin/rans_trace 12 42 20 2>&1
-        echo "--- 64-bit division ---"
-        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /workspace/.bin/rans_trace r64 12 42 20 2>&1
+        echo "--- Running all four courts once ---"
+        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /target/court-bin/rans_trace 12 42 20 2>&1
         echo "=== Cross-court evidence written to /reports ==="
         ls -la /reports/evidence/receipts/ 2>/dev/null || echo "(no evidence dir yet)"
         echo "=== Cross-court complete ==="
@@ -242,13 +249,15 @@ services:
       RUSTUP_HOME: /cargo/.rustup
       RUSTUP_DIST_SERVER: https://static.rust-lang.org
       MIRIFLAGS: "-Zmiri-disable-isolation"
-      TMPDIR: /target/.miri-tmp
+      TMPDIR: /cargo/.rustup-tmp
     command: >
       sh -c '
         set -e
-        mkdir -p "$$TMPDIR" /cargo/.rustup
-        echo "=== Installing nightly toolchain ==="
-        rustup toolchain install nightly-2025-11-25 --component miri --no-self-update 2>&1
+        mkdir -p /cargo/.rustup /cargo/.rustup-tmp
+        echo "=== Installing nightly toolchain (no docs) ==="
+        rustup toolchain install --no-self-update nightly-2025-11-25 2>&1
+        # Only add miri component; skip rust-docs to save disk space
+        rustup component add miri --toolchain nightly-2025-11-25 2>&1
         rustup target add x86_64-unknown-linux-gnu --toolchain nightly-2025-11-25 2>&1
         echo "=== Toolchain info ==="
         rustc --version
@@ -274,6 +283,7 @@ services:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
         target: /workspace
+        read_only: true
       - type: volume
         source: cargo-msrv
         target: /cargo
@@ -313,6 +323,7 @@ services:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
         target: /workspace
+        read_only: true
       - type: volume
         source: cargo-aarch64
         target: /cargo
@@ -360,12 +371,15 @@ services:
       - /tmp
     <<: *security-base
     labels: *project-labels
+    network_mode: none
     command: >
       sh -c '
         set -e
         echo "=== Running ASan oracle smoke test ==="
-        /usr/local/bin/rans_byte_asan < /dev/null 2>&1 | head -5 || true
-        /usr/local/bin/rans64_asan < /dev/null 2>&1 | head -5 || true
+        # Provide a minimal valid input so ASan-exercised execution runs
+        printf "test\n" > /tmp/asan-input.txt
+        /usr/local/bin/rans_byte_asan < /tmp/asan-input.txt 2>&1 | head -10
+        /usr/local/bin/rans64_asan < /tmp/asan-input.txt 2>&1 | head -10
         echo "=== ASan build OK ==="
       '
 
@@ -383,6 +397,7 @@ services:
       - type: bind
         source: ${DOCKER_ROOT}/source/${RUN_ID}
         target: /workspace
+        read_only: true
       - type: volume
         source: cargo-stable
         target: /cargo
@@ -397,9 +412,9 @@ services:
     command: >
       sh -c '
         set -e
-        echo "=== cargo bench --workspace ==="
-        cargo bench --workspace 2>&1 || echo "WARNING: cargo bench failed (expected if no benches exist)"
-        echo "=== Performance check complete ==="
+        echo "=== cargo bench --workspace (compile only) ==="
+        cargo bench --workspace --no-run 2>&1
+        echo "=== Performance compile check complete ==="
       '
 
 volumes:

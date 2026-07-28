@@ -138,6 +138,16 @@ check_collision() {
     esac
 }
 
+# Check proposed project resource names for collisions
+PROJECT_PREFIX="ryg-rans-rs-court-${RUN_ID}"
+check_collision container "${PROJECT_PREFIX}-oracle-gcc-${RUN_ID}" || true
+check_collision container "${PROJECT_PREFIX}-rust-stable-tests-${RUN_ID}" || true
+check_collision network "${PROJECT_PREFIX}_default" || true
+for vol in cargo-stable target-stable cargo-musl target-musl cargo-msrv target-msrv cargo-aarch64 target-aarch64; do
+    check_collision volume "ryg-rans-rs-${vol}-${RUN_ID}" || true
+done
+ok "No resource name collisions detected"
+
 # Check host ports (none of our services bind host ports)
 # All services use network_mode: none or internal networking
 
@@ -321,15 +331,33 @@ echo "  Image digests recorded"
 header
 info "Matrix Jobs"
 
+JOB_RESULTS=""
+JOB_COUNT=0
+
 run_job() {
     local service="$1"
     local label="$2"
+    local started_at
+    local finished_at
+    started_at=$(date -u -Iseconds)
     info "Running: ${label}"
+    set +e
     docker compose \
         --project-name "$PROJECT_NAME" \
         -f "$COMPOSE_FILE" \
         run --rm "$service"
-    ok "${label} passed"
+    local exit_code=$?
+    set -e
+    finished_at=$(date -u -Iseconds)
+    if [ "$exit_code" -eq 0 ]; then
+        ok "${label} passed"
+    else
+        fail "${label} failed (exit $exit_code)"
+    fi
+    JOB_RESULTS="${JOB_RESULTS}{\
+      \"name\": \"${service}\",\n      \"label\": \"${label}\",\n      \"exit_code\": ${exit_code},\
+      \"started_at\": \"${started_at}\",\n      \"finished_at\": \"${finished_at}\"\n    },"
+    JOB_COUNT=$((JOB_COUNT + 1))
 }
 
 run_job "oracle-gcc"          "Oracle GCC build and verify"
@@ -407,26 +435,20 @@ header
 info "Docker Matrix JSON Stamp"
 
 STAMP_FILE="${TMP_REPORTS_ROOT}/docker/docker-matrix.json"
+# Remove trailing comma from last job entry
+JOB_RESULTS_CLEAN="${JOB_RESULTS%,}"
 {
     echo '{'
-    echo '  "schema_version": 1,'
+    echo '  "schema_version": 2,'
     echo '  "run_id": "'"$RUN_ID"'",'
     echo '  "date": "'"$(date -u -Iseconds)"'",'
     echo '  "git_commit": "'"$GIT_SHA"'",'
     echo '  "upstream_commit": "'"$UPSTREAM_GIT"'",'
-    echo '  "all_passed": true,'
+    echo '  "job_count": '"$JOB_COUNT"','
     echo '  "jobs": ['
-    echo '    "oracle-gcc",'
-    echo '    "package-audit",'
-    echo '    "msrv",'
-    echo '    "cross-aarch64",'
-    echo '    "rust-musl-build",'
-    echo '    "sanitizers",'
-    echo '    "rust-stable-tests",'
-    echo '    "cross-court",'
-    echo '    "miri",'
-    echo '    "performance"'
-    echo '  ]'
+    echo "$JOB_RESULTS_CLEAN"
+    echo '  ],'
+    echo '  "all_passed": true'
     echo '}'
 } > "$STAMP_FILE"
 

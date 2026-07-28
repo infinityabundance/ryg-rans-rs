@@ -692,14 +692,10 @@ fn cmd_seal() -> Result<(), String> {
     check_forbid_unsafe("crates/ryg-rans-rs-casefile/src/lib.rs")?;
     println!("  casefile crate: has forbid(unsafe_code)");
 
-    // 7. Check Docker matrix evidence
+    // 7. Check Docker matrix evidence (mandatory)
     println!("Checking: Docker matrix evidence...");
-    if let Err(e) = check_docker_matrix() {
-        println!("  WARNING: Docker matrix not verified: {}", e);
-        println!("  (This is advisory for local development; release requires Docker matrix)");
-    } else {
-        println!("  Docker matrix: verified");
-    }
+    check_docker_matrix()?;
+    println!("  Docker matrix: verified");
 
     Ok(())
 }
@@ -727,7 +723,7 @@ fn check_docker_matrix() -> Result<(), String> {
     let json: serde_json::Value = serde_json::from_str(&content)
         .map_err(|e| format!("parse evidence/docker-matrix.json: {}", e))?;
 
-    // Validate required fields
+    // Validate required fields (schema v2)
     let run_id = json.get("run_id").and_then(|v| v.as_str()).unwrap_or("");
     let git_commit = json
         .get("git_commit")
@@ -737,11 +733,12 @@ fn check_docker_matrix() -> Result<(), String> {
         .get("all_passed")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
-    let job_count = json
+    let job_count = json.get("job_count").and_then(|v| v.as_u64()).unwrap_or(0);
+    let jobs = json
         .get("jobs")
         .and_then(|v| v.as_array())
-        .map(|a| a.len())
-        .unwrap_or(0);
+        .map(|a| a.as_slice())
+        .unwrap_or(&[]);
 
     if run_id.is_empty() {
         return Err("docker-matrix.json missing run_id".into());
@@ -754,6 +751,40 @@ fn check_docker_matrix() -> Result<(), String> {
     }
     if job_count == 0 {
         return Err("docker-matrix.json has zero jobs".into());
+    }
+    if job_count != 10 {
+        return Err(format!(
+            "docker-matrix.json job_count={} (expected 10)",
+            job_count
+        ));
+    }
+    if jobs.is_empty() {
+        return Err("docker-matrix.json has empty jobs array".into());
+    }
+    // Verify every expected job exists and exited 0
+    let expected_jobs = [
+        "oracle-gcc",
+        "package-audit",
+        "msrv",
+        "cross-aarch64",
+        "rust-musl-build",
+        "sanitizers",
+        "rust-stable-tests",
+        "cross-court",
+        "miri",
+        "performance",
+    ];
+    for expected in &expected_jobs {
+        let found = jobs.iter().any(|j| {
+            j.get("name").and_then(|n| n.as_str()) == Some(expected)
+                && j.get("exit_code").and_then(|c| c.as_i64()) == Some(0)
+        });
+        if !found {
+            return Err(format!(
+                "docker matrix job '{}' missing or had non-zero exit",
+                expected
+            ));
+        }
     }
     // Verify git_commit is an ancestor of HEAD
     let head_hash = get_git_head_hash();
