@@ -7,14 +7,99 @@
       "name": "Byte rANS (division-based)",
       "implementation_status": "implemented",
       "upstream_file": "rans_byte.h",
-      "functions": ["RansEncInit", "RansEncRenorm", "RansEncPut", "RansEncFlush", "RansDecInit", "RansDecGet", "RansDecAdvance"],
+      "functions": [
+        "RansEncInit",
+        "RansEncRenorm",
+        "RansEncPut",
+        "RansEncFlush",
+        "RansDecInit",
+        "RansDecGet",
+        "RansDecAdvance"
+      ],
       "claims": [
         {
           "profile": "SINGLE_STATE.UNIFORM256.S12",
           "behavior_status": "full",
           "performance_status": "unsealed",
-          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12",
-          "notes": "20 cases x 5 checks = 100/100. One state, uniform 256 symbols, scale=12, 1-64 byte inputs."
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.FREQ1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SKEWED.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SPARSE.2.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SPARSE.17.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.PRIME.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.RENORM.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.LENGTH.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.LENGTH.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S10",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S10"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S11",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S11"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S13",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S13"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S14",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S14"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S15",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S15"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S16",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.SCALE.SWEEP.S16"
         }
       ]
     },
@@ -23,14 +108,99 @@
       "name": "Byte rANS (reciprocal fast path)",
       "implementation_status": "implemented",
       "upstream_file": "rans_byte.h",
-      "functions": ["RansEncSymbolInit", "RansEncPutSymbol", "RansDecSymbolInit", "RansDecAdvanceSymbol", "RansDecAdvanceStep", "RansDecAdvanceSymbolStep", "RansDecRenorm"],
+      "functions": [
+        "RansEncSymbolInit",
+        "RansEncPutSymbol",
+        "RansDecSymbolInit",
+        "RansDecAdvanceSymbol",
+        "RansDecAdvanceStep",
+        "RansDecAdvanceSymbolStep",
+        "RansDecRenorm"
+      ],
       "claims": [
         {
           "profile": "SINGLE_STATE.UNIFORM256.S12",
           "behavior_status": "full",
           "performance_status": "unsealed",
-          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12",
-          "notes": "20 cases x 5 checks = 100/100. One state, uniform 256 symbols, scale=12."
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.FREQ1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SKEWED.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SPARSE.2.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SPARSE.17.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.PRIME.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.RENORM.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.LENGTH.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.LENGTH.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S10",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S10"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S11",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S11"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S13",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S13"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S14",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S14"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S15",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S15"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S16",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S16"
         }
       ]
     },
@@ -40,22 +210,154 @@
       "implementation_status": "implemented",
       "upstream_file": "main.cpp",
       "functions": [],
-      "claims": [],
-      "notes": "Rust implementation exists. No interleaved cross-decoding court has been run."
+      "claims": [
+        {
+          "profile": "INTERLEAVED2.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.INTERLEAVED2.UNIFORM256.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.FREQ1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.INTERLEAVED2.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SKEWED.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.INTERLEAVED2.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.INTERLEAVED2.SPARSE.2.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.INTERLEAVED2.SPARSE.17.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.PRIME.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.INTERLEAVED2.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.RENORM.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.INTERLEAVED2.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.LENGTH.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.BYTE.DIVISION.INTERLEAVED2.LENGTH.BOUNDARY.S12"
+        }
+      ]
     },
     {
       "id": "rans64.division",
       "name": "64-bit rANS (division-based)",
       "implementation_status": "implemented",
       "upstream_file": "rans64.h",
-      "functions": ["Rans64EncInit", "Rans64EncPut", "Rans64EncFlush", "Rans64DecInit", "Rans64DecGet", "Rans64DecAdvance"],
+      "functions": [
+        "Rans64EncInit",
+        "Rans64EncPut",
+        "Rans64EncFlush",
+        "Rans64DecInit",
+        "Rans64DecGet",
+        "Rans64DecAdvance"
+      ],
       "claims": [
         {
           "profile": "SINGLE_STATE.UNIFORM256.S12",
           "behavior_status": "full",
           "performance_status": "unsealed",
-          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12",
-          "notes": "20 cases x 5 checks = 100/100. 64-bit word format, uniform 256, scale=12."
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.FREQ1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SKEWED.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SPARSE.2.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SPARSE.17.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.PRIME.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.RENORM.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.LENGTH.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.LENGTH.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S10",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S10"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S11",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S11"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S13",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S13"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S14",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S14"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S15",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S15"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S16",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.SCALE.SWEEP.S16"
         }
       ]
     },
@@ -64,25 +366,159 @@
       "name": "64-bit rANS (reciprocal fast path)",
       "implementation_status": "implemented",
       "upstream_file": "rans64.h",
-      "functions": ["Rans64EncSymbolInit", "Rans64EncPutSymbol", "Rans64DecSymbolInit", "Rans64DecAdvanceSymbol", "Rans64DecAdvanceStep", "Rans64DecAdvanceSymbolStep", "Rans64DecRenorm", "Rans64MulHi"],
+      "functions": [
+        "Rans64EncSymbolInit",
+        "Rans64EncPutSymbol",
+        "Rans64DecSymbolInit",
+        "Rans64DecAdvanceSymbol",
+        "Rans64DecAdvanceStep",
+        "Rans64DecAdvanceSymbolStep",
+        "Rans64DecRenorm",
+        "Rans64MulHi"
+      ],
       "claims": [
         {
           "profile": "SINGLE_STATE.UNIFORM256.S12",
           "behavior_status": "full",
           "performance_status": "unsealed",
-          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12",
-          "notes": "20 cases x 5 checks = 100/100. 64-bit word format, uniform 256, scale=12."
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.FREQ1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SKEWED.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SPARSE.2.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SPARSE.17.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.PRIME.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.RENORM.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.LENGTH.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.LENGTH.BOUNDARY.S12"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S10",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S10"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S11",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S11"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S13",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S13"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S14",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S14"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S15",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S15"
+        },
+        {
+          "profile": "SINGLE_STATE.SCALE.SWEEP.S16",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.SCALE.SWEEP.S16"
         }
       ]
     },
     {
       "id": "rans64.interleaved",
       "name": "64-bit rANS (two-state interleaved)",
-      "implementation_status": "partial",
+      "implementation_status": "implemented",
       "upstream_file": "main64.cpp",
       "functions": [],
-      "claims": [],
-      "notes": "Primitive step+renorm operations exist. No full interleaving abstraction."
+      "claims": [
+        {
+          "profile": "INTERLEAVED2.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.INTERLEAVED2.UNIFORM256.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.FREQ1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.INTERLEAVED2.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SKEWED.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.INTERLEAVED2.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.INTERLEAVED2.SPARSE.2.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.SPARSE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.INTERLEAVED2.SPARSE.17.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.PRIME.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.INTERLEAVED2.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.RENORM.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.INTERLEAVED2.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED2.LENGTH.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.R64.DIVISION.INTERLEAVED2.LENGTH.BOUNDARY.S12"
+        }
+      ]
     },
     {
       "id": "word.scalar",

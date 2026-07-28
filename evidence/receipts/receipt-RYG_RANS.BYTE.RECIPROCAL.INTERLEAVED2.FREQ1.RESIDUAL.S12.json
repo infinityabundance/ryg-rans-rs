@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.BYTE.RECIPROCAL.INTERLEAVED2.FREQ1.RESIDUAL.S12",
+  "court_path": "RECIPROCAL",
+  "variant": "byte_interleaved2",
+  "profile": "FREQ1.RESIDUAL",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "22b6bc659ad21c7631d0c6d2b49b7ab98a1df572",
+  "pairs_compared": 100,
+  "pairs_matched": 100,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "4a24610e74e914af0269e25df67af4eb93754eb3851c10e82dd5a5d6ab046abc",
+  "receipt_sha256": "a0b394fd796477a549eb60130a359b461a51053687c7fe10ce3f0165808bfbf9",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_full 12 42 20",
+  "oracle_compiler": "g++ -O3"
+}

@@ -183,18 +183,20 @@ fn build_court_configs() -> Vec<FullConfig> {
         }
     }
 
-    // Interleaved2: byte only (R64 interleaving not yet implemented in core)
-    for &path in &paths {
-        for &profile in &profiles {
-            if profile == ModelProfile::ScaleSweep {
-                continue;
+    // Interleaved2: byte and R64 interleaved courts
+    for &variant in &variants {
+        for &path in &paths {
+            for &profile in &profiles {
+                if profile == ModelProfile::ScaleSweep {
+                    continue;
+                }
+                configs.push(FullConfig {
+                    variant,
+                    path,
+                    profile,
+                    mode: CourtMode::Interleaved2,
+                });
             }
-            configs.push(FullConfig {
-                variant: "byte",
-                path,
-                profile,
-                mode: CourtMode::Interleaved2,
-            });
         }
     }
 

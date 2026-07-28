@@ -1023,25 +1023,33 @@ static void trace_enc_stream_byte_interleaved2(uint32_t scale_bits,
            RansEncSymbolInit(&esyms[i], cum_freqs[i], freqs[i], scale_bits);
        }
    }
-   // Encode with two interleaved states
+   // Encode with two interleaved states using proven pair-based pattern
+   // matching the core crate's ByteInterleavedEncoder::encode_reverse:
+   //   odd tail to state0, pairs (i-1→state1, i-2→state0) in reverse.
    uint8_t buf[64 * 1024];
    uint8_t* ptr = buf + sizeof(buf);
    RansState state0, state1;
    RansEncInit(&state0);
    RansEncInit(&state1);
    int count = (int)input.size();
-   for (int i = count - 1; i >= 0; i--) {
-       int s = input[i];
-       // Alternate: even indices to state0, odd to state1
-       if ((count - 1 - i) % 2 == 0) {
-           RansEncPutSymbol(&state0, &ptr, &esyms[s]);
-       } else {
-           RansEncPutSymbol(&state1, &ptr, &esyms[s]);
-       }
+   // Handle odd length: last symbol to state0
+   if (count & 1) {
+       int s = input[count - 1];
+       RansEncPutSymbol(&state0, &ptr, &esyms[s]);
    }
-   // Flush in order: state0 then state1 (matching Rust interleaved flush)
-   RansEncFlush(&state0, &ptr);
+   // Process pairs in reverse: s1→state1, s0→state0
+   for (int i = count & ~1; i > 0; i -= 2) {
+       int s1 = input[i - 1];
+       int s0 = input[i - 2];
+       RansEncPutSymbol(&state1, &ptr, &esyms[s1]);
+       RansEncPutSymbol(&state0, &ptr, &esyms[s0]);
+   }
+   // Flush state1 then state0 — reverse of decode init order.
+   // This places state0's flush value first in the stream so the first
+   // dec_init reads state0 (which decoded even indices, matching the
+   // interleaved encode pattern where the last symbol goes to state0).
    RansEncFlush(&state1, &ptr);
+   RansEncFlush(&state0, &ptr);
    size_t comp_size = sizeof(buf) - (ptr - buf);
    // Self-decode removed — the Rust oracle crate handles cross-decoding.
    // The C oracle only provides the compressed stream.
@@ -1081,16 +1089,21 @@ static void trace_enc_stream_r64_interleaved2(uint32_t scale_bits,
    Rans64EncInit(&state0);
    Rans64EncInit(&state1);
    int count = (int)input.size();
-   for (int i = count - 1; i >= 0; i--) {
-       int s = input[i];
-       if ((count - 1 - i) % 2 == 0) {
-           Rans64EncPutSymbol(&state0, &ptr, &esyms[s], scale_bits);
-       } else {
-           Rans64EncPutSymbol(&state1, &ptr, &esyms[s], scale_bits);
-       }
+   // Handle odd length: last symbol to state0
+   if (count & 1) {
+       int s = input[count - 1];
+       Rans64EncPutSymbol(&state0, &ptr, &esyms[s], scale_bits);
    }
-   Rans64EncFlush(&state0, &ptr);
+   // Process pairs in reverse: s1→state1, s0→state0
+   for (int i = count & ~1; i > 0; i -= 2) {
+       int s1 = input[i - 1];
+       int s0 = input[i - 2];
+       Rans64EncPutSymbol(&state1, &ptr, &esyms[s1], scale_bits);
+       Rans64EncPutSymbol(&state0, &ptr, &esyms[s0], scale_bits);
+   }
+   // Flush state1 then state0 (matching byte interleaved flush order)
    Rans64EncFlush(&state1, &ptr);
+   Rans64EncFlush(&state0, &ptr);
    size_t comp_words = (size_t)((buf + sizeof(buf) / sizeof(buf[0])) - ptr);
    size_t comp_size = comp_words * sizeof(uint32_t);
    // Self-decode removed — the Rust oracle crate handles cross-decoding.

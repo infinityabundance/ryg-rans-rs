@@ -476,7 +476,60 @@ fn cmd_seal() -> Result<(), String> {
     }
     println!("  all cited receipts: present and verified");
 
-    // 5c. Load evidence index
+    // 5c. Reverse check: every index receipt is cited exactly once in the parity model
+    println!("Checking: every index receipt cited in parity model...");
+    let index_path_pre = std::path::Path::new("evidence/index.json");
+    let index_content_pre =
+        std::fs::read_to_string(index_path_pre).map_err(|e| format!("read index.json: {}", e))?;
+    let index_pre: serde_json::Value =
+        serde_json::from_str(&index_content_pre).map_err(|e| format!("parse index.json: {}", e))?;
+    let index_receipts_pre = index_pre
+        .get("receipts")
+        .and_then(|r| r.as_array())
+        .map(|a| a.clone())
+        .unwrap_or_default();
+    // Collect all cited receipt IDs from parity model
+    let mut cited_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+    if let Some(surfaces) = parity.get("surfaces").and_then(|s| s.as_array()) {
+        for surface in surfaces {
+            if let Some(claims) = surface.get("claims").and_then(|c| c.as_array()) {
+                for claim in claims {
+                    if let Some(rid) = claim.get("receipt").and_then(|s| s.as_str()) {
+                        if !rid.is_empty() {
+                            cited_ids.insert(rid.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for entry in &index_receipts_pre {
+        if let Some(cid) = entry.get("court_id").and_then(|s| s.as_str()) {
+            if !cited_ids.contains(cid) {
+                return Err(format!(
+                    "evidence index receipt '{}' is not cited by parity.model.json",
+                    cid
+                ));
+            }
+        }
+    }
+    println!(
+        "  all {} index receipts cited in parity model",
+        index_receipts_pre.len()
+    );
+
+    // 5d. Load evidence index
+    let index_path = std::path::Path::new("evidence/index.json");
+    let index_content =
+        std::fs::read_to_string(index_path).map_err(|e| format!("read index.json: {}", e))?;
+    let index: serde_json::Value =
+        serde_json::from_str(&index_content).map_err(|e| format!("parse index.json: {}", e))?;
+    let index_receipts = index
+        .get("receipts")
+        .and_then(|r| r.as_array())
+        .map(|a| a.as_slice())
+        .unwrap_or(&[]);
+    println!("  index entries: {}", index_receipts.len());
     println!("Checking: evidence index...");
     let index_path = std::path::Path::new("evidence/index.json");
     let index_content = if index_path.exists() {

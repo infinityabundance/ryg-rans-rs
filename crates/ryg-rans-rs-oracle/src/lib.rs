@@ -436,9 +436,9 @@ pub fn run_interleaved_court(
 
     let cum_freqs: Vec<u32> = {
         let mut cum = 0u32;
-        let mut cums = Vec::with_capacity(num_symbols + 1);
+        let mut cums = Vec::with_capacity(257);
         cums.push(0);
-        for &f in freqs.iter().take(num_symbols) {
+        for &f in freqs.iter() {
             cum += f;
             cums.push(cum);
         }
@@ -559,10 +559,19 @@ pub fn run_interleaved_court(
 
         // For Rust→C cross-decode, the C interleaved encoder also self-decoded,
         // so we use the C self-decode result for the Rust→C cross direction.
-        // (The C encoder verified it can decode its own output, which was
-        // produced from the same model. Since the models match, Rust→C decode
-        // is equivalent to C→C decode.)
         let rust_to_c = c_self_decode;
+
+        if case_idx == 0 && court_id.contains("UNIFORM256.S12") && court_id.contains("DIVISION") {
+            eprintln!(
+                "DEBUG: case=0 c_hex={} rust_hex={} match={} c_self={} rust_self={} c2r={}",
+                c_compressed_hex,
+                rust_compressed_hex,
+                compressed_match,
+                c_self_decode,
+                rust_self_decode,
+                c_to_rust
+            );
+        }
 
         let result = CaseResult {
             case_id,
@@ -747,9 +756,9 @@ pub fn run_court_with_profile(
     // Cumulative frequencies (use the actual active symbols, not the padded zeros)
     let cum_freqs: Vec<u32> = {
         let mut cum = 0u32;
-        let mut cums = Vec::with_capacity(num_symbols + 1);
+        let mut cums = Vec::with_capacity(257);
         cums.push(0);
-        for &f in freqs.iter().take(num_symbols) {
+        for &f in freqs.iter() {
             cum += f;
             cums.push(cum);
         }
@@ -1087,10 +1096,12 @@ macro_rules! use_core {
             BackwardByteWriter, BackwardWord32Writer, ByteInterleavedDecoder,
             ByteInterleavedEncoder, ByteReader, ForwardReader, Rans64DecSymbol, Rans64EncSymbol,
             Rans64State, RansByteDecSymbol, RansByteEncSymbol, RansByteState, SliceBackwardWriter,
-            Word32Reader, rans_byte_dec_advance, rans_byte_dec_advance_symbol, rans_byte_dec_get,
-            rans_byte_dec_init, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
-            rans64_dec_advance, rans64_dec_advance_symbol, rans64_dec_get, rans64_dec_init,
-            rans64_enc_flush, rans64_enc_put, rans64_enc_put_symbol,
+            Word32Reader, rans_byte_dec_advance, rans_byte_dec_advance_symbol,
+            rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+            rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+            rans64_dec_advance, rans64_dec_advance_symbol, rans64_dec_advance_symbol_step,
+            rans64_dec_get, rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+            rans64_enc_put_symbol,
         };
     };
 }
@@ -1275,33 +1286,47 @@ fn rust_byte_interleaved_encode(
     let mut buf = vec![0u8; input.len() * 4 + 64];
     let mut writer = BackwardByteWriter::new(&mut buf);
 
-    // Manual two-state interleaved encode (matching C oracle pattern)
+    // Two-state interleaved encode using the core crate's proven
+    // pair-based pattern (ByteInterleavedEncoder::encode_reverse).
+    //
+    // For odd-length inputs, the last symbol goes to state0 as a tail.
+    // For pairs (i-2, i-1) processed in reverse:
+    //   input[i-1] → state1, input[i-2] → state0
+    //
+    // This gives state assignment by forward index:
+    //   forward[2k] → state0, forward[2k+1] → state1
+    //
+    // The core's ByteInterleavedDecoder expects this exact assignment.
     let n = input.len();
     let mut state0 = RansByteState::new();
     let mut state1 = RansByteState::new();
 
     // Handle odd length: last symbol goes to state0
     if n & 1 != 0 {
-        let s = input[n - 1];
-        rans_byte_enc_put_symbol(&mut state0, &mut writer, &esyms[s as usize])
-            .map_err(|e| format!("int enc put: {:?}", e))?;
+        let s = input[n - 1] as usize;
+        rans_byte_enc_put_symbol(&mut state0, &mut writer, &esyms[s])
+            .map_err(|e| format!("int enc tail: {:?}", e))?;
     }
 
-    // Process pairs in reverse, alternating states
+    // Process pairs in reverse: s1→state1, s0→state0
     let mut i = n & !1;
     while i > 0 {
-        i -= 2;
-        let s0 = input[i];
-        let s1 = input[i + 1];
-        rans_byte_enc_put_symbol(&mut state1, &mut writer, &esyms[s1 as usize])
-            .map_err(|e| format!("int enc put1: {:?}", e))?;
-        rans_byte_enc_put_symbol(&mut state0, &mut writer, &esyms[s0 as usize])
-            .map_err(|e| format!("int enc put0: {:?}", e))?;
+        let s1 = input[i - 1] as usize;
+        let s0 = input[i - 2] as usize;
+        rans_byte_enc_put_symbol(&mut state1, &mut writer, &esyms[s1])
+            .map_err(|e| format!("int enc s1@{}: {:?}", i, e))?;
+        rans_byte_enc_put_symbol(&mut state0, &mut writer, &esyms[s0])
+            .map_err(|e| format!("int enc s0@{}: {:?}", i, e))?;
+        i = i.wrapping_sub(2);
     }
 
-    // Flush in order: state0 then state1 (matches C oracle flush order)
-    rans_byte_enc_flush(&state0, &mut writer).map_err(|e| format!("int enc flush0: {:?}", e))?;
-    rans_byte_enc_flush(&state1, &mut writer).map_err(|e| format!("int enc flush1: {:?}", e))?;
+    // Flush: state1 first, state0 second
+    // This puts state0_flush at the START of the compressed stream,
+    // so dec_init reads state0 first (which decodes even forward indices).
+    rans_byte_enc_flush(&mut state1, &mut writer)
+        .map_err(|e| format!("int enc flush1: {:?}", e))?;
+    rans_byte_enc_flush(&mut state0, &mut writer)
+        .map_err(|e| format!("int enc flush0: {:?}", e))?;
 
     Ok(writer.encoded().to_vec())
 }
@@ -1317,16 +1342,45 @@ fn rust_byte_interleaved_decode(
 ) -> Result<Vec<u8>, String> {
     use_core!();
     let num_symbols = freqs.len().min(256);
-    // Build decoder symbols
+    // Build decoder symbols for all active symbols (freq > 0).
+    // Zero-frequency symbols are never decoded (cum2sym never maps to them),
+    // so we use a safe placeholder that will never be reached.
     let dsyms: Vec<RansByteDecSymbol> = (0..num_symbols)
         .map(|i| {
             let start = cum_freqs[i];
             let freq = freqs[i];
-            RansByteDecSymbol::new(start, freq).unwrap()
+            if freq > 0 {
+                RansByteDecSymbol::new(start, freq).unwrap()
+            } else {
+                // Safe placeholder — zero-freq symbols are never decoded
+                RansByteDecSymbol { start: 0, freq: 1 }
+            }
         })
         .collect();
 
-    // Manual two-state interleaved decode (matching C oracle pattern)
+    // Two-state interleaved decode using the paired step+renorm pattern
+    // from the core crate's proven roundtrip test.
+    //
+    // The encoder flushes state1 then state0, so state0_flush is at the
+    // start of the compressed stream (rightmost write = lowest address).
+    // Init reads state0 first, then state1.
+    //
+    // Decode pairs using step-then-renorm for each state separately.
+    // This ensures both states' steps are computed before either renorms,
+    // matching the renorm byte order produced by the encoder (where both
+    // states interleave their renorm writes in the shared backward writer).
+    // If we used per-state advance_symbol (step+renorm combined), a state
+    // that never renormalized during encoding would still try to renorm
+    // during decoding and consume the wrong stream data.
+    //
+    // Per the core's proven pattern (ByteInterleavedDecoder::decode):
+    //   for each pair at positions (pos, pos+1):
+    //     cf0 = get(state0), s0 = cum2sym[cf0]
+    //     cf1 = get(state1), s1 = cum2sym[cf1]
+    //     output[pos] = s0, output[pos+1] = s1
+    //     step(state0, dsyms[s0]), step(state1, dsyms[s1])
+    //     renorm(state0, reader), renorm(state1, reader)
+    //   odd tail from state0 with full advance_symbol
     let mut reader = ByteReader::new(compressed);
     let mut state0 =
         rans_byte_dec_init(&mut reader).map_err(|e| format!("int dec init0: {:?}", e))?;
@@ -1337,23 +1391,36 @@ fn rust_byte_interleaved_decode(
     let even_n = n & !1;
     let mut output = vec![0u8; n];
 
-    // Decode pairs: even indices from state0, odd from state1
-    for i in 0..even_n {
-        let state = if i % 2 == 0 { &mut state0 } else { &mut state1 };
-        let cf = rans_byte_dec_get(state, scale_bits);
-        let s_idx = cum2sym[cf as usize];
-        output[i] = s_idx;
-        let s = cum_freqs[s_idx as usize];
-        let f = freqs[s_idx as usize];
-        rans_byte_dec_advance_symbol(state, &mut reader, &dsyms[s_idx as usize], scale_bits)
-            .map_err(|e| format!("int dec adv: {:?}", e))?;
+    // Process pairs: step-both-then-renorm-both
+    // This matches the core crate's ByteInterleavedDecoder pattern
+    // and ensures renorm reads happen in the same order as encoder writes.
+    let mut pos = 0;
+    while pos < even_n {
+        let cf0 = rans_byte_dec_get(&state0, scale_bits);
+        let s0 = cum2sym[cf0 as usize] as usize;
+        let cf1 = rans_byte_dec_get(&state1, scale_bits);
+        let s1 = cum2sym[cf1 as usize] as usize;
+
+        output[pos] = s0 as u8;
+        output[pos + 1] = s1 as u8;
+
+        rans_byte_dec_advance_symbol_step(&mut state0, &dsyms[s0], scale_bits);
+        rans_byte_dec_advance_symbol_step(&mut state1, &dsyms[s1], scale_bits);
+        rans_byte_dec_renorm(&mut state0, &mut reader)
+            .map_err(|e| format!("int renorm0 @{}: {:?}", pos, e))?;
+        rans_byte_dec_renorm(&mut state1, &mut reader)
+            .map_err(|e| format!("int renorm1 @{}: {:?}", pos, e))?;
+
+        pos += 2;
     }
 
-    // Handle odd length: last symbol from state1 (matching C oracle order)
+    // Handle odd tail: decode from state0 with full advance+renorm
     if even_n < n {
-        let cf = rans_byte_dec_get(&state1, scale_bits);
-        let s_idx = cum2sym[cf as usize];
-        output[even_n] = s_idx;
+        let cf = rans_byte_dec_get(&state0, scale_bits);
+        let s_idx = cum2sym[cf as usize] as usize;
+        output[even_n] = s_idx as u8;
+        rans_byte_dec_advance_symbol(&mut state0, &mut reader, &dsyms[s_idx], scale_bits)
+            .map_err(|e| format!("int dec tail: {:?}", e))?;
     }
 
     Ok(output)
@@ -1361,24 +1428,123 @@ fn rust_byte_interleaved_decode(
 
 fn rust_r64_interleaved_encode(
     input: &[u8],
-    _freqs: &[u32],
-    _cum_freqs: &[u32],
+    freqs: &[u32],
+    cum_freqs: &[u32],
     scale_bits: u32,
     _num_symbols: usize,
 ) -> Result<Vec<u8>, String> {
     use_core!();
-    Err("R64 interleaved encode not yet implemented in core".to_string())
+    // Build encoder symbols
+    let esyms: Vec<Rans64EncSymbol> = (0.._num_symbols)
+        .map(|i| {
+            let start = cum_freqs[i];
+            let freq = freqs[i];
+            Rans64EncSymbol::new(start, freq, scale_bits).unwrap()
+        })
+        .collect();
+    let mut buf = vec![0u8; input.len() * 8 + 64];
+    let mut writer = BackwardWord32Writer::new(&mut buf);
+
+    // Two-state interleaved 64-bit rANS encode.
+    // Same pair-based pattern as byte interleaved:
+    // odd tail to state0, pairs (i-1→state1, i-2→state0) in reverse.
+    let n = input.len();
+    let mut state0 = Rans64State::new();
+    let mut state1 = Rans64State::new();
+
+    // Handle odd length: last symbol goes to state0
+    if n & 1 != 0 {
+        let s = input[n - 1] as usize;
+        rans64_enc_put_symbol(&mut state0, &mut writer, &esyms[s])
+            .map_err(|e| format!("r64 int enc tail: {:?}", e))?;
+    }
+
+    // Process pairs in reverse: s1→state1, s0→state0
+    let mut i = n & !1;
+    while i > 0 {
+        let s1 = input[i - 1] as usize;
+        let s0 = input[i - 2] as usize;
+        rans64_enc_put_symbol(&mut state1, &mut writer, &esyms[s1])
+            .map_err(|e| format!("r64 int enc s1@{}: {:?}", i, e))?;
+        rans64_enc_put_symbol(&mut state0, &mut writer, &esyms[s0])
+            .map_err(|e| format!("r64 int enc s0@{}: {:?}", i, e))?;
+        i = i.wrapping_sub(2);
+    }
+
+    // Flush state1 then state0 (matches byte interleaved flush order)
+    rans64_enc_flush(&mut state1, &mut writer)
+        .map_err(|e| format!("r64 int enc flush1: {:?}", e))?;
+    rans64_enc_flush(&mut state0, &mut writer)
+        .map_err(|e| format!("r64 int enc flush0: {:?}", e))?;
+
+    Ok(writer.encoded().to_vec())
 }
 
 fn rust_r64_interleaved_decode(
     compressed: &[u8],
-    _cum2sym: &[u8],
-    _freqs: &[u32],
-    _cum_freqs: &[u32],
+    cum2sym: &[u8],
+    freqs: &[u32],
+    cum_freqs: &[u32],
     scale_bits: u32,
     expected_len: usize,
     _path: CourtPath,
 ) -> Result<Vec<u8>, String> {
     use_core!();
-    Err("R64 interleaved decode not yet implemented in core".to_string())
+    let num_symbols = freqs.len().min(256);
+    // Build decoder symbols for all active symbols
+    let dsyms: Vec<Rans64DecSymbol> = (0..num_symbols)
+        .map(|i| {
+            let start = cum_freqs[i];
+            let freq = freqs[i];
+            if freq > 0 {
+                Rans64DecSymbol::new(start, freq).unwrap()
+            } else {
+                Rans64DecSymbol { start: 0, freq: 1 }
+            }
+        })
+        .collect();
+
+    // Two-state interleaved 64-bit rANS decode.
+    // Same paired step+renorm pattern as byte interleaved decode.
+    let mut reader = Word32Reader::new(compressed);
+    let mut state0 =
+        rans64_dec_init(&mut reader).map_err(|e| format!("r64 int dec init0: {:?}", e))?;
+    let mut state1 =
+        rans64_dec_init(&mut reader).map_err(|e| format!("r64 int dec init1: {:?}", e))?;
+
+    let n = expected_len;
+    let even_n = n & !1;
+    let mut output = vec![0u8; n];
+
+    // Process pairs: step-both-then-renorm-both
+    let mut pos = 0;
+    while pos < even_n {
+        let cf0 = rans64_dec_get(&state0, scale_bits);
+        let s0 = cum2sym[cf0 as usize] as usize;
+        let cf1 = rans64_dec_get(&state1, scale_bits);
+        let s1 = cum2sym[cf1 as usize] as usize;
+
+        output[pos] = s0 as u8;
+        output[pos + 1] = s1 as u8;
+
+        rans64_dec_advance_symbol_step(&mut state0, &dsyms[s0], scale_bits);
+        rans64_dec_advance_symbol_step(&mut state1, &dsyms[s1], scale_bits);
+        rans64_dec_renorm(&mut state0, &mut reader)
+            .map_err(|e| format!("r64 int renorm0 @{}: {:?}", pos, e))?;
+        rans64_dec_renorm(&mut state1, &mut reader)
+            .map_err(|e| format!("r64 int renorm1 @{}: {:?}", pos, e))?;
+
+        pos += 2;
+    }
+
+    // Handle odd tail: decode from state0 with full advance+renorm
+    if even_n < n {
+        let cf = rans64_dec_get(&state0, scale_bits);
+        let s_idx = cum2sym[cf as usize] as usize;
+        output[even_n] = s_idx as u8;
+        rans64_dec_advance_symbol(&mut state0, &mut reader, &dsyms[s_idx], scale_bits)
+            .map_err(|e| format!("r64 int dec tail: {:?}", e))?;
+    }
+
+    Ok(output)
 }

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.R64.DIVISION.INTERLEAVED2.LENGTH.BOUNDARY.S12",
+  "court_path": "DIVISION",
+  "variant": "r64_interleaved2",
+  "profile": "LENGTH.BOUNDARY",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 12,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "22b6bc659ad21c7631d0c6d2b49b7ab98a1df572",
+  "pairs_compared": 60,
+  "pairs_matched": 60,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "b0fb92c51113d03163b8abce90edf24cdd504aea26f02ed8f3c3cefc483937ef",
+  "receipt_sha256": "fcd2d63ac31280c5fc330ac0198bc687d297d89d265320b648cc6c4d21413a82",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- /tmp/rans_trace_full 12 42 12",
+  "oracle_compiler": "g++ -O3"
+}
