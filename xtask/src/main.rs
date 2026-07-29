@@ -709,7 +709,7 @@ fn cmd_seal() -> Result<(), String> {
             "reproduction_command": r_json.get("reproduction_command"),
             "oracle_compiler": r_json.get("oracle_compiler"),
         });
-        let canonical_str = serde_json::to_string_pretty(&canonical)
+        let canonical_str = serde_json::to_string(&canonical)
             .map_err(|e| format!("canonical {}: {}", r_path, e))?;
         let computed = {
             use sha2::Digest;
