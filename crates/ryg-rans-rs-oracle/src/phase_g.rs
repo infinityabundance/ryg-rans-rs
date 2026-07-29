@@ -59,6 +59,7 @@ pub struct Avx512Manifest {
     pub seed: u64,
     pub num_cases: usize,
     pub cases: Vec<Avx512CaseResult>,
+    #[serde(skip)]
     pub manifest_sha256: String,
 }
 
