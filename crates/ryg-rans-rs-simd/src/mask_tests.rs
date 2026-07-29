@@ -1,16 +1,18 @@
-//! # Exhaustive renormalization mask tests
+//! # Exhaustive renormalization mask-construction enumeration
 //!
 //! Tests every possible 8-lane mask (256) and 16-lane mask (65536)
-//! by directly computing the renormalization mask from state vectors
-//! using the same SIMD comparison primitives as the decode kernels.
+//! by constructing states that would produce each mask and verifying
+//! the mask computation logic via scalar comparison.
+//!
+//! This tests the mask-construction logic (which lanes need renorm)
+//! but does NOT test the actual AVX-512 SIMD renormalizer machinery.
+//! To test the SIMD renormalizer directly, the renormalization kernels
+//! would need to be extracted as standalone testable functions — this
+//! is deferred to a future phase.
 //!
 //! For each mask we verify:
-//! - Observed mask == requested mask
-//! - Words consumed == popcount(mask)
-//! - Active lanes receive words in ascending lane order
-//! - Inactive lanes remain unchanged
-//! - Exact input succeeds
-//! - One-word-short input fails
+//! - Observed mask == requested mask (via scalar comparison)
+//! - Words needed == popcount(mask)
 //!
 //! Run with `--release` for acceptable speed on the 16-way exhaustive test:
 //! ```sh
