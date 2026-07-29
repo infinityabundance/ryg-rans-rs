@@ -1,6 +1,6 @@
 //! # AVX-512 Word rANS decode kernels
 
-#![cfg(any(target_feature = "avx512bw", feature = "std"))]
+#![cfg(target_feature = "avx512bw")]
 //!
 //! This module is conditionally compiled — its content is only present when the
 //! target supports AVX-512BW at compile time or when the `std` feature is enabled.

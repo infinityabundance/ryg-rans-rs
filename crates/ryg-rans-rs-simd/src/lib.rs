@@ -12,15 +12,15 @@ use core::arch::x86_64::*;
 
 pub mod avx512;
 pub mod backends;
-#[cfg(any(target_feature = "avx512bw", feature = "std"))]
+#[cfg(target_feature = "avx512bw")]
 pub mod model_kernels;
 pub mod packed_table;
 
-#[cfg(all(test, any(target_feature = "avx512bw", feature = "std")))]
+#[cfg(all(test, target_feature = "avx512bw"))]
 pub mod malformed_input_tests;
-#[cfg(all(test, any(target_feature = "avx512bw", feature = "std")))]
+#[cfg(all(test, target_feature = "avx512bw"))]
 pub mod mask_tests;
-#[cfg(all(test, any(target_feature = "avx512bw", feature = "std")))]
+#[cfg(all(test, target_feature = "avx512bw"))]
 pub mod optimization_tests;
 
 // ---------------------------------------------------------------------------

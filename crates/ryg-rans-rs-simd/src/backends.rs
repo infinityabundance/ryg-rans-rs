@@ -265,14 +265,14 @@ pub unsafe fn decode_interleaved8_avx512vl_into(
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             let report =
                 crate::avx512::decode_interleaved8_avx512vl_into(compressed, table, output)
                     .map_err(|_| DecodeError::InputTooShort)?;
             Ok(report)
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        #[cfg(not(target_feature = "avx512bw"))]
         {
             Err(DecodeError::UnsupportedBackend)
         }
@@ -286,7 +286,7 @@ pub unsafe fn decode_interleaved8_manual_gather(
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             let (output, report) = crate::avx512::decode_interleaved8_manual_gather_kernel(
                 compressed,
@@ -300,7 +300,7 @@ pub unsafe fn decode_interleaved8_manual_gather(
                 backend: DecodeBackend::Avx512VlManualGather8,
             })
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        #[cfg(not(target_feature = "avx512bw"))]
         {
             Err(DecodeError::UnsupportedBackend)
         }
@@ -314,12 +314,12 @@ pub unsafe fn decode_interleaved8_manual_gather_into(
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             crate::avx512::decode_interleaved8_manual_gather_into(compressed, table, output)
                 .map_err(|_| DecodeError::InputTooShort)
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        #[cfg(not(target_feature = "avx512bw"))]
         {
             Err(DecodeError::UnsupportedBackend)
         }
@@ -333,7 +333,7 @@ pub unsafe fn decode_interleaved16_manual_gather(
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             let (output, report) = crate::avx512::decode_interleaved16_manual_gather_kernel(
                 compressed,
@@ -347,7 +347,7 @@ pub unsafe fn decode_interleaved16_manual_gather(
                 backend: DecodeBackend::Avx512ManualGather16,
             })
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        #[cfg(not(target_feature = "avx512bw"))]
         {
             Err(DecodeError::UnsupportedBackend)
         }
@@ -361,12 +361,12 @@ pub unsafe fn decode_interleaved16_manual_gather_into(
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             crate::avx512::decode_interleaved16_manual_gather_into(compressed, table, output)
                 .map_err(|_| DecodeError::InputTooShort)
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        #[cfg(not(target_feature = "avx512bw"))]
         {
             Err(DecodeError::UnsupportedBackend)
         }
@@ -380,7 +380,7 @@ pub unsafe fn decode_interleaved16_2x8(
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             let (output, report) =
                 crate::avx512::decode_interleaved16_2x8_kernel(compressed, table, expected_len)
@@ -391,7 +391,7 @@ pub unsafe fn decode_interleaved16_2x8(
                 backend: DecodeBackend::Avx512Vl2x8On16,
             })
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        #[cfg(not(target_feature = "avx512bw"))]
         {
             Err(DecodeError::UnsupportedBackend)
         }
@@ -405,16 +405,17 @@ pub unsafe fn decode_interleaved16_2x8_into(
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             crate::avx512::decode_interleaved16_2x8_into(compressed, table, output)
                 .map_err(|_| DecodeError::InputTooShort)
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
-        { Err(DecodeError::UnsupportedBackend) }
+        #[cfg(not(target_feature = "avx512bw"))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
     }
 }
-
 
 /// Decode 8-way using the explicit AVX512VL backend.
 ///
@@ -428,7 +429,7 @@ pub unsafe fn decode_interleaved8_avx512vl(
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             let (output, report) =
                 crate::avx512::decode_interleaved8_avx512vl_kernel(compressed, table, expected_len)
@@ -439,7 +440,7 @@ pub unsafe fn decode_interleaved8_avx512vl(
                 backend: DecodeBackend::Avx512VlInterleaved8,
             });
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        #[cfg(not(target_feature = "avx512bw"))]
         {
             Err(DecodeError::UnsupportedBackend)
         }
@@ -494,13 +495,13 @@ pub unsafe fn decode_interleaved16_avx512_into(
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             let report = crate::avx512::decode_interleaved16_avx512_into(compressed, table, output)
                 .map_err(|_| DecodeError::InputTooShort)?;
             Ok(report)
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        #[cfg(not(target_feature = "avx512bw"))]
         {
             Err(DecodeError::UnsupportedBackend)
         }
@@ -518,7 +519,7 @@ pub unsafe fn decode_interleaved16_avx512(
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
     unsafe {
-        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        #[cfg(target_feature = "avx512bw")]
         {
             let (output, report) =
                 crate::avx512::decode_interleaved16_avx512_kernel(compressed, table, expected_len)
@@ -529,7 +530,7 @@ pub unsafe fn decode_interleaved16_avx512(
                 backend: DecodeBackend::Avx512Interleaved16,
             });
         }
-        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        #[cfg(not(target_feature = "avx512bw"))]
         {
             Err(DecodeError::UnsupportedBackend)
         }
