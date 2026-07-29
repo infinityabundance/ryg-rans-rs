@@ -519,7 +519,14 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
-) -> Result<(Vec<u8>, DecodeReport), &'static str> { unsafe {
+) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+    // Empty stream with 0 expected symbols — nothing to decode
+    if expected_len == 0 {
+        return Ok((Vec::new(), DecodeReport {
+            words_consumed: 0,
+            final_states: [0u32; 16],
+        }));
+    }
     // ---- Precondition check ----
     if compressed.len() < 32 {
         return Err("compressed too short for 16 init states (AVX512)");
@@ -642,7 +649,7 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
     };
 
     Ok((output, report))
-}}
+}
 
 // ---------------------------------------------------------------------------
 // Tests

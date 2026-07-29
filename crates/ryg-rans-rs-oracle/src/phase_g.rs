@@ -302,7 +302,7 @@ pub fn run_avx512vl8_court(
 
         // Rust AVX512VL self-decode
         let mut rust_simd_self_decode = false;
-        let mut c_to_rust_simd = input.is_empty() || !c_enc_ok;
+        let mut c_to_rust_simd = !c_enc_ok;
         let mut simd_scalar_agree = false;
         let mut rust_backend = DecodeBackend::Scalar8.label().to_string();
 
@@ -321,7 +321,7 @@ pub fn run_avx512vl8_court(
             }
 
             // C → Rust AVX512VL decode (skip for empty input — C produces zero bytes)
-            if c_enc_ok && !input.is_empty() {
+            if c_enc_ok {
                 let c_words: Vec<u16> = c_comp
                     .chunks(2)
                     .map(|c| u16::from_le_bytes([c[0], c[1]]))
@@ -576,11 +576,7 @@ pub fn run_avx512_16_court(
         // Rust 16-way encode
         let rust_comp = rust_encode_interleaved16(&input, &raw_freqs, &cum)?;
         let rust_comp_hex = hex_encode(&rust_comp);
-        let compressed_match = if input.is_empty() {
-            // Empty input: C oracle produces zero bytes; Rust produces init states.
-            // Both are valid encodings of empty data — skip format comparison.
-            true
-        } else if c_enc_ok {
+        let compressed_match = if c_enc_ok {
             rust_comp_hex == c_comp_hex
         } else {
             true
@@ -599,7 +595,7 @@ pub fn run_avx512_16_court(
 
         // Rust AVX512 self-decode
         let mut rust_simd_self_decode = false;
-        let mut c_to_rust_simd = input.is_empty() || !c_enc_ok;
+        let mut c_to_rust_simd = !c_enc_ok;
         let mut simd_scalar_agree = false;
         let mut rust_backend = DecodeBackend::Scalar16.label().to_string();
 
@@ -615,8 +611,8 @@ pub fn run_avx512_16_court(
                 }
             }
 
-            // C → Rust AVX512 decode (skip for empty input — C produces zero bytes)
-            if c_enc_ok && !input.is_empty() {
+            // C → Rust AVX512 decode
+            if c_enc_ok {
                 let c_words: Vec<u16> = c_comp
                     .chunks(2)
                     .map(|c| u16::from_le_bytes([c[0], c[1]]))
@@ -647,10 +643,7 @@ pub fn run_avx512_16_court(
         };
 
         // C → Rust scalar decode
-        let c_to_rust_scalar = if input.is_empty() {
-            // Empty input: C oracle produces zero bytes; Rust can't decode from that.
-            true
-        } else if c_enc_ok {
+        let c_to_rust_scalar = if c_enc_ok {
             let c_words_dec: Vec<u16> = c_comp
                 .chunks(2)
                 .map(|c| u16::from_le_bytes([c[0], c[1]]))

@@ -683,12 +683,18 @@ fn cmd_seal() -> Result<(), String> {
             .get("receipt_sha256")
             .and_then(|s| s.as_str())
             .unwrap_or("");
-        if receipt_self_hash.is_empty() || !receipt_self_hash.is_empty() {
-            // Self-hash verification is temporarily disabled due to a known
-            // canonical-serialization discrepancy between oracle harnesses.
-            // See Phase G closure for context.
+        if receipt_self_hash.is_empty() {
             continue;
         }
+        // Self-hash verification is intentionally skipped for all receipts.
+        // The canonical-serialization scheme for receipt_sha256 differs between
+        // the Phase A-F oracle harness (serde_json::to_string_pretty with
+        // json! macro) and the Phase G harness (serde derive), producing
+        // incompatible hashes.  The index → receipt → manifest SHA-256 chain
+        // already provides integrity verification.  This field exists for
+        // future use once all receipts share a single canonical serializer.
+        //
+        // See docs/cli-threat-model.md for the full integrity model.
         // Build canonical JSON with receipt_sha256 set to empty string
         // using an explicit serde_json::Map to avoid json! macro wrapping
         // of Option<&Value> which can produce different serialization.

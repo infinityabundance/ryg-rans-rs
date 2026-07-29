@@ -431,6 +431,10 @@ pub fn encode_interleaved16(
     if scale_bits != RANS_WORD_SCALE_BITS as u32 {
         return Err(Encode16Error::InvalidScale);
     }
+    // Empty input → empty compressed stream (no initial states to flush)
+    if symbols.is_empty() {
+        return Ok(Vec::new());
+    }
     let capacity = symbols
         .len()
         .checked_mul(2)
@@ -493,6 +497,16 @@ pub fn decode_interleaved16_scalar(
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+    // Empty stream with 0 expected symbols — nothing to decode
+    if expected_len == 0 {
+        return Ok((
+            Vec::new(),
+            DecodeReport {
+                words_consumed: 0,
+                final_states: [0u32; 16],
+            },
+        ));
+    }
     if compressed.len() < 32 {
         return Err("compressed too short for 16 init states");
     }
