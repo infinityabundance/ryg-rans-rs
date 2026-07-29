@@ -860,9 +860,9 @@ fn check_docker_matrix() -> Result<(), String> {
     if job_count == 0 {
         return Err("docker-matrix.json has zero jobs".into());
     }
-    if job_count != 10 {
+    if job_count != 11 {
         return Err(format!(
-            "docker-matrix.json job_count={} (expected 10)",
+            "docker-matrix.json job_count={} (expected 11, includes parallel-stable)",
             job_count
         ));
     }

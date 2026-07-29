@@ -424,6 +424,47 @@ services:
         echo "=== Performance compile check complete ==="
       '
 
+  # ----------------------------------------------------------------
+  # parallel-stable — parallel crate build, test, and determinism check
+  # ----------------------------------------------------------------
+  parallel-stable:
+    <<: *rust-base
+    build:
+      context: ${DOCKER_ROOT}
+      dockerfile: dockerfiles/Dockerfile.rust-stable
+    image: ryg-rans-rs-court-parallel-stable:${RUN_ID}
+    container_name: ryg-rans-rs-court-parallel-stable-${RUN_ID}
+    working_dir: /workspace
+    volumes:
+      - type: bind
+        source: ${DOCKER_ROOT}/source/${RUN_ID}
+        target: /workspace
+        read_only: true
+      - type: volume
+        source: cargo-stable
+        target: /cargo
+      - type: volume
+        source: target-stable
+        target: /target
+      - type: bind
+        source: ${TMP_REPORTS}/parallel
+        target: /reports
+      - type: tmpfs
+        target: /tmp
+    environment:
+      <<: *cargo-env
+    command: >
+      sh -c '
+        set -e
+        echo "=== cargo test -p ryg-rans-rs-parallel ==="
+        cargo test -p ryg-rans-rs-parallel 2>&1
+        echo "=== cargo test --test phase_i_tests ==="
+        cargo test -p ryg-rans-rs-parallel --test phase_i_tests 2>&1
+        echo "=== cargo check --workspace ==="
+        cargo check --workspace 2>&1
+        echo "Parallel crate OK"
+      '
+
 volumes:
   cargo-stable:
     name: "ryg-rans-rs-cargo-stable-${RUN_ID}"
