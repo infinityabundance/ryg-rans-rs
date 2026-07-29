@@ -1,7 +1,8 @@
 # ryg-rans-rs-core
 
 > `#![no_std]` + `#![forbid(unsafe_code)]` — deterministic rANS algorithmic core.  
-> 5 surfaces, 128 receipts, bit-exact C↔Rust parity.
+> 5 surfaces, 128 receipts, bit-exact C↔Rust parity.  
+> Includes: malformed-stream hardening, Kani formal proofs, cargo-fuzz targets.
 
 ## Status
 
@@ -14,6 +15,48 @@ All surfaces are **sealed** (behaviour status: `full`) at scale_bits=12 with 8 p
 | Word rANS (division) | Single-state + Interleaved2 | 16 | C↔Rust cross-decode |
 | Alias method | Single-state + Interleaved2 | 16 | C↔Rust cross-decode |
 | SSE4.1 SIMD decoder | Interleaved8 | 8 | C↔Rust cross-decode |
+
+## Phase H: Safety Infrastructure
+
+### Malformed-Stream Hardening (`malformed` module)
+
+The `malformed` sub-module provides defensive checks for untrusted input:
+
+- **Pre-decode validation**: `validate_byte_compressed()`, `validate_r64_compressed()`, `validate_word_compressed()` — check minimum stream length before decoder init.
+- **Renormalization guards**: `RenormGuard` — bounds the number of consecutive renormalization iterations, preventing infinite loops on corrupted input.
+- **Frequency model validation**: `validate_freq_model()` — checks monotonic cumulative frequencies, range bounds, and zero-frequency invariance.
+- **Edge-case detection**: `has_dominant_symbol()`, `is_single_symbol()`, `has_freq_one()` — classify frequency model shapes for targeted testing.
+- **Error conversion**: `validation_to_decode_error()` bridges `ValidationError` to `DecodeError` for callers that don't want separate validation error handling.
+
+### Fuzzing (cargo-fuzz)
+
+Five fuzz targets in `fuzz/`:
+
+| Target | Input | Exercises |
+|--------|-------|-----------|
+| `byte_rans_roundtrip` | Arbitrary bytes | Division + reciprocal encode, decode, cross-verification |
+| `r64_rans_roundtrip` | Arbitrary bytes | 64-bit rANS encode/decode, division vs reciprocal stream match |
+| `word_rans_roundtrip` | Arbitrary bytes | Word rANS table construction, single-state encode/decode |
+| `malformed_byte` | Random bytes | Truncated/corrupted stream → decoder must never panic |
+| `alias_roundtrip` | Arbitrary bytes | Frequency normalization, alias table construction, encode/decode |
+
+### Kani Formal Proofs
+
+Four Kani proof harnesses in `kani/` verify critical arithmetic under bounded model checking:
+
+| Proof | Property | Scope |
+|-------|----------|-------|
+| `kani_enc_symbol_new_valid` | Valid parameters → `Ok`, invalid → correct `ModelError` | All `scale_bits 1..=16`, any `start`, `freq` |
+| `kani_reciprocal_equals_division` | Reciprocal fast path = division reference | All parameters where no renorm needed |
+| `kani_r64_reciprocal_equals_division` | R64 reciprocal = division | All `scale_bits 1..=31`, no-renorm region |
+| `kani_byte_encode_decode_inversion` | `decode(encode(x)) = x` | Core formula for all valid parameters |
+
+Run proofs with:
+```sh
+# Requires Kani installed (cargo install kani-verifier)
+kani crates/ryg-rans-rs-core/kani/reciprocal_proof.rs
+kani crates/ryg-rans-rs-core/kani/encode_decode_inversion_proof.rs
+```
 
 ## Contents
 

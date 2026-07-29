@@ -1,7 +1,12 @@
 # ryg-rans-rs
 
 > **Public facade for `ryg-rans-rs` — rANS entropy coding in Rust.**  
-> Safe, `no_std`-compatible API. Re-exports the deterministic core, optionally adds SIMD decode kernels.
+> Safe, `no_std`-compatible API. Re-exports the deterministic core, optionally adds SIMD decode kernels.  
+> 128 behavioural receipts across 5 algorithmic surfaces, sealed via bit-exact C↔Rust cross-decoding courts.
+
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs)](https://crates.io/crates/ryg-rans-rs)
+[![docs.rs](https://img.shields.io/docsrs/ryg-rans-rs)](https://docs.rs/ryg-rans-rs/latest/ryg_rans_rs/)
 
 ## Features
 
@@ -15,7 +20,7 @@
 
 | Module | Source | Feature | Description |
 |--------|--------|---------|-------------|
-| `byte` | `ryg-rans-rs-core` | always | Complete rANS core: byte rANS, 64-bit rANS, word rANS, alias method |
+| `byte` | `ryg-rans-rs-core` | always | Complete rANS core: byte rANS, 64-bit rANS, word rANS, alias method, malformed-stream validation |
 | `simd` | `ryg-rans-rs-simd` | `simd` | SSE4.1 8-way interleaved SIMD word rANS decoder |
 | `alloc_utils` | this crate | `alloc` | Convenience encode/decode with `Vec<u8>` |
 
@@ -30,6 +35,36 @@ The `simd` module (behind the `simd` feature) provides:
 - `RansSimdDec` — 4-lane SIMD decoder state
 
 **Note**: On the tested architecture (Ryzen 7 9800X3D), the scalar 8-way decoder outperforms the SSE4.1 decoder by ~2.5× due to gather overhead in the upstream algorithm design. The SIMD decoder is provided for cross-decoding verification and as a baseline for future AVX-512 work.
+
+## Malformed-Stream Hardening
+
+The `byte` module includes a `malformed` sub-module providing:
+
+- **Pre-decode validation**: Check compressed stream integrity before entering decoder hot paths.
+- **Renormalization guards**: Loop-bounded renormalization to prevent infinite loops on corrupted input.
+- **Frequency model validation**: Verify cumulative frequencies are monotonically non-decreasing and within range.
+- **Edge-case detection**: Identify dominant-symbol, single-symbol, and freq=1 models.
+
+## Fuzzing
+
+The workspace includes 5 `cargo-fuzz` targets for continuous security testing:
+
+- `byte_rans_roundtrip` — Division and reciprocal byte rANS round-trip
+- `r64_rans_roundtrip` — 64-bit rANS round-trip (division + reciprocal)
+- `word_rans_roundtrip` — Word rANS single-state round-trip
+- `malformed_byte` — Randomly truncated/corrupted byte rANS streams
+- `alias_roundtrip` — Alias method round-trip
+
+## Formal Proofs (Kani)
+
+The core crate includes Kani proof harnesses for critical arithmetic properties:
+
+- **Encoder symbol init correctness**: Valid parameters always produce `Ok`.
+- **Reciprocal = division equivalence**: The fast reciprocal path matches the division-based reference on every valid input.
+- **Encode-decode inversion**: `decode(encode(x)) = x` for the core formula.
+- **R64 reciprocal = division**: 64-bit variant of the reciprocal proof.
+
+All proofs pass under bounded model checking with Kani.
 
 ## Quick Start
 
@@ -61,7 +96,8 @@ rans_byte_dec_advance_symbol(&mut state, &mut reader, &dsym, scale_bits).unwrap(
 
 ## Published Versions
 
-- `0.1.13` — Current. Phase F seal: SSE4.1 SIMD decoder, 128 receipts.
+- `0.1.14` — Current. Phase H: malformed-stream hardening, fuzzing, Kani proofs, performance benchmarks.
+- `0.1.13` — Phase F seal: SSE4.1 SIMD decoder, 128 receipts.
 - `0.1.12` — Phase F implementation (SIMD decoder, cross-courts).
 - `0.1.11` — Phase E seal: alias method, 120 receipts.
 - `0.1.10` — Phase E implementation (alias method, Vose table).

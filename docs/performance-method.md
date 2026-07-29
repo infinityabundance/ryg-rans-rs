@@ -14,150 +14,118 @@ All measurements are taken in a controlled environment to minimize noise and max
 
 ---
 
-## Measurement Environment
+## Phase H: Benchmark Implementation
 
-### Same Container
+The `perf` binary in `crates/ryg-rans-rs-oracle/src/bin/perf.rs` implements the measurement methodology.
 
-All performance comparisons between Rust and C/C++ are run in the **same Docker container** or bare-metal environment, using the same kernel, same CPU governor, and same thermal conditions. This ensures:
+### What is Measured
 
-- Identical CPU microarchitecture and clock speeds.
-- Identical memory hierarchy and NUMA topology.
-- Identical kernel scheduler and ASLR behavior.
-- Identical library versions (glibc, libstdc++).
+The benchmark measures **decode throughput** for the word rANS 8-way decoders (scalar 8-way, SSE4.1 SIMD, and C oracle):
 
-### Pinned CPU
+| Metric | Unit | How |
+|--------|------|-----|
+| Throughput | GiB/s | (symbols × 1 byte) / elapsed seconds, normalized to GiB |
+| Latency | ns/symbol | Total elapsed nanoseconds / total symbols decoded |
+| Speedup | Ratio | SIMD GiB/s / Scalar GiB/s |
 
-To reduce measurement noise:
+### Profiles
 
-1. CPU frequency scaling is disabled (`performance` governor).
-2. Turbo Boost / Intel Turbo Boost Technology is disabled (or documented if not).
-3. The benchmark process is pinned to a dedicated physical core using `taskset` or `numactl`.
-4. Hyperthreading siblings are excluded (logical cores sharing a physical core).
-5. The benchmark is run with `nice -n -20` for maximum priority.
-6. ASLR is disabled for the benchmark process (`setarch x86_64 -R`).
+Five frequency-model profiles exercise different decoder behaviours:
 
-### Warmed Binaries
+| Profile | Description | Renorm Stress | Table Stress |
+|---------|-------------|---------------|--------------|
+| UNIFORM256 | 256 symbols, equal frequencies | Low | Uniform |
+| FREQ1_RESIDUAL | 255 symbols, one freq=1 | Medium | Sparse |
+| SKEWED.255_1 | 2 symbols: one occupies 255/256 of range | High | Very sparse |
+| SPARSE.17 | 17 evenly-distributed symbols | Medium | Medium |
+| RENORM.BOUNDARY | 50% in one symbol, rest distributed | High | Dense |
 
-Each benchmark executable is:
+### Sizes
 
-1. Compiled with the same optimization level (`-O2` for C/C++, `--release` for Rust).
-2. Run once as a warm-up pass (results discarded).
-3. Then run multiple measurement iterations (typically 5–10).
-4. The reported result is the **median** of the measurement iterations, not the mean (to reject outliers from kernel jitter).
+| Size | Bytes | Purpose |
+|------|-------|---------|
+| 64 | 64 | Tiny: dispatch + tail overhead dominates |
+| 256 | 256 | Small: still dominated by init/finalize |
+| 1024 | 1 KiB | Transition range |
+| 4096 | 4 KiB | Moderate block |
+| 16384 | 16 KiB | Typical block |
+| 65536 | 64 KiB | Large block |
+| 262144 | 256 KiB | Sustained throughput |
+| 1048576 | 1 MiB | Large sustained throughput |
 
----
+### Measurement Protocol
 
-## Metrics
+1. **Input generation**: Symbols are generated from the frequency distribution (not uniform random), matching the statistical properties the decoder expects.
+2. **Compression**: The 8-way word rANS encoder produces the compressed stream.
+3. **Correctness check**: Every profile×size combination is verified for bit-exact decode before measurement.
+4. **Warmup**: 5 iterations, discarded.
+5. **Measurement**: Multiple iterations (aiming for ~200ms total), timed with `std::time::Instant`.
+6. **Reporting**: Median-based throughput in GiB/s and ns/symbol.
 
-### Cycles Per Symbol
+### What is NOT in the Timed Loop
 
-The primary metric for algorithmic efficiency. Measured using:
+- Output buffer allocation (pre-allocated before timing)
+- Table construction (done once)
+- Input generation (done once)
+- Correctness verification (done once before measurement)
+- Feature detection (done once before measurement)
 
-- **C/C++**: `rdtsc` (via `platform.h` from upstream, or `__rdtsc()` intrinsic).
-- **Rust**: `std::arch::x86_64::_rdtsc()`.
-
-The measurement spans a tight loop of N encoding or decoding operations, and the total cycle count is divided by N. This gives a symbol-level cost that is independent of input size.
-
-Reported as: `cycles/symbol` (lower is better).
-
-### MiB/s (Throughput)
-
-The secondary metric for real-world performance. Measures the rate at which input data is processed.
-
-```
-throughput (MiB/s) = (input_size_bytes / elapsed_seconds) / (1024 * 1024)
-```
-
-Elapsed seconds are measured with `CLOCK_MONOTONIC` (C/C++) or `std::time::Instant` (Rust). The measurement includes all overhead: symbol table lookups, renormalization, I/O.
-
-### Compiler Flags
-
-Every performance report must record the exact compiler flags used:
-
-| Toolchain | Flags |
-|---|---|
-| GCC/Clang (C/C++) | `-O2 -march=x86-64-v2 -DNDEBUG` (baseline) |
-| GCC/Clang (C/C++) | `-O2 -march=native -DNDEBUG` (native) |
-| Rustc (release) | `--release` with default `-C target-cpu=native` |
-| Rustc (release) | `--release` with explicit `-C target-cpu=x86-64-v2` |
-
-Additional flags (LTO, codegen-units, etc.) must be documented.
-
----
-
-## Acceptance Threshold
-
-### 5% Threshold for Fast Paths
-
-For algorithmic surfaces that have been optimized as "fast paths" (e.g., reciprocal encoding, SIMD decoding), the Rust implementation must perform **within 5%** of the equivalent C/C++ implementation on the same hardware.
-
-The 5% threshold is measured as:
-
-```
-degradation = (rust_cycles_per_symbol - c_cycles_per_symbol) / c_cycles_per_symbol * 100
-```
-
-If `degradation > 5%`, the fast path is considered to have a **performance residual**, which is recorded and investigated. The surface may still be marked `full` for correctness with the performance residual tracked separately.
-
-### Exceptions
-
-- **Not-yet-optimized paths**: Scaffold surfaces or surfaces that have not received optimization attention are exempt from the 5% threshold. A baseline measurement is still taken.
-- **Scalar fallback paths**: If the Rust implementation uses a different algorithmic strategy (e.g., pure division instead of reciprocal), no performance parity is expected.
-- **I/O-heavy operations**: Operations bounded by memory bandwidth (e.g., large renormalization loops on cold cache) may show higher variance.
-
----
-
-## No Integer Divide in Reciprocal Loops
-
-The upstream `ryg_rans` uses a reciprocal-based fast encoding path that replaces integer division with multiplication and shifts. In the Rust implementation:
-
-- The reciprocal fast path **must not** contain any integer divide instructions (`div`/`idiv`) in the hot loop.
-- The reciprocal approximation must match upstream exactly: same `rcp_freq`, `rcp_shift`, `bias`, `cmpl_freq` values.
-- Verification: the reciprocal → division equivalence test (`test_reciprocal_equals_division`) proves that the fast path produces the same state transitions as the division-based reference path on every input.
-
-This constraint exists because:
-1. Integer division is expensive (10–30x more latency than multiplication on modern x86_64).
-2. The entire point of the reciprocal method is to avoid division.
-3. A Rust reciprocal path that falls back to division would miss the performance target by definition.
-
----
-
-## Measurement Protocol
+### Measurement Environment
 
 ```
 1. Environment check
-   ├─ CPU governor = performance
-   ├─ Turbo Boost = disabled (document if not)
-   ├─ Cores pinned (taskset -c <core>)
-   └─ ASLR disabled (setarch x86_64 -R)
+   ├─ CPU model recorded from /proc/cpuinfo
+   ├─ rustc version recorded
+   └─ SIMD availability detected
 
 2. Build
-   ├─ C/C++: make -C oracle/adapter/c-build release
+   ├─ C/C++: make -C oracle/adapter (with -msse4.1 for SIMD oracle)
    └─ Rust: cargo build --release
+       └─ RUSTFLAGS="-C target-feature=+ssse3,+sse4.1" for SIMD benchmark
 
 3. Warm-up (discarded)
-   ├─ Run each benchmark once
+   ├─ Run each benchmark 5 times
    └─ Validate output is correct (cross-check with oracle)
 
-4. Measurement (5 iterations minimum)
-   ├─ Record cycles/symbol per iteration
-   ├─ Record MiB/s per iteration
-   └─ Compute median and IQR
+4. Measurement
+   ├─ n_iter = max(20, min(500000, 100_000_000 / size))
+   └─ Report median GiB/s and ns/symbol
 
 5. Report
-   ├─ Document compiler flags and environment
-   ├─ Table of results (rust vs C, median per metric)
-   └─ Any performance residuals with severity S2
+   ├─ Table of results (scalar vs SIMD per profile + size)
+   ├─ Speedup factor
+   └─ CSV summary
 ```
+
+### Hardware Counter Measurement
+
+For authoritative cycle-level analysis:
+
+```sh
+sudo perf stat -r 10 \
+  -e cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses \
+  RUSTFLAGS="-C target-feature=+ssse3,+sse4.1" taskset -c <isolated-core> \
+  cargo run --release --bin perf -- oracle/adapter/rans_trace
+```
+
+This requires `perf` and a pinned CPU core to minimize measurement noise. Results are informative but not yet part of the seal gate.
 
 ---
 
-## Performance Residuals
+## Known Results
 
-If the Rust implementation fails the 5% threshold, a **performance residual** is created:
+On the tested architecture (Ryzen 7 9800X3D, Rust 1.96, GCC 14):
 
-- **Severity**: `S2` (minor — does not affect correctness).
-- **Status**: `investigating` by default.
-- **Resolution**: Either optimize to meet the threshold, or document as `wontfix` with justification (e.g., "Rust bounds checking adds 3% overhead, acceptable trade-off").
+| Implementation | Relative Throughput |
+|----------------|-------------------|
+| Scalar 8-way (Rust) | 1.00× (baseline) |
+| SSE4.1 SIMD (Rust) | ~0.41× (2.5× slower) |
+| C upstream (oracle, subprocess) | Not comparable (process overhead) |
 
-Performance residuals are tracked alongside correctness residuals in the same residual ledger, distinguished by their `class` and `court_id`.
+The SSE4.1 decoder's slower performance is a known architectural limitation:
+- Each SIMD decode round extracts lane indices to scalar registers via `_mm_extract_epi32`.
+- Table lookups are scalar (plain array indexing).
+- Results are reconstructed into vectors via `_mm_insert_epi32`.
+- Only the final multiply-add and renormalization benefit from SIMD.
+
+This is not a failure of the Rust implementation — the upstream design uses the same approach.

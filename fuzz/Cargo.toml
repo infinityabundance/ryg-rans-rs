@@ -1,0 +1,52 @@
+[package]
+name = "ryg-rans-rs-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.ryg-rans-rs-core]
+path = "../crates/ryg-rans-rs-core"
+
+[dependencies.ryg-rans-rs-simd]
+path = "../crates/ryg-rans-rs-simd"
+
+[[bin]]
+name = "byte_rans_roundtrip"
+path = "fuzz_targets/byte_rans_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "r64_rans_roundtrip"
+path = "fuzz_targets/r64_rans_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "word_rans_roundtrip"
+path = "fuzz_targets/word_rans_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "malformed_byte"
+path = "fuzz_targets/malformed_byte.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "alias_roundtrip"
+path = "fuzz_targets/alias_roundtrip.rs"
+test = false
+doc = false
+bench = false

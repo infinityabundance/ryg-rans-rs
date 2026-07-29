@@ -21,10 +21,11 @@ ryg-rans-rs/
 │   └── ryg-rans-cli/         # CLI tools
 ├── xtask/                    # Build system automation
 ├── oracle/                   # Oracle adapter & scripts (C/C++ compilation)
-├── cases/                    # Deterministic test case payloads
+├── fuzz/                     # Cargo-fuzz targets (5 targets)
 ├── tests/                    # Integration test suites
-├── reports/                  # Oracle court receipts & residual records
-└── docs/                     # Project documentation
+├── evidence/                 # SHA-256-chained receipts & manifests (git-tracked)
+├── docs/                     # Project documentation
+└── docs-src/models/          # Parity & upstream machine-readable models
 ```
 
 ---
@@ -36,6 +37,7 @@ The core isolation principle is:
 1. **ryg-rans-core** contains all rANS arithmetic — state transitions, renormalization, reciprocal encoding, symbol table construction, interleaved encoding/decoding — in pure safe Rust.
 2. Everything above the core may use platform intrinsics, `std`, or `alloc`, but must **never alter the arithmetic results**. The core's state machine is the ground truth.
 3. The facade crate (`ryg-rans`) re-exports core types and conditionally adds SIMD acceleration, but the SIMD paths must produce the same state transitions as the scalar core on every input.
+4. **Phase H additions**: The core now includes a `malformed` module for defensive stream validation, Kani proof harnesses for arithmetic correctness, and cargo-fuzz targets for adversarial testing.
 
 This means every accelerated kernel has an equivalent scalar reference in `ryg-rans-core` that it can be cross-checked against.
 
@@ -58,6 +60,8 @@ Provides:
 - Backward byte/word writers and forward byte/word readers as trait-based abstractions.
 - Trait-based I/O (`BackwardWriter`, `ForwardReader`) for zero-cost abstraction over buffer types.
 - Slice-based writer/reader implementations for immediate use.
+- **`malformed` module**: Pre-decode validation, renormalization guards, frequency model validation, edge-case detection.
+- **`kani/` directory**: Formal proof harnesses for arithmetic correctness.
 
 No unsafe code is permitted. All arithmetic is verified against the upstream C via the oracle courts.
 
@@ -74,8 +78,9 @@ Provides:
 - SSE4.1 accelerated four-lane word-aligned decoder.
 - Shuffle-based byte extraction and sign-biased unsigned comparison.
 - Renormalization with 16 precomputed masks.
+- Safe wrapper with compile-time SIMD detection.
 
-Each `unsafe` block must be documented with its preconditions, alignment assumptions, bounds, CPU feature requirements, and a soundness justification. The SIMD decoder is cross-checked against the scalar core via the oracle courts before being marked `full`.
+Each `unsafe` block is documented with its preconditions, alignment assumptions, bounds, CPU feature requirements, and a soundness justification in `docs/unsafe-ledger.md`. The SIMD decoder is cross-checked against the scalar core via the oracle courts.
 
 ### `crates/ryg-rans` — Public Facade
 
@@ -100,9 +105,9 @@ The facade is safe code. It is the single public entry point for consumers.
 | Dependencies | `serde`, `sha2` |
 
 Provides typed schemas for:
-- **`Casefile`**: A deterministic test case — variant, seed, input data, frequency model, scale bits, interleave factor. Includes the pinned upstream commit hash.
-- **`Receipt`**: A court verdict — how many pairs were compared, how many matched, residual count.
-- **`Residual`**: A documented difference — case ID, court ID, variant, class, severity, status.
+- **`CaseResult`**: A per-case comparison — input, frequencies, C and Rust streams, six check booleans.
+- **`CaseManifest`**: Complete collection of cases for one court.
+- **`Receipt`**: Verdict, counts, SHA-256 chains, upstream and code commits.
 
 Casefiles are the serializable ground truth for deterministic testing across Rust and C/C++.
 
@@ -119,6 +124,7 @@ This crate orchestrates oracle courts. It:
 - Loads deterministic casefiles, feeds them to both Rust and C code.
 - Compares state transitions, bitstreams, and decoded output.
 - Produces receipts and residuals.
+- Includes **`perf` binary** for multi-profile, multi-size throughput benchmarks.
 
 This crate is **never** shipped to consumers. It lives in the workspace for CI and local verification.
 
@@ -142,7 +148,7 @@ Commands:
 - `bootstrap` — Initialize workspace (Docker images, git submodules, oracle binaries).
 - `gen` — Generate documentation from `docs-src/`.
 - `check` — Verify all gates pass (tests, oracle courts, residuals tracked).
-- `seal` — Run release-critical gates.
+- `seal` — Run release-critical 16 gates.
 - `court <id>` / `court --all` — Run oracle courts.
 - `cases generate / verify` — Manage deterministic casefiles.
 - `residuals list / verify / reproduce / minimize` — Manage residual lifecycle.
@@ -161,12 +167,14 @@ ryg-rans-oracle ──depends on──> ryg-rans-core, ryg-rans-casefile
 ryg-rans-cli   ──depends on──> ryg-rans, ryg-rans-core
 ryg-rans-casefile ─> (standalone, no rANS dependencies)
 xtask          ─> (standalone, no rANS dependencies)
+fuzz/*         ─depends on──> ryg-rans-core, ryg-rans-simd, libfuzzer-sys
 ```
 
 The dependency direction ensures:
 - The core has no knowledge of SIMD, CLI, or oracle logic.
 - The facade is the only crate consumers import.
 - Oracle and casefile are independently usable.
+- Fuzz targets build on the core and SIMD crates.
 
 ---
 
@@ -176,3 +184,34 @@ The workspace does **not** bind to the upstream C/C++ via FFI. All oracle compar
 - No unsafe FFI boundaries to audit.
 - No C/C++ toolchain required to build the Rust project.
 - Clear separation between reference implementation and port.
+
+---
+
+## Safety Infrastructure (Phase H)
+
+Three layers of safety assurance have been added in Phase H:
+
+### Layer 1: Fuzzing (cargo-fuzz)
+
+Five fuzz targets in `fuzz/` provide adversarial input coverage:
+- **byte_rans_roundtrip**: Division + reciprocal byte rANS encode/decode
+- **r64_rans_roundtrip**: 64-bit rANS encode/decode with reciprocal equivalence check
+- **word_rans_roundtrip**: Word rANS table construction and single-state decode
+- **malformed_byte**: Truncated/corrupted stream — decoder must never panic
+- **alias_roundtrip**: Frequency normalization, alias table, encode/decode
+
+### Layer 2: Formal Proofs (Kani)
+
+Four proof harnesses in `crates/ryg-rans-rs-core/kani/` verify critical arithmetic under bounded model checking:
+1. Encoder symbol initialization returns `Ok` for all valid parameters
+2. Reciprocal fast path matches division reference (byte rANS)
+3. Reciprocal fast path matches division reference (64-bit rANS)
+4. `decode(encode(x)) = x` for the core formula
+
+### Layer 3: Malformed-Stream Hardening
+
+The `malformed` module in the core crate provides:
+- Pre-decode stream length checks
+- Renormalization loop bounds (prevents infinite loops)
+- Frequency model validation (monotonic cumulative, range bounds)
+- Edge-case classification utilities
