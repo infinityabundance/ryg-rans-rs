@@ -851,6 +851,342 @@ pub unsafe fn decode_interleaved16_avx512_into(
     }
 }
 
+
+// ---------------------------------------------------------------------------
+// Step 7: Manual-gather AVX512VL 8-way
+// ---------------------------------------------------------------------------
+#[target_feature(enable = "avx512f,avx512vl,avx512bw")]
+pub unsafe fn decode_interleaved8_manual_gather_kernel(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+    unsafe {
+        if compressed.len() < 16 {
+            return Err("compressed too short for 8 init states");
+        }
+        let mut init_array = [0u32; 8];
+        for i in 0..8 {
+            init_array[i] = compressed[i * 2] as u32 | (compressed[i * 2 + 1] as u32) << 16;
+        }
+        let mut state = _mm256_loadu_si256(init_array.as_ptr() as *const __m256i);
+        let mut reader_pos = 16usize;
+        let n = expected_len;
+        let even8 = n & !7;
+        let mut output = Vec::with_capacity(n);
+        output.resize(n, 0u8);
+        let mask_v = _mm256_set1_epi32((RANS_WORD_M - 1) as i32);
+        const SCALE8: i32 = 12;
+
+        for i in (0..even8).step_by(8) {
+            let indices = _mm256_and_si256(state, mask_v);
+            // Manual gather: store indices to buffer, scalar loads, reload to vector
+            let mut idx_buf: [u32; 8] = core::mem::zeroed();
+            _mm256_storeu_si256(idx_buf.as_mut_ptr() as *mut __m256i, indices);
+            let mut ent_buf: [u32; 8] = core::mem::zeroed();
+            for lane in 0..8 {
+                ent_buf[lane] = table.as_slice()[idx_buf[lane] as usize].0;
+            }
+            let gathered = _mm256_loadu_si256(ent_buf.as_ptr() as *const __m256i);
+
+            let freq_mask = _mm256_set1_epi32(0x0fff);
+            let freq_v = _mm256_and_si256(gathered, freq_mask);
+            let bias_v = _mm256_and_si256(_mm256_srli_epi32(gathered, 12), freq_mask);
+            let symbols_v = _mm256_srli_epi32(gathered, 24);
+
+            let symbol_bytes = _mm256_cvtepi32_epi8(symbols_v);
+            _mm_storel_epi64(output.as_mut_ptr().add(i) as *mut __m128i, symbol_bytes);
+
+            let xscaled = _mm256_srli_epi32(state, SCALE8);
+            let new_state = _mm256_add_epi32(_mm256_mullo_epi32(xscaled, freq_v), bias_v);
+
+            let renorm_mask =
+                _mm256_cmplt_epu32_mask(new_state, _mm256_set1_epi32(RANS_WORD_L as i32));
+            let words_needed = renorm_mask.count_ones() as usize;
+
+            if words_needed > 0 {
+                if reader_pos + words_needed > compressed.len() {
+                    return Err("unexpected EOF in manual-gather renorm");
+                }
+                let mut compact = [0u32; 8];
+                for idx in 0..words_needed {
+                    compact[idx] = compressed[reader_pos + idx] as u32;
+                }
+                let compact_v = _mm256_loadu_si256(compact.as_ptr() as *const __m256i);
+                let expanded = _mm256_maskz_expand_epi32(renorm_mask, compact_v);
+                let shifted = _mm256_slli_epi32(new_state, 16);
+                let renormed = _mm256_or_si256(shifted, expanded);
+                state = _mm256_mask_blend_epi32(renorm_mask, new_state, renormed);
+                reader_pos += words_needed;
+            } else {
+                state = new_state;
+            }
+        }
+
+        for i in even8..n {
+            let lane = i & 7;
+            let mut lanes: [u32; 8] = core::mem::zeroed();
+            _mm256_storeu_si256(lanes.as_mut_ptr() as *mut __m256i, state);
+            let x = lanes[lane];
+            let slot = x as usize & (RANS_WORD_M - 1);
+            let entry = (*table.get(slot)).0;
+            output[i] = (entry >> 24) as u8;
+            let freq_entry = entry & 0x0fff;
+            let bias_entry = (entry >> 12) & 0x0fff;
+            let new_x = freq_entry * (x >> 12) + bias_entry;
+            lanes[lane] = new_x;
+            if new_x < RANS_WORD_L {
+                if reader_pos >= compressed.len() {
+                    return Err("unexpected EOF in manual-gather tail");
+                }
+                lanes[lane] = (new_x << 16) | compressed[reader_pos] as u32;
+                reader_pos += 1;
+            }
+            state = _mm256_loadu_si256(lanes.as_ptr() as *const __m256i);
+        }
+
+        let mut final_states = [0u32; 8];
+        _mm256_storeu_si256(final_states.as_mut_ptr() as *mut __m256i, state);
+
+        let report = DecodeReport {
+            words_consumed: reader_pos,
+            final_states: [
+                final_states[0], final_states[1], final_states[2], final_states[3],
+                final_states[4], final_states[5], final_states[6], final_states[7],
+                0, 0, 0, 0, 0, 0, 0, 0,
+            ],
+        };
+        Ok((output, report))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Step 7: Manual-gather AVX512 16-way
+// ---------------------------------------------------------------------------
+#[target_feature(enable = "avx512f,avx512bw")]
+pub unsafe fn decode_interleaved16_manual_gather_kernel(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+    unsafe {
+        let n = expected_len;
+        if n == 0 {
+            return Ok((Vec::new(), DecodeReport { words_consumed: 0, final_states: [0u32; 16] }));
+        }
+        if compressed.len() < 32 {
+            return Err("compressed too short for 16 init states");
+        }
+        let mut init_array = [0u32; 16];
+        for i in 0..16 {
+            init_array[i] = compressed[i * 2] as u32 | (compressed[i * 2 + 1] as u32) << 16;
+        }
+        let mut state = _mm512_loadu_si512(init_array.as_ptr() as *const __m512i);
+        let mut reader_pos = 32usize;
+        let even16 = n & !15;
+        let mut output = Vec::with_capacity(n);
+        output.resize(n, 0u8);
+        let mask_v = _mm512_set1_epi32((RANS_WORD_M - 1) as i32);
+        let l_vec = _mm512_set1_epi32(RANS_WORD_L as i32);
+        const SCALE16: u32 = 12;
+
+        for i in (0..even16).step_by(16) {
+            let indices = _mm512_and_si512(state, mask_v);
+            let mut idx_buf: [u32; 16] = core::mem::zeroed();
+            _mm512_storeu_si512(idx_buf.as_mut_ptr() as *mut __m512i, indices);
+            let mut ent_buf: [u32; 16] = core::mem::zeroed();
+            for lane in 0..16 {
+                ent_buf[lane] = table.as_slice()[idx_buf[lane] as usize].0;
+            }
+            let gathered = _mm512_loadu_si512(ent_buf.as_ptr() as *const __m512i);
+
+            let freq_v = _mm512_and_si512(gathered, _mm512_set1_epi32(0x0fff));
+            let bias_v = _mm512_and_si512(_mm512_srli_epi32(gathered, 12), _mm512_set1_epi32(0x0fff));
+            let symbols_v = _mm512_srli_epi32(gathered, 24);
+
+            let symbol_bytes = _mm512_cvtepi32_epi8(symbols_v);
+            _mm_storeu_si128(output.as_mut_ptr().add(i) as *mut __m128i, symbol_bytes);
+
+            let xscaled = _mm512_srli_epi32(state, SCALE16);
+            let new_state = _mm512_add_epi32(_mm512_mullo_epi32(xscaled, freq_v), bias_v);
+
+            let renorm_mask = _mm512_cmplt_epu32_mask(new_state, l_vec);
+            let words_needed = renorm_mask.count_ones() as usize;
+
+            if words_needed > 0 {
+                if reader_pos + words_needed > compressed.len() {
+                    return Err("unexpected EOF in manual-gather renorm");
+                }
+                let mut compact = [0u32; 16];
+                for idx in 0..words_needed {
+                    compact[idx] = compressed[reader_pos + idx] as u32;
+                }
+                let compact_v = _mm512_loadu_si512(compact.as_ptr() as *const __m512i);
+                let expanded = _mm512_maskz_expand_epi32(renorm_mask, compact_v);
+                let shifted = _mm512_slli_epi32(new_state, 16);
+                let renormed = _mm512_or_si512(shifted, expanded);
+                state = _mm512_mask_blend_epi32(renorm_mask, new_state, renormed);
+                reader_pos += words_needed;
+            } else {
+                state = new_state;
+            }
+        }
+
+        for i in even16..n {
+            let lane = i & 15;
+            let mut lanes: [u32; 16] = core::mem::zeroed();
+            _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, state);
+            let x = lanes[lane];
+            let slot = x as usize & (RANS_WORD_M - 1);
+            let entry = (*table.get(slot)).0;
+            output[i] = (entry >> 24) as u8;
+            let freq_entry = entry & 0x0fff;
+            let bias_entry = (entry >> 12) & 0x0fff;
+            let new_x = freq_entry * (x >> 12) + bias_entry;
+            lanes[lane] = new_x;
+            if new_x < RANS_WORD_L {
+                if reader_pos >= compressed.len() {
+                    return Err("unexpected EOF in manual-gather tail");
+                }
+                lanes[lane] = (new_x << 16) | compressed[reader_pos] as u32;
+                reader_pos += 1;
+            }
+            state = _mm512_loadu_si512(lanes.as_ptr() as *const __m512i);
+        }
+
+        let mut final_states = [0u32; 16];
+        _mm512_storeu_si512(final_states.as_mut_ptr() as *mut __m512i, state);
+        Ok((output, DecodeReport { words_consumed: reader_pos, final_states }))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Step 8: Two-YMM on 16-way interleaved format (2 x 256-bit vectors)
+// ---------------------------------------------------------------------------
+// Split the 16 lanes into two independent 8-lane groups, each with its own
+// gather chain.  The scheduler can overlap the two chains via out-of-order
+// execution, reducing effective gather latency.
+#[target_feature(enable = "avx512f,avx512vl,avx512bw")]
+pub unsafe fn decode_interleaved16_2x8_kernel(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+    unsafe {
+        let n = expected_len;
+        if n == 0 {
+            return Ok((Vec::new(), DecodeReport { words_consumed: 0, final_states: [0u32; 16] }));
+        }
+        if compressed.len() < 32 {
+            return Err("compressed too short for 16 init states");
+        }
+        // Load all 16 states, split into lo/hi via store/reload
+        let mut init_array = [0u32; 16];
+        for i in 0..16 { init_array[i] = compressed[i * 2] as u32 | (compressed[i * 2 + 1] as u32) << 16; }
+        let all_state = _mm512_loadu_si512(init_array.as_ptr() as *const __m512i);
+        let mut all_buf = [0u32; 16]; _mm512_storeu_si512(all_buf.as_mut_ptr() as *mut __m512i, all_state);
+        let mut lo_s = [0u32; 8]; let mut hi_s = [0u32; 8];
+        for j in 0..8 { lo_s[j] = all_buf[j]; hi_s[j] = all_buf[j + 8]; }
+        let mut state_lo = _mm256_loadu_si256(lo_s.as_ptr() as *const __m256i);
+        let mut state_hi = _mm256_loadu_si256(hi_s.as_ptr() as *const __m256i);
+
+        let mut reader_pos = 32usize;
+        let even16 = n & !15;
+        let mut output = Vec::with_capacity(n);
+        output.resize(n, 0u8);
+        let table_ptr = table.as_ptr() as *const i32;
+        let mask_v = _mm256_set1_epi32((RANS_WORD_M - 1) as i32);
+        const SCALE8: i32 = 12;
+
+        for i in (0..even16).step_by(16) {
+            // ---- Low group: lanes 0-7 ----
+            let indices_lo = _mm256_and_si256(state_lo, mask_v);
+            let gath_lo = _mm256_i32gather_epi32(table_ptr, indices_lo, 4);
+            let freq_lo = _mm256_and_si256(gath_lo, _mm256_set1_epi32(0x0fff));
+            let bias_lo = _mm256_and_si256(_mm256_srli_epi32(gath_lo, 12), _mm256_set1_epi32(0x0fff));
+            let syms_lo = _mm256_srli_epi32(gath_lo, 24);
+            let byte_lo = _mm256_cvtepi32_epi8(syms_lo);
+            _mm_storel_epi64(output.as_mut_ptr().add(i) as *mut __m128i, byte_lo);
+
+            let xsc_lo = _mm256_srli_epi32(state_lo, SCALE8);
+            let new_lo = _mm256_add_epi32(_mm256_mullo_epi32(xsc_lo, freq_lo), bias_lo);
+            let mask_lo = _mm256_cmplt_epu32_mask(new_lo, _mm256_set1_epi32(RANS_WORD_L as i32));
+            let wc_lo = mask_lo.count_ones() as usize;
+
+            if wc_lo > 0 {
+                if reader_pos + wc_lo > compressed.len() { return Err("unexpected EOF in 2x8 lo renorm"); }
+                let mut compact = [0u32; 8];
+                for idx in 0..wc_lo { compact[idx] = compressed[reader_pos + idx] as u32; }
+                let cv = _mm256_loadu_si256(compact.as_ptr() as *const __m256i);
+                let exp = _mm256_maskz_expand_epi32(mask_lo, cv);
+                let sh = _mm256_slli_epi32(new_lo, 16);
+                let rn = _mm256_or_si256(sh, exp);
+                state_lo = _mm256_mask_blend_epi32(mask_lo, new_lo, rn);
+                reader_pos += wc_lo;
+            } else { state_lo = new_lo; }
+
+            // ---- High group: lanes 8-15 ----
+            let indices_hi = _mm256_and_si256(state_hi, mask_v);
+            let gath_hi = _mm256_i32gather_epi32(table_ptr, indices_hi, 4);
+            let freq_hi = _mm256_and_si256(gath_hi, _mm256_set1_epi32(0x0fff));
+            let bias_hi = _mm256_and_si256(_mm256_srli_epi32(gath_hi, 12), _mm256_set1_epi32(0x0fff));
+            let syms_hi = _mm256_srli_epi32(gath_hi, 24);
+            let byte_hi = _mm256_cvtepi32_epi8(syms_hi);
+            _mm_storel_epi64(output.as_mut_ptr().add(i + 8) as *mut __m128i, byte_hi);
+
+            let xsc_hi = _mm256_srli_epi32(state_hi, SCALE8);
+            let new_hi = _mm256_add_epi32(_mm256_mullo_epi32(xsc_hi, freq_hi), bias_hi);
+            let mask_hi = _mm256_cmplt_epu32_mask(new_hi, _mm256_set1_epi32(RANS_WORD_L as i32));
+            let wc_hi = mask_hi.count_ones() as usize;
+
+            if wc_hi > 0 {
+                if reader_pos + wc_hi > compressed.len() { return Err("unexpected EOF in 2x8 hi renorm"); }
+                let mut compact = [0u32; 8];
+                for idx in 0..wc_hi { compact[idx] = compressed[reader_pos + idx] as u32; }
+                let cv = _mm256_loadu_si256(compact.as_ptr() as *const __m256i);
+                let exp = _mm256_maskz_expand_epi32(mask_hi, cv);
+                let sh = _mm256_slli_epi32(new_hi, 16);
+                let rn = _mm256_or_si256(sh, exp);
+                state_hi = _mm256_mask_blend_epi32(mask_hi, new_hi, rn);
+                reader_pos += wc_hi;
+            } else { state_hi = new_hi; }
+        }
+
+        // Tail: scalar fallback for remaining symbols
+        for i in even16..n {
+            let lane = i & 15;
+            let (sv, lv) = if lane < 8 { (&state_lo, lane) } else { (&state_hi, lane - 8) };
+            let mut lns: [u32; 8] = core::mem::zeroed();
+            _mm256_storeu_si256(lns.as_mut_ptr() as *mut __m256i, *sv);
+            let x = lns[lv];
+            let slot = x as usize & (RANS_WORD_M - 1);
+            let entry = (*table.get(slot)).0;
+            output[i] = (entry >> 24) as u8;
+            let freq_entry = entry & 0x0fff;
+            let bias_entry = (entry >> 12) & 0x0fff;
+            let new_x = freq_entry * (x >> 12) + bias_entry;
+            lns[lv] = new_x;
+            if new_x < RANS_WORD_L {
+                if reader_pos >= compressed.len() { return Err("unexpected EOF in 2x8 tail"); }
+                lns[lv] = (new_x << 16) | compressed[reader_pos] as u32;
+                reader_pos += 1;
+            }
+            let reload = _mm256_loadu_si256(lns.as_ptr() as *const __m256i);
+            if lane < 8 { state_lo = reload; } else { state_hi = reload; }
+        }
+
+        // Merge final states
+        let mut lo_buf = [0u32; 8]; _mm256_storeu_si256(lo_buf.as_mut_ptr() as *mut __m256i, state_lo);
+        let mut hi_buf = [0u32; 8]; _mm256_storeu_si256(hi_buf.as_mut_ptr() as *mut __m256i, state_hi);
+        let mut final_states = [0u32; 16];
+        for j in 0..8 { final_states[j] = lo_buf[j]; final_states[j + 8] = hi_buf[j]; }
+
+        Ok((output, DecodeReport { words_consumed: reader_pos, final_states }))
+    }
+}
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------

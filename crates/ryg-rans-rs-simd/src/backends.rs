@@ -56,6 +56,12 @@ pub enum DecodeBackend {
     Scalar16,
     /// AVX-512 16-way interleaved decode (requires AVX512F + AVX512BW).
     Avx512Interleaved16,
+    /// AVX512VL 8-way with scalar table loads (manual gather).
+    Avx512VlManualGather8,
+    /// AVX-512 16-way with scalar table loads (manual gather).
+    Avx512ManualGather16,
+    /// AVX512VL two-vector interleaved16 (2 × 256-bit on 16-way format).
+    Avx512Vl2x8On16,
 }
 
 impl DecodeBackend {
@@ -77,6 +83,9 @@ impl DecodeBackend {
             DecodeBackend::Avx512VlInterleaved8 => "avx512vl-8way",
             DecodeBackend::Scalar16 => "scalar-16way",
             DecodeBackend::Avx512Interleaved16 => "avx512-16way",
+            DecodeBackend::Avx512VlManualGather8 => "avx512vl-manual-gather-8way",
+            DecodeBackend::Avx512ManualGather16 => "avx512-manual-gather-16way",
+            DecodeBackend::Avx512Vl2x8On16 => "avx512vl-2x8-on16",
         }
     }
 }
@@ -262,6 +271,87 @@ pub unsafe fn decode_interleaved8_avx512vl_into(
                 crate::avx512::decode_interleaved8_avx512vl_into(compressed, table, output)
                     .map_err(|_| DecodeError::InputTooShort)?;
             Ok(report)
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
+    }
+}
+
+/// Decode 8-way using manual gather (scalar loads + vector arithmetic).
+pub unsafe fn decode_interleaved8_manual_gather(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            let (output, report) = crate::avx512::decode_interleaved8_manual_gather_kernel(
+                compressed,
+                table,
+                expected_len,
+            )
+            .map_err(|_| DecodeError::InputTooShort)?;
+            Ok(DecodeResult {
+                output,
+                report,
+                backend: DecodeBackend::Avx512VlManualGather8,
+            })
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
+    }
+}
+
+/// Decode 16-way using manual gather (scalar loads + vector arithmetic).
+pub unsafe fn decode_interleaved16_manual_gather(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            let (output, report) = crate::avx512::decode_interleaved16_manual_gather_kernel(
+                compressed,
+                table,
+                expected_len,
+            )
+            .map_err(|_| DecodeError::InputTooShort)?;
+            Ok(DecodeResult {
+                output,
+                report,
+                backend: DecodeBackend::Avx512ManualGather16,
+            })
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
+    }
+}
+
+/// Decode 16-way format using two independent 256-bit gather chains (2x8).
+pub unsafe fn decode_interleaved16_2x8(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            let (output, report) =
+                crate::avx512::decode_interleaved16_2x8_kernel(compressed, table, expected_len)
+                    .map_err(|_| DecodeError::InputTooShort)?;
+            Ok(DecodeResult {
+                output,
+                report,
+                backend: DecodeBackend::Avx512Vl2x8On16,
+            })
         }
         #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
         {

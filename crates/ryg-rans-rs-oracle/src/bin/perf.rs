@@ -488,6 +488,96 @@ fn main() {
                     ns_kernel / (size as u64 * n_iter) as f64
                 ));
             }
+
+            // ---- Backend 7: AVX512VL 8-way manual gather ----
+            if avx512vl_avail {
+                let (ns, _) = measure(
+                    || unsafe {
+                        ryg_rans_rs_simd::backends::decode_interleaved8_manual_gather(
+                            &compressed_8way,
+                            &packed,
+                            size,
+                        )
+                        .map(|r| r.output)
+                        .map_err(|_| "decode failed")
+                    },
+                    n_iter,
+                );
+                report(
+                    "avx512vl-manual-gather-8way",
+                    profile.name,
+                    size,
+                    ns,
+                    (size as u64) * n_iter,
+                );
+                results_csv.push_str(&format!(
+                    "{},{},avx512vl-manual-gather-8way,{:.2},{:.2}\n",
+                    profile.name,
+                    size,
+                    ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
+                    ns / (size as u64 * n_iter) as f64
+                ));
+            }
+
+            // ---- Backend 8: AVX512 16-way manual gather ----
+            if avx512_avail {
+                let (ns, _) = measure(
+                    || unsafe {
+                        ryg_rans_rs_simd::backends::decode_interleaved16_manual_gather(
+                            &compressed_16way,
+                            &packed,
+                            size,
+                        )
+                        .map(|r| r.output)
+                        .map_err(|_| "decode failed")
+                    },
+                    n_iter,
+                );
+                report(
+                    "avx512-manual-gather-16way",
+                    profile.name,
+                    size,
+                    ns,
+                    (size as u64) * n_iter,
+                );
+                results_csv.push_str(&format!(
+                    "{},{},avx512-manual-gather-16way,{:.2},{:.2}\n",
+                    profile.name,
+                    size,
+                    ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
+                    ns / (size as u64 * n_iter) as f64
+                ));
+            }
+
+            // ---- Backend 9: AVX512VL 2x8 on 16-way format ----
+            if avx512vl_avail {
+                let (ns, _) = measure(
+                    || unsafe {
+                        ryg_rans_rs_simd::backends::decode_interleaved16_2x8(
+                            &compressed_16way,
+                            &packed,
+                            size,
+                        )
+                        .map(|r| r.output)
+                        .map_err(|_| "decode failed")
+                    },
+                    n_iter,
+                );
+                report(
+                    "avx512vl-2x8-on-16way",
+                    profile.name,
+                    size,
+                    ns,
+                    (size as u64) * n_iter,
+                );
+                results_csv.push_str(&format!(
+                    "{},{},avx512vl-2x8-on-16way,{:.2},{:.2}\n",
+                    profile.name,
+                    size,
+                    ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
+                    ns / (size as u64 * n_iter) as f64
+                ));
+            }
         }
         println!("");
     }
