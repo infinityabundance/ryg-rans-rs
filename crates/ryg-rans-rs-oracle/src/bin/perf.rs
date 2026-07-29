@@ -137,13 +137,11 @@ impl Profile {
 // ---------------------------------------------------------------------------
 
 fn report(name: &str, profile: &str, size: usize, ns: f64, symbols: u64) {
-    if symbols == 0 {
-        return;
-    }
+    if symbols == 0 { return; }
     let gib_s = (symbols as f64 / 1.073741824e9) / (ns / 1e9);
     let ns_sym = ns / symbols as f64;
     println!(
-        "  {:30} {:30} {:8} {:12.1} GiB/s  {:9.2} ns/symbol",
+        "  {:30} {:30} {:8} {:8.1} GiB/s  {:7.2} ns/sym",
         name, profile, size, gib_s, ns_sym
     );
 }
@@ -152,32 +150,32 @@ fn measure<F>(f: F, n_iter: u64) -> (f64, u64)
 where
     F: Fn() -> Result<Vec<u8>, &'static str>,
 {
-    for _ in 0..5 {
-        let _ = black_box(f());
+    for _ in 0..5 { let _ = black_box(f()); }
+    const SAMPLES: usize = 7;
+    let mut samples: Vec<f64> = Vec::with_capacity(SAMPLES);
+    for _ in 0..SAMPLES {
+        let start = Instant::now();
+        for _ in 0..n_iter { let _ = black_box(f()); }
+        samples.push(start.elapsed().as_nanos() as f64);
     }
-    let start = Instant::now();
-    for _ in 0..n_iter {
-        let _ = black_box(f());
-    }
-    let elapsed = start.elapsed();
-    (elapsed.as_nanos() as f64, n_iter)
+    samples.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    (samples[SAMPLES / 2], n_iter)
 }
 
-/// Measure a closure that decodes into a preallocated buffer.
-/// Returns (total_ns, iteration_count).
 fn measure_into<F>(f: &F, output: &mut [u8], n_iter: u64) -> (f64, u64)
 where
     F: Fn(&mut [u8]) -> Result<(), &'static str>,
 {
-    for _ in 0..5 {
-        let _ = black_box(f(output));
+    for _ in 0..5 { let _ = black_box(f(output)); }
+    const SAMPLES: usize = 7;
+    let mut samples: Vec<f64> = Vec::with_capacity(SAMPLES);
+    for _ in 0..SAMPLES {
+        let start = Instant::now();
+        for _ in 0..n_iter { let _ = black_box(f(output)); }
+        samples.push(start.elapsed().as_nanos() as f64);
     }
-    let start = Instant::now();
-    for _ in 0..n_iter {
-        let _ = black_box(f(output));
-    }
-    let elapsed = start.elapsed();
-    (elapsed.as_nanos() as f64, n_iter)
+    samples.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    (samples[SAMPLES / 2], n_iter)
 }
 
 // ---------------------------------------------------------------------------

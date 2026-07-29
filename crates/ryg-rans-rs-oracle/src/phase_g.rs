@@ -655,16 +655,38 @@ pub fn run_avx512_16_court(
             true
         };
 
+        // Rust 2x8 self-decode (optimization backend verification)
+        let mut twx8_self_decode = false;
+        let mut twx8_scalar_agree = false;
+        if avx512_avail {
+            unsafe {
+                #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+                if let Ok(result) = ryg_rans_rs_simd::avx512::decode_interleaved16_2x8_kernel(
+                    &rust_words,
+                    &packed,
+                    input.len(),
+                ) {
+                    twx8_self_decode = result.0 == input;
+                    twx8_scalar_agree = scalar_result
+                        .as_ref()
+                        .map(|(d, _)| d == &result.0)
+                        .unwrap_or(false);
+                }
+            }
+        }
+
         // Count pairs (10 checks)
         let check_bools = [
             c_self_decode,
             rust_scalar_self_decode,
             rust_simd_self_decode,
+            twx8_self_decode,
             compressed_match,
             c_to_rust_scalar,
             c_to_rust_simd,
             rust_to_c,
             simd_scalar_agree,
+            twx8_scalar_agree,
         ];
         for &b in &check_bools {
             pairs_compared += 1;
