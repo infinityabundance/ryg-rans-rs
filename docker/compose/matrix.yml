@@ -215,7 +215,7 @@ services:
         cd /workspace
         mkdir -p /reports/evidence && chmod 777 /reports/evidence
         echo "--- Running all four courts once ---"
-        RANS_EVIDENCE_DIR=/reports/evidence cargo run -p ryg-rans-rs-oracle -- /target/court-bin/rans_trace 12 42 20 2>&1
+        RANS_EVIDENCE_DIR=/reports/evidence cargo run --bin ryg-rans-rs-oracle -p ryg-rans-rs-oracle -- /target/court-bin/rans_trace 12 42 20 2>&1
         echo "=== Cross-court evidence written to /reports ==="
         ls -la /reports/evidence/receipts/ 2>/dev/null || echo "(no evidence dir yet)"
         echo "=== Cross-court complete ==="
