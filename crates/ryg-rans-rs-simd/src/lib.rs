@@ -14,8 +14,10 @@ pub mod avx512;
 pub mod backends;
 pub mod packed_table;
 
+#[cfg(any(test, target_feature = "avx512bw", feature = "std"))]
 #[cfg(test)]
 pub mod malformed_input_tests;
+#[cfg(any(test, target_feature = "avx512bw", feature = "std"))]
 #[cfg(test)]
 pub mod mask_tests;
 
@@ -201,14 +203,16 @@ static NUM_WORDS: [u8; 16] = [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4];
 /// - `reader` must have at least 8 u16 elements remaining.
 /// - Caller must ensure SSE4.1 + SSSE3 are available at runtime.
 #[inline]
-pub unsafe fn rans_simd_dec_init(reader: &mut &[u16]) -> Option<RansSimdDec> { unsafe {
-    if reader.len() < 8 {
-        return None;
+pub unsafe fn rans_simd_dec_init(reader: &mut &[u16]) -> Option<RansSimdDec> {
+    unsafe {
+        if reader.len() < 8 {
+            return None;
+        }
+        let simd = _mm_loadu_si128(reader.as_ptr() as *const __m128i);
+        *reader = &reader[8..];
+        Some(RansSimdDec(simd))
     }
-    let simd = _mm_loadu_si128(reader.as_ptr() as *const __m128i);
-    *reader = &reader[8..];
-    Some(RansSimdDec(simd))
-}}
+}
 
 /// Decode 4 symbols in parallel using the alias tables.
 ///
@@ -217,38 +221,40 @@ pub unsafe fn rans_simd_dec_init(reader: &mut &[u16]) -> Option<RansSimdDec> { u
 /// - Requires SSE4.1 + SSSE3 target features.
 /// - `tables` must have at least `RANS_WORD_M` entries.
 #[inline]
-pub unsafe fn rans_simd_dec_sym_unchecked(state: &mut RansSimdDec, tables: &RansWordTables) -> u32 { unsafe {
-    let x = state.0;
+pub unsafe fn rans_simd_dec_sym_unchecked(state: &mut RansSimdDec, tables: &RansWordTables) -> u32 {
+    unsafe {
+        let x = state.0;
 
-    let slots = _mm_and_si128(x, _mm_set1_epi32((RANS_WORD_M - 1) as i32));
-    let i0 = _mm_cvtsi128_si32(slots) as usize;
-    let i1 = _mm_extract_epi32(slots, 1) as usize;
-    let i2 = _mm_extract_epi32(slots, 2) as usize;
-    let i3 = _mm_extract_epi32(slots, 3) as usize;
+        let slots = _mm_and_si128(x, _mm_set1_epi32((RANS_WORD_M - 1) as i32));
+        let i0 = _mm_cvtsi128_si32(slots) as usize;
+        let i1 = _mm_extract_epi32(slots, 1) as usize;
+        let i2 = _mm_extract_epi32(slots, 2) as usize;
+        let i3 = _mm_extract_epi32(slots, 3) as usize;
 
-    let s = (tables.slot2sym[i0] as u32)
-        | ((tables.slot2sym[i1] as u32) << 8)
-        | ((tables.slot2sym[i2] as u32) << 16)
-        | ((tables.slot2sym[i3] as u32) << 24);
+        let s = (tables.slot2sym[i0] as u32)
+            | ((tables.slot2sym[i1] as u32) << 8)
+            | ((tables.slot2sym[i2] as u32) << 16)
+            | ((tables.slot2sym[i3] as u32) << 24);
 
-    let fb0 = tables.slots[i0].pack();
-    let fb1 = tables.slots[i1].pack();
-    let fb2 = tables.slots[i2].pack();
-    let fb3 = tables.slots[i3].pack();
+        let fb0 = tables.slots[i0].pack();
+        let fb1 = tables.slots[i1].pack();
+        let fb2 = tables.slots[i2].pack();
+        let fb3 = tables.slots[i3].pack();
 
-    let freq_bias_lo = _mm_cvtsi32_si128(fb0 as i32);
-    let freq_bias_lo = _mm_insert_epi32(freq_bias_lo, fb1 as i32, 1);
-    let freq_bias_hi = _mm_cvtsi32_si128(fb2 as i32);
-    let freq_bias_hi = _mm_insert_epi32(freq_bias_hi, fb3 as i32, 1);
-    let freq_bias = _mm_unpacklo_epi64(freq_bias_lo, freq_bias_hi);
+        let freq_bias_lo = _mm_cvtsi32_si128(fb0 as i32);
+        let freq_bias_lo = _mm_insert_epi32(freq_bias_lo, fb1 as i32, 1);
+        let freq_bias_hi = _mm_cvtsi32_si128(fb2 as i32);
+        let freq_bias_hi = _mm_insert_epi32(freq_bias_hi, fb3 as i32, 1);
+        let freq_bias = _mm_unpacklo_epi64(freq_bias_lo, freq_bias_hi);
 
-    let xscaled = _mm_srli_epi32(x, RANS_WORD_SCALE_BITS as i32);
-    let freq = _mm_and_si128(freq_bias, _mm_set1_epi32(0xffff));
-    let bias = _mm_srli_epi32(freq_bias, 16);
-    state.0 = _mm_add_epi32(_mm_mullo_epi32(xscaled, freq), bias);
+        let xscaled = _mm_srli_epi32(x, RANS_WORD_SCALE_BITS as i32);
+        let freq = _mm_and_si128(freq_bias, _mm_set1_epi32(0xffff));
+        let bias = _mm_srli_epi32(freq_bias, 16);
+        state.0 = _mm_add_epi32(_mm_mullo_epi32(xscaled, freq), bias);
 
-    s
-}}
+        s
+    }
+}
 
 /// Renormalize 4 SIMD lanes using scratch buffer to avoid over-read.
 ///
@@ -260,37 +266,39 @@ pub unsafe fn rans_simd_dec_sym_unchecked(state: &mut RansSimdDec, tables: &Rans
 pub unsafe fn rans_simd_dec_renorm_unchecked(
     state: &mut RansSimdDec,
     reader: &mut &[u16],
-) -> Option<()> { unsafe {
-    let x = state.0;
+) -> Option<()> {
+    unsafe {
+        let x = state.0;
 
-    let x_biased = _mm_xor_si128(x, _mm_set1_epi32(i32::MIN));
-    let threshold = _mm_set1_epi32((RANS_WORD_L as i32).wrapping_add(i32::MIN));
-    let greater = _mm_cmpgt_epi32(threshold, x_biased);
-    let mask = _mm_movemask_ps(_mm_castsi128_ps(greater)) as usize;
-    let words_needed = NUM_WORDS[mask] as usize;
+        let x_biased = _mm_xor_si128(x, _mm_set1_epi32(i32::MIN));
+        let threshold = _mm_set1_epi32((RANS_WORD_L as i32).wrapping_add(i32::MIN));
+        let greater = _mm_cmpgt_epi32(threshold, x_biased);
+        let mask = _mm_movemask_ps(_mm_castsi128_ps(greater)) as usize;
+        let words_needed = NUM_WORDS[mask] as usize;
 
-    if words_needed == 0 {
-        return Some(());
+        if words_needed == 0 {
+            return Some(());
+        }
+        if reader.len() < words_needed {
+            return None;
+        }
+
+        // Copy only needed words into a scratch buffer to avoid over-read
+        let mut scratch = [0u16; 4];
+        scratch[..words_needed].copy_from_slice(&reader[..words_needed]);
+
+        let memvals = _mm_loadl_epi64(scratch.as_ptr().cast());
+        let xshifted = _mm_slli_epi32(x, 16);
+
+        let shufbase = &SHUFFLE_MASKS.0[mask * 16] as *const i8 as *const __m128i;
+        let shufmask = _mm_load_si128(shufbase); // aligned load on repr(align(16)) static
+        let newx = _mm_or_si128(xshifted, _mm_shuffle_epi8(memvals, shufmask));
+        state.0 = _mm_blendv_epi8(x, newx, greater);
+
+        *reader = &reader[words_needed..];
+        Some(())
     }
-    if reader.len() < words_needed {
-        return None;
-    }
-
-    // Copy only needed words into a scratch buffer to avoid over-read
-    let mut scratch = [0u16; 4];
-    scratch[..words_needed].copy_from_slice(&reader[..words_needed]);
-
-    let memvals = _mm_loadl_epi64(scratch.as_ptr().cast());
-    let xshifted = _mm_slli_epi32(x, 16);
-
-    let shufbase = &SHUFFLE_MASKS.0[mask * 16] as *const i8 as *const __m128i;
-    let shufmask = _mm_load_si128(shufbase); // aligned load on repr(align(16)) static
-    let newx = _mm_or_si128(xshifted, _mm_shuffle_epi8(memvals, shufmask));
-    state.0 = _mm_blendv_epi8(x, newx, greater);
-
-    *reader = &reader[words_needed..];
-    Some(())
-}}
+}
 
 // ---------------------------------------------------------------------------
 // Safe 8-way SIMD decode — caller provides feature assurance

@@ -254,16 +254,25 @@ pub unsafe fn decode_interleaved8_avx512vl(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
-) -> Result<DecodeResult, DecodeError> { unsafe {
-    let (output, report) =
-        crate::avx512::decode_interleaved8_avx512vl_kernel(compressed, table, expected_len)
-            .map_err(|_| DecodeError::InputTooShort)?;
-    Ok(DecodeResult {
-        output,
-        report,
-        backend: DecodeBackend::Avx512VlInterleaved8,
-    })
-}}
+) -> Result<DecodeResult, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            let (output, report) =
+                crate::avx512::decode_interleaved8_avx512vl_kernel(compressed, table, expected_len)
+                    .map_err(|_| DecodeError::InputTooShort)?;
+            return Ok(DecodeResult {
+                output,
+                report,
+                backend: DecodeBackend::Avx512VlInterleaved8,
+            });
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // 16-way auto-dispatch
@@ -311,15 +320,24 @@ pub unsafe fn decode_interleaved16_avx512(
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> { unsafe {
-    let (output, report) =
-        crate::avx512::decode_interleaved16_avx512_kernel(compressed, table, expected_len)
-            .map_err(|_| DecodeError::InputTooShort)?;
-    Ok(DecodeResult {
-        output,
-        report,
-        backend: DecodeBackend::Avx512Interleaved16,
-    })
+    #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+    {
+        let (output, report) =
+            crate::avx512::decode_interleaved16_avx512_kernel(compressed, table, expected_len)
+                .map_err(|_| DecodeError::InputTooShort)?;
+        return Ok(DecodeResult {
+            output,
+            report,
+            backend: DecodeBackend::Avx512Interleaved16,
+        });
+    }
+    #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+    {
+        Err(DecodeError::UnsupportedBackend)
+    }
 }}
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Allocating convenience wrappers

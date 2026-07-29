@@ -1,5 +1,12 @@
 //! # AVX-512 Word rANS decode kernels
 //!
+//! This module is conditionally compiled and is only present when the target
+//! supports AVX-512BW at compile time (e.g., `-C target-feature=+avx512f,+avx512bw`).
+//! On targets without AVX-512, this module is empty and all dependent code must
+//! be cfg-gated at the call site.
+
+#![cfg(any(target_feature = "avx512bw", feature = "std"))]
+//!
 //! This module implements two complementary AVX-512 accelerated Word rANS decode
 //! surfaces.  Both use a **packed u32 table** (`PackedWordTable`) where each 32-bit
 //! entry packs `frequency(12 bits) | bias(12 bits) | symbol(8 bits)`.  A single
@@ -161,37 +168,39 @@ pub struct Renorm8Result {
 pub unsafe fn renorm8_avx512vl(
     states: __m256i,
     input: &[u16],
-) -> Result<Renorm8Result, &'static str> { unsafe {
-    let l_vec = _mm256_set1_epi32(RANS_WORD_L as i32);
-    let renorm_mask = _mm256_cmplt_epu32_mask(states, l_vec);
-    let words_needed = NUM_WORDS_8[renorm_mask as usize] as usize;
+) -> Result<Renorm8Result, &'static str> {
+    unsafe {
+        let l_vec = _mm256_set1_epi32(RANS_WORD_L as i32);
+        let renorm_mask = _mm256_cmplt_epu32_mask(states, l_vec);
+        let words_needed = NUM_WORDS_8[renorm_mask as usize] as usize;
 
-    if words_needed > input.len() {
-        return Err("insufficient renorm words for 8-way");
-    }
-
-    let mut temp_state = states;
-    let mut rp = 0usize;
-    for lane in 0..8 {
-        if (renorm_mask >> lane) & 1 != 0 {
-            let w = input[rp] as u32;
-            rp += 1;
-            let mut lanes: [u32; 8] = core::mem::zeroed();
-            _mm256_storeu_si256(lanes.as_mut_ptr() as *mut __m256i, temp_state);
-            lanes[lane] = (lanes[lane] << 16) | w;
-            temp_state = _mm256_loadu_si256(lanes.as_ptr() as *const __m256i);
+        if words_needed > input.len() {
+            return Err("insufficient renorm words for 8-way");
         }
+
+        let mut temp_state = states;
+        let mut rp = 0usize;
+        for lane in 0..8 {
+            if (renorm_mask >> lane) & 1 != 0 {
+                let w = input[rp] as u32;
+                rp += 1;
+                let mut lanes: [u32; 8] = core::mem::zeroed();
+                _mm256_storeu_si256(lanes.as_mut_ptr() as *mut __m256i, temp_state);
+                lanes[lane] = (lanes[lane] << 16) | w;
+                temp_state = _mm256_loadu_si256(lanes.as_ptr() as *const __m256i);
+            }
+        }
+
+        let mut final_states = [0u32; 8];
+        _mm256_storeu_si256(final_states.as_mut_ptr() as *mut __m256i, temp_state);
+
+        Ok(Renorm8Result {
+            states: final_states,
+            mask: renorm_mask,
+            words_consumed: rp,
+        })
     }
-
-    let mut final_states = [0u32; 8];
-    _mm256_storeu_si256(final_states.as_mut_ptr() as *mut __m256i, temp_state);
-
-    Ok(Renorm8Result {
-        states: final_states,
-        mask: renorm_mask,
-        words_consumed: rp,
-    })
-}}
+}
 
 /// Result of a 16-way renormalization operation.
 #[derive(Debug, Clone, Copy)]
@@ -215,37 +224,39 @@ pub struct Renorm16Result {
 pub unsafe fn renorm16_avx512(
     states: __m512i,
     input: &[u16],
-) -> Result<Renorm16Result, &'static str> { unsafe {
-    let l_vec = _mm512_set1_epi32(RANS_WORD_L as i32);
-    let renorm_mask = _mm512_cmplt_epu32_mask(states, l_vec);
-    let words_needed = NUM_WORDS_16[renorm_mask as usize] as usize;
+) -> Result<Renorm16Result, &'static str> {
+    unsafe {
+        let l_vec = _mm512_set1_epi32(RANS_WORD_L as i32);
+        let renorm_mask = _mm512_cmplt_epu32_mask(states, l_vec);
+        let words_needed = NUM_WORDS_16[renorm_mask as usize] as usize;
 
-    if words_needed > input.len() {
-        return Err("insufficient renorm words for 16-way");
-    }
-
-    let mut temp_state = states;
-    let mut rp = 0usize;
-    for lane in 0..16 {
-        if (renorm_mask >> lane) & 1 != 0 {
-            let w = input[rp] as u32;
-            rp += 1;
-            let mut lanes: [u32; 16] = core::mem::zeroed();
-            _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, temp_state);
-            lanes[lane] = (lanes[lane] << 16) | w;
-            temp_state = _mm512_loadu_si512(lanes.as_ptr() as *const __m512i);
+        if words_needed > input.len() {
+            return Err("insufficient renorm words for 16-way");
         }
+
+        let mut temp_state = states;
+        let mut rp = 0usize;
+        for lane in 0..16 {
+            if (renorm_mask >> lane) & 1 != 0 {
+                let w = input[rp] as u32;
+                rp += 1;
+                let mut lanes: [u32; 16] = core::mem::zeroed();
+                _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, temp_state);
+                lanes[lane] = (lanes[lane] << 16) | w;
+                temp_state = _mm512_loadu_si512(lanes.as_ptr() as *const __m512i);
+            }
+        }
+
+        let mut final_states = [0u32; 16];
+        _mm512_storeu_si512(final_states.as_mut_ptr() as *mut __m512i, temp_state);
+
+        Ok(Renorm16Result {
+            states: final_states,
+            mask: renorm_mask,
+            words_consumed: rp,
+        })
     }
-
-    let mut final_states = [0u32; 16];
-    _mm512_storeu_si512(final_states.as_mut_ptr() as *mut __m512i, temp_state);
-
-    Ok(Renorm16Result {
-        states: final_states,
-        mask: renorm_mask,
-        words_consumed: rp,
-    })
-}}
+}
 
 // ---------------------------------------------------------------------------
 // AVX512VL.INTERLEAVED8: 8-way decode using 256-bit vectors
@@ -302,187 +313,190 @@ pub unsafe fn decode_interleaved8_avx512vl_kernel(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
-) -> Result<(Vec<u8>, DecodeReport), &'static str> { unsafe {
-    // ---- Precondition check: minimum stream length ----
-    // The 8-way format stores 8 initial states as [low16, high16] pairs,
-    // requiring 16 u16 words.
-    if compressed.len() < 16 {
-        return Err("compressed too short for 8 init states (AVX512VL)");
-    }
-
-    // ---- Load initial states ----
-    // The stream stores states as [state0.low, state0.high, state1.low, ...].
-    // We use a scalar loop to correctly deinterleave the low/high pairs.
-    // This runs once at startup (16 iterations) and is not performance-critical.
-    let mut init_array = [0u32; 8];
-    for i in 0..8 {
-        init_array[i] = compressed[i * 2] as u32 | (compressed[i * 2 + 1] as u32) << 16;
-    }
-    // Load the 8 u32 values into a __m256i register.
-    // SAFETY: init_array is 32 bytes, aligned to at least 4 bytes (u32).
-    // _mm256_loadu_si256 reads 32 bytes from the pointer — valid because
-    // the array is exactly 8 × u32 = 32 bytes.
-    let mut state = _mm256_loadu_si256(init_array.as_ptr() as *const __m256i);
-
-    let mut reader_pos = 16usize; // current position in compressed (u16 words)
-    let n = expected_len;
-    let even8 = n & !7; // largest multiple of 8 <= n
-    let mut output = Vec::with_capacity(n);
-    output.resize(n, 0u8);
-
-    // ---- Precompute SIMD constants ----
-    // These are hoisted out of the hot loop because _mm256_set1_epi32 is
-    // a broadcast that would otherwise execute every iteration.
-    let table_ptr = table.as_ptr() as *const i32;
-    // `_mm256_i32gather_epi32` takes `*const i32` as the base address.
-    // PackedWordEntry has repr(transparent) over u32, making this cast safe.
-    let mask_v = _mm256_set1_epi32((RANS_WORD_M - 1) as i32); // 4095: slot index mask
-    // Shift count for (state >> 12) — must be a compile-time constant per
-    // the intrinsic's signature (`const IMM8: i32` for `_mm256_srli_epi32`).
-    const SCALE8: i32 = 12;
-
-    // ---- Main decode loop: process 8 symbols per iteration ----
-    for i in (0..even8).step_by(8) {
-        // STEP 1: Gather packed table entries
-        // Compute slot indices by masking off the low 12 bits of each state.
-        let indices = _mm256_and_si256(state, mask_v);
-        // Gather loads 8 × u32 from addresses [table_ptr + indices[lane] * 4].
-        // Each entry is a PackedWordEntry containing freq|bias<<12|sym<<24.
-        let gathered = _mm256_i32gather_epi32(table_ptr, indices, 4);
-
-        // STEP 2: Unpack fields using bit masks
-        // freq = packed & 0x0fff (low 12 bits)
-        let freq_mask = _mm256_set1_epi32(0x0fff);
-        let freq_v = _mm256_and_si256(gathered, freq_mask);
-        // bias = (packed >> 12) & 0x0fff (next 12 bits)
-        let bias_v = _mm256_and_si256(_mm256_srli_epi32(gathered, 12), freq_mask);
-        // symbol = packed >> 24 (high 8 bits)
-        let symbols_v = _mm256_srli_epi32(gathered, 24);
-
-        // STEP 3: Store symbols in lane order
-        // We use a temporary buffer because packus instructions have complex
-        // lane interleaving that's error-prone.  The storeu + scalar copy
-        // pattern is simple, correct, and fast enough (8 iterations of a
-        // byte-wide store).
-        let mut sym_buf: [u32; 8] = core::mem::zeroed();
-        // SAFETY: Storing 8 u32 (32 bytes) into a properly sized buffer.
-        _mm256_storeu_si256(sym_buf.as_mut_ptr() as *mut __m256i, symbols_v);
-        for lane in 0..8 {
-            output[i + lane] = sym_buf[lane] as u8;
+) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+    unsafe {
+        // ---- Precondition check: minimum stream length ----
+        // The 8-way format stores 8 initial states as [low16, high16] pairs,
+        // requiring 16 u16 words.
+        if compressed.len() < 16 {
+            return Err("compressed too short for 8 init states (AVX512VL)");
         }
 
-        // STEP 4: State update — the core ANS transition
-        // xscaled = state >> 12  (remove the slot portion)
-        // state   = xscaled * freq + bias  (multiply-add in lane order)
-        // This is a pack of 8 independent lane-wise operations.  The SIMD
-        // multiply (`_mm256_mullo_epi32`) and add (`_mm256_add_epi32`) handle
-        // all lanes simultaneously.
-        let xscaled = _mm256_srli_epi32(state, SCALE8);
-        let new_state = _mm256_add_epi32(_mm256_mullo_epi32(xscaled, freq_v), bias_v);
+        // ---- Load initial states ----
+        // The stream stores states as [state0.low, state0.high, state1.low, ...].
+        // We use a scalar loop to correctly deinterleave the low/high pairs.
+        // This runs once at startup (16 iterations) and is not performance-critical.
+        let mut init_array = [0u32; 8];
+        for i in 0..8 {
+            init_array[i] = compressed[i * 2] as u32 | (compressed[i * 2 + 1] as u32) << 16;
+        }
+        // Load the 8 u32 values into a __m256i register.
+        // SAFETY: init_array is 32 bytes, aligned to at least 4 bytes (u32).
+        // _mm256_loadu_si256 reads 32 bytes from the pointer — valid because
+        // the array is exactly 8 × u32 = 32 bytes.
+        let mut state = _mm256_loadu_si256(init_array.as_ptr() as *const __m256i);
 
-        // STEP 5: Renormalization
-        // Compute mask: which lanes have state < 65536 (RANS_WORD_L)?
-        // _mm256_cmplt_epu32_mask returns an 8-bit mask where bit N is 1 if
-        // lane N's state < L.
-        let renorm_mask = _mm256_cmplt_epu32_mask(new_state, _mm256_set1_epi32(RANS_WORD_L as i32));
-        let words_needed = NUM_WORDS_8[renorm_mask as usize] as usize;
+        let mut reader_pos = 16usize; // current position in compressed (u16 words)
+        let n = expected_len;
+        let even8 = n & !7; // largest multiple of 8 <= n
+        let mut output = Vec::with_capacity(n);
+        output.resize(n, 0u8);
 
-        if words_needed > 0 {
-            // Check input bounds before reading.
-            if reader_pos + words_needed > compressed.len() {
-                return Err("unexpected EOF in AVX512VL renorm");
-            }
-            // Lane-wise renormalization: for each active lane, read one u16
-            // and shift it into the lane's state.
-            //
-            // Why lane-wise instead of masked expand-load?
-            // `_mm256_mask_expand_epi16`'s memory-access semantics for inactive
-            // lanes are microarchitecture-dependent.  To guarantee no overread
-            // beyond the provided slice, we use simple scalar reads with bounds
-            // checking.  The loop runs at most 8 iterations; in practice most
-            // masks have 0–2 active lanes.
-            let mut temp_state = new_state;
-            let mut rp = reader_pos;
+        // ---- Precompute SIMD constants ----
+        // These are hoisted out of the hot loop because _mm256_set1_epi32 is
+        // a broadcast that would otherwise execute every iteration.
+        let table_ptr = table.as_ptr() as *const i32;
+        // `_mm256_i32gather_epi32` takes `*const i32` as the base address.
+        // PackedWordEntry has repr(transparent) over u32, making this cast safe.
+        let mask_v = _mm256_set1_epi32((RANS_WORD_M - 1) as i32); // 4095: slot index mask
+        // Shift count for (state >> 12) — must be a compile-time constant per
+        // the intrinsic's signature (`const IMM8: i32` for `_mm256_srli_epi32`).
+        const SCALE8: i32 = 12;
+
+        // ---- Main decode loop: process 8 symbols per iteration ----
+        for i in (0..even8).step_by(8) {
+            // STEP 1: Gather packed table entries
+            // Compute slot indices by masking off the low 12 bits of each state.
+            let indices = _mm256_and_si256(state, mask_v);
+            // Gather loads 8 × u32 from addresses [table_ptr + indices[lane] * 4].
+            // Each entry is a PackedWordEntry containing freq|bias<<12|sym<<24.
+            let gathered = _mm256_i32gather_epi32(table_ptr, indices, 4);
+
+            // STEP 2: Unpack fields using bit masks
+            // freq = packed & 0x0fff (low 12 bits)
+            let freq_mask = _mm256_set1_epi32(0x0fff);
+            let freq_v = _mm256_and_si256(gathered, freq_mask);
+            // bias = (packed >> 12) & 0x0fff (next 12 bits)
+            let bias_v = _mm256_and_si256(_mm256_srli_epi32(gathered, 12), freq_mask);
+            // symbol = packed >> 24 (high 8 bits)
+            let symbols_v = _mm256_srli_epi32(gathered, 24);
+
+            // STEP 3: Store symbols in lane order
+            // We use a temporary buffer because packus instructions have complex
+            // lane interleaving that's error-prone.  The storeu + scalar copy
+            // pattern is simple, correct, and fast enough (8 iterations of a
+            // byte-wide store).
+            let mut sym_buf: [u32; 8] = core::mem::zeroed();
+            // SAFETY: Storing 8 u32 (32 bytes) into a properly sized buffer.
+            _mm256_storeu_si256(sym_buf.as_mut_ptr() as *mut __m256i, symbols_v);
             for lane in 0..8 {
-                if (renorm_mask >> lane) & 1 != 0 {
-                    let w = compressed[rp] as u32;
-                    rp += 1;
-                    // Extract lane value from the vector, modify it, re-insert.
-                    // This is safe: we store to/load from a properly sized [u32; 8].
-                    let mut lanes: [u32; 8] = core::mem::zeroed();
-                    _mm256_storeu_si256(lanes.as_mut_ptr() as *mut __m256i, temp_state);
-                    lanes[lane] = (lanes[lane] << 16) | w;
-                    temp_state = _mm256_loadu_si256(lanes.as_ptr() as *const __m256i);
+                output[i + lane] = sym_buf[lane] as u8;
+            }
+
+            // STEP 4: State update — the core ANS transition
+            // xscaled = state >> 12  (remove the slot portion)
+            // state   = xscaled * freq + bias  (multiply-add in lane order)
+            // This is a pack of 8 independent lane-wise operations.  The SIMD
+            // multiply (`_mm256_mullo_epi32`) and add (`_mm256_add_epi32`) handle
+            // all lanes simultaneously.
+            let xscaled = _mm256_srli_epi32(state, SCALE8);
+            let new_state = _mm256_add_epi32(_mm256_mullo_epi32(xscaled, freq_v), bias_v);
+
+            // STEP 5: Renormalization
+            // Compute mask: which lanes have state < 65536 (RANS_WORD_L)?
+            // _mm256_cmplt_epu32_mask returns an 8-bit mask where bit N is 1 if
+            // lane N's state < L.
+            let renorm_mask =
+                _mm256_cmplt_epu32_mask(new_state, _mm256_set1_epi32(RANS_WORD_L as i32));
+            let words_needed = NUM_WORDS_8[renorm_mask as usize] as usize;
+
+            if words_needed > 0 {
+                // Check input bounds before reading.
+                if reader_pos + words_needed > compressed.len() {
+                    return Err("unexpected EOF in AVX512VL renorm");
                 }
+                // Lane-wise renormalization: for each active lane, read one u16
+                // and shift it into the lane's state.
+                //
+                // Why lane-wise instead of masked expand-load?
+                // `_mm256_mask_expand_epi16`'s memory-access semantics for inactive
+                // lanes are microarchitecture-dependent.  To guarantee no overread
+                // beyond the provided slice, we use simple scalar reads with bounds
+                // checking.  The loop runs at most 8 iterations; in practice most
+                // masks have 0–2 active lanes.
+                let mut temp_state = new_state;
+                let mut rp = reader_pos;
+                for lane in 0..8 {
+                    if (renorm_mask >> lane) & 1 != 0 {
+                        let w = compressed[rp] as u32;
+                        rp += 1;
+                        // Extract lane value from the vector, modify it, re-insert.
+                        // This is safe: we store to/load from a properly sized [u32; 8].
+                        let mut lanes: [u32; 8] = core::mem::zeroed();
+                        _mm256_storeu_si256(lanes.as_mut_ptr() as *mut __m256i, temp_state);
+                        lanes[lane] = (lanes[lane] << 16) | w;
+                        temp_state = _mm256_loadu_si256(lanes.as_ptr() as *const __m256i);
+                    }
+                }
+                state = temp_state;
+                reader_pos = rp;
+            } else {
+                // No lanes need renormalization — keep the new state as-is.
+                state = new_state;
             }
-            state = temp_state;
-            reader_pos = rp;
-        } else {
-            // No lanes need renormalization — keep the new state as-is.
-            state = new_state;
         }
-    }
 
-    // ---- Tail handling: symbols in the last partial group ----
-    // When expected_len is not divisible by 8, we process the remaining r < 8
-    // symbols one at a time using scalar logic.  Each symbol goes to lane
-    // `lane = i & 7` in the 8-way state vector.
-    for i in even8..n {
-        let lane = i & 7;
-        // Save SIMD state to temp array.
-        let mut lanes: [u32; 8] = core::mem::zeroed();
-        _mm256_storeu_si256(lanes.as_mut_ptr() as *mut __m256i, state);
-        let x = lanes[lane];
-        let slot = x as usize & (RANS_WORD_M - 1);
-        // Read single packed entry.
-        let entry = (*table.get(slot)).0;
-        output[i] = (entry >> 24) as u8; // symbol
-        let freq_entry = entry & 0x0fff; // frequency
-        let bias_entry = (entry >> 12) & 0x0fff; // bias
-        let new_x = freq_entry * (x >> 12) + bias_entry;
-        lanes[lane] = new_x;
-        if new_x < RANS_WORD_L {
-            if reader_pos >= compressed.len() {
-                return Err("unexpected EOF in AVX512VL tail renorm");
+        // ---- Tail handling: symbols in the last partial group ----
+        // When expected_len is not divisible by 8, we process the remaining r < 8
+        // symbols one at a time using scalar logic.  Each symbol goes to lane
+        // `lane = i & 7` in the 8-way state vector.
+        for i in even8..n {
+            let lane = i & 7;
+            // Save SIMD state to temp array.
+            let mut lanes: [u32; 8] = core::mem::zeroed();
+            _mm256_storeu_si256(lanes.as_mut_ptr() as *mut __m256i, state);
+            let x = lanes[lane];
+            let slot = x as usize & (RANS_WORD_M - 1);
+            // Read single packed entry.
+            let entry = (*table.get(slot)).0;
+            output[i] = (entry >> 24) as u8; // symbol
+            let freq_entry = entry & 0x0fff; // frequency
+            let bias_entry = (entry >> 12) & 0x0fff; // bias
+            let new_x = freq_entry * (x >> 12) + bias_entry;
+            lanes[lane] = new_x;
+            if new_x < RANS_WORD_L {
+                if reader_pos >= compressed.len() {
+                    return Err("unexpected EOF in AVX512VL tail renorm");
+                }
+                lanes[lane] = (new_x << 16) | compressed[reader_pos] as u32;
+                reader_pos += 1;
             }
-            lanes[lane] = (new_x << 16) | compressed[reader_pos] as u32;
-            reader_pos += 1;
+            // Reload modified state.
+            state = _mm256_loadu_si256(lanes.as_ptr() as *const __m256i);
         }
-        // Reload modified state.
-        state = _mm256_loadu_si256(lanes.as_ptr() as *const __m256i);
+
+        // ---- Collect final states for the DecodeReport ----
+        let mut final_states = [0u32; 8];
+        _mm256_storeu_si256(final_states.as_mut_ptr() as *mut __m256i, state);
+
+        let report = DecodeReport {
+            words_consumed: reader_pos,
+            // We only have 8 final states, but DecodeReport expects 16.
+            // The top 8 slots are zeroed — callers should use the appropriate
+            // length for 8-way vs 16-way decodes.
+            final_states: [
+                final_states[0],
+                final_states[1],
+                final_states[2],
+                final_states[3],
+                final_states[4],
+                final_states[5],
+                final_states[6],
+                final_states[7],
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+        };
+
+        Ok((output, report))
     }
-
-    // ---- Collect final states for the DecodeReport ----
-    let mut final_states = [0u32; 8];
-    _mm256_storeu_si256(final_states.as_mut_ptr() as *mut __m256i, state);
-
-    let report = DecodeReport {
-        words_consumed: reader_pos,
-        // We only have 8 final states, but DecodeReport expects 16.
-        // The top 8 slots are zeroed — callers should use the appropriate
-        // length for 8-way vs 16-way decodes.
-        final_states: [
-            final_states[0],
-            final_states[1],
-            final_states[2],
-            final_states[3],
-            final_states[4],
-            final_states[5],
-            final_states[6],
-            final_states[7],
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-        ],
-    };
-
-    Ok((output, report))
-}}
+}
 
 // ---------------------------------------------------------------------------
 // AVX512.INTERLEAVED16: 16-way decode using 512-bit vectors
@@ -522,10 +536,13 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
 ) -> Result<(Vec<u8>, DecodeReport), &'static str> {
     // Empty stream with 0 expected symbols — nothing to decode
     if expected_len == 0 {
-        return Ok((Vec::new(), DecodeReport {
-            words_consumed: 0,
-            final_states: [0u32; 16],
-        }));
+        return Ok((
+            Vec::new(),
+            DecodeReport {
+                words_consumed: 0,
+                final_states: [0u32; 16],
+            },
+        ));
     }
     // ---- Precondition check ----
     if compressed.len() < 32 {
