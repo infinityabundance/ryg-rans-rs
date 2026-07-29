@@ -751,6 +751,7 @@ fn cmd_seal() -> Result<(), String> {
             "docker/",
             ".cargo/",
             ".gitignore",
+            "Cargo.toml",
             "Cargo.lock",
             "README.md",
             "crates/ryg-rans-rs-core/README.md",
