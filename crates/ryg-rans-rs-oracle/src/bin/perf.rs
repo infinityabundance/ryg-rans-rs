@@ -24,8 +24,8 @@ use ryg_rans_rs_simd::{
     backends::DecodeBackend,
     encode_8way_for_test,
     packed_table::{
-        self, PackedWordTable, decode_8way_packed_scalar, decode_interleaved16_scalar,
-        encode_interleaved16,
+        self, PackedWordTable, decode_8way_packed_scalar, decode_8way_packed_scalar_with_report,
+        decode_interleaved16_scalar, encode_interleaved16,
     },
 };
 use std::hint::black_box;
@@ -295,120 +295,206 @@ fn main() {
                 };
             let scalar16_ok = scalar16_output == input;
 
-            // Verify each experimental backend produces correct output before timing.
-            // Returns (allowed_to_benchmark, name_for_display)
-            let mut bench_list: Vec<(&str, bool)> = Vec::new(); // (short_desc, can_bench)
-
-            // Helper: verify a backend, store result
+            // Full verification: compare output, words_consumed, AND all 16 final states.
             let n_iter = (100_000_000u64 / size.max(1) as u64).max(20).min(500_000);
 
-            macro_rules! verify_backend {
-                ($label:expr, $call:expr) => {{
-                    let ok = match (|| -> Result<Vec<u8>, &'static str> { $call })() {
-                        Ok(out) if out == scalar16_output => true,
-                        Ok(out) => {
-                            eprintln!(
-                                "  VERIFY FAIL {}: output mismatch ({} vs {} bytes)",
-                                $label,
-                                out.len(),
-                                scalar16_output.len()
-                            );
-                            false
-                        }
-                        Err(e) => {
-                            eprintln!("  VERIFY FAIL {}: error: {}", $label, e);
-                            false
-                        }
-                    };
-                    ok
+            // Scalar 8-way reference for 8-way backend verification
+            let (scalar8_output, scalar8_report) =
+                match decode_8way_packed_scalar_with_report(&compressed_8way, &packed, size) {
+                    Ok(r) => r,
+                    Err(_) => {
+                        eprintln!(
+                            "  WARN: scalar8 decode failed for {} size {}",
+                            profile.name, size
+                        );
+                        continue;
+                    }
+                };
+
+            let n_iter = (100_000_000u64 / size.max(1) as u64).max(20).min(500_000);
+
+            // Helper: verify a 16-way backend against scalar16 reference
+            macro_rules! verify_16way {
+                ($label:expr, $output:expr, $wc:expr, $states:expr) => {{
+                    let out = $output;
+                    if out != scalar16_output {
+                        eprintln!("  VERIFY FAIL {}: output mismatch", $label);
+                        false
+                    } else if $wc != scalar16_report.words_consumed {
+                        eprintln!(
+                            "  VERIFY FAIL {}: words_consumed {} vs {}",
+                            $label, $wc, scalar16_report.words_consumed
+                        );
+                        false
+                    } else if $states != scalar16_report.final_states {
+                        eprintln!("  VERIFY FAIL {}: final states mismatch", $label);
+                        false
+                    } else {
+                        true
+                    }
+                }};
+            }
+            // Helper: verify an 8-way backend against scalar8 reference
+            macro_rules! verify_8way {
+                ($label:expr, $output:expr, $wc:expr, $states:expr) => {{
+                    let out = $output;
+                    if out != scalar8_output {
+                        eprintln!("  VERIFY FAIL {}: output mismatch", $label);
+                        false
+                    } else if $wc != scalar8_report.words_consumed {
+                        eprintln!(
+                            "  VERIFY FAIL {}: words_consumed {} vs {}",
+                            $label, $wc, scalar8_report.words_consumed
+                        );
+                        false
+                    } else if $states[0..8] != scalar8_report.final_states[0..8] {
+                        eprintln!("  VERIFY FAIL {}: final states mismatch", $label);
+                        false
+                    } else {
+                        true
+                    }
                 }};
             }
 
             // Verify AVX512VL 8-way (hw-gather)
             let avx512vl8_ok = if avx512vl_avail {
-                verify_backend!("avx512vl-8way", unsafe {
+                match unsafe {
                     ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl(
                         &compressed_8way,
                         &packed,
                         size,
                     )
-                    .map(|r| r.output)
-                    .map_err(|_| "failed")
-                })
+                } {
+                    Ok(r) => verify_16way!(
+                        "avx512vl-8way",
+                        r.output,
+                        r.report.words_consumed,
+                        r.report.final_states
+                    ),
+                    Err(e) => {
+                        eprintln!("  VERIFY FAIL avx512vl-8way: {:?}", e);
+                        false
+                    }
+                }
             } else {
                 false
             };
 
             // Verify AVX512 16-way (hw-gather)
             let avx512_16_ok = if avx512_avail {
-                verify_backend!("avx512-16way", unsafe {
+                match unsafe {
                     ryg_rans_rs_simd::backends::decode_interleaved16_avx512(
                         &compressed_16way,
                         &packed,
                         size,
                     )
-                    .map(|r| r.output)
-                    .map_err(|_| "failed")
-                })
+                } {
+                    Ok(r) => verify_16way!(
+                        "avx512-16way",
+                        r.output,
+                        r.report.words_consumed,
+                        r.report.final_states
+                    ),
+                    Err(e) => {
+                        eprintln!("  VERIFY FAIL avx512-16way: {:?}", e);
+                        false
+                    }
+                }
             } else {
                 false
             };
 
             // Verify AVX512VL manual gather 8-way
             let manual8_ok = if avx512vl_avail {
-                verify_backend!("avx512vl-manual-gather-8way", unsafe {
+                match unsafe {
                     ryg_rans_rs_simd::backends::decode_interleaved8_manual_gather(
                         &compressed_8way,
                         &packed,
                         size,
                     )
-                    .map(|r| r.output)
-                    .map_err(|_| "failed")
-                })
+                } {
+                    Ok(r) => verify_16way!(
+                        "avx512vl-manual-gather-8way",
+                        r.output,
+                        r.report.words_consumed,
+                        r.report.final_states
+                    ),
+                    Err(e) => {
+                        eprintln!("  VERIFY FAIL manual8: {:?}", e);
+                        false
+                    }
+                }
             } else {
                 false
             };
 
             // Verify AVX512 manual gather 16-way
             let manual16_ok = if avx512_avail {
-                verify_backend!("avx512-manual-gather-16way", unsafe {
+                match unsafe {
                     ryg_rans_rs_simd::backends::decode_interleaved16_manual_gather(
                         &compressed_16way,
                         &packed,
                         size,
                     )
-                    .map(|r| r.output)
-                    .map_err(|_| "failed")
-                })
+                } {
+                    Ok(r) => verify_16way!(
+                        "avx512-manual-gather-16way",
+                        r.output,
+                        r.report.words_consumed,
+                        r.report.final_states
+                    ),
+                    Err(e) => {
+                        eprintln!("  VERIFY FAIL manual16: {:?}", e);
+                        false
+                    }
+                }
             } else {
                 false
             };
 
             // Verify AVX512VL 2x8 on 16-way format
             let twx8_ok = if avx512vl_avail {
-                verify_backend!("avx512vl-2x8-on-16way", unsafe {
+                match unsafe {
                     ryg_rans_rs_simd::backends::decode_interleaved16_2x8(
                         &compressed_16way,
                         &packed,
                         size,
                     )
-                    .map(|r| r.output)
-                    .map_err(|_| "failed")
-                })
+                } {
+                    Ok(r) => verify_16way!(
+                        "avx512vl-2x8-on-16way",
+                        r.output,
+                        r.report.words_consumed,
+                        r.report.final_states
+                    ),
+                    Err(e) => {
+                        eprintln!("  VERIFY FAIL 2x8: {:?}", e);
+                        false
+                    }
+                }
             } else {
                 false
             };
 
-            // Verify Uniform256 table-free kernel (only for UNIFORM256 profile)
+            // Verify Uniform256 table-free kernel
             let uniform_tf_ok = if avx512_avail && profile.name == "UNIFORM256" {
-                verify_backend!("uniform256-tablefree-16way", unsafe {
+                match unsafe {
                     ryg_rans_rs_simd::model_kernels::decode_interleaved16_uniform256_avx512(
                         &compressed_16way,
                         size,
                     )
-                    .map(|r| r.0)
-                    .map_err(|_| "failed")
-                })
+                } {
+                    Ok((output, report)) => verify_16way!(
+                        "uniform256-tablefree-16way",
+                        output,
+                        report.words_consumed,
+                        report.final_states
+                    ),
+                    Err(e) => {
+                        eprintln!("  VERIFY FAIL uniform-tf: {}", e);
+                        false
+                    }
+                }
             } else {
                 false
             };
