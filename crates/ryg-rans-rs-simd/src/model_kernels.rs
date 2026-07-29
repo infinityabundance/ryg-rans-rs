@@ -93,9 +93,19 @@ pub unsafe fn decode_interleaved16_uniform256_avx512(
             // bias = slot & 15
             let bias = _mm512_and_si512(slot, _mm512_set1_epi32(15));
 
-            // new_state = (state >> 8) + bias  [since freq=16, 16*(state>>12) = state>>8]
-            let shifted = _mm512_srli_epi32(state, SHIFT_8);
-            let new_state = _mm512_add_epi32(shifted, bias);
+            // new_state = 16 * (state >> 12) + (slot & 15)
+            // This is the correct ANS transition for Uniform256 at S12
+            // where frequency = 16 and bias = slot & 15.
+            //
+            // NOTE: (state >> 8) is NOT equivalent because
+            // state >> 8 = 16 * (state >> 12) + (slot >> 8)
+            // The extra term (slot >> 8) is 0..15 and causes divergence
+            // for any slot >= 256.
+            let scaled = _mm512_srli_epi32(state, SHIFT_12); // state >> 12
+            let new_state = _mm512_add_epi32(
+                _mm512_slli_epi32(scaled, 4), // * 16
+                bias,                         // + (slot & 15)
+            );
 
             // Renormalization (standard)
             let renorm_mask = _mm512_cmplt_epu32_mask(new_state, l_vec);
@@ -128,7 +138,7 @@ pub unsafe fn decode_interleaved16_uniform256_avx512(
             let x = ls[lane];
             let slot_val = x as usize & (RANS_WORD_M - 1);
             output[i] = (slot_val >> 4) as u8;
-            let new_x = (x >> 8) + (slot_val as u32 & 15);
+            let new_x = ((x >> 12) * 16) + (slot_val as u32 & 15);
             ls[lane] = new_x;
             if new_x < RANS_WORD_L {
                 if reader_pos >= compressed.len() {
@@ -160,16 +170,14 @@ pub unsafe fn decode_interleaved16_uniform256_avx512(
 /// symbol.  This kernel handles the common case with arithmetic and falls
 /// back to table lookup only for the cold lanes.
 ///
-/// NOTE: This is a sketch implementation.  The dominant symbol detection
-/// and the masked fallback need to be refined with production model analysis.
-/// Currently falls through to the uniform kernel.
+/// NOTE: This function is intentionally NOT implemented.  It exists as a
+/// placeholder for future development of a masked dominant-symbol fast path.
+/// Calling it will return an error.  Do not use in production.
 #[target_feature(enable = "avx512f,avx512bw")]
 pub unsafe fn decode_interleaved16_dominant_sketch(
-    compressed: &[u16],
+    _compressed: &[u16],
     _table: &crate::packed_table::PackedWordTable,
-    expected_len: usize,
+    _expected_len: usize,
 ) -> Result<(Vec<u8>, DecodeReport), &'static str> {
-    // For now, delegate to uniform kernel as a sketch.
-    // In production, this would analyze the model and use a masked fast path.
-    decode_interleaved16_uniform256_avx512(compressed, expected_len)
+    Err("dominant-symbol kernel not implemented")
 }

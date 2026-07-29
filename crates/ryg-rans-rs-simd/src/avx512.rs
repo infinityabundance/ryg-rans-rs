@@ -1295,135 +1295,145 @@ pub unsafe fn decode_batch_interleaved16_avx512(
             return Ok(());
         }
 
-        // Track per-job state: one ZMM per job.
-        // For simplicity, we process up to 4 jobs at once.  More than 4
-        // saturates the L1 cache with state vectors.
-        let batch_size = jobs.len().min(4);
         let mask_v = _mm512_set1_epi32((RANS_WORD_M - 1) as i32);
         let l_vec = _mm512_set1_epi32(RANS_WORD_L as i32);
         const SCALE16: u32 = 12;
 
-        // Initialize all jobs
-        let mut states = [core::mem::zeroed::<__m512i>(); 4];
-        let mut readers = [0usize; 4];
-        let mut cursors = [0usize; 4]; // output cursor per job
-        let mut job_active = [false; 4];
+        // Process all jobs in batches of up to 4.
+        // Each batch has its own state vectors (one ZMM per job).
+        // More than 4 per batch would saturate the L1 cache.
+        for batch in jobs.chunks_mut(4) {
+            let batch_size = batch.len();
 
-        for j in 0..batch_size {
-            let job = &mut jobs[j];
-            if job.output.is_empty() {
-                job_active[j] = false;
-                continue;
-            }
-            job_active[j] = true;
+            // Track per-job state
+            let mut states = [core::mem::zeroed::<__m512i>(); 4];
+            let mut readers = [0usize; 4];
+            let mut cursors = [0usize; 4]; // output cursor per job
+            let mut job_active = [false; 4];
 
-            // Check minimum stream length
-            if job.compressed.len() < 32 {
-                return Err("batch job: compressed too short");
-            }
-
-            // Load initial states
-            let mut init = [0u32; 16];
-            for i in 0..16 {
-                init[i] = job.compressed[i * 2] as u32 | (job.compressed[i * 2 + 1] as u32) << 16;
-            }
-            states[j] = _mm512_loadu_si512(init.as_ptr() as *const __m512i);
-            readers[j] = 32;
-
-            // Verify output length consistency
-            if job.output.len() % 16 != 0 && job.output.len() > 0 {
-                // Partial tail is fine, handled at the end
-            }
-            cursors[j] = 0;
-        }
-
-        // Round-robin decode: one 16-symbol group per job per iteration
-        let mut any_active = true;
-        while any_active {
-            any_active = false;
             for j in 0..batch_size {
-                if !job_active[j] {
-                    continue;
-                }
-                let job = &mut jobs[j];
-                let output_len = job.output.len();
-                let cursor = cursors[j];
-
-                // Check if this job has a full group remaining
-                if cursor + 16 > output_len {
-                    // Finish this job: process tail
+                let job = &mut batch[j];
+                if job.output.is_empty() {
                     job_active[j] = false;
                     continue;
                 }
+                job_active[j] = true;
 
-                // Process one 16-symbol group for this job
-                let table_ptr = job.table.as_ptr() as *const i32;
-                let indices = _mm512_and_si512(states[j], mask_v);
-                let gathered = _mm512_i32gather_epi32(indices, table_ptr, 4);
-
-                let freq_v = _mm512_and_si512(gathered, _mm512_set1_epi32(0x0fff));
-                let bias_v = _mm512_and_si512(_mm512_srli_epi32(gathered, 12), _mm512_set1_epi32(0x0fff));
-                let symbols_v = _mm512_srli_epi32(gathered, 24);
-
-                let symbol_bytes = _mm512_cvtepi32_epi8(symbols_v);
-                _mm_storeu_si128(job.output.as_mut_ptr().add(cursor) as *mut __m128i, symbol_bytes);
-
-                let xscaled = _mm512_srli_epi32(states[j], SCALE16);
-                let new_state = _mm512_add_epi32(_mm512_mullo_epi32(xscaled, freq_v), bias_v);
-
-                let renorm_mask = _mm512_cmplt_epu32_mask(new_state, l_vec);
-                let words_needed = renorm_mask.count_ones() as usize;
-
-                if words_needed > 0 {
-                    if readers[j] + words_needed > job.compressed.len() {
-                        return Err("batch job: unexpected EOF in renorm");
-                    }
-                    let mut compact = [0u32; 16];
-                    for idx in 0..words_needed {
-                        compact[idx] = job.compressed[readers[j] + idx] as u32;
-                    }
-                    let compact_v = _mm512_loadu_si512(compact.as_ptr() as *const __m512i);
-                    let expanded = _mm512_maskz_expand_epi32(renorm_mask, compact_v);
-                    let shifted = _mm512_slli_epi32(new_state, 16);
-                    let renormed = _mm512_or_si512(shifted, expanded);
-                    states[j] = _mm512_mask_blend_epi32(renorm_mask, new_state, renormed);
-                    readers[j] += words_needed;
-                } else {
-                    states[j] = new_state;
+                // Check minimum stream length
+                if job.compressed.len() < 32 {
+                    return Err("batch job: compressed too short");
                 }
 
-                cursors[j] = cursor + 16;
-                any_active = true;
-            }
-        }
+                // Load initial states
+                let mut init = [0u32; 16];
+                for i in 0..16 {
+                    init[i] =
+                        job.compressed[i * 2] as u32 | (job.compressed[i * 2 + 1] as u32) << 16;
+                }
+                states[j] = _mm512_loadu_si512(init.as_ptr() as *const __m512i);
+                readers[j] = 32;
 
-        // Process tails for each job
-        for j in 0..batch_size {
-            if !job_active[j] {
-                // Already finished or wasn't active; check for tail
-                let job = &mut jobs[j];
-                let output_len = job.output.len();
-                let cursor = cursors[j];
-                if cursor < output_len && cursor > 0 {
-                    // Process remaining tail symbols (scalar fallback)
-                    let mut ls: [u32; 16] = core::mem::zeroed();
-                    _mm512_storeu_si512(ls.as_mut_ptr() as *mut __m512i, states[j]);
-                    for i in cursor..output_len {
-                        let lane = i & 15;
-                        let x = ls[lane];
-                        let slot = x as usize & (RANS_WORD_M - 1);
-                        let entry = (*job.table.get(slot)).0;
-                        job.output[i] = (entry >> 24) as u8;
-                        let freq_entry = entry & 0x0fff;
-                        let bias_entry = (entry >> 12) & 0x0fff;
-                        let new_x = freq_entry * (x >> 12) + bias_entry;
-                        ls[lane] = new_x;
-                        if new_x < RANS_WORD_L {
-                            if readers[j] >= job.compressed.len() {
-                                return Err("batch job: unexpected EOF in tail");
+                // Verify output length consistency
+                if job.output.len() % 16 != 0 && job.output.len() > 0 {
+                    // Partial tail is fine, handled at the end
+                }
+                cursors[j] = 0;
+            }
+
+            // Round-robin decode: one 16-symbol group per job per iteration
+            let mut any_active = true;
+            while any_active {
+                any_active = false;
+                for j in 0..batch_size {
+                    if !job_active[j] {
+                        continue;
+                    }
+                    let job = &mut batch[j];
+                    let output_len = job.output.len();
+                    let cursor = cursors[j];
+
+                    // Check if this job has a full group remaining
+                    if cursor + 16 > output_len {
+                        // Finish this job: process tail
+                        job_active[j] = false;
+                        continue;
+                    }
+
+                    // Process one 16-symbol group for this job
+                    let table_ptr = job.table.as_ptr() as *const i32;
+                    let indices = _mm512_and_si512(states[j], mask_v);
+                    let gathered = _mm512_i32gather_epi32(indices, table_ptr, 4);
+
+                    let freq_v = _mm512_and_si512(gathered, _mm512_set1_epi32(0x0fff));
+                    let bias_v = _mm512_and_si512(
+                        _mm512_srli_epi32(gathered, 12),
+                        _mm512_set1_epi32(0x0fff),
+                    );
+                    let symbols_v = _mm512_srli_epi32(gathered, 24);
+
+                    let symbol_bytes = _mm512_cvtepi32_epi8(symbols_v);
+                    _mm_storeu_si128(
+                        job.output.as_mut_ptr().add(cursor) as *mut __m128i,
+                        symbol_bytes,
+                    );
+
+                    let xscaled = _mm512_srli_epi32(states[j], SCALE16);
+                    let new_state = _mm512_add_epi32(_mm512_mullo_epi32(xscaled, freq_v), bias_v);
+
+                    let renorm_mask = _mm512_cmplt_epu32_mask(new_state, l_vec);
+                    let words_needed = renorm_mask.count_ones() as usize;
+
+                    if words_needed > 0 {
+                        if readers[j] + words_needed > job.compressed.len() {
+                            return Err("batch job: unexpected EOF in renorm");
+                        }
+                        let mut compact = [0u32; 16];
+                        for idx in 0..words_needed {
+                            compact[idx] = job.compressed[readers[j] + idx] as u32;
+                        }
+                        let compact_v = _mm512_loadu_si512(compact.as_ptr() as *const __m512i);
+                        let expanded = _mm512_maskz_expand_epi32(renorm_mask, compact_v);
+                        let shifted = _mm512_slli_epi32(new_state, 16);
+                        let renormed = _mm512_or_si512(shifted, expanded);
+                        states[j] = _mm512_mask_blend_epi32(renorm_mask, new_state, renormed);
+                        readers[j] += words_needed;
+                    } else {
+                        states[j] = new_state;
+                    }
+
+                    cursors[j] = cursor + 16;
+                    any_active = true;
+                }
+            }
+
+            // Process tails for each job
+            for j in 0..batch_size {
+                if !job_active[j] {
+                    // Already finished or wasn't active; check for tail
+                    let job = &mut batch[j];
+                    let output_len = job.output.len();
+                    let cursor = cursors[j];
+                    if cursor < output_len && cursor > 0 {
+                        // Process remaining tail symbols (scalar fallback)
+                        let mut ls: [u32; 16] = core::mem::zeroed();
+                        _mm512_storeu_si512(ls.as_mut_ptr() as *mut __m512i, states[j]);
+                        for i in cursor..output_len {
+                            let lane = i & 15;
+                            let x = ls[lane];
+                            let slot = x as usize & (RANS_WORD_M - 1);
+                            let entry = (*job.table.get(slot)).0;
+                            job.output[i] = (entry >> 24) as u8;
+                            let freq_entry = entry & 0x0fff;
+                            let bias_entry = (entry >> 12) & 0x0fff;
+                            let new_x = freq_entry * (x >> 12) + bias_entry;
+                            ls[lane] = new_x;
+                            if new_x < RANS_WORD_L {
+                                if readers[j] >= job.compressed.len() {
+                                    return Err("batch job: unexpected EOF in tail");
+                                }
+                                ls[lane] = (new_x << 16) | job.compressed[readers[j]] as u32;
+                                readers[j] += 1;
                             }
-                            ls[lane] = (new_x << 16) | job.compressed[readers[j]] as u32;
-                            readers[j] += 1;
                         }
                     }
                 }

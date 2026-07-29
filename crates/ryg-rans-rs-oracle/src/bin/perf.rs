@@ -281,7 +281,137 @@ fn main() {
                 continue;
             }
 
+            // Scalar 16-way reference for experimental backend verification
+            let (scalar16_output, scalar16_report) =
+                match decode_interleaved16_scalar(&compressed_16way, &packed, size) {
+                    Ok(r) => r,
+                    Err(_) => {
+                        eprintln!(
+                            "  WARN: scalar16 decode failed for {} size {}",
+                            profile.name, size
+                        );
+                        continue;
+                    }
+                };
+            let scalar16_ok = scalar16_output == input;
+
+            // Verify each experimental backend produces correct output before timing.
+            // Returns (allowed_to_benchmark, name_for_display)
+            let mut bench_list: Vec<(&str, bool)> = Vec::new(); // (short_desc, can_bench)
+
+            // Helper: verify a backend, store result
             let n_iter = (100_000_000u64 / size.max(1) as u64).max(20).min(500_000);
+
+            macro_rules! verify_backend {
+                ($label:expr, $call:expr) => {{
+                    let ok = match (|| -> Result<Vec<u8>, &'static str> { $call })() {
+                        Ok(out) if out == scalar16_output => true,
+                        Ok(out) => {
+                            eprintln!(
+                                "  VERIFY FAIL {}: output mismatch ({} vs {} bytes)",
+                                $label,
+                                out.len(),
+                                scalar16_output.len()
+                            );
+                            false
+                        }
+                        Err(e) => {
+                            eprintln!("  VERIFY FAIL {}: error: {}", $label, e);
+                            false
+                        }
+                    };
+                    ok
+                }};
+            }
+
+            // Verify AVX512VL 8-way (hw-gather)
+            let avx512vl8_ok = if avx512vl_avail {
+                verify_backend!("avx512vl-8way", unsafe {
+                    ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl(
+                        &compressed_8way,
+                        &packed,
+                        size,
+                    )
+                    .map(|r| r.output)
+                    .map_err(|_| "failed")
+                })
+            } else {
+                false
+            };
+
+            // Verify AVX512 16-way (hw-gather)
+            let avx512_16_ok = if avx512_avail {
+                verify_backend!("avx512-16way", unsafe {
+                    ryg_rans_rs_simd::backends::decode_interleaved16_avx512(
+                        &compressed_16way,
+                        &packed,
+                        size,
+                    )
+                    .map(|r| r.output)
+                    .map_err(|_| "failed")
+                })
+            } else {
+                false
+            };
+
+            // Verify AVX512VL manual gather 8-way
+            let manual8_ok = if avx512vl_avail {
+                verify_backend!("avx512vl-manual-gather-8way", unsafe {
+                    ryg_rans_rs_simd::backends::decode_interleaved8_manual_gather(
+                        &compressed_8way,
+                        &packed,
+                        size,
+                    )
+                    .map(|r| r.output)
+                    .map_err(|_| "failed")
+                })
+            } else {
+                false
+            };
+
+            // Verify AVX512 manual gather 16-way
+            let manual16_ok = if avx512_avail {
+                verify_backend!("avx512-manual-gather-16way", unsafe {
+                    ryg_rans_rs_simd::backends::decode_interleaved16_manual_gather(
+                        &compressed_16way,
+                        &packed,
+                        size,
+                    )
+                    .map(|r| r.output)
+                    .map_err(|_| "failed")
+                })
+            } else {
+                false
+            };
+
+            // Verify AVX512VL 2x8 on 16-way format
+            let twx8_ok = if avx512vl_avail {
+                verify_backend!("avx512vl-2x8-on-16way", unsafe {
+                    ryg_rans_rs_simd::backends::decode_interleaved16_2x8(
+                        &compressed_16way,
+                        &packed,
+                        size,
+                    )
+                    .map(|r| r.output)
+                    .map_err(|_| "failed")
+                })
+            } else {
+                false
+            };
+
+            // Verify Uniform256 table-free kernel (only for UNIFORM256 profile)
+            let uniform_tf_ok = if avx512_avail && profile.name == "UNIFORM256" {
+                verify_backend!("uniform256-tablefree-16way", unsafe {
+                    ryg_rans_rs_simd::model_kernels::decode_interleaved16_uniform256_avx512(
+                        &compressed_16way,
+                        size,
+                    )
+                    .map(|r| r.0)
+                    .map_err(|_| "failed")
+                })
+            } else {
+                false
+            };
 
             // ---- Backend 1: Scalar 8-way (legacy slot table) ----
             let (ns, _) = measure(
@@ -346,7 +476,7 @@ fn main() {
             }
 
             // ---- Backend 4: AVX512VL 8-way ----
-            if avx512vl_avail {
+            if avx512vl8_ok {
                 let (ns, _) = measure(
                     || unsafe {
                         ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl(
