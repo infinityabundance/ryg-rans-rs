@@ -28,3 +28,4 @@ reports/
 
 # Evidence receipts are tracked in git (small canonical JSON)
 # evidence/
+evidence.staging/

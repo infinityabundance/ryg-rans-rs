@@ -1,5 +1,5 @@
 {
-  "code_commit": "c397ec85beff0de5aa074edc7696218d7aa23c05",
+  "code_commit": "b5b041a82fc82ca25e4bba74a9a52133282bcfb9",
   "receipts": [
     {
       "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12",
@@ -512,6 +512,70 @@
     {
       "court_id": "RYG_RANS.ALIAS.INTERLEAVED2.LENGTH.BOUNDARY.S12",
       "sha256": "f5766dee4e485f908b60007fcbe4a844c74de334f620b8b939d5e3636a3f5c54"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12",
+      "sha256": "f4086aca8d62e9e3ba9299bb5f8bc1e3a41ccc1b5aaae3d1110fe730c4b6deb2"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512VL.INTERLEAVED8.FREQ1.RESIDUAL.S12",
+      "sha256": "56edec05872e49102bb9d88bf3eb6998a7969e1b9bec16753e98277791cde4bd"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512VL.INTERLEAVED8.SKEWED.255_1.S12",
+      "sha256": "9265dd00ddde1aa85c12db5bda407ec9d4a9d45ed8ce7b3e6074fa9ef425ff38"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512VL.INTERLEAVED8.SPARSE.2.S12",
+      "sha256": "5358f549d8d35abfd6cdbee028b38d6dc48047aaa5db5807ea1c26e9858d6c9b"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512VL.INTERLEAVED8.SPARSE.17.S12",
+      "sha256": "c26a3d73016efa718b664be935a575d941c4e2ad22835ce067f2b97f6a6a522a"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512VL.INTERLEAVED8.PRIME.RESIDUE.S12",
+      "sha256": "3299a8715155b9e29c31fc0cac34d6f92ea1889c795ba373bbe45e1d7c5085fe"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512VL.INTERLEAVED8.RENORM.BOUNDARY.S12",
+      "sha256": "4975817410b0d5be15dc1400463350c6a0d1b3f175c5396b03b53200e91d20bd"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512VL.INTERLEAVED8.LENGTH.BOUNDARY.S12",
+      "sha256": "d0dec2687cf5cabd1ecbb9e9e5043d8c60d8ee2624289f49b8e39fe489f5f72b"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512.INTERLEAVED16.UNIFORM256.S12",
+      "sha256": "c80599faf44ac31a958924200e3c6e7e949bdc9eb4563943bd45840db49b1945"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512.INTERLEAVED16.FREQ1.RESIDUAL.S12",
+      "sha256": "8f47957c3c11dbb8e297b20fff1fbdb6432f3b7c132d2a9a6f760790946d23aa"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512.INTERLEAVED16.SKEWED.255_1.S12",
+      "sha256": "812678fe4f2a41e381a8589aa3628d37983c866b6dbc5573464221d2112d4c47"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512.INTERLEAVED16.SPARSE.2.S12",
+      "sha256": "73c873afe012079262d177ebf2145f0d9322804768889150c267c24cf0d98f1f"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512.INTERLEAVED16.SPARSE.17.S12",
+      "sha256": "bc3872f0b799591f638bd230c7b697588dd69c4628f9f8d064925d9644c06e42"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512.INTERLEAVED16.PRIME.RESIDUE.S12",
+      "sha256": "4ffd88a138567436250fddd797e1eabe9c594f53f78878189ac77b090ebf889a"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512.INTERLEAVED16.RENORM.BOUNDARY.S12",
+      "sha256": "1c2730ecd757cd19a83297375ee6cf57e7fb34274836866c4a05e2ef493fd928"
+    },
+    {
+      "court_id": "RYG_RANS.AVX512.INTERLEAVED16.LENGTH.BOUNDARY.S12",
+      "sha256": "7c673171f4b92456812c27bcbb12cacfd1e3ee7e34449634388b252053857296"
     }
   ],
   "schema_version": 1

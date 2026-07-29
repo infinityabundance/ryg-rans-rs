@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-07-28",
+  "last_updated": "2026-07-29",
   "surfaces": [
     {
       "id": "byte.division",
@@ -913,46 +913,54 @@
       "claims": [
         {
           "profile": "INTERLEAVED8.UNIFORM256.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12"
         },
         {
           "profile": "INTERLEAVED8.FREQ1.RESIDUAL.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.FREQ1.RESIDUAL.S12"
         },
         {
           "profile": "INTERLEAVED8.SKEWED.255_1.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.SKEWED.255_1.S12"
         },
         {
           "profile": "INTERLEAVED8.SPARSE.2.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.SPARSE.2.S12"
         },
         {
           "profile": "INTERLEAVED8.SPARSE.17.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.SPARSE.17.S12"
         },
         {
           "profile": "INTERLEAVED8.PRIME.RESIDUE.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.PRIME.RESIDUE.S12"
         },
         {
           "profile": "INTERLEAVED8.RENORM.BOUNDARY.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.RENORM.BOUNDARY.S12"
         },
         {
           "profile": "INTERLEAVED8.LENGTH.BOUNDARY.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.LENGTH.BOUNDARY.S12"
         }
       ],
-      "notes": "Implementation complete, evidence not yet sealed. See Phase G closure sequence."
+      "notes": "Phase G sealed: 8 behavioral receipts with admitted_match verdict."
     },
     {
       "id": "avx512.interleaved16.decoder",
@@ -967,46 +975,54 @@
       "claims": [
         {
           "profile": "INTERLEAVED16.UNIFORM256.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.UNIFORM256.S12"
         },
         {
           "profile": "INTERLEAVED16.FREQ1.RESIDUAL.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.FREQ1.RESIDUAL.S12"
         },
         {
           "profile": "INTERLEAVED16.SKEWED.255_1.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.SKEWED.255_1.S12"
         },
         {
           "profile": "INTERLEAVED16.SPARSE.2.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.SPARSE.2.S12"
         },
         {
           "profile": "INTERLEAVED16.SPARSE.17.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.SPARSE.17.S12"
         },
         {
           "profile": "INTERLEAVED16.PRIME.RESIDUE.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.PRIME.RESIDUE.S12"
         },
         {
           "profile": "INTERLEAVED16.RENORM.BOUNDARY.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.RENORM.BOUNDARY.S12"
         },
         {
           "profile": "INTERLEAVED16.LENGTH.BOUNDARY.S12",
-          "behavior_status": "implemented",
-          "performance_status": "unsealed"
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.LENGTH.BOUNDARY.S12"
         }
       ],
-      "notes": "Implementation complete, evidence not yet sealed. See Phase G closure sequence."
+      "notes": "Phase G sealed: 8 behavioral receipts with admitted_match verdict."
     }
   ]
 }

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.AVX512.INTERLEAVED16.RENORM.BOUNDARY.S12",
+  "court_path": "AVX512.INTERLEAVED16",
+  "variant": "avx512-interleaved16",
+  "profile": "RENORM.BOUNDARY",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "b5b041a82fc82ca25e4bba74a9a52133282bcfb9",
+  "pairs_compared": 160,
+  "pairs_matched": 160,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "1a9856628516369ade9fd8e007978f9de66491a2a24abb1b1e7150f094d4d688",
+  "receipt_sha256": "00c2612ff0c406adf198899e2ebc8afaa90901df438120254a4895e591731eca",
+  "reproduction_command": "RUSTFLAGS=\"-C target-feature=+avx512f,+avx512vl,+avx512bw\" cargo run -p ryg-rans-rs-oracle -- oracle/adapter/rans_trace 12 42 20",
+  "oracle_compiler": "g++ -msse4.1"
+}

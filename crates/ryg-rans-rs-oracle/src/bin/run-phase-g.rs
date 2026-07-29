@@ -20,11 +20,9 @@
 //!
 //! After generating, run `cargo xtask seal` to verify.
 
-use ryg_rans_rs_casefile as casefile;
 use ryg_rans_rs_oracle::ModelProfile;
 use ryg_rans_rs_oracle::phase_g::{run_avx512_16_court, run_avx512vl8_court};
 use sha2::{Digest, Sha256};
-use std::io::Write;
 use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

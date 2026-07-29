@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.AVX512VL.INTERLEAVED8.SPARSE.17.S12",
+  "court_path": "AVX512VL.INTERLEAVED8",
+  "variant": "avx512vl-interleaved8",
+  "profile": "SPARSE.17",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "b5b041a82fc82ca25e4bba74a9a52133282bcfb9",
+  "pairs_compared": 160,
+  "pairs_matched": 160,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "588379a10ad8c2f993888fb7b6f0ed83257e10b9e61181d7d4f85c449c9780bb",
+  "receipt_sha256": "6779dd951ae756ddc7536996ece21a33562c34663728d60c5d29e26fe362d68e",
+  "reproduction_command": "RUSTFLAGS=\"-C target-feature=+avx512f,+avx512vl,+avx512bw\" cargo run -p ryg-rans-rs-oracle -- oracle/adapter/rans_trace 12 42 20",
+  "oracle_compiler": "g++ -msse4.1"
+}
