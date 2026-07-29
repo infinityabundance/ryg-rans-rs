@@ -8,53 +8,173 @@
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs)](https://crates.io/crates/ryg-rans-rs)
 [![docs.rs](https://img.shields.io/docsrs/ryg-rans-rs)](https://docs.rs/ryg-rans-rs/latest/ryg_rans_rs/)
 
-## Features
+---
 
-| Feature | Description | Default |
-|---------|-------------|---------|
-| `default` | Core re-export only | ✅ Yes |
-| `simd` | Enables `ryg-rans-rs-simd` (SSE4.1 + AVX-512 decode kernels) | ❌ No |
-| `alloc` | Adds `alloc_utils` module with convenience `encode`/`decode` using `Vec<u8>` | ❌ No |
+## Architecture Overview
 
-## Modules
+This is the **single public entry point** for the ryg-rans-rs project. It re-exports
+functionality from two internal crates:
 
-| Module | Source | Feature | Description |
-|--------|--------|---------|-------------|
-| `byte` | `ryg-rans-rs-core` | always | Complete rANS core: byte rANS, 64-bit rANS, word rANS, alias method, malformed-stream validation |
-| `simd` | `ryg-rans-rs-simd` | `simd` | SSE4.1 8-way, AVX512VL 8-way, AVX512 16-way interleaved Word rANS decoders |
+```text
+ryg-rans-rs-core  →  algorithmic heart (no_std, no unsafe)
+    └── byte module: Byte rANS, R64, Word rANS, Alias, malformed validation
 
-## SIMD Module
+ryg-rans-rs-simd  →  SIMD acceleration (no_std, selective unsafe)
+    └── simd module: SSE4.1 8-way, AVX512VL 8-way, AVX512 16-way decoders
+```
 
-The `simd` module (behind the `simd` feature) provides three decode surfaces:
+The facade adds no algorithmic logic — it is purely a re-export and feature-gating layer.
+This means:
+- Users get exactly one crate to depend on: `ryg-rans-rs`
+- The core remains independent of SIMD concerns
+- The SIMD module is entirely optional
 
-### 8-way Interleaved (existing format)
-- `decode_interleaved8_auto` — Auto-selects AVX512VL → SSE4.1 → scalar
-- `decode_interleaved8_scalar` — Pure-Rust scalar 8-way reference
-- `decode_interleaved8_avx512vl` — Explicit AVX512VL kernel
+---
 
-### 16-way Interleaved (new format)
-- `decode_interleaved16_auto` — Auto-selects AVX512 → scalar
-- `decode_interleaved16_scalar` — Pure-Rust scalar 16-way reference
-- `decode_interleaved16_avx512` — Explicit AVX-512 kernel
-- `encode_interleaved16` — 16-way encoder for the new format
+## API Surfaces
 
-### Packed Table
-- `PackedWordTable` — u32-packed 4096-slot decode table for gather operations
-- `PackedWordEntry` — Single entry with freq/bias/symbol extraction
+### `byte` Module (Always Available)
 
-## AVX-512 ISA Requirements
+The `byte` module re-exports all types from `ryg-rans-rs-core`:
 
-| Surface | Required Features | Stream Format |
-|---------|-------------------|---------------|
-| `AVX512VL.INTERLEAVED8` | `avx512f, avx512vl, avx512bw` | Existing 8-way (compatible) |
-| `AVX512.INTERLEAVED16` | `avx512f, avx512bw` | New 16-way format |
+| Sub-module | Contents | When to Use |
+|------------|----------|-------------|
+| (top-level) | `RansByteState`, `RansByteEncSymbol`, `RansByteDecSymbol` | General rANS work |
+| (top-level) | `rans_byte_enc_put`, `rans_byte_enc_put_symbol` | Encoding |
+| (top-level) | `rans_byte_dec_init`, `rans_byte_dec_advance_symbol` | Decoding |
+| (top-level) | `BackwardByteWriter`, `ByteReader`, `SliceBackwardWriter` | I/O |
+| (top-level) | `ByteInterleavedEncoder`, `ByteInterleavedDecoder` | Two-state interleaved |
+| (top-level) | `RANS_BYTE_L`, `RANS64_L`, `RANS_WORD_L` | Constants |
+| `malformed` | `validate_byte_compressed`, `RenormGuard`, `validate_freq_model` | Stream validation |
+| (r64 types) | `Rans64State`, `Rans64EncSymbol`, `Rans64DecSymbol` | 64-bit rANS |
+| (word types) | `RansWordState`, `RansWordSlot`, `RansWordTables` | Word rANS |
+| (alias types) | `AliasTable`, `rans_byte_alias_*` | Alias method |
+
+### `simd` Module (Behind `simd` Feature)
+
+The `simd` module provides three decode surfaces + packed table:
+
+| API | Surface | Description |
+|-----|---------|-------------|
+| `decode_interleaved8_auto` | 8-way auto | Selects AVX512VL → SSE4.1 → scalar |
+| `decode_interleaved8_scalar` | 8-way scalar | Pure-Rust reference |
+| `decode_interleaved8_avx512vl` | 8-way AVX512VL | Explicit AVX512VL kernel |
+| `decode_interleaved16_auto` | 16-way auto | Selects AVX512 → scalar |
+| `decode_interleaved16_scalar` | 16-way scalar | Pure-Rust reference |
+| `decode_interleaved16_avx512` | 16-way AVX512 | Explicit AVX512 kernel |
+| `encode_interleaved16` | 16-way encoder | Produces the new 16-way format |
+| `PackedWordTable` | Table | 4096-slot u32 packed table for gathers |
+| `DecodeBackend` | Enum | Backend identification with stable labels |
+
+### `alloc_utils` Module (Behind `alloc` Feature)
+
+Convenience functions that wrap the core primitives with `Vec<u8>` allocation:
+
+```rust
+pub fn encode_byte(...) -> Result<Vec<u8>, EncodeError>;
+pub fn decode_byte(...) -> Result<Vec<u8>, DecodeError>;
+```
+
+---
+
+## Feature Matrix
+
+| Feature | What It Enables | no_std Compatible | Use Case |
+|---------|----------------|-------------------|----------|
+| (default) | Core re-export only | ✅ Yes | Minimal builds |
+| `simd` | `ryg-rans-rs-simd` (all backends) | ✅ Yes (cfg dispatch) | SIMD acceleration |
+| `alloc` | `alloc_utils` + alias table | ✅ Yes (extern alloc) | Vec-based APIs |
+
+---
+
+## Quick Start
+
+### Basic Encode/Decode
+
+```rust
+use ryg_rans_rs::byte::{
+    RansByteState, RansByteEncSymbol,
+    BackwardByteWriter, ByteReader,
+    rans_byte_enc_put_symbol, rans_byte_enc_flush,
+    rans_byte_dec_init, rans_byte_dec_advance_symbol,
+};
+
+let scale_bits = 14;
+let freq = (1u32 << scale_bits) / 256;
+let mut buf = [0u8; 4096];
+
+// Encode a single symbol
+let mut writer = BackwardByteWriter::new(&mut buf);
+let mut state = RansByteState::new();
+let sym = RansByteEncSymbol::new(0, freq, scale_bits).unwrap();
+rans_byte_enc_put_symbol(&mut state, &mut writer, &sym).unwrap();
+rans_byte_enc_flush(&state, &mut writer).unwrap();
+let encoded = writer.encoded();
+
+// Decode it back
+let mut reader = ByteReader::new(encoded);
+let mut dec_state = rans_byte_dec_init(&mut reader).unwrap();
+let dsym = ryg_rans_rs::byte::RansByteDecSymbol::new(0, freq).unwrap();
+rans_byte_dec_advance_symbol(&mut dec_state, &mut reader, &dsym, scale_bits).unwrap();
+```
+
+### AVX-512 Decode
+
+```rust
+#[cfg(feature = "simd")]
+{
+    use ryg_rans_rs::simd::backends::decode_interleaved8_auto;
+    use ryg_rans_rs::simd::packed_table::PackedWordTable;
+
+    let packed = PackedWordTable::from_freqs(&freqs, &cum, 12).unwrap();
+    let result = decode_interleaved8_auto(&compressed, &packed, expected_len).unwrap();
+    println!("Backend: {}", result.backend.label());
+    assert_eq!(result.output, expected_output);
+}
+```
+
+### Malformed Input Validation
+
+```rust
+use ryg_rans_rs::byte::malformed::validate_byte_compressed;
+
+if let Err(e) = validate_byte_compressed(compressed) {
+    return Err(e);  // "compressed stream is truncated"
+}
+```
+
+---
+
+## ISA Feature Requirements for SIMD
+
+| Backend | Required `target_feature` Flags | CPU Support |
+|---------|-------------------------------|-------------|
+| SSE4.1 8-way | `+ssse3,+sse4.1` | Intel Core 2+ (2008+), AMD Bulldozer+ (2011+) |
+| AVX512VL 8-way | `+avx512f,+avx512vl,+avx512bw` | Intel Ice Lake+ (2019+), AMD Zen 4+ (2022+) |
+| AVX512 16-way | `+avx512f,+avx512bw` | Intel Ice Lake+ (2019+), AMD Zen 4+ (2022+) |
+
+Build with: `RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" cargo build`
+
+---
 
 ## Published Versions
 
-- `0.1.15` — Current. Phase G: AVX512VL + AVX512 decode kernels.
-- `0.1.14` — Phase H: malformed-stream hardening, fuzzing, Kani proofs.
-- `0.1.13` — Phase F seal: SSE4.1 SIMD decoder, 128 receipts.
-- `0.1.12` — Phase F implementation (SIMD decoder, cross-courts).
-- `0.1.11` — Phase E seal: alias method, 120 receipts.
-- `0.1.10` — Phase E implementation (alias method, Vose table).
-- `0.1.9` — Phase D seal: word rANS, Docker matrix stamp.
+| Version | Phase | Key Changes |
+|---------|-------|-------------|
+| **0.1.15** | **G** | **AVX512VL 8-way + AVX512 16-way decode kernels** |
+| 0.1.14 | H | Malformed-stream hardening, fuzzing, Kani proofs |
+| 0.1.13 | F | SSE4.1 SIMD decoder, 128 receipts |
+| 0.1.12 | F | SIMD implementation, cross-courts |
+| 0.1.11 | E | Alias method seal, 120 receipts |
+| 0.1.10 | E | Alias implementation |
+| 0.1.9 | D | Word rANS seal, Docker stamp |
+
+---
+
+## Safety
+
+- Core crate: `#![forbid(unsafe_code)]` — compile-time guarantee
+- Facade crate: `#![deny(unsafe_code)]` — compile-time guarantee  
+- SIMD crate: 7 `unsafe fn`, all `#[target_feature]`-gated and documented in `docs/unsafe-ledger.md`
+- Safe auto-dispatch functions perform runtime feature detection before calling SIMD kernels
+- No `unsafe` code can execute on a CPU that doesn't support it through the safe API

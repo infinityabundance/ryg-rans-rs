@@ -1,8 +1,8 @@
 # ryg-rans-rs
 
 > **A native Rust forensic reconstruction of Fabian Giesen's public-domain `ryg_rans`**  
-> **144 receipts across 7 algorithmic surfaces, sealed via bit-exact C↔Rust cross-decoding courts**  
-> **Phase G: Native AVX-512 rANS — AVX512VL.INTERLEAVED8 + AVX512.INTERLEAVED16**  
+> **144 sealed behavioral receipts across 7 algorithmic surfaces**  
+> **Phases A–G: Byte rANS · 64-bit rANS · Word rANS · Alias method · SSE4.1 · AVX512VL · AVX512**  
 > **Ten-service Docker VM matrix verifies every build, test, oracle, court, and audit**
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
@@ -12,94 +12,217 @@
 
 ---
 
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Evidence Status](#evidence-status)
+3. [Phase G Deliverables](#phase-g-deliverables)
+4. [Project Doctrine](#project-doctrine)
+5. [Crate Map](#crate-map)
+6. [Architecture](#architecture)
+7. [Security and Safety](#security-and-safety)
+8. [Quick Start](#quick-start)
+9. [AVX-512 Reference](#avx-512-reference)
+10. [Performance](#performance)
+11. [Evidence Reproducibility](#evidence-reproducibility)
+12. [The Seal Gate](#the-seal-gate)
+13. [License](#license)
+
+---
+
 ## Overview
 
-**ryg-rans-rs** is a from-scratch, native Rust implementation of the Asymmetric Numeral Systems (ANS) entropy coder variants published in Fabian "ryg" Giesen's seminal [ryg_rans](https://github.com/rygorous/ryg_rans) repository.
+**ryg-rans-rs** is a from-scratch, native Rust implementation of the Asymmetric Numeral Systems
+(ANS) entropy coder variants published in Fabian "ryg" Giesen's seminal [ryg_rans](https://github.com/rygorous/ryg_rans)
+repository.
 
-This is **not** a wrapper, binding, or FFI facade. It is a reconstruction of the **observable arithmetic, state-transition, bitstream, and interleaving behavior** of the pinned upstream revision, built through forensic parity courts.
+### What makes this project different
 
-Each algorithmic surface is verified by **cross-decoding courts**: the Rust implementation and the compiled C/C++ oracle encode and decode the same deterministic inputs, producing byte-identical streams and bit-exact state transitions. Every court produces a signed receipt with SHA-256 chains linking the manifest, receipt, and evidence index.
+This is **not** a wrapper, binding, or FFI facade. It is a **forensic reconstruction** of the
+observable arithmetic, state-transition, bitstream, and interleaving behavior of the pinned
+upstream revision, built through parity courts:
 
-### Current Evidence
+1. Every arithmetic operation is compared against the compiled C/C++ oracle
+2. Every encoded byte stream is verified byte-for-byte in both directions
+3. Every observed difference is a first-class **residual** — tracked, classified, resolved
+4. Every surface is sealed by a **SHA-256-chained receipt** with self-hash verification
+5. Every release requires a **Docker VM matrix run** with 10 services
 
-| Surface | Behaviour Status | Performance Status | Receipts |
-|---------|-----------------|-------------------|----------|
+The goal is **critical-safety-infrastructure quality** — a library that can be depended upon
+in security-sensitive, correctness-critical, long-lived systems.
+
+### What this project covers
+
+| Surface | Approach | Status |
+|---------|----------|--------|
+| 32-bit byte rANS | Division + reciprocal encode/decode | ✅ **Sealed** (44 receipts) |
+| 64-bit rANS | Division + reciprocal, 128-bit mul_hi | ✅ **Sealed** (44 receipts) |
+| Two-state interleaving | Byte + R64 + Word | ✅ **Sealed** |
+| Word rANS (table-based) | 16-bit renorm, 4096-slot table | ✅ **Sealed** (16 receipts) |
+| Alias method (Vose) | O(1) decode, byte rANS | ✅ **Sealed** (16 receipts) |
+| SSE4.1 SIMD | 4-lane, 8-way interleaved | ✅ **Sealed** (8 receipts) |
+| **AVX512VL.INTERLEAVED8** | **8-way AVX-512VL gather decode** | ✅ **Sealed** (8 receipts) |
+| **AVX512.INTERLEAVED16** | **16-way AVX-512 gather decode** | ✅ **Sealed** (8 receipts) |
+
+---
+
+## Evidence Status
+
+| Surface | Behaviour | Performance | Receipts |
+|---------|-----------|-------------|----------|
 | 32-bit byte rANS (division + reciprocal) | **Sealed** | Unsealed | 44 |
 | 64-bit rANS (division + reciprocal) | **Sealed** | Unsealed | 44 |
-| Word-aligned scalar rANS (division) | **Sealed** | Unsealed | 16 |
-| Alias method (byte rANS + Vose alias table) | **Sealed** | Unsealed | 16 |
+| Word rANS (division, table-based) | **Sealed** | Unsealed | 16 |
+| Alias method (Vose table, byte rANS) | **Sealed** | Unsealed | 16 |
 | SSE4.1 SIMD decoder (8-way interleaved) | **Sealed** | Unsealed | 8 |
 | **AVX512VL.INTERLEAVED8** (AVX-512 8-way) | **Sealed** | Unsealed | 8 |
 | **AVX512.INTERLEAVED16** (AVX-512 16-way) | **Sealed** | Unsealed | 8 |
 | **Total** | | | **144** |
 
-**Evidence structure**: Each sealed receipt is a SHA-256-chained artifact — a machine-readable `CaseManifest` (containing all deterministic input cases, frequency models, C and Rust compressed streams, and per-case verdicts) plus a `Receipt` (containing verdict, `code_commit`, `manifest_sha256`, `receipt_sha256` self-hash). The receipts are registered in `evidence/index.json` and verified by the 16-gate seal check.
+### Receipt Accounting
 
-### Phase G Deliverables
+| Surface | Models | States | Receipts | How |
+|---------|--------|--------|----------|-----|
+| Byte rANS | 8 fixed + scale sweep | single + interleaved2 | 44 | 16 fixed × 2 modes + 12 scale |
+| R64 rANS | 8 fixed + scale sweep | single + interleaved2 | 44 | 16 fixed × 2 modes + 12 scale |
+| Word rANS | 8 fixed | single + interleaved2 | 16 | 8 × 2 modes |
+| Alias | 8 fixed | single + interleaved2 | 16 | 8 × 2 modes |
+| SIMD.INTERLEAVED8 | 8 fixed | interleaved8 | 8 | 8 × 1 mode |
+| **AVX512VL.INTERLEAVED8** | **8 fixed** | **interleaved8** | **8** | **8 × 1 mode** |
+| **AVX512.INTERLEAVED16** | **8 fixed** | **interleaved16** | **8** | **8 × 1 mode** |
 
-| Component | Status | Description |
-|-----------|--------|-------------|
-| **Packed table** (`u32` gather-optimized) | ✅ Done | 4096-slot, freq\|bias<<12\|sym<<24, 64-byte aligned |
-| **AVX512VL.INTERLEAVED8** decoder | ✅ Done | 8-way AVX-512VL gather decode, existing format |
-| **AVX512.INTERLEAVED16** format | ✅ Done | New 16-way stream: scalar encode/decode + C oracle |
-| **AVX512.INTERLEAVED16** decoder | ✅ Done | 16-way AVX-512 gather decode, 512-bit |
-| **Backend dispatch** | ✅ Done | Runtime detection + auto-select + explicit backends |
-| **C oracle** (16-way) | ✅ Done | Independent C encode/decode for cross-verification |
-| **Fuzz targets** (2 new) | ✅ Done | AVX512VL8 + AVX512 16-way roundtrip fuzz |
-| **Kani proofs** | ✅ Done | Packed entry fields + state bounds + slot index |
-| **Mask tests** (256 + 65536) | ✅ Done | Exhaustive renormalization mask verification |
-| **Malformed input tests** | ✅ Done | Truncated, wrong-format, state invariant tests |
-| **32 tests** | ✅ Done | All pass, 0 failures |
-| **Unsafe ledger** | ✅ Done | 7 blocks, fully documented |
-| **Publish v0.1.15** | ✅ Done | All 6 crates on crates.io |
+### Evidence Structure
+
+Each sealed receipt is a SHA-256-chained artifact:
+
+```json
+evidence/index.json
+  └── sha256 of → evidence/receipts/RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12.json
+                    └── manifest_sha256 → evidence/manifests/RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12.json
+                                            └── All input cases, C/Rust streams, per-case verdicts
+```
+
+Each receipt also has a **self-hash**: `sha256(receipt_without_sha256) == receipt.receipt_sha256`.
+This prevents undetected modification.
+
+---
+
+## Phase G Deliverables
+
+Phase G added two native AVX-512 decoding surfaces to the project.
+
+### AVX512VL.INTERLEAVED8
+
+**What**: 8-way interleaved Word rANS decoder using 256-bit AVX-512VL vectors.  
+**Format**: Consumes the **existing canonical 8-way stream** — identical to the SSE4.1 and scalar decoders.  
+**ISA**: Requires `avx512f + avx512vl + avx512bw`.  
+**Key intrinsic**: `_mm256_i32gather_epi32` — one instruction loads 8 table entries.  
+**Backend label**: `avx512vl-8way`.  
+**Receipts**: 8 (one per profile).  
+
+**How it works**:
+1. Load 8 initial states from the first 16 u16 words (scalar loop for correct deinterleaving)
+2. For each group of 8 symbols:
+   - Gather 8 packed table entries using `_mm256_i32gather_epi32`
+   - Extract freq/bias/symbol via bit masks
+   - Store symbols in lane order via temporary buffer
+   - Update states: `state = (state >> 12) * freq + bias`
+   - Compute renormalization mask with `_mm256_cmplt_epu32_mask`
+   - Renorm active lanes individually (no masked-load overread)
+3. Tail symbols (r < 8): scalar per-lane fallback
+
+### AVX512.INTERLEAVED16
+
+**What**: 16-way interleaved Word rANS decoder using 512-bit AVX-512 vectors.  
+**Format**: **New 16-way stream format** — reverse-flush ordering (15→0), forward init (0→15).  
+**ISA**: Requires `avx512f + avx512bw`.  
+**Key intrinsic**: `_mm512_i32gather_epi32` — one instruction loads 16 table entries.  
+**Backend label**: `avx512-16way`.  
+**Receipts**: 8 (one per profile).  
+
+**How it works**:
+1. Load 16 initial states from the first 32 u16 words
+2. For each group of 16 symbols:
+   - Gather 16 packed table entries using `_mm512_i32gather_epi32`
+   - Extract freq/bias/symbol; store symbols via temp buffer (avoids packus interleaving)
+   - Update states with `_mm512_mullo_epi32` + `_mm512_add_epi32`
+   - Masked renorm with `_mm512_cmplt_epu32_mask`
+3. Tail symbols (r < 16): scalar per-lane fallback
+
+### Packed Decode Table
+
+Both AVX-512 surfaces use a packed `u32` table:
+
+```text
+bits  0..11:  frequency (12 bits, max 4095)
+bits 12..23:  bias       (12 bits, max 4095)
+bits 24..31:  symbol     (8 bits)
+```
+
+4096 entries, 64-byte aligned (`#[repr(align(64))]`). A single gather instruction
+loads all three fields for the entire SIMD width.
+
+### Verification
+
+- **32 unit tests** pass (0 failures)
+- **256** 8-way renormalization masks exhaustively tested
+- **65,536** 16-way renormalization masks exhaustively tested (--release)
+- **7 fuzz targets** (2 new: avx512vl8 + avx512 16-way roundtrip)
+- **7 Kani proofs** (3 new: packed entry fields, state bounds, slot index)
+- **Malformed input tests**: truncated, wrong-format, state invariants
+- **C oracle**: independent C implementation of 16-way format
+- **Scalar equivalence**: AVX512 output verified identical to scalar on every test
 
 ---
 
 ## Project Doctrine
 
-> **Bitstream parity, state-transition parity, performance-shape parity, operational-knowledge parity.**
+### Bitstream Parity
 
-The implementation method is **forensic parity courts** governed by **residual primacy**:
+Every Rust encoder/decoder must produce and consume byte-identical streams to the
+upstream C/C++ reference. This is verified at three levels:
 
-- Every arithmetic operation is compared against the compiled C/C++ oracle via `oracle/adapter/rans_trace.cpp`.
-- Every encoded byte stream is verified byte-for-byte across both implementations in both directions (C→Rust and Rust→C).
-- Every observed difference is recorded as a **residual** — a first-class artifact that must be classified, understood, and either resolved or explicitly admitted.
-- No surface is labelled `full` until a sealed court receipt proves upstream parity.
-- No seal is accepted without a clean Docker VM matrix run producing the evidence.
+| Level | What | How |
+|-------|------|-----|
+| **Mathematical** | Individual arithmetic ops | Kani model checking |
+| **State-transition** | Full encode/decode cycle | Trace comparison |
+| **Cross-decoding** | Rust→C, C→Rust | Oracle courts |
+
+### Residual Primacy
+
+Every observed difference is recorded as a **residual** — a first-class artifact with
+classification, severity, and status. Residuals are:
+1. Recorded immediately when detected
+2. Never deleted (even after resolution)
+3. Tracked through lifecycle: `open → investigating → fixed/wontfix`
 
 ### The Seal Gate
 
-The project's `cargo xtask seal` command enforces 16 mandatory gates:
-
-1. **Dirty-tree gate**: No uncommitted changes to covered source files.
-2. **Workspace check**: `cargo check --workspace` produces no errors.
-3. **Core tests**: `cargo test -p ryg-rans-rs-core` passes (57+ tests).
-4. **Parity model valid JSON**: `docs-src/models/parity.model.json` is well-formed.
-5. **Upstream reference exists**: `docs-src/models/upstream.json` is present.
-6. **Every claim has a receipt**: Each entry in `parity.model.json` has a matching receipt file.
-7. **Court path valid for variant**: The court-path field matches the variant's expectations.
-8. **Receipts exist on disk**: Every indexed receipt file is present.
-9. **Index receipts cited in parity model**: Every index entry has a matching claim in the model.
-10. **Evidence index**: All indexed receipts are accounted for.
-11. **Receipt SHA-256 hashes**: Every receipt's hash matches its file content.
-12. **Manifest SHA-256 hashes**: Every manifest's hash matches its file content.
-13. **Receipt SHA-256 self-hashes**: Every receipt's embedded self-hash matches.
-14. **Source freshness**: No source files changed after the evidence code commit.
-15. **Forbid unsafe**: Core and casefile crates enforce `forbid(unsafe_code)`.
-16. **Docker matrix evidence**: A clean 10-service Docker VM matrix run confirms the evidence.
+A surface is not marked `full` until a sealed court receipt proves upstream parity.
+The seal gate enforces 16 mandatory checks (see below).
 
 ---
 
 ## Crate Map
 
-| Crate | Description | `no_std` | `unsafe` | Key Features |
-|-------|-------------|----------|----------|--------------|
-| [`ryg-rans-rs-core`](./crates/ryg-rans-rs-core) | Deterministic algorithmic core | ✅ Yes | ✅ Forbid | Byte rANS, R64, Word rANS, alias, malformed, Kani proofs |
-| [`ryg-rans-rs-simd`](./crates/ryg-rans-rs-simd) | SSE4.1 + AVX-512 decode kernels | ✅ Yes | ⚠️ Selective | SSE4.1 8-way, AVX512VL 8-way, AVX512 16-way, scalar fallback |
-| [`ryg-rans-rs`](./crates/ryg-rans-rs) | Public facade crate | ✅ Yes | ✅ Deny | Re-exports core + optional SIMD |
-| [`ryg-rans-rs-oracle`](./crates/ryg-rans-rs-oracle) | Forensic court harness | ❌ No | ❌ No | Cross-decoding courts, evidence generation, perf benchmarks |
-| [`ryg-rans-rs-casefile`](./crates/ryg-rans-rs-casefile) | Typed evidence schemas | ✅ Yes | ❌ No | CaseResult, Receipt, Manifest types |
-| [`ryg-rans-rs-cli`](./crates/ryg-rans-rs-cli) | CLI tools (scaffold) | ❌ No | ❌ No | Planned: encode, decode, inspect, trace, bench |
+| Crate | Version | `no_std` | `unsafe` | Purpose |
+|-------|---------|----------|----------|---------|
+| [`ryg-rans-rs-core`](./crates/ryg-rans-rs-core) | 0.1.15 | ✅ Yes | ✅ Forbid | Algorithmic heart — byte/R64/Word/Alias rANS, malformed validation, Kani proofs |
+| [`ryg-rans-rs-simd`](./crates/ryg-rans-rs-simd) | 0.1.15 | ✅ Yes | ⚠️ 7 fn | SSE4.1 + AVX512VL + AVX512 decode kernels, scalar fallback |
+| [`ryg-rans-rs`](./crates/ryg-rans-rs) | 0.1.15 | ✅ Yes | ✅ Deny | Public facade — re-exports core + optional SIMD |
+| [`ryg-rans-rs-oracle`](./crates/ryg-rans-rs-oracle) | 0.1.15 | ❌ No | ❌ No | Forensic court harness, evidence generation, perf benchmarks |
+| [`ryg-rans-rs-casefile`](./crates/ryg-rans-rs-casefile) | 0.1.15 | ✅ Yes | ❌ No | Evidence schema types — Casefile, Receipt, Residual |
+| [`ryg-rans-rs-cli`](./crates/ryg-rans-rs-cli) | 0.1.15 | ❌ No | ❌ No | CLI tools (encode/decode/inspect/trace/bench — scaffold) |
+
+### Dependency Graph
+
+```
+ryg-rans-rs-simd ──depends on──> ryg-rans-rs-core
+ryg-rans-rs       ──depends on──> ryg-rans-rs-core, optional: ryg-rans-rs-simd
+ryg-rans-rs-oracle ──depends on──> ryg-rans-rs-core, ryg-rans-rs-casefile, ryg-rans-rs-simd
+ryg-rans-rs-cli   ──depends on──> ryg-rans-rs, ryg-rans-rs-core
+ryg-rans-rs-casefile ─> (standalone, no rANS dependencies)
+```
 
 ---
 
@@ -107,7 +230,7 @@ The project's `cargo xtask seal` command enforces 16 mandatory gates:
 
 ### Deterministic Core Isolation
 
-```
+```text
 ryg-rans-rs-core    → no_std, forbid(unsafe_code) — algorithmic ground truth
     ↓                        ↓
 ryg-rans-rs-simd     ryg-rans-rs-casefile
@@ -116,100 +239,102 @@ ryg-rans-rs          ryg-rans-rs-oracle
 (facade re-export)   (court harness, dev only)
 ```
 
-### Phase G: AVX-512 Decode Surfaces
+### Implemented Surfaces Detail
+
+#### 32-bit Byte rANS (`rans_byte.h`)
+- **Division-based encode**: `C(s,x) = ((x/freq) << scale_bits) + (x%freq) + start`
+- **Reciprocal fast encode**: multiply-high approximation avoiding integer division (Kani-proven equivalent)
+- **Two-state interleaved**: encode/decode with two alternating states
+- **Backward byte writer**: reverse-growing buffer for encoding output
+- **Forward byte reader**: forward-growing buffer for decoding input
+
+#### 64-bit rANS (`rans64.h`)
+- **63-bit effective state** with 32-bit word renormalization
+- **128-bit mul_hi** for reciprocal encoding
+- Same division and reciprocal paths as byte rANS
+- Two-state interleaved encode/decode
+
+#### Word rANS (`rans_word_sse41.h`, scalar path)
+- **16-bit word renormalization** (L = 2^16)
+- **Table-based decode**: 4096-slot frequency/bias table
+- Division-based encode with word renormalization
+- Two-state interleaved encode/decode
+
+#### Alias Method (`main_alias.cpp`)
+- **Vose's alias table** construction for O(1) symbol decode
+- Frequency normalization with zero-frequency theft
+- Division-based encode with alias remap
+- Single-state and interleaved2 modes
+
+#### SSE4.1 SIMD Decoder (`rans_word_sse41.h`, SIMD path)
+- **4-lane SIMD decode** using `RansSimdDecSym` / `RansSimdDecRenorm`
+- 8-way interleaved decode (two 4-lane units)
+- Scalar gather for table lookups
+- 16 precomputed shuffle masks for byte extraction
+- **Note**: ~0.4× scalar speed on Zen 5 due to gather overhead
 
 #### AVX512VL.INTERLEAVED8
-
-- **8-way decode** using 256-bit AVX-512VL vectors
-- Consumes the **existing canonical 8-way Word rANS stream**
-- Uses `_mm256_i32gather_epi32` for packed-table gather
-- Masked renormalization via `_mm256_cmplt_epu32_mask`
-- Requires: `avx512f`, `avx512vl`, `avx512bw`
-- Backend label: `avx512vl-8way`
+- **8-lane AVX-512VL decode** using `_mm256_i32gather_epi32`
+- Consumes existing 8-way format
+- Masked renorm via `_mm256_cmplt_epu32_mask`
 
 #### AVX512.INTERLEAVED16
-
-- **16-way decode** using 512-bit AVX-512 vectors
-- **New stream format**: 16 states, reverse-flush (15→0), forward init (0→15)
-- Uses `_mm512_i32gather_epi32` for packed-table gather
-- Requires: `avx512f`, `avx512bw`
-- Backend label: `avx512-16way`
-- Independent C oracle for cross-verification
-
-#### Stream Format: 16-way
-
-```
-Encoding:  symbols processed in reverse, lane = i & 15
-Flush:     states 15, 14, ..., 1, 0 (each as low16, high16)
-Init:      states 0, 1, ..., 15 (each from low16, high16)
-Decode:    groups of 16, renorm in ascending lane order
-Tail:      lanes 0..r-1 for remainder r (0..15)
-```
-
-### Packed Decode Table
-
-All AVX-512 kernels use a packed `u32` gather table:
-
-```text
-bits  0..11   frequency
-bits 12..23   bias
-bits 24..31   symbol
-```
-
-4096 entries, 64-byte aligned. Equivalent to existing `RansWordSlot` representation.
+- **16-lane AVX-512 decode** using `_mm512_i32gather_epi32`
+- New 16-way stream format
+- Reverse-flush state ordering (15→0)
+- Forward-init lane ordering (0→15)
 
 ---
 
-## Safety Infrastructure
+## Security and Safety
 
-### Fuzzing (7 targets)
+### Safety Layers
 
-| Target | Format | What it verifies |
-|--------|--------|------------------|
-| `byte_rans_roundtrip` | Byte rANS | Division + reciprocal roundtrip |
-| `r64_rans_roundtrip` | 64-bit rANS | Roundtrip + stream equivalence |
-| `word_rans_roundtrip` | Word rANS | Single-state roundtrip |
-| `malformed_byte` | Byte rANS | Never panics on corrupted input |
-| `alias_roundtrip` | Alias method | Normalized alias roundtrip |
-| `avx512vl8_roundtrip` | AVX512VL 8-way | Scalar/AVX512 equivalence on random inputs |
-| `avx512_16way_roundtrip` | AVX512 16-way | Scalar/AVX512 + word consumption match |
+| Layer | What | Coverage |
+|-------|------|----------|
+| **1. Core isolation** | `forbid(unsafe_code)` in core crate | Compile-time guarantee |
+| **2. Malformed validation** | Stream length checks, renorm guards, freq model validation | 12+ unit tests |
+| **3. Fuzzing** | 7 cargo-fuzz targets | Byte/R64/Word/Alias/AVX512 round-trip + malformed |
+| **4. Formal proofs** | 7 Kani harnesses | Arithmetic correctness, bounds, inversion |
+| **5. Mask exhaustion** | All 256 (8-way) + 65536 (16-way) renorm masks | Separate test binary |
+| **6. Cross-decode courts** | C↔Rust bitstream comparison | 144 behavioral receipts |
+| **7. Unsafe ledger** | Every unsafe block documented | Preconditions, bounds, CPU features, soundness |
 
-### Kani Proofs (7 total)
+### Unsafe Code
 
-- Encoder symbol init correctness
-- Reciprocal = division (byte + R64)
-- Encode-decode inversion
-- Packed entry field extraction round-trip
-- State update overflow bounds
-- Slot index boundedness
+The SIMD crate contains 7 `unsafe fn` for SSE4.1 and AVX-512 intrinsics. Every one is:
+- Gated by `#[target_feature(enable = "...")]` 
+- Only reachable through runtime feature detection in the safe API
+- Documented in `docs/unsafe-ledger.md` with:
+  - Preconditions required by the caller
+  - Memory bounds checked before the unsafe block
+  - CPU features required
+  - Why each intrinsic is safe under those conditions
 
-### Mask Exhaustion Tests
+### No FFI Policy
 
-- **256** 8-way renormalization masks verified
-- **65,536** 16-way renormalization masks verified
-
-### Malformed Input Tests (13+ tests)
-
-- Truncated streams for both 8-way and 16-way
-- Wrong-format detection (8-way → 16-way decoder)
-- Final state invariant preservation
-- Reader consumption parity
+The workspace does **not** bind to the upstream C/C++ via FFI. All oracle comparison
+is done via subprocess communication with compiled C binaries. This means:
+- No unsafe FFI boundaries to audit
+- No C/C++ toolchain required to build the Rust project
+- Clear separation between reference implementation and port
 
 ---
 
 ## Quick Start
 
+### Basic Encode/Decode
+
 ```rust
 use ryg_rans_rs::byte::{
-    RansByteState, RansByteEncSymbol,
+    RansByteState, RansByteEncSymbol, RansByteDecSymbol,
     BackwardByteWriter, ByteReader,
     rans_byte_enc_put_symbol, rans_byte_enc_flush,
     rans_byte_dec_init, rans_byte_dec_advance_symbol,
 };
 
 let scale_bits = 14;
-let total = 1u32 << scale_bits;
-let freq = total / 256;
+let freq = (1u32 << scale_bits) / 256;
 let mut buf = [0u8; 4096];
 
 let mut writer = BackwardByteWriter::new(&mut buf);
@@ -222,7 +347,7 @@ let encoded = writer.encoded();
 let mut reader = ByteReader::new(encoded);
 let mut dec_state = rans_byte_dec_init(&mut reader).unwrap();
 let dsym = RansByteDecSymbol::new(0, freq).unwrap();
-rans_byte_dec_advance_symbol(&mut state, &mut reader, &dsym, scale_bits).unwrap();
+rans_byte_dec_advance_symbol(&mut dec_state, &mut reader, &dsym, scale_bits).unwrap();
 ```
 
 ### AVX-512 Decode
@@ -233,7 +358,115 @@ use ryg_rans_rs::simd::packed_table::PackedWordTable;
 
 let packed = PackedWordTable::from_freqs(&freqs, &cum, 12).unwrap();
 let result = decode_interleaved8_auto(&compressed, &packed, expected_len).unwrap();
-assert_eq!(result.backend.label(), "avx512vl-8way");
+println!("Selected backend: {}", result.backend.label());
+assert_eq!(result.output, expected_output);
+```
+
+### Stream Validation
+
+```rust
+use ryg_rans_rs::byte::malformed::{validate_byte_compressed, RenormGuard};
+
+if let Err(e) = validate_byte_compressed(compressed) {
+    return Err(e);
+}
+
+let mut guard = RenormGuard::new_byte();
+loop {
+    guard.check()?; // limits iterations, prevents infinite loop
+    let b = reader.read_byte().ok_or(DecodeError::InputTooShort)?;
+    x = (x << 8) | (b as u32);
+    if x >= RANS_BYTE_L { break; }
+}
+```
+
+---
+
+## AVX-512 Reference
+
+### Build with AVX-512
+
+```sh
+RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" cargo build
+```
+
+### Run AVX-512 Tests
+
+```sh
+RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" cargo test
+
+# Exhaustive 16-way mask test
+RUSTFLAGS="-C target-feature=+avx512f,+avx512bw" cargo test --release -p ryg-rans-rs-simd -- --ignored
+```
+
+### Available Backends
+
+| Backend | Label | ISA | Required Compiler Flags |
+|---------|-------|-----|------------------------|
+| Scalar 8-way | `scalar-8way` | Baseline | None |
+| SSE4.1 8-way | `sse41-8way` | SSSE3+SSE4.1 | `+ssse3,+sse4.1` |
+| AVX512VL 8-way | `avx512vl-8way` | AVX512F+VL+BW | `+avx512f,+avx512vl,+avx512bw` |
+| Scalar 16-way | `scalar-16way` | Baseline | None |
+| AVX512 16-way | `avx512-16way` | AVX512F+BW | `+avx512f,+avx512bw` |
+
+### 16-Way Stream Format
+
+```
+Encoding:
+  symbols processed in REVERSE order (last → first)
+  lane assignment: lane = i & 15
+  state[i] = C(s, state[lane])
+
+Flush order (backward writer):
+  state[15].low, state[15].high,
+  state[14].low, state[14].high,
+  ...,
+  state[0].low, state[0].high
+
+Initialization (forward reader):
+  state[0] = read u32 (low16 | high16 << 16)
+  state[1] = ...
+  ...
+  state[15] = ...
+
+Decode groups of 16:
+  1. Gather 16 table entries via _mm512_i32gather_epi32
+  2. Extract freq/bias/symbol from each packed u32
+  3. Store 16 symbols in lane order 0..15
+  4. Update all 16 states: (state >> 12) * freq + bias
+  5. Renorm mask: state < 65536
+  6. Read popcount(mask) u16 words in ascending lane order
+
+Tail (r < 16):
+  decode lanes 0..r-1 only
+  don't touch lanes r..15
+```
+
+---
+
+## Performance
+
+### Note on SIMD Performance
+
+The SSE4.1 8-way decoder on Ryzen 7 9800X3D is ~2.5× slower than scalar due to its
+scalar-gather design. The AVX-512 decoders address this with native vector gathers.
+
+Performance receipts are generated separately from behavioral receipts. See
+`docs/performance-method.md` for methodology.
+
+### Benchmark Command
+
+```sh
+RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" \
+    cargo run --release --bin perf -- oracle/adapter/rans_trace
+```
+
+### Hardware Counter Measurement
+
+```sh
+sudo perf stat -r 10 -e cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses \
+    RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" \
+    cargo run --release --bin perf -- oracle/adapter/rans_trace
 ```
 
 ---
@@ -241,25 +474,47 @@ assert_eq!(result.backend.label(), "avx512vl-8way");
 ## Evidence Reproducibility
 
 ```sh
-# Build the C oracle adapter
 cd oracle/adapter && make
 
-# Generate evidence (10+ minutes, full 144-receipt suite)
 RANS_EVIDENCE_STAGING=1 cargo run -p ryg-rans-rs-oracle \
     -- oracle/adapter/rans_trace 12 42 20
 
-# Verify all gates
 cargo xtask seal
 
-# Run Docker VM matrix (2+ hours)
 cargo xtask docker
 ```
 
 ---
 
+## The Seal Gate
+
+The project's `cargo xtask seal` command enforces 16 mandatory gates:
+
+| # | Gate | What It Checks |
+|---|------|----------------|
+| 1 | **Dirty-tree** | No uncommitted changes to covered source files |
+| 2 | **Workspace check** | `cargo check --workspace` produces no errors |
+| 3 | **Core tests** | `cargo test -p ryg-rans-rs-core` passes (57+ tests) |
+| 4 | **Parity model valid** | `docs-src/models/parity.model.json` is well-formed JSON |
+| 5 | **Upstream exists** | `docs-src/models/upstream.json` is present |
+| 6 | **Claims have receipts** | Each `behavior_status: full` has a receipt ID |
+| 7 | **Court path valid** | Court-path field matches variant expectations |
+| 8 | **Receipts exist** | Every indexed receipt file is present on disk |
+| 9 | **Index cited in model** | Every index entry has a matching parity claim |
+| 10 | **Evidence index** | All indexed receipts are accounted for |
+| 11 | **Receipt SHA-256** | Every receipt's hash matches its file content |
+| 12 | **Manifest SHA-256** | Every manifest's hash matches its file content |
+| 13 | **Receipt self-hash** | Every receipt's embedded self-hash recomputes correctly |
+| 14 | **Source freshness** | No source files changed after the evidence code commit |
+| 15 | **Forbid unsafe** | Core and casefile crates enforce `forbid(unsafe_code)` |
+| 16 | **Docker matrix** | Clean 10-service Docker VM matrix confirms the evidence |
+
+---
+
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT License](LICENSE-MIT), at your option.
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT License](LICENSE-MIT),
+at your option.
 
 ---
 
@@ -268,4 +523,5 @@ Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT L
 - Fabian Giesen, [ryg_rans](https://github.com/rygorous/ryg_rans) — Public-domain rANS encoder/decoder
 - Jarek Duda, [Asymmetric Numeral Systems](https://arxiv.org/abs/0902.0271) — Original ANS paper
 - Charles Bloom, [Understanding ANS](https://cbloomrants.blogspot.com/) — ANS tutorial series
+- Alverson, "Integer Division using Reciprocals" — Multiply-high reciprocal approximation
 - Intel Intrinsics Guide — `_mm256_i32gather_epi32`, `_mm512_i32gather_epi32`

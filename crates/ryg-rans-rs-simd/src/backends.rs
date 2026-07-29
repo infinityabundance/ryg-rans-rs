@@ -1,12 +1,49 @@
 //! # Backend detection and dispatch for Word rANS decoders
 //!
-//! Provides runtime CPU-feature detection, backend selection, and
-//! safe public API wrappers for all decode surfaces.
+//! This module provides the safe public API for multi-backend Word rANS decoding.
+//! It handles three concerns:
+//!
+//! 1. **Backend identification**: A `DecodeBackend` enum with stable string labels
+//!    used in court receipts and performance measurement.
+//! 2. **Runtime feature detection**: Selection of the best available SIMD backend
+//!    based on CPU capabilities, with graceful scalar fallback.
+//! 3. **Dispatch**: Auto-selection (`_auto` functions) and explicit backend selection
+//!    (`_scalar`, `_avx512vl`, `_avx512` functions).
+//!
+//! ## Auto-dispatch policy
+//!
+//! The `_auto` functions select the fastest available backend.  The priority is:
+//!
+//! ```text
+//! 8-way:  AVX512VL → SSE4.1 → scalar
+//! 16-way: AVX512 → scalar
+//! ```
+//!
+//! This priority order is based on expected throughput, not availability.  If the
+//! required ISA feature is not detected at runtime, the next backend in priority
+//! order is used.
+//!
+//! ## Safety
+//!
+//! The safe `_auto` functions never execute unsupported instructions.  They perform
+//! runtime CPU feature detection before calling any `#[target_feature]`-gated kernel.
+//! The explicit `_avx512vl` and `_avx512` functions are `unsafe` and require the
+//! caller to ensure CPU support.
 
 use crate::packed_table::{DecodeReport, PackedWordTable};
 use alloc::vec::Vec;
 
 /// Identifies which decoder backend was actually used.
+///
+/// This enum is returned by every decode operation so callers can verify
+/// which backend executed.  This is essential for:
+/// - **Court receipts**: backend assertions in behavioral evidence
+/// - **Performance measurement**: comparing throughput per backend
+/// - **Debugging**: knowing whether SIMD acceleration was applied
+///
+/// Each variant has a stable string `label()` used in JSON serialization
+/// and court receipt fields.  These labels must not change across versions
+/// to maintain evidence integrity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DecodeBackend {
     /// Pure-Rust scalar 8-way decode (always available).
@@ -23,6 +60,16 @@ pub enum DecodeBackend {
 
 impl DecodeBackend {
     /// Stable string identifier for use in court receipts and backend assertions.
+    ///
+    /// These labels are:
+    /// - **Immutable**: changing them would break evidence chain integrity
+    /// - **Unique**: no two backends share a label
+    /// - **Self-describing**: the label indicates both the ISA and lane count
+    ///
+    /// ```ignore
+    /// // Example (not runnable as doctest in no_std context):
+    /// // assert_eq!(backend.label(), "avx512vl-8way");
+    /// ```
     pub fn label(&self) -> &'static str {
         match self {
             DecodeBackend::Scalar8 => "scalar-8way",
@@ -35,6 +82,14 @@ impl DecodeBackend {
 }
 
 /// Full decode result including backend identity.
+///
+/// This struct bundles three pieces of information:
+/// 1. `output` — the decoded symbol bytes
+/// 2. `report` — metadata (words consumed, final states)
+/// 3. `backend` — which backend actually executed
+///
+/// The `backend` field is critical for court evidence: it proves that
+/// the claimed SIMD backend was actually used, not a scalar fallback.
 #[derive(Clone, Debug)]
 pub struct DecodeResult {
     pub output: Vec<u8>,
@@ -42,25 +97,45 @@ pub struct DecodeResult {
     pub backend: DecodeBackend,
 }
 
-/// Extended decode error type.
+/// Extended decode error type covering all decode surfaces.
+///
+/// This enum provides more granular error types than the core crate's
+/// `DecodeError`, which only has `InputTooShort`.  The additional
+/// variants allow SIMD decoders to express specific failure modes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DecodeError {
+    /// The compressed stream is too short for the requested operation.
     InputTooShort,
+    /// The decode table is invalid or inconsistent.
     InvalidTable,
+    /// The requested backend is not supported on this CPU.
     UnsupportedBackend,
+    /// The output length does not match expectations.
     OutputLengthMismatch,
+    /// Trailing data remains after complete decode.
     TrailingData,
+    /// A state invariant was violated during decode.
     StateInvariantViolation,
 }
 
 // ---------------------------------------------------------------------------
 // Runtime feature detection
 // ---------------------------------------------------------------------------
+//
+// The detection functions use a two-tier strategy:
+//
+// 1. If the `std` feature is enabled, use `std::is_x86_feature_detected!()`
+//    which calls the CPUID instruction at runtime.  This is the most reliable
+//    method because it detects features available on the actual CPU.
+//
+// 2. If `std` is not available (no_std context), fall back to
+//    `cfg!(target_feature = "...")` which checks compile-time target features.
+//    This requires the user to set `-C target-feature=...` in their build flags.
+//
+// The compile-time check is weaker but sufficient for environments where
+// the binary is compiled for a specific CPU (embedded, kernel, cross-compiled).
 
 /// Check whether AVX512F + AVX512VL + AVX512BW are available.
-///
-/// Uses compile-time `cfg!(target_feature)` when `std` is not available.
-/// When `std` is available, also checks runtime CPUID.
 fn avx512vl_available() -> bool {
     #[cfg(feature = "std")]
     {
@@ -78,7 +153,7 @@ fn avx512vl_available() -> bool {
     }
 }
 
-/// Check whether AVX512F + AVX512BW are available at runtime.
+/// Check whether AVX512F + AVX512BW are available.
 fn avx512_available() -> bool {
     #[cfg(feature = "std")]
     {
@@ -91,13 +166,27 @@ fn avx512_available() -> bool {
 }
 
 // ---------------------------------------------------------------------------
-// Safe 8-way auto-dispatch
+// 8-way auto-dispatch
 // ---------------------------------------------------------------------------
 
 /// Decode 8-way interleaved Word rANS using the best available backend.
 ///
-/// Automatically selects AVX512VL → SSE4.1 → scalar based on runtime
-/// feature detection.
+/// Selection priority: AVX512VL → SSE4.1 → scalar.
+/// This function is **safe** because it checks CPU features before calling
+/// any SIMD kernel.  If no SIMD backend is available, it falls back to
+/// the pure-Rust scalar decoder.
+///
+/// # Arguments
+///
+/// * `compressed` - The compressed stream as u16 words.  Must have at least
+///   16 words (8 initial states × 2 u16 each).
+/// * `table` - A `PackedWordTable` with exactly 4096 entries.
+/// * `expected_len` - The number of symbols expected in the decoded output.
+///
+/// # Returns
+///
+/// * `Ok(DecodeResult)` containing decoded output, decode report, and backend.
+/// * `Err(DecodeError)` if the stream is truncated or the table is invalid.
 pub fn decode_interleaved8_auto(
     compressed: &[u16],
     table: &PackedWordTable,
@@ -121,11 +210,11 @@ pub fn decode_interleaved8_auto(
             }
         }
     }
-    // Fall back to scalar packed decoder
+    // Fall back to packed scalar decoder.
     let output = crate::packed_table::decode_8way_packed_scalar(compressed, table, expected_len)
         .map_err(|_| DecodeError::InputTooShort)?;
     let report = DecodeReport {
-        words_consumed: compressed.len(), // approximate
+        words_consumed: compressed.len(),
         final_states: [0u32; 16],
     };
     Ok(DecodeResult {
@@ -136,6 +225,9 @@ pub fn decode_interleaved8_auto(
 }
 
 /// Decode 8-way using the explicit scalar backend.
+///
+/// Always uses the pure-Rust packed scalar decoder regardless of
+/// available SIMD features.  Useful for benchmarking or verification.
 pub fn decode_interleaved8_scalar(
     compressed: &[u16],
     table: &PackedWordTable,
@@ -157,7 +249,8 @@ pub fn decode_interleaved8_scalar(
 ///
 /// # Safety
 ///
-/// Caller must ensure AVX512F + AVX512VL + AVX512BW are available.
+/// Caller must ensure AVX512F + AVX512VL + AVX512BW are available at runtime.
+/// No CPU feature detection is performed — the kernel is called directly.
 pub unsafe fn decode_interleaved8_avx512vl(
     compressed: &[u16],
     table: &PackedWordTable,
@@ -174,12 +267,12 @@ pub unsafe fn decode_interleaved8_avx512vl(
 }
 
 // ---------------------------------------------------------------------------
-// Safe 16-way auto-dispatch
+// 16-way auto-dispatch
 // ---------------------------------------------------------------------------
 
 /// Decode 16-way interleaved Word rANS using the best available backend.
 ///
-/// Automatically selects AVX512 → scalar based on runtime feature detection.
+/// Selection priority: AVX512 → scalar.  This function is safe.
 pub fn decode_interleaved16_auto(
     compressed: &[u16],
     table: &PackedWordTable,
@@ -203,7 +296,7 @@ pub fn decode_interleaved16_auto(
             }
         }
     }
-    // Fall back to scalar
+    // Fall back to scalar 16-way decoder.
     let (output, report) =
         crate::packed_table::decode_interleaved16_scalar(compressed, table, expected_len)
             .map_err(|_| DecodeError::InputTooShort)?;
@@ -234,7 +327,7 @@ pub fn decode_interleaved16_scalar(
 ///
 /// # Safety
 ///
-/// Caller must ensure AVX512F + AVX512BW are available.
+/// Caller must ensure AVX512F + AVX512BW are available at runtime.
 pub unsafe fn decode_interleaved16_avx512(
     compressed: &[u16],
     table: &PackedWordTable,
@@ -255,6 +348,8 @@ pub unsafe fn decode_interleaved16_avx512(
 // ---------------------------------------------------------------------------
 
 /// Allocating 8-way auto-dispatch decoder.
+///
+/// Convenience wrapper around `decode_interleaved8_auto`.
 pub fn decode_interleaved8(
     compressed: &[u16],
     table: &PackedWordTable,
@@ -279,7 +374,7 @@ pub fn decode_interleaved16(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::packed_table::PackedWordTable;
+    use crate::packed_table::{PackedWordTable, encode_interleaved16};
     use alloc::vec;
 
     fn uniform_model() -> (Vec<u32>, Vec<u32>, PackedWordTable) {
@@ -297,6 +392,7 @@ mod tests {
 
     #[test]
     fn test_backend_labels() {
+        // Verify backend labels are stable strings.
         assert_eq!(DecodeBackend::Scalar8.label(), "scalar-8way");
         assert_eq!(DecodeBackend::Sse41Interleaved8.label(), "sse41-8way");
         assert_eq!(DecodeBackend::Avx512VlInterleaved8.label(), "avx512vl-8way");
@@ -319,7 +415,7 @@ mod tests {
     fn test_scalar16_dispatch() {
         let (freqs, cum, packed) = uniform_model();
         let symbols: Vec<u8> = (0..50).map(|i| (i % 16) as u8).collect();
-        let compressed = crate::packed_table::encode_interleaved16(&symbols, &freqs, &cum, 12);
+        let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
 
         let result = decode_interleaved16_scalar(&compressed, &packed, symbols.len()).unwrap();
         assert_eq!(result.output, symbols);

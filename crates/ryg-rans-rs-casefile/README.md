@@ -1,39 +1,138 @@
 # ryg-rans-rs-casefile
 
-> Typed schemas for ryg-rans-rs forensic court evidence.  
-> `#![no_std]` — portable to embedded and Wasm targets.
+> **Typed evidence schemas for rANS forensic court proceedings.**  
+> `#![no_std]` + `#![forbid(unsafe_code)]` — portable to embedded and Wasm targets.  
+> Schema version 1, stable since v0.1.6.
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs-casefile)](https://crates.io/crates/ryg-rans-rs-casefile)
 
-## Types
-
-- **`CaseResult`** — Per-case comparison result: input, frequencies, C and Rust streams, six check booleans (C self-decode, Rust self-decode, compressed match, C→Rust decode, Rust→C decode, SIMD-scalar agree).
-- **`CaseManifest`** — Complete collection of cases for one court, with metadata (court ID, variant, scale_bits, seed).
-- **`Receipt`** — Verdict, counts, SHA-256 chains, upstream and code commits, reproduction command.
-- **`CourtConfig`** — Court configuration: court path, variant, model profile, scale bits, number of cases.
-- **`ModelProfile`** — Frequency model profile data for deterministic case generation.
+---
 
 ## Purpose
 
-This crate provides the data model for the project's forensic evidence system. It is published for transparency and reproducibility:
+This crate defines the **data model** for the ryg-rans-rs forensic evidence system.
+It exists so that downstream consumers, security auditors, and researchers can
+independently parse and verify the evidence artifacts without depending on the
+full oracle harness.
 
-- **Downstream consumers** can parse and verify evidence artifacts independently.
-- **Security auditors** can verify the SHA-256 chains from receipt → manifest → index.
-- **Researchers** can reproduce the exact court conditions.
+---
 
-## Evidence Structure
+## Types
 
-Each sealed receipt is a SHA-256-chained artifact:
+### `Casefile` — A single deterministic test case
+
+```rust
+pub struct Casefile {
+    pub schema_version: u32,        // Always 1
+    pub case_id: &'static str,      // e.g. "RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12.0000"
+    pub upstream_commit: &'static str, // Pinned c9d162d9
+    pub variant: &'static str,      // e.g. "byte32", "r64", "avx512vl-interleaved8"
+    pub operation: &'static str,    // e.g. "encode_decode"
+    pub seed: u64,                  // PRNG seed for deterministic generation
+    pub input_sha256: Option<[u8; 32]>, // Hash of input data
+    pub input: Vec<u8>,             // The input symbols to encode
+    pub scale_bits: u32,            // Frequency scale (14 for byte, 12 for word)
+    pub frequencies: Vec<u32>,      // Symbol frequencies (256 entries)
+    pub cumulative_frequencies: Vec<u32>, // Cumulative frequencies (257 entries)
+    pub interleave: u32,            // 1, 2, 8, or 16
+}
+```
+
+### `Receipt` — Court verdict
+
+```rust
+pub struct Receipt {
+    pub schema_version: u32,        // Always 1
+    pub court_id: &'static str,     // e.g. "RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12"
+    pub case_count: u32,            // Number of cases in this court
+    pub verdict: &'static str,      // "admitted_match" or "admitted_partial"
+    pub upstream_commit: &'static str,
+    pub rust_commit: Option<&'static str>,
+    pub pairs_compared: u64,        // Total comparisons made
+    pub pairs_matched: u64,         // Comparisons that matched
+    pub residual_count: u32,
+    pub residual_ids: Vec<&'static str>,
+    pub timestamp: Option<u64>,
+}
+```
+
+### `Residual` — A documented difference
+
+```rust
+pub struct Residual {
+    pub case_id: &'static str,
+    pub court_id: &'static str,
+    pub variant: &'static str,
+    pub upstream_commit: &'static str,
+    pub class: &'static str,     // "implementation", "oracle", "casefile", etc.
+    pub severity: &'static str,  // "S0" (critical) through "S3" (informational)
+    pub status: &'static str,   // "open", "investigating", "fixed", "wontfix"
+}
+```
+
+---
+
+## Evidence SHA-256 Chain
+
+The evidence system uses a three-level hash chain:
 
 ```
-evidence/index.json          ← registers all receipts with their SHA-256
-  └─ evidence/receipts/*.json  ← verdict, code_commit, manifest_sha256, self-hash
-      └─ evidence/manifests/*.json  ← all input cases, streams, per-case checks
+index.json
+  └── sha256_of(receipt.json) → receipt.json
+        └── sha256_of(manifest.json) → manifest.json
+              └── (all case data, streams, verdicts)
 ```
 
-The hash chain is: index → receipt hash → receipt manifest hash → manifest content.
+Each receipt also has a **self-hash** (`receipt_sha256`) that prevents
+undetected modification:
+- Anyone can verify: `sha256(receipt.json_without_receipt_sha256) == receipt_sha256`
+- A modified receipt won't match its own self-hash
+- A replaced receipt won't match the index hash
+
+This crate provides the type definitions. The hash computation and serialization
+are implemented in `ryg-rans-rs-oracle`.
+
+---
+
+## Usage
+
+```rust
+use ryg_rans_rs_casefile::*;
+
+// Create a test case
+let case = Casefile::new(
+    "RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12.0000",
+    "avx512vl-interleaved8",
+);
+case.seed = 42;
+case.scale_bits = 12;
+
+// Create a residual
+let residual = Residual {
+    case_id: "RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12.0000",
+    court_id: "RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12",
+    variant: "avx512vl-interleaved8",
+    upstream_commit: "c9d162d996fd600315af9ae8eb89d832576cb32d",
+    class: "implementation",
+    severity: "S1",
+    status: "fixed",
+};
+println!("{}", residual);
+// Output: "RYG_RANS... (avx512vl-interleaved8): implementation [S1] - fixed"
+```
+
+---
 
 ## Status
 
-**Schema foundation.** The types are defined and used by `ryg-rans-rs-oracle`. Canonical serialization, hash computation, and validation are implemented in the oracle harness. The schema has been stable since v0.1.6 with 128 indexed receipts across 5 algorithmic surfaces.
+**Schema foundation** — stable since v0.1.6. The types are used by:
+- `ryg-rans-rs-oracle` for evidence generation
+- `evidence/index.json`, `evidence/receipts/*.json`, `evidence/manifests/*.json`
+- `cargo xtask seal` for hash-verification gates
+
+---
+
+## Feature Flags
+
+None. The crate is `#![no_std]` with `extern crate alloc` for `Vec`.
