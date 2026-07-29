@@ -8,12 +8,10 @@
 
 ## Current Status
 
-`ryg-rans-core` has `#![forbid(unsafe_code)]`. The SIMD crate has 3 `unsafe fn` with documented safety contracts.
-
 | Crate | Status | `unsafe` blocks |
 |---|---|---|
 | `ryg-rans-rs-core` | `#![forbid(unsafe_code)]` | 0 |
-| `ryg-rans-rs-simd` | Implemented — SSE4.1 intrinsics | 3 unsafe fn (feature-gated under `#[target_feature]`) |
+| `ryg-rans-rs-simd` | Implemented — SSE4.1 + AVX-512 intrinsics | 7 unsafe fn (feature-gated under `#[target_feature]`) |
 | `ryg-rans-rs` | `#![deny(unsafe_code)]` | 0 |
 | `ryg-rans-rs-oracle` | Safe | 0 |
 | `ryg-rans-rs-casefile` | `#![no_std]`, safe | 0 |
@@ -24,7 +22,7 @@
 
 ## Unsafe Functions in `ryg-rans-rs-simd`
 
-### Block [1]: `rans_simd_dec_init` (src/lib.rs:L192-L199)
+### Block [1]: `rans_simd_dec_init` (src/lib.rs)
 
 **Intrinsic:** `_mm_loadu_si128`  
 **Purpose:** Load 4 × 32-bit initial decoder states from 8 × u16 words.
@@ -35,103 +33,167 @@
 
 #### Alignment
 - Uses `_mm_loadu_si128` (unaligned load), so no alignment requirement.
-- However, the 16 bytes must be readable memory — guaranteed by the length check.
 
 #### Bounds
-- `reader.len() >= 8` is checked before the load. If the check fails, `None` is returned and the load is not executed.
+- `reader.len() >= 8` is checked before the load.
 
 #### CPU Features
-- `SSE2` is sufficient for `_mm_loadu_si128` (baseline on x86_64).
+- `SSE2` (baseline x86_64).
 
 #### Soundness
-- The function is `unsafe` because it uses `_mm_loadu_si128`, which reads from a raw pointer. The safety contract is: `reader` must have at least 8 elements (checked dynamically) and the resulting pointer must be valid for a 16-byte read (guaranteed by the slice's memory layout).
+- The function is `unsafe` because `_mm_loadu_si128` reads from a raw pointer. Bounds check ensures safety.
 
 ---
 
-### Block [2]: `rans_simd_dec_sym_unchecked` (src/lib.rs:L208-L239)
+### Block [2]: `rans_simd_dec_sym_unchecked` (src/lib.rs)
 
-**Intrinsics:** `_mm_and_si128`, `_mm_set1_epi32`, `_mm_cvtsi128_si32`, `_mm_extract_epi32` (×3), `_mm_cvtsi32_si128` (×2), `_mm_insert_epi32` (×2), `_mm_unpacklo_epi64`, `_mm_srli_epi32` (×2), `_mm_mullo_epi32`, `_mm_add_epi32`  
+**Intrinsics:** `_mm_and_si128`, `_mm_set1_epi32`, `_mm_cvtsi128_si32`, `_mm_extract_epi32`, `_mm_cvtsi32_si128`, `_mm_insert_epi32`, `_mm_unpacklo_epi64`, `_mm_srli_epi32`, `_mm_mullo_epi32`, `_mm_add_epi32`  
 
 **Purpose:** Decode 4 symbols in parallel using table lookups and SIMD arithmetic.
 
 #### Preconditions
-- `tables.slots` must have at least `RANS_WORD_M` (4096) entries.
-- `tables.slot2sym` must have at least `RANS_WORD_M` entries.
-- The lane indices extracted from the state must be valid indices into these tables (guaranteed by the mask: `state & (M-1)` where M = 4096).
-
-#### Alignment
-- All SIMD operations are register-to-register after the initial load. No memory alignment requirements beyond the table slice guarantees.
-
-#### Bounds
-- Slot indices are masked to `M-1` before table access.
-- Table access uses `[]` indexing with the masked index, which Rust checks at runtime in debug builds.
+- Tables must have ≥ 4096 entries (masked access ensures this).
+- Lane indices are masked to 0..4095.
 
 #### CPU Features
-- `SSE2` (baseline x86_64): `_mm_and_si128`, `_mm_set1_epi32`, `_mm_cvtsi128_si32`, `_mm_cvtsi32_si128`, `_mm_unpacklo_epi64`, `_mm_srli_epi32`, `_mm_add_epi32`.
-- `SSE4.1`: `_mm_extract_epi32`, `_mm_insert_epi32`, `_mm_mullo_epi32`.
-- The function is gated by `#[target_feature(enable = "ssse3,sse4.1")]` through `decode_simd_8way_unchecked`, which also gates SSSE3.
+- `SSE2` (baseline) + `SSE4.1` (`_mm_extract_epi32`, `_mm_insert_epi32`, `_mm_mullo_epi32`).
 
 #### Soundness
-- All memory accesses use safe Rust indexing (`tables.slots[i]`, `tables.slot2sym[i]`). The SIMD operations operate on registers. The `_mm_extract_epi32` and `_mm_insert_epi32` calls operate on `__m128i` values, not pointers. Soundness relies on the `#[target_feature]` gate ensuring the CPU supports these instructions.
+- All memory accesses use safe Rust indexing. SIMD operations operate on registers.
 
 ---
 
-### Block [3]: `rans_simd_dec_renorm_unchecked` (src/lib.rs:L248-L281)
+### Block [3]: `rans_simd_dec_renorm_unchecked` (src/lib.rs)
 
-**Intrinsics:** `_mm_xor_si128`, `_mm_set1_epi32` (×2), `_mm_cmpgt_epi32`, `_mm_movemask_ps`, `_mm_castsi128_ps`, `_mm_loadl_epi64`, `_mm_slli_epi32`, `_mm_load_si128` (aligned), `_mm_shuffle_epi8`, `_mm_or_si128`, `_mm_blendv_epi8`  
+**Intrinsics:** `_mm_xor_si128`, `_mm_set1_epi32`, `_mm_cmpgt_epi32`, `_mm_movemask_ps`, `_mm_castsi128_ps`, `_mm_loadl_epi64`, `_mm_slli_epi32`, `_mm_load_si128`, `_mm_shuffle_epi8`, `_mm_or_si128`, `_mm_blendv_epi8`  
 
-**Purpose:** Renormalize 4 SIMD lanes by conditionally reading u16 words from the input stream.
+**Purpose:** Renormalize 4 SIMD lanes by conditionally reading u16 words from input.
 
 #### Preconditions
-- `reader` must have at least `words_needed` u16 elements remaining (checked dynamically via `reader.len() >= words_needed`).
-- `SHUFFLE_MASKS` is `#[repr(align(16))]`, satisfying the 16-byte alignment requirement of `_mm_load_si128`.
-- A scratch buffer is used to avoid over-reading from the input slice: only `words_needed` words are copied before the SIMD load.
-
-#### Alignment
-- `SHUFFLE_MASKS` is `#[repr(align(16))]`, so `_mm_load_si128` on it is safe.
-- `_mm_loadl_epi64` loads 8 bytes from a `u16` scratch buffer — only `words_needed` bytes are valid, but `_mm_loadl_epi64` reads exactly 8 bytes from the stack-allocated scratch, which has at least 8 bytes.
-
-#### Bounds
-- Input bounds: `reader.len() >= words_needed` is checked before any read.
-- Scratch bounds: `scratch` is `[0u16; 4]` = 8 bytes, and `_mm_loadl_epi64` reads exactly 8 bytes from it.
-- Shuffle mask: `mask` is in `0..16`, so `mask * 16` indexes into the 256-byte `SHUFFLE_MASKS` array.
+- `SHUFFLE_MASKS` is `#[repr(align(16))]` for aligned load.
+- Scratch buffer prevents over-read from input slice.
 
 #### CPU Features
-- `SSE2` (baseline x86_64): `_mm_xor_si128`, `_mm_set1_epi32`, `_mm_slli_epi32`, `_mm_or_si128`, `_mm_loadl_epi64`.
-- `SSE3`: `_mm_movemask_ps`, `_mm_castsi128_ps`.
-- `SSSE3`: `_mm_shuffle_epi8`.
-- `SSE4.1`: `_mm_blendv_epi8`, `_mm_cmpgt_epi32` (when comparing signed i32 — though SSE2 has `_mm_cmpgt_epi32`... actually this is SSE2).
-- The function is gated by `#[target_feature(enable = "ssse3,sse4.1")]` through `decode_simd_8way_unchecked`.
+- `SSE2`, `SSE3`, `SSSE3`, `SSE4.1`.
 
 #### Soundness
-- The scratch buffer prevents out-of-bounds reads from the input slice: `_mm_loadl_epi64` reads exactly 8 bytes from the stack, which is always safe. Only `words_needed` words are copied into the scratch from the reader.
-- The shuffle mask load (`_mm_load_si128`) targets a `#[repr(align(16))]` static, guaranteeing 16-byte alignment.
-- The `_mm_shuffle_epi8` indices are compile-time constants from `SHUFFLE_MASKS`, guaranteeing valid within-lane byte positions.
-- The `_mm_blendv_epi8` mask is computed from the sign comparison, which is the core of the upstream algorithm.
-- Soundness relies on the `#[target_feature]` gate ensuring the CPU supports SSSE3 and SSE4.1.
+- Scratch buffer bounds checked, aligned static for mask load.
 
 ---
 
-## Unsafe in `decode_simd_8way_unchecked` (src/lib.rs:L312-L322)
+### Block [4]: `decode_interleaved8_avx512vl_kernel` (avx512.rs)
 
-**Purpose:** Entry point for SIMD 8-way decode. Wraps `simd_decode_inner`.
+**Intrinsics (major):** `_mm256_loadu_si256`, `_mm256_storeu_si256`, `_mm256_i32gather_epi32`, `_mm256_and_si256`, `_mm256_set1_epi32`, `_mm256_srli_epi32`, `_mm256_mullo_epi32`, `_mm256_add_epi32`, `_mm256_cmplt_epu32_mask`  
+
+**Purpose:** 8-way AVX512VL Word-rANS decode.
 
 #### Preconditions
-- Caller must ensure the CPU supports SSSE3 and SSE4.1 at runtime.
-- The function is `#[target_feature(enable = "ssse3,sse4.1")]` gated.
+- `compressed.len() >= 16` (checked upfront).
+- `table` has exactly 4096 entries (guaranteed by `PackedWordTable` invariant).
+- `expected_len` matches the encoded symbol count.
+
+#### Alignment
+- No alignment requirement — all loads/stores are unaligned (`_mm256_loadu_si256`, `_mm256_storeu_si256`).
+- Gather (`_mm256_i32gather_epi32`) uses 4-byte element scale, not requiring alignment.
+
+#### Bounds
+- Initial state load: reads 32 bytes (16 u16 → 8 u32) from `compressed[0..16]`. Length check ensures this.
+- Gather: table has 4096 entries (16384 bytes), gather indices are masked to 0..4095.
+- Symbol store: writes 8 bytes to `output[i..i+8]`, where `i + 8 ≤ expected_len`. `output` is pre-sized to `expected_len`.
+- Renorm reads: `reader_pos + words_needed ≤ compressed.len()` checked before any read.
+- Tail lane reads: `reader_pos < compressed.len()` checked before reading.
+
+#### Inactive Lane Safety
+- Renormalization loop processes lanes 0..7 individually, reading only from active lanes (determined by `renorm_mask`). Inactive lanes are not touched.
+
+#### CPU Features
+- `avx512f` (gather, masked operations, 256-bit AVX512VL state).
+- `avx512vl` (256-bit AVX512 instructions).
+- `avx512bw` (byte/word operations, `_mm256_cmplt_epu32_mask`).
+
+Gated by `#[target_feature(enable = "avx512f,avx512vl,avx512bw")]`.
 
 #### Soundness
-- This function is the sole public entry point to the SIMD kernel. It is `unsafe` because the `#[target_feature]` gate does not prevent calling it on CPUs lacking these features; the caller must perform runtime detection.
+- All memory accesses are bounds-checked before execution.
+- Table gather is bounded by the 4096-entry table size via `state & (M-1)` mask.
+- Symbol output uses pre-allocated `Vec<u8>` with size `expected_len`.
+- Lane-wise renormalization avoids masked-load overread issues by using individual scalar reads.
+- Tail path uses safe scalar indexing with bounds checks.
+- The `reinterpret_cast`-style pointer casts (`u32* → __m256i*`) are valid because all types are plain-old-data with compatible sizes and alignments on x86_64.
 
 ---
 
-## Unsafe in `decode_simd_8way` (src/lib.rs:L288-L305)
+### Block [5]: `decode_interleaved16_avx512_kernel` (avx512.rs)
 
-**Purpose:** Safe wrapper around the SIMD path.
+**Intrinsics (major):** `_mm512_loadu_si512`, `_mm512_storeu_si512`, `_mm512_i32gather_epi32`, `_mm512_and_si512`, `_mm512_set1_epi32`, `_mm512_srli_epi32`, `_mm512_mullo_epi32`, `_mm512_add_epi32`, `_mm512_cmplt_epu32_mask`  
+
+**Purpose:** 16-way AVX512 Word-rANS decode (new stream format).
+
+#### Preconditions
+- `compressed.len() >= 32` (checked upfront).
+- `table` has exactly 4096 entries.
+- `expected_len` matches the encoded symbol count.
+
+#### Alignment
+- All loads/stores are unaligned.
+
+#### Bounds
+- Initial state load: reads 64 bytes (32 u16 → 16 u32) from `compressed[0..32]`.
+- Gather: masked to 0..4095.
+- Symbol store: writes 16 bytes to `output[i..i+16]` via temp buffer.
+- Renorm reads: `reader_pos + words_needed ≤ compressed.len()` checked.
+- Tail: checked bounds per lane.
+
+#### Inactive Lane Safety
+- Lane-wise loop processes only active lanes from `renorm_mask`. Inactive lanes unchanged.
+
+#### CPU Features
+- `avx512f` (512-bit operations, gather, masked compare).
+- `avx512bw` (byte/word operations).
+
+Gated by `#[target_feature(enable = "avx512f,avx512bw")]`.
 
 #### Soundness
-- Uses `#[cfg(target_feature = "sse4.1")]` for compile-time dispatch. When SSE4.1 is enabled at compile time, the inner `unsafe` block is reached and `simd_decode_inner` is called.
-- On x86_64 without compile-time SSE4.1, the function falls back to the scalar `decode_8way_scalar` path, which contains no unsafe code.
+- Same pattern as Block [4] but with 512-bit vectors.
+- Symbol output uses a temporary `[u32; 16]` buffer to avoid `packus` interleaving issues — individual lane writes preserve exact lane order.
+- Tail path handles all 16 possible remainder lengths correctly (tested exhaustively).
+
+---
+
+### Block [6]: `decode_simd_8way_unchecked` (src/lib.rs)
+
+**Purpose:** SSE4.1 8-way decode entry point.
+
+#### Preconditions
+- Caller must ensure CPU supports SSSE3 and SSE4.1.
+- Function is `#[target_feature(enable = "ssse3,sse4.1")]`.
+
+#### Soundness
+- Calls `simd_decode_inner` which executes SSE4.1 intrinsics. Unsafe because `#[target_feature]` does not enforce runtime detection.
+
+---
+
+## Unsafe in Public API Wrappers (backends.rs)
+
+### `decode_interleaved8_avx512vl` (backends.rs)
+
+**Purpose:** Safe public wrapper around AVX512VL kernel.
+
+#### Preconditions
+- Caller must ensure AVX512F + AVX512VL + AVX512BW are available at runtime.
+
+#### Soundness
+- Function is `unsafe` because it calls a `#[target_feature]`-gated kernel. The `#[target_feature]` gate does not perform runtime detection; the caller is responsible for this.
+
+### `decode_interleaved16_avx512` (backends.rs)
+
+**Purpose:** Safe public wrapper around AVX512 16-way kernel.
+
+#### Preconditions
+- Caller must ensure AVX512F + AVX512BW are available.
+
+#### Soundness
+- Same pattern as the 8-way wrapper — caller must ensure CPU support at runtime.
 
 ---
 
@@ -142,6 +204,8 @@
 | 1 | Phase F | `rans_simd_dec_init` — unaligned 128-bit load | Self-reviewed |
 | 2 | Phase F | `rans_simd_dec_sym_unchecked` — SIMD symbol decode | Self-reviewed |
 | 3 | Phase F | `rans_simd_dec_renorm_unchecked` — SIMD renormalization | Self-reviewed |
-| — | Phase H | Scalar fallback in `decode_simd_8way` — no unsafe code | N/A |
+| 4 | Phase G | `decode_interleaved8_avx512vl_kernel` — AVX512VL 8-way decode | Self-reviewed |
+| 5 | Phase G | `decode_interleaved16_avx512_kernel` — AVX512 16-way decode | Self-reviewed |
+| 6 | Phase G | Public API wrappers for AVX512 decode | Self-reviewed |
 
 No `unsafe` block may be added without a corresponding ledger entry.
