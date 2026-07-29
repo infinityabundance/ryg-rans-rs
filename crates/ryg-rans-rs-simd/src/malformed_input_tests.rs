@@ -98,7 +98,7 @@ fn test_16way_truncated_partial_init() {
 fn test_16way_truncated_during_decode() {
     let (freqs, cum, packed) = uniform_model();
     let symbols: Vec<u8> = (0..100).map(|i| (i % 16) as u8).collect();
-    let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
+    let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12).unwrap();
 
     if compressed.len() > 40 {
         let truncated = &compressed[..compressed.len() - 20];
@@ -117,7 +117,7 @@ fn test_16way_final_state_parity() {
     // and consume exactly the same number of words.
     let (freqs, cum, packed) = uniform_model();
     let symbols: Vec<u8> = (0..64).map(|i| (i % 16) as u8).collect();
-    let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
+    let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12).unwrap();
 
     let (_scalar_out, scalar_report) =
         decode_interleaved16_scalar(&compressed, &packed, symbols.len()).unwrap();

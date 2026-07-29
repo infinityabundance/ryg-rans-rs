@@ -141,7 +141,7 @@ The `simd` module is enabled with `features = ["simd"]` in your `Cargo.toml`.
 
 | Function | Backend | Safety | Description |
 |----------|---------|--------|-------------|
-| `decode_interleaved8_auto` | Auto-select | ✅ Safe | AVX512VL → SSE4.1 → scalar |
+| `decode_interleaved8_auto` | Auto-select | ✅ Safe | Scalar (fastest on Zen 5) |
 | `decode_interleaved8_scalar` | Scalar | ✅ Safe | Always scalar |
 | `decode_interleaved8_avx512vl` | AVX512VL | ⚠️ Unsafe | Requires CPU support |
 
@@ -149,7 +149,7 @@ The `simd` module is enabled with `features = ["simd"]` in your `Cargo.toml`.
 
 | Function | Backend | Safety | Description |
 |----------|---------|--------|-------------|
-| `decode_interleaved16_auto` | Auto-select | ✅ Safe | AVX512 → scalar |
+| `decode_interleaved16_auto` | Auto-select | ✅ Safe | Scalar (fastest on Zen 5) |
 | `decode_interleaved16_scalar` | Scalar | ✅ Safe | Always scalar |
 | `decode_interleaved16_avx512` | AVX512 | ⚠️ Unsafe | Requires CPU support |
 | `encode_interleaved16` | Scalar | ✅ Safe | 16-way encoder |

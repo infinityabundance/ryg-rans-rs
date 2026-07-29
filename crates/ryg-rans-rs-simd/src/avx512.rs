@@ -607,7 +607,7 @@ mod tests {
         }
 
         let symbols: Vec<u8> = (0..128).map(|i| (i % 16) as u8).collect();
-        let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
+        let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12).unwrap();
 
         let (scalar_out, scalar_report) =
             crate::packed_table::decode_interleaved16_scalar(&compressed, &packed, symbols.len())
@@ -637,7 +637,7 @@ mod tests {
         for tail in 0..16 {
             let len = 32 + tail;
             let symbols: Vec<u8> = (0..len).map(|i| (i % 16) as u8).collect();
-            let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
+            let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12).unwrap();
             unsafe {
                 let (decoded, _) =
                     decode_interleaved16_avx512_kernel(&compressed, &packed, symbols.len())

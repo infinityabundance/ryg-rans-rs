@@ -271,39 +271,18 @@ pub unsafe fn decode_interleaved8_avx512vl(
 
 /// Decode 16-way interleaved Word rANS using the best available backend.
 ///
-/// Selection priority: AVX512 → scalar.  This function is safe.
+/// Selection priority: scalar (fastest on measured Zen 5) → AVX512.
+/// On the Ryzen 7 9800X3D, scalar 16-way achieves 1.44-1.83 GiB/s vs
+/// AVX512 16-way at 0.64-1.32 GiB/s (0.43-0.72× scalar).
+///
+/// Explicit AVX512 selection remains available via `decode_interleaved16_avx512`
+/// for courts, cross-verification, benchmarks, and future architectures.
 pub fn decode_interleaved16_auto(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-        if avx512_available() {
-            unsafe {
-                let (output, report) = crate::avx512::decode_interleaved16_avx512_kernel(
-                    compressed,
-                    table,
-                    expected_len,
-                )
-                .map_err(|_| DecodeError::InputTooShort)?;
-                return Ok(DecodeResult {
-                    output,
-                    report,
-                    backend: DecodeBackend::Avx512Interleaved16,
-                });
-            }
-        }
-    }
-    // Fall back to scalar 16-way decoder.
-    let (output, report) =
-        crate::packed_table::decode_interleaved16_scalar(compressed, table, expected_len)
-            .map_err(|_| DecodeError::InputTooShort)?;
-    Ok(DecodeResult {
-        output,
-        report,
-        backend: DecodeBackend::Scalar16,
-    })
+    decode_interleaved16_scalar(compressed, table, expected_len)
 }
 
 /// Decode 16-way using the explicit scalar backend.
@@ -414,7 +393,7 @@ mod tests {
     fn test_scalar16_dispatch() {
         let (freqs, cum, packed) = uniform_model();
         let symbols: Vec<u8> = (0..50).map(|i| (i % 16) as u8).collect();
-        let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
+        let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12).unwrap();
 
         let result = decode_interleaved16_scalar(&compressed, &packed, symbols.len()).unwrap();
         assert_eq!(result.output, symbols);

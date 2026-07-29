@@ -39,6 +39,24 @@ use core::fmt;
 
 use crate::{RANS_WORD_M, RANS_WORD_SCALE_BITS, RansWordSlot};
 
+/// Error returned when packing an entry with out-of-range fields.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PackedEntryError {
+    pub field: &'static str,
+    pub value: u32,
+    pub max: u32,
+}
+
+impl core::fmt::Display for PackedEntryError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "{} value {} exceeds max {}",
+            self.field, self.value, self.max
+        )
+    }
+}
+
 /// A single packed entry in the Word rANS decode table.
 ///
 /// Layout: `freq | (bias << 12) | ((symbol as u32) << 24)`.
@@ -47,15 +65,31 @@ use crate::{RANS_WORD_M, RANS_WORD_SCALE_BITS, RansWordSlot};
 pub struct PackedWordEntry(pub u32);
 
 impl PackedWordEntry {
-    /// Pack fields into a single `u32`.
-    ///
-    /// # Panics
-    ///
-    /// Panics in debug builds if any field exceeds its bit-width.
+    /// Try to pack fields into a single `u32`. Returns `Err` if any field
+    /// exceeds its bit-width (12 bits for freq/bias, 8 bits for symbol).
     #[inline]
-    pub fn pack(freq: u16, bias: u16, symbol: u8) -> Self {
-        debug_assert!((freq as u32) < 4096, "freq {} exceeds 12 bits", freq);
-        debug_assert!((bias as u32) < 4096, "bias {} exceeds 12 bits", bias);
+    pub fn try_pack(freq: u16, bias: u16, symbol: u8) -> Result<Self, PackedEntryError> {
+        if (freq as u32) >= 4096 {
+            return Err(PackedEntryError {
+                field: "freq",
+                value: freq as u32,
+                max: 4095,
+            });
+        }
+        if (bias as u32) >= 4096 {
+            return Err(PackedEntryError {
+                field: "bias",
+                value: bias as u32,
+                max: 4095,
+            });
+        }
+        Ok(Self::pack_unchecked(freq, bias, symbol))
+    }
+
+    /// Pack fields without validation. Caller must ensure freq < 4096
+    /// and bias < 4096.
+    #[inline]
+    pub(crate) fn pack_unchecked(freq: u16, bias: u16, symbol: u8) -> Self {
         let f = (freq as u32) & 0x0fff;
         let b = ((bias as u32) & 0x0fff) << 12;
         let s = (symbol as u32) << 24;
@@ -83,7 +117,7 @@ impl PackedWordEntry {
     /// Convert from an existing `RansWordSlot` + symbol pair.
     #[inline]
     pub fn from_slot(slot: &RansWordSlot, symbol: u8) -> Self {
-        Self::pack(slot.freq, slot.bias, symbol)
+        Self::pack_unchecked(slot.freq, slot.bias, symbol)
     }
 }
 
@@ -118,34 +152,44 @@ impl PackedWordTable {
             return Err(ModelError::InvalidScaleBits);
         }
 
-        let m = 1usize << scale_bits;
-        if m != RANS_WORD_M {
+        // Require exact dimensions: 256 frequencies + 257 cumulative.
+        if freqs.len() != 256 {
+            return Err(ModelError::InvalidScaleBits);
+        }
+        if cum_freqs.len() != 257 {
             return Err(ModelError::InvalidScaleBits);
         }
 
-        // Validate non-decreasing cumulative.
-        let n = cum_freqs.len().min(freqs.len() + 1).min(257);
-        for i in 1..n {
-            if cum_freqs[i] < cum_freqs[i - 1] {
+        // Require cum[0] == 0 and cum[256] == 4096 (total).
+        if cum_freqs[0] != 0 {
+            return Err(ModelError::TotalMismatch);
+        }
+        let total = cum_freqs[256];
+        if total != (RANS_WORD_M as u32) {
+            return Err(ModelError::TotalMismatch);
+        }
+
+        // Validate monotonic cumulative and per-slot consistency.
+        for i in 0..256 {
+            if cum_freqs[i + 1] < cum_freqs[i] {
+                return Err(ModelError::TotalMismatch);
+            }
+            let freq = cum_freqs[i + 1] - cum_freqs[i];
+            if freq != freqs[i] {
                 return Err(ModelError::TotalMismatch);
             }
         }
 
-        // Check sum equals total.
-        let total = cum_freqs.get(n.saturating_sub(1)).copied().unwrap_or(0);
-        if total != (1u32 << scale_bits) {
-            return Err(ModelError::TotalMismatch);
-        }
-
-        // Build packed entries.
-        let mut entries = Vec::with_capacity(m);
-        let nsyms = freqs.len().min(256);
-        for slot_idx in 0..m {
-            // Find which symbol owns this slot.
+        // Build packed entries from cumulative ranges.
+        let mut entries = Vec::with_capacity(RANS_WORD_M);
+        for slot_idx in 0..RANS_WORD_M {
+            // Binary search to find which symbol owns this slot.
+            // Since the table is small (4096 entries) and symbols are few (≤256),
+            // linear scan is fine.
             let mut sym = 0u8;
             let mut freq = 0u16;
             let mut bias = 0u16;
-            for sym_idx in 0..nsyms {
+            for sym_idx in 0..256 {
                 let start = cum_freqs[sym_idx] as usize;
                 let end = cum_freqs[sym_idx + 1] as usize;
                 if slot_idx >= start && slot_idx < end {
@@ -156,13 +200,13 @@ impl PackedWordTable {
                 }
             }
             if freq == 0 {
-                // Unused slot — should not happen for valid models, but handle.
                 return Err(ModelError::ZeroFrequency);
             }
-            if (freq as u32) >= 4096 || (bias as u32) >= 4096 {
-                return Err(ModelError::FrequencyOutOfRange);
-            }
-            entries.push(PackedWordEntry::pack(freq, bias, sym));
+            // try_pack validates freq/bias bounds; unwrap is safe after validation above.
+            entries.push(
+                PackedWordEntry::try_pack(freq, bias, sym)
+                    .map_err(|_| ModelError::FrequencyOutOfRange)?,
+            );
         }
 
         let boxed_slice: Box<[PackedWordEntry]> = entries.into_boxed_slice();
@@ -200,15 +244,30 @@ impl PackedWordTable {
 
     /// Verify equivalence with the existing `RansWordSlot` + `slot2sym` representation.
     ///
-    /// Returns `Ok(())` if every entry matches, otherwise returns the first
-    /// mismatching slot index and details.
+    /// Requires both `slots` and `slot2sym` to have exactly `RANS_WORD_M` (4096)
+    /// entries. Returns `Ok(())` if every entry matches, otherwise returns the
+    /// first mismatching slot index and details.
     pub fn verify_equivalence(
         &self,
         slots: &[RansWordSlot],
         slot2sym: &[u8],
     ) -> Result<(), EquivalenceError> {
-        let n = self.entries.len().min(slots.len()).min(slot2sym.len());
-        for i in 0..n {
+        if slots.len() != RANS_WORD_M {
+            return Err(EquivalenceError {
+                slot: 0,
+                expected: PackedWordEntry(0),
+                actual: PackedWordEntry(0),
+                // The caller will see slot=0 and can check the lengths.
+            });
+        }
+        if slot2sym.len() != RANS_WORD_M {
+            return Err(EquivalenceError {
+                slot: 0,
+                expected: PackedWordEntry(0),
+                actual: PackedWordEntry(0),
+            });
+        }
+        for i in 0..RANS_WORD_M {
             let expected = PackedWordEntry::from_slot(&slots[i], slot2sym[i]);
             if self.entries[i] != expected {
                 return Err(EquivalenceError {
@@ -341,21 +400,45 @@ pub struct DecodeReport {
     pub final_states: [u32; 16],
 }
 
+/// Error returned by `encode_interleaved16`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Encode16Error {
+    /// Scale bits must be 12 for Word rANS.
+    InvalidScale,
+    /// A symbol in the input has zero frequency in the model.
+    ZeroFrequency,
+    /// The output buffer would overflow (input too large).
+    BufferOverflow,
+}
+
 /// Encode symbols into the 16-way interleaved Word rANS format.
 ///
 /// The encoder processes symbols in **reverse** order (last symbol first),
 /// assigning each to lane `i & 15`. States are flushed in **reverse lane
 /// order** (15, 14, ..., 0) so that the forward stream initializes lanes
 /// in ascending order (0, 1, ..., 15).
+///
+/// Returns `Err` if:
+/// - `scale_bits` is not 12.
+/// - Any input symbol has zero frequency in the model.
+/// - The input is too large for the internal buffer.
 pub fn encode_interleaved16(
     symbols: &[u8],
     freqs: &[u32],
     cum_freqs: &[u32],
     scale_bits: u32,
-) -> Vec<u16> {
-    assert_eq!(scale_bits, RANS_WORD_SCALE_BITS as u32);
-    let total = 1u32 << scale_bits;
-    let capacity = symbols.len() * 2 + 64;
+) -> Result<Vec<u16>, Encode16Error> {
+    if scale_bits != RANS_WORD_SCALE_BITS as u32 {
+        return Err(Encode16Error::InvalidScale);
+    }
+    let capacity = symbols
+        .len()
+        .checked_mul(2)
+        .and_then(|c| c.checked_add(64))
+        .unwrap_or(usize::MAX);
+    if capacity > 1024 * 1024 * 128 {
+        return Err(Encode16Error::BufferOverflow);
+    }
     let mut buf = vec![0u16; capacity];
     let mut writer = capacity; // backward writer
 
@@ -365,12 +448,21 @@ pub fn encode_interleaved16(
     // Encode in reverse order
     for i in (0..symbols.len()).rev() {
         let s = symbols[i] as usize;
+        if s >= freqs.len() || s >= cum_freqs.len().saturating_sub(1) {
+            return Err(Encode16Error::ZeroFrequency);
+        }
         let f = freqs[s];
+        if f == 0 {
+            return Err(Encode16Error::ZeroFrequency);
+        }
         let st = cum_freqs[s];
         let lane = i & 15;
         // Renorm check: if state >= ((L >> scale_bits) << 16) * freq
         let threshold = ((crate::RANS_WORD_L >> scale_bits) << 16) * f;
         if states[lane] >= threshold {
+            if writer == 0 {
+                return Err(Encode16Error::BufferOverflow);
+            }
             writer -= 1;
             buf[writer] = (states[lane] & 0xffff) as u16;
             states[lane] >>= 16;
@@ -380,12 +472,15 @@ pub fn encode_interleaved16(
 
     // Flush states in REVERSE lane order (15 down to 0)
     for idx in (0..16).rev() {
+        if writer < 2 {
+            return Err(Encode16Error::BufferOverflow);
+        }
         writer -= 2;
         buf[writer] = (states[idx] & 0xffff) as u16;
         buf[writer + 1] = ((states[idx] >> 16) & 0xffff) as u16;
     }
 
-    buf[writer..].to_vec()
+    Ok(buf[writer..].to_vec())
 }
 
 /// Scalar sixteen-way decoder (safe reference).
@@ -492,13 +587,13 @@ mod tests {
 
     #[test]
     fn test_packed_table_field_extraction() {
-        let entry = PackedWordEntry::pack(100, 200, 42);
+        let entry = PackedWordEntry::try_pack(100, 200, 42).unwrap();
         assert_eq!(entry.freq(), 100);
         assert_eq!(entry.bias(), 200);
         assert_eq!(entry.symbol(), 42);
 
         // Max values
-        let entry = PackedWordEntry::pack(4095, 4095, 255);
+        let entry = PackedWordEntry::try_pack(4095, 4095, 255).unwrap();
         assert_eq!(entry.freq(), 4095);
         assert_eq!(entry.bias(), 4095);
         assert_eq!(entry.symbol(), 255);
@@ -549,7 +644,7 @@ mod tests {
             if symbols.is_empty() {
                 continue;
             }
-            let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
+            let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12).unwrap();
             let (decoded, report) =
                 decode_interleaved16_scalar(&compressed, &packed, symbols.len()).unwrap();
             assert_eq!(decoded, symbols, "16-way roundtrip failed for len={}", len);
@@ -572,7 +667,7 @@ mod tests {
         for tail in 0..16 {
             let len = 32 + tail; // two full groups plus tail
             let symbols: Vec<u8> = (0..len).map(|i| (i % 16) as u8).collect();
-            let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
+            let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12).unwrap();
             let (decoded, _report) =
                 decode_interleaved16_scalar(&compressed, &packed, symbols.len()).unwrap();
             assert_eq!(decoded, symbols, "16-way tail={} roundtrip failed", tail);
@@ -593,7 +688,7 @@ mod tests {
 
         // Init words exist but decode runs out of renorm data
         let symbols: Vec<u8> = (0..50).map(|i| (i % 16) as u8).collect();
-        let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
+        let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12).unwrap();
         // Truncate by removing some renorm words
         let truncated = &compressed[..compressed.len().saturating_sub(10)];
         let result = decode_interleaved16_scalar(truncated, &packed, symbols.len());
@@ -607,7 +702,7 @@ mod tests {
         // 32 u16 words (the 16 initial states).
         let (freqs, cum) = uniform256();
         let symbols: Vec<u8> = (0..32).map(|i| (i % 16) as u8).collect();
-        let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12);
+        let compressed = encode_interleaved16(&symbols, &freqs, &cum, 12).unwrap();
 
         // The first 32 words should be the initial states in lane order 0..15.
         // Each state is [low16, high16].

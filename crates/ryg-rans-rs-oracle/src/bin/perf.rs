@@ -237,7 +237,8 @@ fn main() {
                 &profile.freqs,
                 &profile.cum,
                 RANS_WORD_SCALE_BITS as u32,
-            );
+            )
+            .unwrap();
 
             let (slots, slot2sym) = ryg_rans_rs_simd::build_word_tables(
                 &profile.freqs,

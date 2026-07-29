@@ -237,8 +237,11 @@ registers. AVX512's 512-bit registers can handle 16 lanes natively. The new form
 ### Auto-Dispatch Priority
 
 ```
-8-way:  AVX512VL → SSE4.1 → scalar
-16-way: AVX512 → scalar
+8-way:  scalar (fastest on Zen 5) → SSE4.1 → AVX512VL
+16-way: scalar (fastest on Zen 5) → AVX512
+
+Explicit SIMD backends remain available for courts, cross-verification,
+benchmarks, and future CPUs with faster gather instructions.
 ```
 
 ### Runtime Detection (Two-Tier)
@@ -454,10 +457,10 @@ Three proofs in the core crate verify:
 | `DecodeBackend` | enum | 5 backend variants with stable `label()` strings |
 | `DecodeResult` | struct | Output + `DecodeReport` + `DecodeBackend` |
 | `DecodeError` | enum | `InputTooShort`, `InvalidTable`, `UnsupportedBackend`, etc. |
-| `decode_interleaved8_auto` | fn | Safe auto-dispatch: AVX512VL → SSE4.1 → scalar |
+| `decode_interleaved8_auto` | fn | Safe auto-dispatch: scalar (fastest on Zen 5) |
 | `decode_interleaved8_avx512vl` | unsafe fn | Explicit AVX512VL 8-way |
 | `decode_interleaved8_scalar` | fn | Explicit scalar 8-way |
-| `decode_interleaved16_auto` | fn | Safe auto-dispatch: AVX512 → scalar |
+| `decode_interleaved16_auto` | fn | Safe auto-dispatch: scalar (fastest on Zen 5) |
 | `decode_interleaved16_avx512` | unsafe fn | Explicit AVX512 16-way |
 | `decode_interleaved16_scalar` | fn | Explicit scalar 16-way |
 

@@ -54,7 +54,10 @@ fuzz_target!(|data: &[u8]| {
         return;
     }
 
-    let compressed = encode_interleaved16(&symbols, &freqs, &cum, scale_bits);
+    let compressed = match encode_interleaved16(&symbols, &freqs, &cum, scale_bits) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     // Scalar 16-way decode
     let scalar_result = decode_interleaved16_scalar(&compressed, &packed, symbols.len());

@@ -114,9 +114,10 @@ fn sha256_hex(data: &[u8]) -> String {
 // Rust 16-way encode helper (for AVX512.INTERLEAVED16 court)
 // ---------------------------------------------------------------------------
 
-fn rust_encode_interleaved16(input: &[u8], freqs: &[u32], cum: &[u32]) -> Vec<u8> {
-    let words = encode_interleaved16(input, freqs, cum, RANS_WORD_SCALE_BITS);
-    words.iter().flat_map(|w| w.to_le_bytes()).collect()
+fn rust_encode_interleaved16(input: &[u8], freqs: &[u32], cum: &[u32]) -> Result<Vec<u8>, String> {
+    let words = encode_interleaved16(input, freqs, cum, RANS_WORD_SCALE_BITS)
+        .map_err(|e| format!("encode16: {:?}", e))?;
+    Ok(words.iter().flat_map(|w| w.to_le_bytes()).collect())
 }
 
 // ---------------------------------------------------------------------------
@@ -532,7 +533,7 @@ pub fn run_avx512_16_court(
         let c_self_decode = c_self_hex == input_hex;
 
         // Rust 16-way encode
-        let rust_comp = rust_encode_interleaved16(&input, &raw_freqs, &cum);
+        let rust_comp = rust_encode_interleaved16(&input, &raw_freqs, &cum)?;
         let rust_comp_hex = hex_encode(&rust_comp);
         let compressed_match = rust_comp_hex == c_comp_hex;
 
