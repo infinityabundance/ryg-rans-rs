@@ -1,6 +1,6 @@
 [package]
 name = "ryg-rans-rs-cli"
-version = "0.1.24"
+version = "0.1.25"
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
@@ -11,9 +11,9 @@ name = "ryg-rans"
 path = "src/main.rs"
 
 [dependencies]
-ryg-rans-rs = { version = "0.1.24", path = "../ryg-rans-rs" }
-ryg-rans-rs-core = { version = "0.1.24", path = "../ryg-rans-rs-core", features = ["std"] }
-ryg-rans-rs-simd = { version = "0.1.24", path = "../ryg-rans-rs-simd", optional = true }
+ryg-rans-rs = { version = "0.1.25", path = "../ryg-rans-rs" }
+ryg-rans-rs-core = { version = "0.1.25", path = "../ryg-rans-rs-core", features = ["std"] }
+ryg-rans-rs-simd = { version = "0.1.25", path = "../ryg-rans-rs-simd", optional = true }
 clap = { version = "4", features = ["derive", "wrap_help"] }
 clap_complete = "4"
 serde = { version = "1", features = ["derive"] }
