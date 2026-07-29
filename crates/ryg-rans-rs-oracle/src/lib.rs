@@ -4,6 +4,7 @@
 //! and canonical case manifests under `evidence/manifests/`.
 
 pub mod phase_g;
+pub mod phase_i;
 
 use ryg_rans_rs_simd::{
     RansWordTables as SimdTables, build_word_tables, decode_8way_scalar, decode_simd_8way,

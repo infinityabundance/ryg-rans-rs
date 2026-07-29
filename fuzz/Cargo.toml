@@ -64,3 +64,17 @@ path = "fuzz_targets/avx512_16way_roundtrip.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "parallel_block_plan"
+path = "fuzz_targets/parallel_block_plan.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "parallel_reorder"
+path = "fuzz_targets/parallel_reorder.rs"
+test = false
+doc = false
+bench = false
