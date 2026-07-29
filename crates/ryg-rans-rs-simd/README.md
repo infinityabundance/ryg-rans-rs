@@ -89,6 +89,51 @@ format. Uses `_mm512_i32gather_epi32` to load 16 table entries simultaneously.
 
 **ISA requirements**: `avx512f` (gather + 512-bit ops), `avx512bw` (mask operations).
 
+### Phase H Optimization Backends (Test-verified, Behavioral Receipts Pending)
+
+#### AVX512VL 2×8-on-16 (Two 256-bit Gather Chains)
+
+Splits the 16-way stream into two independent 8-lane groups, each using 256-bit `__m256i`
+gathers. This avoids a single 512-bit gather dependency chain and allows the out-of-order
+core to overlap the two groups' gather-arithmetic-renorm cycles.
+
+```text
+Group 0 (lanes 0-7):  _mm256_i32gather_epi32 → freq/bias/symbol → renorm
+Group 1 (lanes 8-15): _mm256_i32gather_epi32 → freq/bias/symbol → renorm
+```
+
+**ISA requirements**: `avx512f`, `avx512vl`, `avx512bw`.
+
+#### Manual-Gather Backends (Scalar Loads + Vector Arithmetic)
+
+Replaces the hardware gather instruction with 8 or 16 explicitly unrolled scalar loads
+followed by a vector register reload. On Zen 5 (Ryzen 7 9800X3D), scalar table loads
+(~4-cycle latency from L1) outperform hardware gathers (~10-15 cycles) when the table
+is L1-resident.
+
+```text
+1. _mm256_storeu_si256(indices)    → buffer
+2. for lane 0..7:                  → scalar loads
+     entries[lane] = table[indices[lane]]
+3. _mm256_loadu_si256(entries)     → reload to SIMD register
+4. vector freq/bias extraction, arithmetic, renorm
+```
+
+#### Uniform256 Table-Free Kernel (No Gather, No Table)
+
+Exploits the uniform-256 model structure at S12 where every symbol has frequency 16.
+The ANS transition reduces to pure arithmetic:
+
+```text
+slot    = state & 0xfff         // 12-bit slot index
+symbol  = slot >> 4             // 256 symbols → 4 bits per symbol
+bias    = slot & 15             // 16 positions per symbol
+new_state = 16 × (state >> 12) + bias
+```
+
+No table lookup or gather needed — this is the fastest backend, reaching **2.75 GiB/s**
+for uniform data on the Ryzen 7 9800X3D.
+
 ---
 
 ## The Packed Table Design
@@ -298,20 +343,39 @@ costing more than the straightforward multiply-add approach.
 
 ---
 
-## Why Lane-Wise Renormalization
+## Why Lane-Wise Renormalization (and When Mask-Expand Is Used)
 
-The renormalization step reads `popcount(mask)` contiguous `u16` words from the input
-stream and distributes them to the corresponding lanes. A natural SIMD approach would
-be a masked expand-load. However:
+Early SIMD kernels (SSE4.1, original AVX-512) used explicit lane-wise renormalization:
+each active lane is spilled to a scalar, updated, and reloaded. This is provably safe but
+costly — each active lane performs a full vector store/load cycle.
 
-1. **Memory safety**: `_mm256_mask_expand_epi16`'s memory-access semantics for inactive
-   lanes are microarchitecture-dependent. Inactive lanes may or may not read memory.
-2. **Safe fallback**: A lane-wise loop with bounds checking is provably safe — each
-   active lane reads exactly one word, and the total is bounded by `popcount(mask)`.
-3. **Performance**: The loop runs at most 8 or 16 iterations, typically 0-2.
+**Phase H optimization**: The optimized backends (2×8, manual gather, uniform256 table-free)
+use a **scratch-buffer + mask-expand** pattern:
 
-For these reasons, the SIMD kernels use explicit lane-wise renormalization rather than
-masked expand-loads.
+1. Copy `popcount(mask)` contiguous input words into a compact buffer
+2. Use `_mm256_maskz_expand_epi32` or `_mm512_maskz_expand_epi32` to scatter the
+   compact words into the lanes selected by the renormalization mask
+3. Shift and blend to produce the new state in a single masked operation
+
+This reduces renormalization from `N` vector spill/reload cycles (one per active lane)
+to one compact copy + one expand + one blend — regardless of how many lanes are active.
+
+```text
+Before (per-lane spill):
+  for each active lane:
+    store entire ZMM to stack
+    modify one lane
+    reload entire ZMM
+
+After (mask-expand):
+  compact[0..count] = input[reader..reader+count]
+  expanded = _mm512_maskz_expand_epi32(mask, compact)
+  state    = _mm512_mask_blend_epi32(mask, new_state, shifted | expanded)
+  reader  += count
+```
+
+ISA requirements: `avx512f` provides `_mm{256,512}_maskz_expand_epi32` and
+`_mm{256,512}_mask_blend_epi32`.
 
 ---
 

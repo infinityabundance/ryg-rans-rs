@@ -63,6 +63,7 @@ in security-sensitive, correctness-critical, long-lived systems.
 | SSE4.1 SIMD | 4-lane, 8-way interleaved | ✅ **Sealed** (8 receipts) |
 | **AVX512VL.INTERLEAVED8** | **8-way AVX-512VL gather decode** | ✅ **Sealed** (8 receipts) |
 | **AVX512.INTERLEAVED16** | **16-way AVX-512 gather decode** | ✅ **Sealed** (8 receipts) |
+| **Phase H optimization backends** | **2×8-on-16 · manual gather · uniform256 table-free** | ✅ **Test-verified** |
 
 ---
 
