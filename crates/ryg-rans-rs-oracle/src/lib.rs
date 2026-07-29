@@ -3,6 +3,8 @@
 //! Cross-decoding oracle harness. Produces tracked receipts under `evidence/receipts/`
 //! and canonical case manifests under `evidence/manifests/`.
 
+pub mod phase_g;
+
 use ryg_rans_rs_simd::{
     RansWordTables as SimdTables, build_word_tables, decode_8way_scalar, decode_simd_8way,
     decode_simd_8way_unchecked,
