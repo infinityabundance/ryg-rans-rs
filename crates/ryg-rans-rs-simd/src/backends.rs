@@ -335,8 +335,6 @@ pub unsafe fn decode_interleaved16_avx512(
     {
         Err(DecodeError::UnsupportedBackend)
     }
-}}
-    }
 }
 
 // ---------------------------------------------------------------------------
