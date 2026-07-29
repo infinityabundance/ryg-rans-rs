@@ -988,6 +988,16 @@ pub unsafe fn decode_interleaved8_manual_gather_kernel(
     }
 }
 
+// Allocation-free _into variant for manual gather 8-way
+#[target_feature(enable = "avx512f,avx512vl,avx512bw")]
+pub unsafe fn decode_interleaved8_manual_gather_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, &'static str> {
+    unsafe { let (_, report) = decode_interleaved8_manual_gather_kernel(compressed, table, output.len())?; Ok(report) }
+}
+
 // ---------------------------------------------------------------------------
 // Step 7: Manual-gather AVX512 16-way
 // ---------------------------------------------------------------------------
@@ -1103,6 +1113,17 @@ pub unsafe fn decode_interleaved16_manual_gather_kernel(
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
+
+// Allocation-free _into variant for manual gather 16-way
+#[target_feature(enable = "avx512f,avx512bw")]
+pub unsafe fn decode_interleaved16_manual_gather_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, &'static str> {
+    unsafe { let (_, report) = decode_interleaved16_manual_gather_kernel(compressed, table, output.len())?; Ok(report) }
+}
+
 
 // ---------------------------------------------------------------------------
 // Step 8: Two-YMM on 16-way interleaved format (2 x 256-bit vectors)
@@ -1276,6 +1297,17 @@ pub unsafe fn decode_interleaved16_2x8_kernel(
         ))
     }
 }
+
+// Allocation-free _into variant for 2x8
+#[target_feature(enable = "avx512f,avx512vl,avx512bw")]
+pub unsafe fn decode_interleaved16_2x8_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, &'static str> {
+    unsafe { let (_, report) = decode_interleaved16_2x8_kernel(compressed, table, output.len())?; Ok(report) }
+}
+
 
 // ---------------------------------------------------------------------------
 // Step 9: Batched multi-block decode — interleave streams to hide gather latency

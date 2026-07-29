@@ -173,6 +173,18 @@ pub unsafe fn decode_interleaved16_uniform256_avx512(
     }
 }
 
+/// Decode uniform256 without table lookups into a preallocated buffer.
+#[target_feature(enable = "avx512f,avx512bw")]
+pub unsafe fn decode_interleaved16_uniform256_avx512_into(
+    compressed: &[u16],
+    output: &mut [u8],
+) -> Result<DecodeReport, &'static str> {
+    unsafe {
+        let (_, report) = decode_interleaved16_uniform256_avx512(compressed, output.len())?;
+        Ok(report)
+    }
+}
+
 /// Decode a 16-way interleaved stream using a dominant-symbol fast path.
 ///
 /// For models where one symbol dominates (e.g., SKEWED.255_1 where one symbol

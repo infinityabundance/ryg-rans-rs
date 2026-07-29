@@ -307,6 +307,25 @@ pub unsafe fn decode_interleaved8_manual_gather(
     }
 }
 
+/// Decode 8-way using manual gather into a preallocated buffer.
+pub unsafe fn decode_interleaved8_manual_gather_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            crate::avx512::decode_interleaved8_manual_gather_into(compressed, table, output)
+                .map_err(|_| DecodeError::InputTooShort)
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
+    }
+}
+
 /// Decode 16-way using manual gather (scalar loads + vector arithmetic).
 pub unsafe fn decode_interleaved16_manual_gather(
     compressed: &[u16],
@@ -327,6 +346,25 @@ pub unsafe fn decode_interleaved16_manual_gather(
                 report,
                 backend: DecodeBackend::Avx512ManualGather16,
             })
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
+    }
+}
+
+/// Decode 16-way using manual gather into a preallocated buffer.
+pub unsafe fn decode_interleaved16_manual_gather_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            crate::avx512::decode_interleaved16_manual_gather_into(compressed, table, output)
+                .map_err(|_| DecodeError::InputTooShort)
         }
         #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
         {
@@ -359,6 +397,24 @@ pub unsafe fn decode_interleaved16_2x8(
         }
     }
 }
+
+/// Decode 16-way 2x8 into a preallocated buffer.
+pub unsafe fn decode_interleaved16_2x8_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            crate::avx512::decode_interleaved16_2x8_into(compressed, table, output)
+                .map_err(|_| DecodeError::InputTooShort)
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        { Err(DecodeError::UnsupportedBackend) }
+    }
+}
+
 
 /// Decode 8-way using the explicit AVX512VL backend.
 ///

@@ -19,6 +19,8 @@ pub mod packed_table;
 pub mod malformed_input_tests;
 #[cfg(all(test, any(target_feature = "avx512bw", feature = "std")))]
 pub mod mask_tests;
+#[cfg(all(test, any(target_feature = "avx512bw", feature = "std")))]
+pub mod optimization_tests;
 
 // ---------------------------------------------------------------------------
 // Re-export core word rANS constants for convenience
