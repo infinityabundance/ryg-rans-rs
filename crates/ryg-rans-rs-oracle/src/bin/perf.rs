@@ -578,6 +578,36 @@ fn main() {
                     ns / (size as u64 * n_iter) as f64
                 ));
             }
+
+            // ---- Backend 10: Uniform256 table-free (16-way) ----
+            // This kernel avoids table lookups entirely — only valid for uniform256 models.
+            if avx512_avail && profile.name == "UNIFORM256" {
+                let (ns, _) = measure(
+                    || unsafe {
+                        ryg_rans_rs_simd::model_kernels::decode_interleaved16_uniform256_avx512(
+                            &compressed_16way,
+                            size,
+                        )
+                        .map(|r| r.0)
+                        .map_err(|_| "decode failed")
+                    },
+                    n_iter,
+                );
+                report(
+                    "uniform256-tablefree-16way",
+                    profile.name,
+                    size,
+                    ns,
+                    (size as u64) * n_iter,
+                );
+                results_csv.push_str(&format!(
+                    "{},{},uniform256-tablefree-16way,{:.2},{:.2}\n",
+                    profile.name,
+                    size,
+                    ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
+                    ns / (size as u64 * n_iter) as f64
+                ));
+            }
         }
         println!("");
     }
