@@ -19,10 +19,6 @@
 //! - Median-based reporting (not mean)
 //! - Backend identity recorded and asserted
 
-#[cfg(any(target_feature = "avx512bw", feature = "std"))]
-use ryg_rans_rs_simd::avx512::{
-    decode_interleaved8_avx512vl_kernel, decode_interleaved16_avx512_kernel,
-};
 use ryg_rans_rs_simd::{
     RANS_WORD_SCALE_BITS,
     backends::DecodeBackend,
@@ -342,6 +338,7 @@ fn main() {
                             size,
                         )
                         .map(|r| r.output)
+                        .map_err(|_| "decode failed")
                     },
                     n_iter,
                 );
@@ -391,6 +388,7 @@ fn main() {
                             size,
                         )
                         .map(|r| r.output)
+                        .map_err(|_| "decode failed")
                     },
                     n_iter,
                 );
