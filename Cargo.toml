@@ -8,6 +8,7 @@ members = [
     "crates/ryg-rans-rs-oracle",
     "crates/ryg-rans-rs-casefile",
     "crates/ryg-rans-rs-cli",
+    "crates/ryg-rans-rs-parallel",
     "xtask",
 ]
 
