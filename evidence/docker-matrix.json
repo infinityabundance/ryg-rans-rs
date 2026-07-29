@@ -1,91 +1,12 @@
 {
   "schema_version": 2,
-  "run_id": "ci-20260729-043606-c397ec8",
-  "date": "2026-07-29T04:38:18+00:00",
-  "git_commit": "1b4e7b7",
+  "run_id": "ci-20260729-100520-dfa8bde",
+  "date": "2026-07-29T10:07:53+00:00",
+  "git_commit": "dfa8bde",
   "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
   "job_count": 10,
   "jobs": [
-    {
-      "name": "oracle-gcc",
-      "label": "Oracle GCC build and verify",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:36:21+00:00",
-      "finished_at": "2026-07-29T04:36:21+00:00",
-      "log_sha256": "0f6646b40a1172718a160708943df3592f32ec2bd297ea4da0a6d169812d1101"
-    },
-    {
-      "name": "package-audit",
-      "label": "Package audit",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:36:21+00:00",
-      "finished_at": "2026-07-29T04:36:21+00:00",
-      "log_sha256": "de88c471d4d7ac2b346dd093a309d79a7b5a9f84a6c14d8d82ca185a7c78eb01"
-    },
-    {
-      "name": "msrv",
-      "label": "MSRV build",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:36:21+00:00",
-      "finished_at": "2026-07-29T04:36:27+00:00",
-      "log_sha256": "13de3b7f0abdf1ab4e1bc461f9a27a200e844612bbb91b655c12440247db338b"
-    },
-    {
-      "name": "cross-aarch64",
-      "label": "aarch64 cross-compilation",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:36:27+00:00",
-      "finished_at": "2026-07-29T04:36:30+00:00",
-      "log_sha256": "efc33a175742868f0c781e6b1a68573ef6d6d576d0335c1756fc3edc4d50e446"
-    },
-    {
-      "name": "rust-musl-build",
-      "label": "musl build",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:36:30+00:00",
-      "finished_at": "2026-07-29T04:36:35+00:00",
-      "log_sha256": "5bf2f6701783c3416d1c35fddd0f5ebade06f9806106ea90a0e7eb9b0c9d4b3a"
-    },
-    {
-      "name": "sanitizers",
-      "label": "ASan oracle build",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:36:35+00:00",
-      "finished_at": "2026-07-29T04:36:35+00:00",
-      "log_sha256": "6fddcfafac5889b8b0ff8c70137d2884802349bd5bba1eafdadb8b413d8512ad"
-    },
-    {
-      "name": "rust-stable-tests",
-      "label": "Rust stable tests",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:36:35+00:00",
-      "finished_at": "2026-07-29T04:36:40+00:00",
-      "log_sha256": "17c90fa3599980198e7ff7410f49dbccae46dec7b5c73924556def90227894e1"
-    },
-    {
-      "name": "cross-court",
-      "label": "Cross-decoding courts",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:36:40+00:00",
-      "finished_at": "2026-07-29T04:37:00+00:00",
-      "log_sha256": "7f3e87000d853eae63d74e84140cb13fcd465f623b2b5406fd3ad4d7a4631796"
-    },
-    {
-      "name": "miri",
-      "label": "Miri (nightly)",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:37:00+00:00",
-      "finished_at": "2026-07-29T04:38:13+00:00",
-      "log_sha256": "cc90dbbd4665e3de6a9e8eb76de2a8f014b9e32be094fda8bbb32dea3cdfa029"
-    },
-    {
-      "name": "performance",
-      "label": "Performance benchmarks",
-      "exit_code": 0,
-      "started_at": "2026-07-29T04:38:13+00:00",
-      "finished_at": "2026-07-29T04:38:18+00:00",
-      "log_sha256": "cd0d19249fe14d5122ccfec8890855b5077240d4f27994c80b325a230834a6c9"
-    }
+    {"name":"oracle-gcc","label":"Oracle GCC build and verify","exit_code":0,"started_at":"2026-07-29T10:06:09+00:00","finished_at":"2026-07-29T10:06:09+00:00","log_sha256":"ed8d77255fa0522326acdf392b4f1eded3354b75fa4639b045b1827e269c481d"},{"name":"package-audit","label":"Package audit","exit_code":0,"started_at":"2026-07-29T10:06:09+00:00","finished_at":"2026-07-29T10:06:11+00:00","log_sha256":"fbc86ff40f7bb779465612a870c2be4924ae1d4a755ac32e08bbf3a22e6dd2c5"},{"name":"msrv","label":"MSRV build","exit_code":0,"started_at":"2026-07-29T10:06:11+00:00","finished_at":"2026-07-29T10:06:18+00:00","log_sha256":"be1749245cc6c37d738c56cc90d2e8d52885e486454aa1e9f39957c9a5a79424"},{"name":"cross-aarch64","label":"aarch64 cross-compilation","exit_code":0,"started_at":"2026-07-29T10:06:18+00:00","finished_at":"2026-07-29T10:06:22+00:00","log_sha256":"695a5f2b54c55088fa8fa6ca6a175d4f8b9b15b432ab217a9d8b68f5961a3a94"},{"name":"rust-musl-build","label":"musl build","exit_code":0,"started_at":"2026-07-29T10:06:22+00:00","finished_at":"2026-07-29T10:06:28+00:00","log_sha256":"2283153789cb45b6dbfed4730fdd7b72cd9b59f206f92bab6b451833f62a011f"},{"name":"sanitizers","label":"ASan oracle build","exit_code":0,"started_at":"2026-07-29T10:06:28+00:00","finished_at":"2026-07-29T10:06:28+00:00","log_sha256":"b2a9fe52c7394a9851c87615de690306a3ba759f8ea3c41a1d64047c2cd777b8"},{"name":"rust-stable-tests","label":"Rust stable tests","exit_code":0,"started_at":"2026-07-29T10:06:28+00:00","finished_at":"2026-07-29T10:06:36+00:00","log_sha256":"9cee50b74d6b0449fc42601517b8b667e34c265188c60f708fc80d176b5a03ef"},{"name":"cross-court","label":"Cross-decoding courts","exit_code":0,"started_at":"2026-07-29T10:06:36+00:00","finished_at":"2026-07-29T10:06:55+00:00","log_sha256":"2496fa61b465c2e23db55001a46e7de47299d8b1eee874a5b14876428baec08e"},{"name":"miri","label":"Miri (nightly)","exit_code":0,"started_at":"2026-07-29T10:06:55+00:00","finished_at":"2026-07-29T10:07:48+00:00","log_sha256":"40bf78063ff55442502e11451baa0cd502eb7b897af938098bba67a18a8cf0c6"},{"name":"performance","label":"Performance benchmarks","exit_code":0,"started_at":"2026-07-29T10:07:48+00:00","finished_at":"2026-07-29T10:07:53+00:00","log_sha256":"335c8a81ed60afae7e8c69bf946de621c7be23b728699ad83bfb0602be60fdb2"}
   ],
   "all_passed": true
 }
