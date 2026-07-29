@@ -1,19 +1,18 @@
-//! # ryg-rans-rs-cli
+//! # ryg-rans — rANS entropy coding CLI
 //!
-//! **Command-line tools for rANS entropy coding.**
+//! Thin binary entry point.  All logic lives in `ryg_rans_rs_cli::run`.
 //!
-//! ## Planned Commands
+//! ## Safety
 //!
-//! | Command | Status | Description |
-//! |---------|--------|-------------|
-//! | `encode` | ✗ | Encode input using rANS with a frequency model |
-//! | `decode` | ✗ | Decode a rANS-compressed stream |
-//! | `inspect` | ✗ | Inspect a compressed stream: state, size, model |
-//! | `trace` | ✗ | Emit per-symbol state transition traces |
-//! | `compare` | ✗ | Compare two implementations for parity |
-//! | `bench` | ✗ | Measure encoding/decoding throughput |
+//! This binary uses safe public APIs only.  SIMD acceleration is accessed
+//! through the facade crate's safe auto-dispatch functions.
 
-fn main() {
-    println!("ryg-rans-rs-cli - rANS encoding tools");
-    println!("Usage: ryg-rans-rs encode|decode|inspect|trace|compare|bench");
+fn main() -> std::process::ExitCode {
+    let code = ryg_rans_rs_cli::run(
+        std::env::args_os(),
+        &mut std::io::stdin().lock(),
+        &mut std::io::stdout().lock(),
+        &mut std::io::stderr().lock(),
+    );
+    std::process::ExitCode::from(if code == 0 { 0u8 } else { 1u8 })
 }
