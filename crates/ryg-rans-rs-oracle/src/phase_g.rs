@@ -487,7 +487,7 @@ pub fn run_avx512vl8_court(
         oracle_compiler: "g++ -msse4.1".to_string(),
     };
     let receipt_json =
-        serde_json::to_string(&receipt).map_err(|e| format!("receipt JSON: {}", e))?;
+        serde_json::to_string_pretty(&receipt).map_err(|e| format!("receipt JSON: {}", e))?;
     let receipt_sha256 = sha256_hex(receipt_json.as_bytes());
 
     let full_receipt = Avx512Receipt {
@@ -779,7 +779,7 @@ pub fn run_avx512_16_court(
         oracle_compiler: "g++ -msse4.1".to_string(),
     };
     let receipt_json =
-        serde_json::to_string(&receipt).map_err(|e| format!("receipt JSON: {}", e))?;
+        serde_json::to_string_pretty(&receipt).map_err(|e| format!("receipt JSON: {}", e))?;
     let receipt_sha256 = sha256_hex(receipt_json.as_bytes());
 
     let full_receipt = Avx512Receipt {
