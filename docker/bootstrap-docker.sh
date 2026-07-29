@@ -422,6 +422,7 @@ run_job "rust-stable-tests"   "Rust stable tests"
 run_job "cross-court"         "Cross-decoding courts"
 run_job "miri"                "Miri (nightly)"
 run_job "performance"         "Performance benchmarks"
+run_job "parallel-stable"     "Parallel crate build/test"
 
 # ================================================================
 # 9. Post-run inventory (verify no protected resources changed)
