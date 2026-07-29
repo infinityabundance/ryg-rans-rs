@@ -12,6 +12,7 @@ use core::arch::x86_64::*;
 
 pub mod avx512;
 pub mod backends;
+#[cfg(any(target_feature = "avx512bw", feature = "std"))]
 pub mod model_kernels;
 pub mod packed_table;
 

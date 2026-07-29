@@ -137,7 +137,9 @@ impl Profile {
 // ---------------------------------------------------------------------------
 
 fn report(name: &str, profile: &str, size: usize, ns: f64, symbols: u64) {
-    if symbols == 0 { return; }
+    if symbols == 0 {
+        return;
+    }
     let gib_s = (symbols as f64 / 1.073741824e9) / (ns / 1e9);
     let ns_sym = ns / symbols as f64;
     println!(
@@ -150,12 +152,16 @@ fn measure<F>(f: F, n_iter: u64) -> (f64, u64)
 where
     F: Fn() -> Result<Vec<u8>, &'static str>,
 {
-    for _ in 0..5 { let _ = black_box(f()); }
+    for _ in 0..5 {
+        let _ = black_box(f());
+    }
     const SAMPLES: usize = 7;
     let mut samples: Vec<f64> = Vec::with_capacity(SAMPLES);
     for _ in 0..SAMPLES {
         let start = Instant::now();
-        for _ in 0..n_iter { let _ = black_box(f()); }
+        for _ in 0..n_iter {
+            let _ = black_box(f());
+        }
         samples.push(start.elapsed().as_nanos() as f64);
     }
     samples.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -166,12 +172,16 @@ fn measure_into<F>(f: &F, output: &mut [u8], n_iter: u64) -> (f64, u64)
 where
     F: Fn(&mut [u8]) -> Result<(), &'static str>,
 {
-    for _ in 0..5 { let _ = black_box(f(output)); }
+    for _ in 0..5 {
+        let _ = black_box(f(output));
+    }
     const SAMPLES: usize = 7;
     let mut samples: Vec<f64> = Vec::with_capacity(SAMPLES);
     for _ in 0..SAMPLES {
         let start = Instant::now();
-        for _ in 0..n_iter { let _ = black_box(f(output)); }
+        for _ in 0..n_iter {
+            let _ = black_box(f(output));
+        }
         samples.push(start.elapsed().as_nanos() as f64);
     }
     samples.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -475,6 +485,7 @@ fn main() {
             };
 
             // Verify Uniform256 table-free kernel
+            #[cfg(any(target_feature = "avx512bw", feature = "std"))]
             let uniform_tf_ok = if avx512_avail && profile.name == "UNIFORM256" {
                 match unsafe {
                     ryg_rans_rs_simd::model_kernels::decode_interleaved16_uniform256_avx512(
@@ -496,6 +507,8 @@ fn main() {
             } else {
                 false
             };
+            #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+            let uniform_tf_ok = false;
 
             // ---- Backend 1: Scalar 8-way (legacy slot table) ----
             let (ns, _) = measure(
@@ -795,6 +808,7 @@ fn main() {
 
             // ---- Backend 10: Uniform256 table-free (16-way) ----
             // This kernel avoids table lookups entirely — only valid for uniform256 models.
+            #[cfg(any(target_feature = "avx512bw", feature = "std"))]
             if uniform_tf_ok {
                 let (ns, _) = measure(
                     || unsafe {
