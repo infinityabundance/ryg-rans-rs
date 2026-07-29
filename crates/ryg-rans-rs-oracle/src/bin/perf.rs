@@ -336,12 +336,12 @@ fn main() {
             if avx512vl_avail {
                 let (ns, _) = measure(
                     || unsafe {
-                        ryg_rans_rs_simd::avx512::decode_interleaved8_avx512vl_kernel(
+                        ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl(
                             &compressed_8way,
                             &packed,
                             size,
                         )
-                        .map(|r| r.0)
+                        .map(|r| r.output)
                     },
                     n_iter,
                 );
@@ -385,12 +385,12 @@ fn main() {
             if avx512_avail {
                 let (ns, _) = measure(
                     || unsafe {
-                        ryg_rans_rs_simd::avx512::decode_interleaved16_avx512_kernel(
+                        ryg_rans_rs_simd::backends::decode_interleaved16_avx512(
                             &compressed_16way,
                             &packed,
                             size,
                         )
-                        .map(|r| r.0)
+                        .map(|r| r.output)
                     },
                     n_iter,
                 );
