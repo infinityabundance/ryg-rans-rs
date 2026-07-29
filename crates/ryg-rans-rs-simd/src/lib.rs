@@ -14,11 +14,9 @@ pub mod avx512;
 pub mod backends;
 pub mod packed_table;
 
-#[cfg(any(test, target_feature = "avx512bw", feature = "std"))]
-#[cfg(test)]
+#[cfg(all(test, any(target_feature = "avx512bw", feature = "std")))]
 pub mod malformed_input_tests;
-#[cfg(any(test, target_feature = "avx512bw", feature = "std"))]
-#[cfg(test)]
+#[cfg(all(test, any(target_feature = "avx512bw", feature = "std")))]
 pub mod mask_tests;
 
 // ---------------------------------------------------------------------------
