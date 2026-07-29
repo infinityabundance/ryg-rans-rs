@@ -774,6 +774,8 @@ fn cmd_seal() -> Result<(), String> {
             "crates/ryg-rans-rs/README.md",
             "crates/ryg-rans-rs-oracle/README.md",
             "crates/ryg-rans-rs-cli/README.md",
+            "crates/ryg-rans-rs-cli/src/",
+            "crates/ryg-rans-rs-oracle/src/bin/run-phase-g.rs",
         ];
         let changed = std::process::Command::new("git")
             .args([
