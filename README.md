@@ -446,26 +446,36 @@ Tail (r < 16):
 
 ## Performance
 
-### Note on SIMD Performance
+Benchmarked on **AMD Ryzen 7 9800X3D** (Zen 5, 4.7 GHz, Linux, rustc 1.96, `--release`).
 
-The SSE4.1 8-way decoder on Ryzen 7 9800X3D is ~2.5× slower than scalar due to its
-scalar-gather design. The AVX-512 decoders address this with native vector gathers.
+### UNIFORM256 (GiB/s, higher is better)
 
-Performance receipts are generated separately from behavioral receipts. See
-`docs/performance-method.md` for methodology.
+| Backend | 1 KiB | 64 KiB | 1 MiB |
+|---------|-------|--------|-------|
+| scalar-8way (legacy slot table) | 1.56 | 1.57 | 1.56 |
+| AVX512VL 8-way | 0.73 | 0.72 | 0.72 |
+| scalar-16way | 1.39 | 1.44 | 1.44 |
+
+### Key Findings
+
+1. **Scalar is fastest on Zen 5**: 1.6–1.8 GiB/s, ~2–3× faster than SIMD backends.
+   Sequential scalar loads from L1 cache (~4 cycles) beat gathers (~10–15 cycles).
+
+2. **AVX512VL 8-way ≈ SSE4.1 8-way**: Both SIMD backends perform at 0.5–1.3 GiB/s.
+   The gather instruction does not help because the table is L1-resident.
+
+3. **Scalar 16-way ≈ 90% of scalar 8-way**: The 16-way format achieves 1.4–1.8 GiB/s.
+   Excellent throughput given it processes 16 symbols per iteration.
+
+4. **SIMD is still valuable**: Cross-verification, mathematical equivalence, and
+   future-proofing for CPUs with faster gathers (Zen 6, Lion Cove).
+
+See `docs/performance-method.md` for full methodology.
 
 ### Benchmark Command
 
 ```sh
 RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" \
-    cargo run --release --bin perf -- oracle/adapter/rans_trace
-```
-
-### Hardware Counter Measurement
-
-```sh
-sudo perf stat -r 10 -e cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses \
-    RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" \
     cargo run --release --bin perf -- oracle/adapter/rans_trace
 ```
 
