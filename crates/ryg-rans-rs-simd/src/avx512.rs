@@ -1,11 +1,7 @@
 //! # AVX-512 Word rANS decode kernels
 //!
-//! This module is conditionally compiled and is only present when the target
-//! supports AVX-512BW at compile time (e.g., `-C target-feature=+avx512f,+avx512bw`).
-//! On targets without AVX-512, this module is empty and all dependent code must
-//! be cfg-gated at the call site.
-
-#![cfg(any(target_feature = "avx512bw", feature = "std"))]
+//! This module is conditionally compiled — only present when the target supports
+//! AVX-512BW at compile time or when the `std` feature is enabled.
 //!
 //! This module implements two complementary AVX-512 accelerated Word rANS decode
 //! surfaces.  Both use a **packed u32 table** (`PackedWordTable`) where each 32-bit
@@ -995,7 +991,11 @@ pub unsafe fn decode_interleaved8_manual_gather_into(
     table: &PackedWordTable,
     output: &mut [u8],
 ) -> Result<DecodeReport, &'static str> {
-    unsafe { let (_, report) = decode_interleaved8_manual_gather_kernel(compressed, table, output.len())?; Ok(report) }
+    unsafe {
+        let (_, report) =
+            decode_interleaved8_manual_gather_kernel(compressed, table, output.len())?;
+        Ok(report)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1121,9 +1121,12 @@ pub unsafe fn decode_interleaved16_manual_gather_into(
     table: &PackedWordTable,
     output: &mut [u8],
 ) -> Result<DecodeReport, &'static str> {
-    unsafe { let (_, report) = decode_interleaved16_manual_gather_kernel(compressed, table, output.len())?; Ok(report) }
+    unsafe {
+        let (_, report) =
+            decode_interleaved16_manual_gather_kernel(compressed, table, output.len())?;
+        Ok(report)
+    }
 }
-
 
 // ---------------------------------------------------------------------------
 // Step 8: Two-YMM on 16-way interleaved format (2 x 256-bit vectors)
@@ -1305,9 +1308,11 @@ pub unsafe fn decode_interleaved16_2x8_into(
     table: &PackedWordTable,
     output: &mut [u8],
 ) -> Result<DecodeReport, &'static str> {
-    unsafe { let (_, report) = decode_interleaved16_2x8_kernel(compressed, table, output.len())?; Ok(report) }
+    unsafe {
+        let (_, report) = decode_interleaved16_2x8_kernel(compressed, table, output.len())?;
+        Ok(report)
+    }
 }
-
 
 // ---------------------------------------------------------------------------
 // Step 9: Batched multi-block decode — interleave streams to hide gather latency

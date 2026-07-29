@@ -10,6 +10,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::arch::x86_64::*;
 
+#[cfg(any(target_feature = "avx512bw", feature = "std"))]
 pub mod avx512;
 pub mod backends;
 pub mod model_kernels;
