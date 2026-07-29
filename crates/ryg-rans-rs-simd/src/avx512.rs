@@ -1,7 +1,11 @@
 //! # AVX-512 Word rANS decode kernels
+
+#![cfg(any(target_feature = "avx512bw", feature = "std"))]
 //!
-//! This module is conditionally compiled — only present when the target supports
-//! AVX-512BW at compile time or when the `std` feature is enabled.
+//! This module is conditionally compiled — its content is only present when the
+//! target supports AVX-512BW at compile time or when the `std` feature is enabled.
+//! On targets without AVX-512, the module exists but is empty.  All dependent
+//! code must be cfg-gated at the call site.
 //!
 //! This module implements two complementary AVX-512 accelerated Word rANS decode
 //! surfaces.  Both use a **packed u32 table** (`PackedWordTable`) where each 32-bit
