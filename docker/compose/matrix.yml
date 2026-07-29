@@ -208,7 +208,7 @@ services:
         set -e
         echo "=== Building oracle adapter (/target/court-bin/) ==="
         mkdir -p /target/court-bin
-        g++ -o /target/court-bin/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -lm
+        g++ -o /target/court-bin/rans_trace /workspace/oracle/adapter/rans_trace.cpp -O3 -msse4.1 -lm
         echo "=== Oracle adapter smoke test ==="
         /target/court-bin/rans_trace enc-symbol-init 0 10 14
         echo "=== Running cross-decoding court (byte + r64) ==="
