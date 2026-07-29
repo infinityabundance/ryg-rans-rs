@@ -50,3 +50,17 @@ path = "fuzz_targets/alias_roundtrip.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "avx512vl8_roundtrip"
+path = "fuzz_targets/avx512vl8_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "avx512_16way_roundtrip"
+path = "fuzz_targets/avx512_16way_roundtrip.rs"
+test = false
+doc = false
+bench = false
