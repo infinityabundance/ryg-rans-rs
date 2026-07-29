@@ -1,0 +1,12 @@
+{
+  "schema_version": 2,
+  "run_id": "ci-20260729-131335-855d35d",
+  "date": "2026-07-29T13:15:26+00:00",
+  "git_commit": "855d35d",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "job_count": 10,
+  "jobs": [
+    {"name":"oracle-gcc","label":"Oracle GCC build and verify","exit_code":0,"started_at":"2026-07-29T13:13:56+00:00","finished_at":"2026-07-29T13:13:57+00:00","log_sha256":"79f1e06d94cfcf33ab9a5e94fa425a45edeb0cd8c03f7eda728e328960decbb1"},{"name":"package-audit","label":"Package audit","exit_code":0,"started_at":"2026-07-29T13:13:57+00:00","finished_at":"2026-07-29T13:13:58+00:00","log_sha256":"e3cd741d39de249ab2bfd60e4cb5a7504ef0a62a8714295558625e879cd73b3f"},{"name":"msrv","label":"MSRV build","exit_code":0,"started_at":"2026-07-29T13:13:58+00:00","finished_at":"2026-07-29T13:14:06+00:00","log_sha256":"b575a5bc7f54c5e78bab34cf7ae01f1f3b8f6ec205eb67401d9e503a586c8ee5"},{"name":"cross-aarch64","label":"aarch64 cross-compilation","exit_code":0,"started_at":"2026-07-29T13:14:06+00:00","finished_at":"2026-07-29T13:14:09+00:00","log_sha256":"f0e8070f5ba717f4c2fbe1734223e2911cf6738661a02df09b150549b43e5439"},{"name":"rust-musl-build","label":"musl build","exit_code":0,"started_at":"2026-07-29T13:14:09+00:00","finished_at":"2026-07-29T13:14:15+00:00","log_sha256":"b031e23f66e56d985f9e03510b3813744296781bbc7d77fe4f3757c8962b14de"},{"name":"sanitizers","label":"ASan oracle build","exit_code":0,"started_at":"2026-07-29T13:14:15+00:00","finished_at":"2026-07-29T13:14:15+00:00","log_sha256":"decb51fdae508ed761b641bb266b4e28f099f50361da0b3673e1ff8cc1f86b77"},{"name":"rust-stable-tests","label":"Rust stable tests","exit_code":0,"started_at":"2026-07-29T13:14:15+00:00","finished_at":"2026-07-29T13:14:22+00:00","log_sha256":"8a6a80a5fa1e02b48695b8c86db2c56ae486f7dff803908a54a029e1f9e71739"},{"name":"cross-court","label":"Cross-decoding courts","exit_code":0,"started_at":"2026-07-29T13:14:22+00:00","finished_at":"2026-07-29T13:14:41+00:00","log_sha256":"83f64a68203d75418e90c70350bb75bc7913dfbdc393be8be045d7c8a02c035f"},{"name":"miri","label":"Miri (nightly)","exit_code":0,"started_at":"2026-07-29T13:14:41+00:00","finished_at":"2026-07-29T13:15:21+00:00","log_sha256":"65ec55f219cd20bee42de9ebcf36d511f18a343c48c42f9c02d535d0c2ab6a69"},{"name":"performance","label":"Performance benchmarks","exit_code":0,"started_at":"2026-07-29T13:15:21+00:00","finished_at":"2026-07-29T13:15:26+00:00","log_sha256":"6b9c7831261c870cffeb2ef8266e735f3f37a46ecdad06e15cee74319511f0d9"}
+  ],
+  "all_passed": true
+}
