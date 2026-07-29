@@ -254,7 +254,7 @@ pub unsafe fn decode_interleaved8_avx512vl(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
-) -> Result<DecodeResult, DecodeError> {
+) -> Result<DecodeResult, DecodeError> { unsafe {
     let (output, report) =
         crate::avx512::decode_interleaved8_avx512vl_kernel(compressed, table, expected_len)
             .map_err(|_| DecodeError::InputTooShort)?;
@@ -263,7 +263,7 @@ pub unsafe fn decode_interleaved8_avx512vl(
         report,
         backend: DecodeBackend::Avx512VlInterleaved8,
     })
-}
+}}
 
 // ---------------------------------------------------------------------------
 // 16-way auto-dispatch
@@ -310,7 +310,7 @@ pub unsafe fn decode_interleaved16_avx512(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
-) -> Result<DecodeResult, DecodeError> {
+) -> Result<DecodeResult, DecodeError> { unsafe {
     let (output, report) =
         crate::avx512::decode_interleaved16_avx512_kernel(compressed, table, expected_len)
             .map_err(|_| DecodeError::InputTooShort)?;
@@ -319,7 +319,7 @@ pub unsafe fn decode_interleaved16_avx512(
         report,
         backend: DecodeBackend::Avx512Interleaved16,
     })
-}
+}}
 
 // ---------------------------------------------------------------------------
 // Allocating convenience wrappers

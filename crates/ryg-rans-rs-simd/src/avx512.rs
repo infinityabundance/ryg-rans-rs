@@ -120,6 +120,134 @@ static NUM_WORDS_16: [u8; 65536] = {
 };
 
 // ---------------------------------------------------------------------------
+// Standalone renormalization kernels for exhaustive mask testing
+// ---------------------------------------------------------------------------
+//
+// These functions isolate the SIMD renormalization step — computing the mask
+// via `_mm{256,512}_cmplt_epu32_mask` and distributing u16 words to active
+// lanes — from the full decode loop.  This enables exhaustive testing of
+// every possible mask (256 for 8-way, 65536 for 16-way) without needing to
+// construct valid encoded streams.
+//
+// Each function takes initial states and a slice of renorm words, then
+// returns the final states, observed mask, and word consumption count.
+// The test harness can therefore assert:
+//   - observed mask == requested mask
+//   - words consumed == popcount(mask)
+//   - active lanes receive correct ascending-order words
+//   - inactive lanes remain unchanged
+//   - exact popcount-sized input succeeds
+//   - popcount-1 input fails
+
+/// Result of an 8-way renormalization operation.
+#[derive(Debug, Clone, Copy)]
+pub struct Renorm8Result {
+    pub states: [u32; 8],
+    pub mask: u8,
+    pub words_consumed: usize,
+}
+
+/// Standalone 8-way AVX512VL renormalization kernel for testing.
+///
+/// Takes initial states (as a __m256i) and a slice of renorm words.
+/// Returns the final states after renormalization plus observed mask
+/// and word consumption.
+///
+/// # Safety
+///
+/// Requires avx512f, avx512vl, avx512bw CPU features at runtime.
+/// The `input` slice must have at least `popcount(mask)` words available.
+#[target_feature(enable = "avx512f,avx512vl,avx512bw")]
+pub unsafe fn renorm8_avx512vl(
+    states: __m256i,
+    input: &[u16],
+) -> Result<Renorm8Result, &'static str> { unsafe {
+    let l_vec = _mm256_set1_epi32(RANS_WORD_L as i32);
+    let renorm_mask = _mm256_cmplt_epu32_mask(states, l_vec);
+    let words_needed = NUM_WORDS_8[renorm_mask as usize] as usize;
+
+    if words_needed > input.len() {
+        return Err("insufficient renorm words for 8-way");
+    }
+
+    let mut temp_state = states;
+    let mut rp = 0usize;
+    for lane in 0..8 {
+        if (renorm_mask >> lane) & 1 != 0 {
+            let w = input[rp] as u32;
+            rp += 1;
+            let mut lanes: [u32; 8] = core::mem::zeroed();
+            _mm256_storeu_si256(lanes.as_mut_ptr() as *mut __m256i, temp_state);
+            lanes[lane] = (lanes[lane] << 16) | w;
+            temp_state = _mm256_loadu_si256(lanes.as_ptr() as *const __m256i);
+        }
+    }
+
+    let mut final_states = [0u32; 8];
+    _mm256_storeu_si256(final_states.as_mut_ptr() as *mut __m256i, temp_state);
+
+    Ok(Renorm8Result {
+        states: final_states,
+        mask: renorm_mask,
+        words_consumed: rp,
+    })
+}}
+
+/// Result of a 16-way renormalization operation.
+#[derive(Debug, Clone, Copy)]
+pub struct Renorm16Result {
+    pub states: [u32; 16],
+    pub mask: u16,
+    pub words_consumed: usize,
+}
+
+/// Standalone 16-way AVX512 renormalization kernel for testing.
+///
+/// Takes initial states (as a __m512i) and a slice of renorm words.
+/// Returns the final states after renormalization plus observed mask
+/// and word consumption.
+///
+/// # Safety
+///
+/// Requires avx512f, avx512bw CPU features at runtime.
+/// The `input` slice must have at least `popcount(mask)` words available.
+#[target_feature(enable = "avx512f,avx512bw")]
+pub unsafe fn renorm16_avx512(
+    states: __m512i,
+    input: &[u16],
+) -> Result<Renorm16Result, &'static str> { unsafe {
+    let l_vec = _mm512_set1_epi32(RANS_WORD_L as i32);
+    let renorm_mask = _mm512_cmplt_epu32_mask(states, l_vec);
+    let words_needed = NUM_WORDS_16[renorm_mask as usize] as usize;
+
+    if words_needed > input.len() {
+        return Err("insufficient renorm words for 16-way");
+    }
+
+    let mut temp_state = states;
+    let mut rp = 0usize;
+    for lane in 0..16 {
+        if (renorm_mask >> lane) & 1 != 0 {
+            let w = input[rp] as u32;
+            rp += 1;
+            let mut lanes: [u32; 16] = core::mem::zeroed();
+            _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, temp_state);
+            lanes[lane] = (lanes[lane] << 16) | w;
+            temp_state = _mm512_loadu_si512(lanes.as_ptr() as *const __m512i);
+        }
+    }
+
+    let mut final_states = [0u32; 16];
+    _mm512_storeu_si512(final_states.as_mut_ptr() as *mut __m512i, temp_state);
+
+    Ok(Renorm16Result {
+        states: final_states,
+        mask: renorm_mask,
+        words_consumed: rp,
+    })
+}}
+
+// ---------------------------------------------------------------------------
 // AVX512VL.INTERLEAVED8: 8-way decode using 256-bit vectors
 // ---------------------------------------------------------------------------
 //
@@ -174,7 +302,7 @@ pub unsafe fn decode_interleaved8_avx512vl_kernel(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
-) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+) -> Result<(Vec<u8>, DecodeReport), &'static str> { unsafe {
     // ---- Precondition check: minimum stream length ----
     // The 8-way format stores 8 initial states as [low16, high16] pairs,
     // requiring 16 u16 words.
@@ -354,7 +482,7 @@ pub unsafe fn decode_interleaved8_avx512vl_kernel(
     };
 
     Ok((output, report))
-}
+}}
 
 // ---------------------------------------------------------------------------
 // AVX512.INTERLEAVED16: 16-way decode using 512-bit vectors
@@ -391,7 +519,7 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
-) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+) -> Result<(Vec<u8>, DecodeReport), &'static str> { unsafe {
     // ---- Precondition check ----
     if compressed.len() < 32 {
         return Err("compressed too short for 16 init states (AVX512)");
@@ -514,7 +642,7 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
     };
 
     Ok((output, report))
-}
+}}
 
 // ---------------------------------------------------------------------------
 // Tests

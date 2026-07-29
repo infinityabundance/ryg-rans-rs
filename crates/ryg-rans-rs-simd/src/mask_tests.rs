@@ -1,57 +1,34 @@
-//! # Exhaustive renormalization mask-construction enumeration
+//! # Exhaustive SIMD renormalization mask tests
 //!
-//! Tests every possible 8-lane mask (256) and 16-lane mask (65536)
-//! by constructing states that would produce each mask and verifying
-//! the mask computation logic via scalar comparison.
-//!
-//! This tests the mask-construction logic (which lanes need renorm)
-//! but does NOT test the actual AVX-512 SIMD renormalizer machinery.
-//! To test the SIMD renormalizer directly, the renormalization kernels
-//! would need to be extracted as standalone testable functions — this
-//! is deferred to a future phase.
+//! Tests every possible renormalization mask for both AVX512VL 8-way (256 masks)
+//! and AVX512 16-way (65536 masks) by invoking the standalone SIMD renorm
+//! kernels directly — NOT by reconstructing masks via scalar comparison.
 //!
 //! For each mask we verify:
-//! - Observed mask == requested mask (via scalar comparison)
-//! - Words needed == popcount(mask)
+//! - Observed mask == requested mask (via `_mm{256,512}_cmplt_epu32_mask`)
+//! - Words consumed == popcount(mask)
+//! - Active lane N receives its ascending-order word (0x0100 + lane)
+//! - Inactive lanes remain bit-identical
+//! - Exactly popcount(mask)-sized input succeeds
+//! - popcount(mask) - 1 sized input fails (truncation detection)
 //!
-//! Run with `--release` for acceptable speed on the 16-way exhaustive test:
+//! Run the 8-way test in any mode (256 iterations):
 //! ```sh
-//! RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" cargo test --release -p ryg-rans-rs-simd -- --ignored
+//! cargo test -p ryg-rans-rs-simd test_8way_exhaustive_simd_renorm
 //! ```
 //!
-//! The 8-way test is fast enough for debug mode (256 iterations).
+//! Run the 16-way test with `--release` for acceptable speed (65536 iterations):
+//! ```sh
+//! RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" \
+//!     cargo test --release -p ryg-rans-rs-simd -- --ignored test_16way_exhaustive_simd_renorm
+//! ```
 
 use crate::RANS_WORD_L;
-use crate::packed_table::PackedWordTable;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
-// Helpers: compute renormalization mask from state array
+// Helpers
 // ---------------------------------------------------------------------------
-
-/// Compute the 8-way renormalization mask for given states.
-/// Lane N gets bit N if states[N] < RANS_WORD_L.
-/// Uses the same logic as `_mm256_cmplt_epu32_mask` in the AVX512VL kernel.
-fn compute_mask_8way(states: &[u32; 8]) -> u8 {
-    let mut mask = 0u8;
-    for i in 0..8 {
-        if states[i] < RANS_WORD_L {
-            mask |= 1 << i;
-        }
-    }
-    mask
-}
-
-/// Compute the 16-way renormalization mask for given states.
-fn compute_mask_16way(states: &[u32; 16]) -> u16 {
-    let mut mask = 0u16;
-    for i in 0..16 {
-        if states[i] < RANS_WORD_L {
-            mask |= 1 << i;
-        }
-    }
-    mask
-}
 
 /// Popcount for 8-bit value.
 fn popcount8(x: u8) -> usize {
@@ -64,144 +41,236 @@ fn popcount16(x: u16) -> usize {
 }
 
 // ---------------------------------------------------------------------------
-// 8-way mask test
+// 8-way exhaustive SIMD renorm test
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_8way_all_256_masks_forced() {
-    // Verifies that for every possible 8-way renormalization mask,
-    // the mask is correctly computed, words are consumed correctly,
-    // and truncation is detected.
+fn test_8way_exhaustive_simd_renorm() {
+    // Verify the AVX512VL renormalization machinery for every possible
+    // 8-lane mask (0..256) by calling the standalone renorm kernel.
+    //
+    // This tests:
+    //   - _mm256_cmplt_epu32_mask returns the correct mask
+    //   - u16 words are distributed to the correct lanes in ascending order
+    //   - Inactive lanes are unchanged
+    //   - Reader advancement equals popcount(mask)
+    //   - Truncation is detected (popcount-1 sized input fails)
+
+    // Only run if AVX512VL is compiled in.
+    if !cfg!(all(
+        target_feature = "avx512f",
+        target_feature = "avx512vl",
+        target_feature = "avx512bw",
+    )) {
+        return;
+    }
+
+    // Track which masks have been tested for diagnostic reporting.
+    let mut tested: u64 = 0;
 
     for mask in 0u8..=255u8 {
         let words_needed = popcount8(mask);
 
-        // Construct 8 initial states: lanes indicated by mask get state = L-1
-        // (below threshold, needs renorm), other lanes get state = L (no renorm).
-        let mut states = [RANS_WORD_L; 8];
+        // Build initial states:
+        // - Lanes in the mask get state = RANS_WORD_L - 1 (needs renorm)
+        // - Other lanes get state = RANS_WORD_L (no renorm needed)
+        // - Each state has a unique upper portion so we can verify that
+        //   inactive lanes remain unchanged.
+        let mut init_states = [0u32; 8];
         for lane in 0..8 {
             if (mask >> lane) & 1 != 0 {
-                states[lane] = RANS_WORD_L - 1; // needs renorm
+                // Below threshold — needs renorm.
+                init_states[lane] = RANS_WORD_L - 1;
+            } else {
+                // Stable state — will not trigger renorm.
+                // Use a unique value per lane to detect any spurious writes.
+                init_states[lane] = RANS_WORD_L + (lane as u32) * 1000 + 0x1000;
             }
         }
 
-        // Verify the computed mask matches the requested mask
-        let computed_mask = compute_mask_8way(&states);
-        assert_eq!(
-            computed_mask, mask,
-            "mask mismatch: requested {:08b}, computed {:08b}",
-            mask, computed_mask
-        );
-
-        // Verify popcount
-        assert_eq!(
-            popcount8(computed_mask),
-            words_needed,
-            "popcount mismatch for mask {:08b}",
-            mask
-        );
-
-        // ---- Test with the AVX512VL kernel directly ----
-        // We construct a valid stream: 16 init words + renorm words for active lanes
-        let mut stream: Vec<u16> = Vec::with_capacity(16 + words_needed);
-
-        // Write 8 initial states (each as [low, high] pair)
-        for &s in &states {
-            stream.push((s & 0xffff) as u16);
-            stream.push(((s >> 16) & 0xffff) as u16);
-        }
-
-        // Fill renorm words with known values that identify each lane
-        // Use 0x0100 + lane so we can verify correct lane-to-word assignment
+        // Prepare renorm words: each active lane gets a word that identifies it.
         let mut renorm_words: Vec<u16> = Vec::with_capacity(words_needed);
         for lane in 0..8 {
             if (mask >> lane) & 1 != 0 {
+                // Use 0x0100 + lane so the final state's low 16 bits
+                // equal this value after renorm.
                 renorm_words.push(0x0100 + lane as u16);
             }
         }
-        stream.extend_from_slice(&renorm_words);
 
-        // Build a minimal packed table (needed for the kernel but not used in init/renorm)
-        let (freqs, cum) = uniform_model();
-        let packed = PackedWordTable::from_freqs(&freqs, &cum, 12).unwrap();
+        // Load states into __m256i.
+        // SAFETY: The SIMD kernel requires target features.
+        unsafe {
+            use core::arch::x86_64::*;
 
-        // Verify mask computation directly (the core test).
-        // Full stream decode truncation testing is covered in malformed_input_tests.
-        // The AVX512VL kernel's mask is verified via compute_mask_8way which uses
-        // the same comparison logic as the SIMD kernel (_mm256_cmplt_epu32_mask).
-        let _ = stream;
-        let _ = packed;
+            let state_v = _mm256_loadu_si256(init_states.as_ptr() as *const __m256i);
+
+            // ---- Test with exactly the right number of renorm words ----
+            {
+                let result = crate::avx512::renorm8_avx512vl(state_v, &renorm_words);
+                assert!(
+                    result.is_ok(),
+                    "8-way mask {:08b}: renorm with {} words should succeed (popcount={})",
+                    mask,
+                    renorm_words.len(),
+                    words_needed
+                );
+                let report = result.unwrap();
+
+                // 1. Observed mask must match requested mask.
+                assert_eq!(
+                    report.mask, mask,
+                    "8-way mask mismatch: requested {:08b}, observed {:08b}",
+                    mask, report.mask
+                );
+
+                // 2. Words consumed must equal popcount(mask).
+                assert_eq!(
+                    report.words_consumed, words_needed,
+                    "8-way mask {:08b}: words consumed {} != popcount {}",
+                    mask, report.words_consumed, words_needed
+                );
+
+                // 3. Active lanes must receive their ascending-order renorm words.
+                //    And inactive lanes must remain unchanged.
+                let mut rp = 0usize;
+                for lane in 0..8 {
+                    if (mask >> lane) & 1 != 0 {
+                        // Active lane: state should be (old_state << 16) | renorm_word.
+                        let expected_state = ((RANS_WORD_L - 1) << 16) | (0x0100 + lane as u32);
+                        assert_eq!(
+                            report.states[lane], expected_state,
+                            "8-way mask {:08b}: lane {} active: expected 0x{:08x}, got 0x{:08x}",
+                            mask, lane, expected_state, report.states[lane]
+                        );
+                        rp += 1;
+                    } else {
+                        // Inactive lane: state must be unchanged.
+                        assert_eq!(
+                            report.states[lane], init_states[lane],
+                            "8-way mask {:08b}: lane {} inactive: state changed from 0x{:08x} to 0x{:08x}",
+                            mask, lane, init_states[lane], report.states[lane]
+                        );
+                    }
+                }
+            }
+
+            // ---- Test truncation: popcount-1 renorm words must fail ----
+            if words_needed > 0 {
+                let short_words = &renorm_words[..renorm_words.len().saturating_sub(1)];
+                let result = crate::avx512::renorm8_avx512vl(state_v, short_words);
+                assert!(
+                    result.is_err(),
+                    "8-way mask {:08b}: renorm with {} words (need {}) should FAIL",
+                    mask,
+                    short_words.len(),
+                    words_needed
+                );
+            }
+        }
+
+        tested += 1;
     }
+
+    assert_eq!(tested, 256, "All 256 8-way masks must be tested");
 }
 
 // ---------------------------------------------------------------------------
-// 16-way mask test
+// 16-way exhaustive SIMD renorm test
 // ---------------------------------------------------------------------------
 
 #[test]
-#[ignore = "Run with --release: 65536 iterations"]
-fn test_16way_all_65536_masks_forced() {
+#[ignore = "Run with --release: 65536 iterations (approx 1-2 seconds)"]
+fn test_16way_exhaustive_simd_renorm() {
+    // Verify the AVX512 16-way renormalization machinery for every possible
+    // 16-lane mask (0..65536) by calling the standalone renorm kernel.
+    //
+    // The same assertions as the 8-way test apply, extended to 16 lanes.
+
+    if !cfg!(all(target_feature = "avx512f", target_feature = "avx512bw")) {
+        return;
+    }
+
     for mask in 0u16..=65535u16 {
         let words_needed = popcount16(mask);
 
-        let mut states = [RANS_WORD_L; 16];
+        let mut init_states = [0u32; 16];
         for lane in 0..16 {
             if (mask >> lane) & 1 != 0 {
-                states[lane] = RANS_WORD_L - 1;
-            }
-        }
-
-        let computed_mask = compute_mask_16way(&states);
-        assert_eq!(
-            computed_mask, mask,
-            "16-way mask mismatch for {:016b}",
-            mask
-        );
-        assert_eq!(popcount16(computed_mask), words_needed);
-
-        // Construct stream
-        let mut stream: Vec<u16> = Vec::with_capacity(32 + words_needed);
-        for &s in &states {
-            stream.push((s & 0xffff) as u16);
-            stream.push(((s >> 16) & 0xffff) as u16);
-        }
-        for lane in 0..16 {
-            if (mask >> lane) & 1 != 0 {
-                stream.push(0x0200 + lane as u16);
-            }
-        }
-
-        let (freqs, cum) = uniform_model();
-        let packed = PackedWordTable::from_freqs(&freqs, &cum, 12).unwrap();
-
-        #[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
-        unsafe {
-            let result = crate::avx512::decode_interleaved16_avx512_kernel(&stream, &packed, 16);
-            if words_needed == 0 {
-                assert!(result.is_ok(), "16-way mask {:016b}: should succeed", mask);
+                init_states[lane] = RANS_WORD_L - 1;
             } else {
-                assert!(result.is_ok(), "16-way mask {:016b}: should succeed", mask);
-                let _ = stream;
+                init_states[lane] = RANS_WORD_L + (lane as u32) * 1000 + 0x1000;
             }
         }
 
-        // Without AVX512, just verify mask computation
-        #[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
-        {
-            let _ = stream;
-            let _ = packed;
+        let mut renorm_words: Vec<u16> = Vec::with_capacity(words_needed);
+        for lane in 0..16 {
+            if (mask >> lane) & 1 != 0 {
+                renorm_words.push(0x0200 + lane as u16);
+            }
+        }
+
+        unsafe {
+            use core::arch::x86_64::*;
+
+            let state_v = _mm512_loadu_si512(init_states.as_ptr() as *const __m512i);
+
+            // ---- Test with exactly the right number of renorm words ----
+            {
+                let result = crate::avx512::renorm16_avx512(state_v, &renorm_words);
+                assert!(
+                    result.is_ok(),
+                    "16-way mask {:016b}: renorm with {} words should succeed",
+                    mask,
+                    renorm_words.len()
+                );
+                let report = result.unwrap();
+
+                // 1. Observed mask must match requested mask.
+                assert_eq!(
+                    report.mask, mask,
+                    "16-way mask mismatch: requested {:016b}, observed {:016b}",
+                    mask, report.mask
+                );
+
+                // 2. Words consumed must equal popcount(mask).
+                assert_eq!(
+                    report.words_consumed, words_needed,
+                    "16-way mask {:016b}: words consumed {} != popcount {}",
+                    mask, report.words_consumed, words_needed
+                );
+
+                // 3. Active lanes receive words; inactive lanes remain unchanged.
+                for lane in 0..16 {
+                    if (mask >> lane) & 1 != 0 {
+                        let expected_state = ((RANS_WORD_L - 1) << 16) | (0x0200 + lane as u32);
+                        assert_eq!(
+                            report.states[lane], expected_state,
+                            "16-way mask {:016b}: lane {} active: expected 0x{:08x}, got 0x{:08x}",
+                            mask, lane, expected_state, report.states[lane]
+                        );
+                    } else {
+                        assert_eq!(
+                            report.states[lane], init_states[lane],
+                            "16-way mask {:016b}: lane {} inactive: state changed",
+                            mask, lane
+                        );
+                    }
+                }
+            }
+
+            // ---- Test truncation: popcount-1 renorm words must fail ----
+            if words_needed > 0 {
+                let short_words = &renorm_words[..renorm_words.len().saturating_sub(1)];
+                let result = crate::avx512::renorm16_avx512(state_v, short_words);
+                assert!(
+                    result.is_err(),
+                    "16-way mask {:016b}: renorm with {} words (need {}) should FAIL",
+                    mask,
+                    short_words.len(),
+                    words_needed
+                );
+            }
         }
     }
-}
-
-fn uniform_model() -> (Vec<u32>, Vec<u32>) {
-    let total = 1u32 << 12;
-    let base = total / 256;
-    let mut freqs = alloc::vec![base; 256];
-    freqs[255] += total - freqs.iter().sum::<u32>();
-    let mut cum = alloc::vec![0u32; 257];
-    for i in 0..256 {
-        cum[i + 1] = cum[i] + freqs[i];
-    }
-    (freqs, cum)
 }

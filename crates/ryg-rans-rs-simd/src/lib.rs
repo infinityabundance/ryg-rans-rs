@@ -201,14 +201,14 @@ static NUM_WORDS: [u8; 16] = [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4];
 /// - `reader` must have at least 8 u16 elements remaining.
 /// - Caller must ensure SSE4.1 + SSSE3 are available at runtime.
 #[inline]
-pub unsafe fn rans_simd_dec_init(reader: &mut &[u16]) -> Option<RansSimdDec> {
+pub unsafe fn rans_simd_dec_init(reader: &mut &[u16]) -> Option<RansSimdDec> { unsafe {
     if reader.len() < 8 {
         return None;
     }
     let simd = _mm_loadu_si128(reader.as_ptr() as *const __m128i);
     *reader = &reader[8..];
     Some(RansSimdDec(simd))
-}
+}}
 
 /// Decode 4 symbols in parallel using the alias tables.
 ///
@@ -217,7 +217,7 @@ pub unsafe fn rans_simd_dec_init(reader: &mut &[u16]) -> Option<RansSimdDec> {
 /// - Requires SSE4.1 + SSSE3 target features.
 /// - `tables` must have at least `RANS_WORD_M` entries.
 #[inline]
-pub unsafe fn rans_simd_dec_sym_unchecked(state: &mut RansSimdDec, tables: &RansWordTables) -> u32 {
+pub unsafe fn rans_simd_dec_sym_unchecked(state: &mut RansSimdDec, tables: &RansWordTables) -> u32 { unsafe {
     let x = state.0;
 
     let slots = _mm_and_si128(x, _mm_set1_epi32((RANS_WORD_M - 1) as i32));
@@ -248,7 +248,7 @@ pub unsafe fn rans_simd_dec_sym_unchecked(state: &mut RansSimdDec, tables: &Rans
     state.0 = _mm_add_epi32(_mm_mullo_epi32(xscaled, freq), bias);
 
     s
-}
+}}
 
 /// Renormalize 4 SIMD lanes using scratch buffer to avoid over-read.
 ///
@@ -260,7 +260,7 @@ pub unsafe fn rans_simd_dec_sym_unchecked(state: &mut RansSimdDec, tables: &Rans
 pub unsafe fn rans_simd_dec_renorm_unchecked(
     state: &mut RansSimdDec,
     reader: &mut &[u16],
-) -> Option<()> {
+) -> Option<()> { unsafe {
     let x = state.0;
 
     let x_biased = _mm_xor_si128(x, _mm_set1_epi32(i32::MIN));
@@ -290,7 +290,7 @@ pub unsafe fn rans_simd_dec_renorm_unchecked(
 
     *reader = &reader[words_needed..];
     Some(())
-}
+}}
 
 // ---------------------------------------------------------------------------
 // Safe 8-way SIMD decode — caller provides feature assurance
