@@ -373,7 +373,7 @@ fn main() {
                         size,
                     )
                 } {
-                    Ok(r) => verify_16way!(
+                    Ok(r) => verify_8way!(
                         "avx512vl-8way",
                         r.output,
                         r.report.words_consumed,
@@ -421,7 +421,7 @@ fn main() {
                         size,
                     )
                 } {
-                    Ok(r) => verify_16way!(
+                    Ok(r) => verify_8way!(
                         "avx512vl-manual-gather-8way",
                         r.output,
                         r.report.words_consumed,

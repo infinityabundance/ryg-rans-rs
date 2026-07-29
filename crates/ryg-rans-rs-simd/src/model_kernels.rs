@@ -28,6 +28,7 @@
 use crate::RANS_WORD_L;
 use crate::RANS_WORD_M;
 use crate::packed_table::DecodeReport;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::arch::x86_64::*;
 
@@ -48,15 +49,31 @@ pub unsafe fn decode_interleaved16_uniform256_avx512(
     expected_len: usize,
 ) -> Result<(Vec<u8>, DecodeReport), &'static str> {
     unsafe {
-        let n = expected_len;
+        let mut output = vec![0u8; expected_len];
+        let report = decode_interleaved16_uniform256_avx512_into(compressed, &mut output)?;
+        Ok((output, report))
+    }
+}
+
+/// Decode uniform256 without table lookups, writing directly into a caller-provided buffer.
+///
+/// # Safety
+///
+/// Requires avx512f + avx512bw CPU features.  The compressed stream must
+/// be a valid 16-way interleaved Word rANS stream encoded with a uniform256
+/// model at scale_bits=12.
+#[target_feature(enable = "avx512f,avx512bw")]
+pub unsafe fn decode_interleaved16_uniform256_avx512_into(
+    compressed: &[u16],
+    output: &mut [u8],
+) -> Result<DecodeReport, &'static str> {
+    unsafe {
+        let n = output.len();
         if n == 0 {
-            return Ok((
-                Vec::new(),
-                DecodeReport {
-                    words_consumed: 0,
-                    final_states: [0u32; 16],
-                },
-            ));
+            return Ok(DecodeReport {
+                words_consumed: 0,
+                final_states: [0u32; 16],
+            });
         }
         if compressed.len() < 32 {
             return Err("compressed too short for 16 init states");
@@ -70,54 +87,24 @@ pub unsafe fn decode_interleaved16_uniform256_avx512(
 
         let mut reader_pos = 32usize;
         let even16 = n & !15;
-        let mut output = Vec::with_capacity(n);
-        output.resize(n, 0u8);
         let l_vec = _mm512_set1_epi32(RANS_WORD_L as i32);
 
         // Precompute uniform-256 constants
-        let mask_4095 = _mm512_set1_epi32(0x0fff); // slot mask: state & 4095
-        const SHIFT_12: u32 = 12; // state >> 12 (scale)
-        const SHIFT_4: u32 = 4; // symbol = slot >> 4
-
-        // NOTE on the Uniform256 transition:
-        //   frequency = 16, start = symbol * 16
-        //   slot = state & 4095, bias = slot & 15, symbol = slot >> 4
-        //   new_state = 16 * (state >> 12) + (slot & 15)
-        //
-        // This is NOT equivalent to (state >> 8) + (slot & 15) because
-        //   state >> 8 = 16 * (state >> 12) + (slot >> 8)
-        // The term (slot >> 8) is 0..15, causing divergence for slots >= 256.
-        //
-        // So we compute: new_state = ((state >> 12) << 4) + bias
-        // which is: shift right 12, left 4 (multiply by 16), add bias.
+        let mask_4095 = _mm512_set1_epi32(0x0fff);
+        const SHIFT_12: u32 = 12;
+        const SHIFT_4: u32 = 4;
 
         for i in (0..even16).step_by(16) {
-            // Table-free decode: slot = state & 4095
             let slot = _mm512_and_si512(state, mask_4095);
-
-            // symbol = slot >> 4
             let symbols_v = _mm512_srli_epi32(slot, SHIFT_4);
             let symbol_bytes = _mm512_cvtepi32_epi8(symbols_v);
             _mm_storeu_si128(output.as_mut_ptr().add(i) as *mut __m128i, symbol_bytes);
 
-            // bias = slot & 15
             let bias = _mm512_and_si512(slot, _mm512_set1_epi32(15));
 
-            // new_state = 16 * (state >> 12) + (slot & 15)
-            // This is the correct ANS transition for Uniform256 at S12
-            // where frequency = 16 and bias = slot & 15.
-            //
-            // NOTE: (state >> 8) is NOT equivalent because
-            // state >> 8 = 16 * (state >> 12) + (slot >> 8)
-            // The extra term (slot >> 8) is 0..15 and causes divergence
-            // for any slot >= 256.
-            let scaled = _mm512_srli_epi32(state, SHIFT_12); // state >> 12
-            let new_state = _mm512_add_epi32(
-                _mm512_slli_epi32(scaled, 4), // * 16
-                bias,                         // + (slot & 15)
-            );
+            let scaled = _mm512_srli_epi32(state, SHIFT_12);
+            let new_state = _mm512_add_epi32(_mm512_slli_epi32(scaled, 4), bias);
 
-            // Renormalization (standard)
             let renorm_mask = _mm512_cmplt_epu32_mask(new_state, l_vec);
             let words_needed = renorm_mask.count_ones() as usize;
 
@@ -163,25 +150,10 @@ pub unsafe fn decode_interleaved16_uniform256_avx512(
         let mut final_states = [0u32; 16];
         _mm512_storeu_si512(final_states.as_mut_ptr() as *mut __m512i, state);
 
-        Ok((
-            output,
-            DecodeReport {
-                words_consumed: reader_pos,
-                final_states,
-            },
-        ))
-    }
-}
-
-/// Decode uniform256 without table lookups into a preallocated buffer.
-#[target_feature(enable = "avx512f,avx512bw")]
-pub unsafe fn decode_interleaved16_uniform256_avx512_into(
-    compressed: &[u16],
-    output: &mut [u8],
-) -> Result<DecodeReport, &'static str> {
-    unsafe {
-        let (_, report) = decode_interleaved16_uniform256_avx512(compressed, output.len())?;
-        Ok(report)
+        Ok(DecodeReport {
+            words_consumed: reader_pos,
+            final_states,
+        })
     }
 }
 

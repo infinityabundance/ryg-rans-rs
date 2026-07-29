@@ -567,6 +567,28 @@ fn cmd_seal() -> Result<(), String> {
         index_receipts_pre.len()
     );
 
+    // Inverse check: every parity-cited receipt must be present in the index
+    let index_cited_ids: std::collections::HashSet<String> = index_receipts_pre
+        .iter()
+        .filter_map(|e| {
+            e.get("court_id")
+                .and_then(|s| s.as_str())
+                .map(|s| s.to_string())
+        })
+        .collect();
+    for cid in &cited_ids {
+        if !index_cited_ids.contains(cid.as_str()) {
+            return Err(format!(
+                "parity-cited receipt '{}' is not present in evidence index",
+                cid
+            ));
+        }
+    }
+    println!(
+        "  all {} parity-cited receipts present in index",
+        cited_ids.len()
+    );
+
     // 5d. Load evidence index
     let index_path = std::path::Path::new("evidence/index.json");
     let index_content =

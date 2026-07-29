@@ -74,6 +74,7 @@
 use crate::RANS_WORD_L;
 use crate::RANS_WORD_M;
 use crate::packed_table::{DecodeReport, PackedWordTable};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::arch::x86_64::*;
 
@@ -870,12 +871,19 @@ pub unsafe fn decode_interleaved16_avx512_into(
 // ---------------------------------------------------------------------------
 // Step 7: Manual-gather AVX512VL 8-way
 // ---------------------------------------------------------------------------
+
+/// Inner decode body that writes directly into a caller-provided buffer.
+///
+/// # Safety
+///
+/// `output.len()` must equal the number of symbols to decode.
+/// Caller must ensure AVX512F + AVX512VL + AVX512BW are available.
 #[target_feature(enable = "avx512f,avx512vl,avx512bw")]
-pub unsafe fn decode_interleaved8_manual_gather_kernel(
+pub unsafe fn decode_interleaved8_manual_gather_into(
     compressed: &[u16],
     table: &PackedWordTable,
-    expected_len: usize,
-) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+    output: &mut [u8],
+) -> Result<DecodeReport, &'static str> {
     unsafe {
         if compressed.len() < 16 {
             return Err("compressed too short for 8 init states");
@@ -886,16 +894,13 @@ pub unsafe fn decode_interleaved8_manual_gather_kernel(
         }
         let mut state = _mm256_loadu_si256(init_array.as_ptr() as *const __m256i);
         let mut reader_pos = 16usize;
-        let n = expected_len;
+        let n = output.len();
         let even8 = n & !7;
-        let mut output = Vec::with_capacity(n);
-        output.resize(n, 0u8);
         let mask_v = _mm256_set1_epi32((RANS_WORD_M - 1) as i32);
         const SCALE8: i32 = 12;
 
         for i in (0..even8).step_by(8) {
             let indices = _mm256_and_si256(state, mask_v);
-            // Manual gather: store indices to buffer, scalar loads, reload to vector
             let mut idx_buf: [u32; 8] = core::mem::zeroed();
             _mm256_storeu_si256(idx_buf.as_mut_ptr() as *mut __m256i, indices);
             let mut ent_buf: [u32; 8] = core::mem::zeroed();
@@ -963,7 +968,7 @@ pub unsafe fn decode_interleaved8_manual_gather_kernel(
         let mut final_states = [0u32; 8];
         _mm256_storeu_si256(final_states.as_mut_ptr() as *mut __m256i, state);
 
-        let report = DecodeReport {
+        Ok(DecodeReport {
             words_consumed: reader_pos,
             final_states: [
                 final_states[0],
@@ -983,44 +988,42 @@ pub unsafe fn decode_interleaved8_manual_gather_kernel(
                 0,
                 0,
             ],
-        };
-        Ok((output, report))
+        })
     }
 }
 
-// Allocation-free _into variant for manual gather 8-way
+/// Allocating wrapper around the `_into` kernel.
 #[target_feature(enable = "avx512f,avx512vl,avx512bw")]
-pub unsafe fn decode_interleaved8_manual_gather_into(
+pub unsafe fn decode_interleaved8_manual_gather_kernel(
     compressed: &[u16],
     table: &PackedWordTable,
-    output: &mut [u8],
-) -> Result<DecodeReport, &'static str> {
+    expected_len: usize,
+) -> Result<(Vec<u8>, DecodeReport), &'static str> {
     unsafe {
-        let (_, report) =
-            decode_interleaved8_manual_gather_kernel(compressed, table, output.len())?;
-        Ok(report)
+        let mut output = vec![0u8; expected_len];
+        let report = decode_interleaved8_manual_gather_into(compressed, table, &mut output)?;
+        Ok((output, report))
     }
 }
 
 // ---------------------------------------------------------------------------
 // Step 7: Manual-gather AVX512 16-way
 // ---------------------------------------------------------------------------
+
+/// Inner decode body that writes directly into a caller-provided buffer.
 #[target_feature(enable = "avx512f,avx512bw")]
-pub unsafe fn decode_interleaved16_manual_gather_kernel(
+pub unsafe fn decode_interleaved16_manual_gather_into(
     compressed: &[u16],
     table: &PackedWordTable,
-    expected_len: usize,
-) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+    output: &mut [u8],
+) -> Result<DecodeReport, &'static str> {
     unsafe {
-        let n = expected_len;
+        let n = output.len();
         if n == 0 {
-            return Ok((
-                Vec::new(),
-                DecodeReport {
-                    words_consumed: 0,
-                    final_states: [0u32; 16],
-                },
-            ));
+            return Ok(DecodeReport {
+                words_consumed: 0,
+                final_states: [0u32; 16],
+            });
         }
         if compressed.len() < 32 {
             return Err("compressed too short for 16 init states");
@@ -1032,8 +1035,6 @@ pub unsafe fn decode_interleaved16_manual_gather_kernel(
         let mut state = _mm512_loadu_si512(init_array.as_ptr() as *const __m512i);
         let mut reader_pos = 32usize;
         let even16 = n & !15;
-        let mut output = Vec::with_capacity(n);
-        output.resize(n, 0u8);
         let mask_v = _mm512_set1_epi32((RANS_WORD_M - 1) as i32);
         let l_vec = _mm512_set1_epi32(RANS_WORD_L as i32);
         const SCALE16: u32 = 12;
@@ -1105,30 +1106,24 @@ pub unsafe fn decode_interleaved16_manual_gather_kernel(
 
         let mut final_states = [0u32; 16];
         _mm512_storeu_si512(final_states.as_mut_ptr() as *mut __m512i, state);
-        Ok((
-            output,
-            DecodeReport {
-                words_consumed: reader_pos,
-                final_states,
-            },
-        ))
+        Ok(DecodeReport {
+            words_consumed: reader_pos,
+            final_states,
+        })
     }
 }
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-
-// Allocation-free _into variant for manual gather 16-way
+/// Allocating wrapper around the `_into` kernel.
 #[target_feature(enable = "avx512f,avx512bw")]
-pub unsafe fn decode_interleaved16_manual_gather_into(
+pub unsafe fn decode_interleaved16_manual_gather_kernel(
     compressed: &[u16],
     table: &PackedWordTable,
-    output: &mut [u8],
-) -> Result<DecodeReport, &'static str> {
+    expected_len: usize,
+) -> Result<(Vec<u8>, DecodeReport), &'static str> {
     unsafe {
-        let (_, report) =
-            decode_interleaved16_manual_gather_kernel(compressed, table, output.len())?;
-        Ok(report)
+        let mut output = vec![0u8; expected_len];
+        let report = decode_interleaved16_manual_gather_into(compressed, table, &mut output)?;
+        Ok((output, report))
     }
 }
 
@@ -1139,48 +1134,48 @@ pub unsafe fn decode_interleaved16_manual_gather_into(
 // gather chain.  The scheduler can overlap the two chains via out-of-order
 // execution, reducing effective gather latency.
 #[target_feature(enable = "avx512f,avx512vl,avx512bw")]
+/// Allocating kernel — wrapped around `_into`.
+#[target_feature(enable = "avx512f,avx512vl,avx512bw")]
 pub unsafe fn decode_interleaved16_2x8_kernel(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<(Vec<u8>, DecodeReport), &'static str> {
     unsafe {
-        let n = expected_len;
+        let mut output = vec![0u8; expected_len];
+        let report = decode_interleaved16_2x8_into(compressed, table, &mut output)?;
+        Ok((output, report))
+    }
+}
+
+/// Inner decode body that writes directly into a caller-provided buffer.
+#[target_feature(enable = "avx512f,avx512vl,avx512bw")]
+pub unsafe fn decode_interleaved16_2x8_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, &'static str> {
+    unsafe {
+        let n = output.len();
         if n == 0 {
-            return Ok((
-                Vec::new(),
-                DecodeReport {
-                    words_consumed: 0,
-                    final_states: [0u32; 16],
-                },
-            ));
+            return Ok(DecodeReport {
+                words_consumed: 0,
+                final_states: [0u32; 16],
+            });
         }
         if compressed.len() < 32 {
             return Err("compressed too short for 16 init states");
         }
-        // Load all 16 states, split into lo/hi via store/reload
         let mut init_array = [0u32; 16];
         for i in 0..16 {
             init_array[i] = compressed[i * 2] as u32 | (compressed[i * 2 + 1] as u32) << 16;
         }
-        let all_state = _mm512_loadu_si512(init_array.as_ptr() as *const __m512i);
-        let mut all_buf = [0u32; 16];
-        _mm512_storeu_si512(all_buf.as_mut_ptr() as *mut __m512i, all_state);
-        let mut lo_s = [0u32; 8];
-        let mut hi_s = [0u32; 8];
-        for j in 0..8 {
-            lo_s[j] = all_buf[j];
-            hi_s[j] = all_buf[j + 8];
-        }
-        let mut state_lo = _mm256_loadu_si256(lo_s.as_ptr() as *const __m256i);
-        let mut state_hi = _mm256_loadu_si256(hi_s.as_ptr() as *const __m256i);
-
+        let mut state_lo = _mm256_loadu_si256(init_array[..8].as_ptr() as *const __m256i);
+        let mut state_hi = _mm256_loadu_si256(init_array[8..].as_ptr() as *const __m256i);
         let mut reader_pos = 32usize;
         let even16 = n & !15;
-        let mut output = Vec::with_capacity(n);
-        output.resize(n, 0u8);
-        let table_ptr = table.as_ptr() as *const i32;
         let mask_v = _mm256_set1_epi32((RANS_WORD_M - 1) as i32);
+        let table_ptr = table.as_slice().as_ptr() as *const i32;
         const SCALE8: i32 = 12;
 
         for i in (0..even16).step_by(16) {
@@ -1295,26 +1290,10 @@ pub unsafe fn decode_interleaved16_2x8_kernel(
             final_states[j + 8] = hi_buf[j];
         }
 
-        Ok((
-            output,
-            DecodeReport {
-                words_consumed: reader_pos,
-                final_states,
-            },
-        ))
-    }
-}
-
-// Allocation-free _into variant for 2x8
-#[target_feature(enable = "avx512f,avx512vl,avx512bw")]
-pub unsafe fn decode_interleaved16_2x8_into(
-    compressed: &[u16],
-    table: &PackedWordTable,
-    output: &mut [u8],
-) -> Result<DecodeReport, &'static str> {
-    unsafe {
-        let (_, report) = decode_interleaved16_2x8_kernel(compressed, table, output.len())?;
-        Ok(report)
+        Ok(DecodeReport {
+            words_consumed: reader_pos,
+            final_states,
+        })
     }
 }
 
