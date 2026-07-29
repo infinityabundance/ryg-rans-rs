@@ -284,7 +284,7 @@ pub unsafe fn rans_simd_dec_renorm_unchecked(
 // Safe 8-way SIMD decode — caller provides feature assurance
 // ---------------------------------------------------------------------------
 
-/// Decode 8 symbols using the scalar 8-way decoder (always available).
+/// Decode 8 symbols using SIMD when SSE4.1 is compiled in; scalar fallback otherwise.
 pub fn decode_simd_8way(
     compressed: &[u16],
     tables: &RansWordTables,
@@ -293,8 +293,15 @@ pub fn decode_simd_8way(
     if compressed.len() < 16 {
         return Err("compressed too short for init");
     }
-    // Always safe: uses scalar fallback
-    decode_8way_scalar(compressed, tables, expected_len)
+    #[cfg(target_feature = "sse4.1")]
+    {
+        // SAFETY: compile-time target_feature gate ensures SSE4.1 availability.
+        unsafe { simd_decode_inner(compressed, tables, expected_len) }
+    }
+    #[cfg(not(target_feature = "sse4.1"))]
+    {
+        decode_8way_scalar(compressed, tables, expected_len)
+    }
 }
 
 /// Decode 8 symbols using SSE4.1 + SSSE3 SIMD path.
@@ -396,8 +403,8 @@ mod tests {
                 buf[writer] = (states[idx] & 0xffff) as u16;
                 states[idx] >>= 16;
             }
-            states[idx] = ((states[idx] / f) << (RANS_WORD_SCALE_BITS as u32))
-                + (states[idx] % f) + st;
+            states[idx] =
+                ((states[idx] / f) << (RANS_WORD_SCALE_BITS as u32)) + (states[idx] % f) + st;
         }
         for idx in (0..8).rev() {
             writer -= 2;
@@ -411,9 +418,15 @@ mod tests {
     fn test_simd_vs_scalar_roundtrip() {
         let mut freqs = vec![0u32; 256];
         let mut cum = [0u32; 257];
-        for i in 0..16 { freqs[i] = 256; cum[i+1] = cum[i] + 256; }
+        for i in 0..16 {
+            freqs[i] = 256;
+            cum[i + 1] = cum[i] + 256;
+        }
         let (slots, slot2sym) = build_word_tables(&freqs, &cum, RANS_WORD_SCALE_BITS as u32);
-        let tables = RansWordTables { slots: &slots, slot2sym: &slot2sym };
+        let tables = RansWordTables {
+            slots: &slots,
+            slot2sym: &slot2sym,
+        };
         let input = [0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
         let compressed = encode_8way(&input, &freqs, &cum);
         let scalar = decode_8way_scalar(&compressed, &tables, input.len()).unwrap();
@@ -427,11 +440,19 @@ mod tests {
     fn test_simd_all_lengths() {
         let mut freqs = vec![0u32; 256];
         let mut cum = [0u32; 257];
-        for i in 0..16 { freqs[i] = 256; cum[i+1] = cum[i] + 256; }
+        for i in 0..16 {
+            freqs[i] = 256;
+            cum[i + 1] = cum[i] + 256;
+        }
         let (slots, slot2sym) = build_word_tables(&freqs, &cum, RANS_WORD_SCALE_BITS as u32);
-        let tables = RansWordTables { slots: &slots, slot2sym: &slot2sym };
-        let lengths: &[usize] = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-            63, 64, 65, 127, 128, 129, 255, 256, 257, 1023];
+        let tables = RansWordTables {
+            slots: &slots,
+            slot2sym: &slot2sym,
+        };
+        let lengths: &[usize] = &[
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 63, 64, 65, 127, 128,
+            129, 255, 256, 257, 1023,
+        ];
         for &len in lengths {
             let input: Vec<u8> = (0..len).map(|i| (i % 16) as u8).collect();
             let compressed = encode_8way(&input, &freqs, &cum);
@@ -451,24 +472,41 @@ mod tests {
         freqs[0] = target / 2;
         freqs[1] = target / 4;
         freqs[2] = target / 8;
-        for i in 0..3 { cum[i+1] = cum[i] + freqs[i]; }
+        for i in 0..3 {
+            cum[i + 1] = cum[i] + freqs[i];
+        }
         freqs[3] = target - cum[3];
         cum[4] = target;
         let (slots, slot2sym) = build_word_tables(&freqs, &cum, RANS_WORD_SCALE_BITS as u32);
-        let tables = RansWordTables { slots: &slots, slot2sym: &slot2sym };
+        let tables = RansWordTables {
+            slots: &slots,
+            slot2sym: &slot2sym,
+        };
         let input: Vec<u8> = (0..256).map(|i| (i % 4) as u8).collect();
         let compressed = encode_8way(&input, &freqs, &cum);
-        assert_eq!(decode_8way_scalar(&compressed, &tables, input.len()).unwrap(), input);
-        assert_eq!(decode_simd_8way(&compressed, &tables, input.len()).unwrap(), input);
+        assert_eq!(
+            decode_8way_scalar(&compressed, &tables, input.len()).unwrap(),
+            input
+        );
+        assert_eq!(
+            decode_simd_8way(&compressed, &tables, input.len()).unwrap(),
+            input
+        );
     }
 
     #[test]
     fn test_truncated_rejected() {
         let mut freqs = vec![0u32; 256];
         let mut cum = [0u32; 257];
-        for i in 0..16 { freqs[i] = 256; cum[i+1] = cum[i] + 256; }
+        for i in 0..16 {
+            freqs[i] = 256;
+            cum[i + 1] = cum[i] + 256;
+        }
         let (slots, slot2sym) = build_word_tables(&freqs, &cum, RANS_WORD_SCALE_BITS as u32);
-        let tables = RansWordTables { slots: &slots, slot2sym: &slot2sym };
+        let tables = RansWordTables {
+            slots: &slots,
+            slot2sym: &slot2sym,
+        };
         assert!(decode_simd_8way(&[], &tables, 8).is_err());
         assert!(decode_8way_scalar(&[], &tables, 8).is_err());
         assert!(decode_simd_8way(&[0u16; 16], &tables, 1000).is_err());
