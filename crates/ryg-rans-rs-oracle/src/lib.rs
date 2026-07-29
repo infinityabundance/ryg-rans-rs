@@ -3,6 +3,7 @@
 //! Cross-decoding oracle harness. Produces tracked receipts under `evidence/receipts/`
 //! and canonical case manifests under `evidence/manifests/`.
 
+use ryg_rans_rs_simd::{RansWordTables as SimdTables, build_word_tables, decode_simd_8way, decode_simd_8way_unchecked, decode_8way_scalar};
 use std::process::Command;
 
 /// Whether the Rust side uses division or reciprocal paths.
@@ -336,6 +337,8 @@ pub struct CaseResult {
     pub rust_self_decode: bool,
     pub c_to_rust: bool,
     pub rust_to_c: bool,
+    #[serde(default)]
+    pub simd_scalar_agree: bool,
 }
 
 /// A canonical case manifest with SHA-256.
@@ -659,6 +662,7 @@ pub fn run_interleaved_court(
             rust_self_decode,
             c_to_rust,
             rust_to_c,
+            simd_scalar_agree: false,
         };
 
         let all_ok = result.c_self_decode
@@ -1012,6 +1016,7 @@ pub fn run_court_with_profile(
             rust_self_decode,
             c_to_rust,
             rust_to_c,
+            simd_scalar_agree: false,
         };
 
         let all_ok = result.c_self_decode
@@ -2096,6 +2101,7 @@ pub fn run_alias_court(
             rust_self_decode,
             c_to_rust,
             rust_to_c,
+            simd_scalar_agree: false,
         };
 
         let all_ok = result.c_self_decode
@@ -2314,6 +2320,7 @@ pub fn run_alias_interleaved_court(
             rust_self_decode,
             c_to_rust,
             rust_to_c,
+            simd_scalar_agree: false,
         };
 
         let all_ok = result.c_self_decode
@@ -2406,6 +2413,355 @@ pub fn run_alias_interleaved_court(
         receipt_sha256: String::new(),
         reproduction_command: format!(
             "cargo run -p ryg-rans-rs-oracle -- {} {} {} {}",
+            oracle_path, scale_bits, seed, num_cases
+        ),
+        oracle_compiler: "g++ (Debian 12)".to_string(),
+    };
+
+    Ok((receipt, manifest, manifest_bytes))
+}
+
+// ===== Helper: 8-way interleaved word rANS encode =====
+
+fn rust_word_interleaved_encode_8way(
+    input: &[u8],
+    _freqs: &[u32],
+    cum_freqs: &[u32],
+    scale_bits: u32,
+    _num_symbols: usize,
+    _path: CourtPath,
+) -> Result<Vec<u8>, String> {
+    use_core!();
+    let n = input.len();
+    let mut buf = vec![0u8; n * 4 + 128];
+    let mut writer = BackwardWord16Writer::new(&mut buf);
+    let mut states = [RansWordState::new(); 8];
+
+    for i in (0..n).rev() {
+        let s = input[i] as usize;
+        let start = cum_freqs[s];
+        let freq = _freqs[s];
+        rans_word_enc_put(&mut states[i & 7], &mut writer, start, freq, scale_bits)
+            .map_err(|e| format!("word 8way enc put@{}: {:?}", i, e))?;
+    }
+    for idx in (0..8).rev() {
+        rans_word_enc_flush(&states[idx], &mut writer)
+            .map_err(|e| format!("word 8way enc flush{}: {:?}", idx, e))?;
+    }
+    Ok(writer.encoded().to_vec())
+}
+
+// ===== Helper: SIMD word rANS decode (8-way) =====
+
+fn rust_word_simd_decode(
+    compressed: &[u8],
+    freqs: &[u32],
+    cum_freqs: &[u32],
+    scale_bits: u32,
+    expected_len: usize,
+) -> Result<(Vec<u8>, &'static str), String> {
+    // Convert bytes to u16 words (little-endian)
+    let words: Vec<u16> = compressed
+        .chunks(2)
+        .map(|c| u16::from_le_bytes([c[0], c[1]]))
+        .collect();
+
+    if words.len() < 16 {
+        return Err("compressed too short for SIMD init".to_string());
+    }
+
+    let (slots, slot2sym) = build_word_tables(freqs, cum_freqs, scale_bits);
+    let tables = SimdTables {
+        slots: &slots,
+        slot2sym: &slot2sym,
+    };
+
+    // Runtime SSE4.1 + SSSE3 detection (oracle crate has std)
+    let backend = if cfg!(target_feature = "sse4.1") && cfg!(target_feature = "ssse3") {
+        // Compile-time features available — call unchecked SIMD directly
+        let result = unsafe { decode_simd_8way_unchecked(&words, &tables, expected_len) };
+        result.map(|v| (v, "simd-sse41"))
+    } else if std::is_x86_feature_detected!("sse4.1") && std::is_x86_feature_detected!("ssse3") {
+        // Runtime features available
+        let result = unsafe { decode_simd_8way_unchecked(&words, &tables, expected_len) };
+        result.map(|v| (v, "simd-sse41"))
+    } else {
+        let result = decode_8way_scalar(&words, &tables, expected_len);
+        result.map(|v| (v, "scalar-8way"))
+    };
+    backend.map_err(|e| format!("SIMD decode: {}", e))
+}
+}
+
+/// Run a SIMD cross-decoding court (8-way interleaved word rANS with SIMD decode).
+pub fn run_simd_court(
+    oracle_path: &str,
+    scale_bits: u32,
+    seed: u64,
+    profile: ModelProfile,
+) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
+    let num_cases = profile.num_cases();
+    let profile_label = profile.label();
+    let court_id = format!("RYG_RANS.SIMD.{}.S{}", profile_label, scale_bits);
+
+    let c_enc_op = "enc-stream-simd";
+    let c_dec_op = "dec-stream-simd";
+
+    let mut raw_freqs = profile.generate_frequencies(scale_bits);
+
+    while raw_freqs.len() < 256 {
+        raw_freqs.push(0);
+    }
+
+    let freq_csv = raw_freqs
+        .iter()
+        .map(|f| f.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+
+    let mut cases = Vec::with_capacity(num_cases);
+    let mut residuals = Vec::new();
+
+    for case_idx in 0..num_cases {
+        let input = profile.generate_input(seed, case_idx, scale_bits);
+        let input_hex = hex::encode(&input);
+
+        let call_c_dec = |compressed_hex: &str, input_len: usize| -> Result<bool, String> {
+            let dec_out = std::process::Command::new(oracle_path)
+                .args([
+                    c_dec_op,
+                    &scale_bits.to_string(),
+                    &freq_csv,
+                    compressed_hex,
+                    &input_len.to_string(),
+                ])
+                .output()
+                .map_err(|e| format!("C SIMD int dec: {}", e))?;
+            if !dec_out.status.success() {
+                return Err(format!(
+                    "C SIMD int dec exit {} for case {}",
+                    dec_out.status, case_idx
+                ));
+            }
+            let dec_json: serde_json::Value = serde_json::from_slice(&dec_out.stdout)
+                .map_err(|e| format!("C SIMD int dec JSON: {}", e))?;
+            let decoded_hex = dec_json["decoded_hex"]
+                .as_str()
+                .ok_or("C SIMD int dec missing decoded_hex")?;
+            Ok(decoded_hex == input_hex)
+        };
+
+        let c_enc_out = std::process::Command::new(oracle_path)
+            .args([c_enc_op, &scale_bits.to_string(), &freq_csv, &input_hex])
+            .output()
+            .map_err(|e| format!("C SIMD int enc: {}", e))?;
+        if !c_enc_out.status.success() {
+            return Err(format!(
+                "C SIMD int enc exit {} for case {}",
+                c_enc_out.status, case_idx
+            ));
+        }
+        let c_enc_json: serde_json::Value = serde_json::from_slice(&c_enc_out.stdout)
+            .map_err(|e| format!("C SIMD int enc JSON: {}", e))?;
+        let c_compressed_hex = c_enc_json["compressed_hex"]
+            .as_str()
+            .ok_or("C SIMD int enc missing compressed_hex")?
+            .to_string();
+        let c_compressed = hex::decode(&c_compressed_hex).map_err(|e| format!("C hex: {}", e))?;
+
+        let c_self_decode = call_c_dec(&c_compressed_hex, input.len())?;
+
+        // Build cumulative frequencies for Rust side
+        let cum_freqs: Vec<u32> = {
+            let mut cum = 0u32;
+            let mut cums = Vec::with_capacity(257);
+            cums.push(0);
+            for &f in raw_freqs.iter() {
+                cum += f;
+                cums.push(cum);
+            }
+            cums
+        };
+
+        // Rust SIMD decode of C compressed (C→Rust cross)
+        let c_to_rust = rust_word_simd_decode(
+            &c_compressed,
+            &raw_freqs,
+            &cum_freqs,
+            scale_bits,
+            input.len(),
+        )
+        .map(|d| d == input)
+        .unwrap_or(false);
+
+        // Verify Rust SIMD decode matches scalar 8-way decode
+        // (convert bytes to u16 words and use the scalar 8-way decoder from the simd crate)
+        let simd_scalar_agree = {
+            let c_words: Vec<u16> = c_compressed
+                .chunks(2)
+                .map(|c| u16::from_le_bytes([c[0], c[1]]))
+                .collect();
+            let (slots, slot2sym) =
+                ryg_rans_rs_simd::build_word_tables(&raw_freqs, &cum_freqs, scale_bits);
+            let s_tables = ryg_rans_rs_simd::RansWordTables {
+                slots: &slots,
+                slot2sym: &slot2sym,
+            };
+            let scalar_decoded =
+                ryg_rans_rs_simd::decode_8way_scalar(&c_words, &s_tables, input.len());
+            match scalar_decoded {
+                Ok(dec) => {
+                    let simd_dec = rust_word_simd_decode(
+                        &c_compressed,
+                        &raw_freqs,
+                        &cum_freqs,
+                        scale_bits,
+                        input.len(),
+                    );
+                    match simd_dec {
+                        Ok(s) => s == input && dec == s,
+                        Err(_) => false,
+                    }
+                }
+                Err(_) => false,
+            }
+        };
+
+        // Rust 8-way interleaved word encode (matches C enc-stream-simd format)
+        let rust_compressed = rust_word_interleaved_encode_8way(
+            &input,
+            &raw_freqs,
+            &cum_freqs,
+            scale_bits,
+            raw_freqs.len(),
+            CourtPath::Division,
+        )?;
+        let rust_compressed_hex = hex::encode(&rust_compressed);
+
+        // Rust SIMD decode of Rust compressed (Rust self-decode via SIMD)
+        let rust_self_decode = rust_word_simd_decode(
+            &rust_compressed,
+            &raw_freqs,
+            &cum_freqs,
+            scale_bits,
+            input.len(),
+        )
+        .map(|d| d == input)
+        .unwrap_or(false);
+
+        // C SIMD decode of Rust compressed (Rust→C cross)
+        let rust_to_c = call_c_dec(&rust_compressed_hex, input.len())?;
+
+        let compressed_match = rust_compressed_hex == c_compressed_hex;
+        let case_id = format!("CASE.{:06}", case_idx);
+
+        let result = CaseResult {
+            case_id,
+            input_hex,
+            frequencies: raw_freqs.clone(),
+            scale_bits,
+            c_compressed_hex,
+            rust_compressed_hex,
+            compressed_match,
+            c_self_decode,
+            rust_self_decode,
+            c_to_rust,
+            rust_to_c,
+            simd_scalar_agree,
+        };
+
+        let all_ok = result.c_self_decode
+            && result.rust_self_decode
+            && result.compressed_match
+            && result.c_to_rust
+            && result.rust_to_c
+            && result.simd_scalar_agree;
+
+        if !all_ok {
+            residuals.push(format!("{}.{:06}", court_id, case_idx));
+        }
+
+        cases.push(result);
+    }
+
+    let manifest = CaseManifest {
+        schema_version: 1,
+        court_id: court_id.clone(),
+        court_path: "SIMD".to_string(),
+        variant: "simd".to_string(),
+        profile: profile_label.to_string(),
+        scale_bits,
+        seed,
+        cases: cases.clone(),
+    };
+
+    let manifest_bytes =
+        serde_json::to_vec_pretty(&manifest).map_err(|e| format!("manifest serialize: {}", e))?;
+    let manifest_sha256 = {
+        use sha2::Digest;
+        let mut h = sha2::Sha256::new();
+        h.update(&manifest_bytes);
+        format!("{:x}", h.finalize())
+    };
+
+    let pairs_compared = cases.len() as u64 * 6;
+    let pairs_matched: u64 = cases
+        .iter()
+        .map(|r| {
+            [
+                r.c_self_decode,
+                r.rust_self_decode,
+                r.compressed_match,
+                r.c_to_rust,
+                r.rust_to_c,
+                r.simd_scalar_agree,
+            ]
+            .iter()
+            .filter(|&&x| x)
+            .count() as u64
+        })
+        .sum();
+    let residual_count = residuals.len() as u32;
+
+    let verdict = if residual_count == 0 {
+        "admitted_match"
+    } else {
+        "admitted_partial"
+    };
+
+    let code_commit = std::env::var("RANS_GIT_COMMIT")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            std::process::Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| "unknown".to_string())
+        });
+
+    let receipt = Receipt {
+        schema_version: 1,
+        court_id: court_id.clone(),
+        court_path: "SIMD".to_string(),
+        variant: "simd".to_string(),
+        profile: profile_label.to_string(),
+        scale_bits,
+        seed,
+        num_cases: num_cases as u32,
+        verdict: verdict.to_string(),
+        upstream_commit: "c9d162d996fd600315af9ae8eb89d832576cb32d".to_string(),
+        code_commit,
+        pairs_compared,
+        pairs_matched,
+        residual_count,
+        residual_ids: residuals,
+        manifest_sha256,
+        receipt_sha256: String::new(),
+        reproduction_command: format!(
+            "cargo run -p ryg-rans-rs-oracle -- simd {} {} {} {}",
             oracle_path, scale_bits, seed, num_cases
         ),
         oracle_compiler: "g++ (Debian 12)".to_string(),

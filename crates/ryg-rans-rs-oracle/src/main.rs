@@ -34,12 +34,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let scale_bits: u32 = args.get(2).map(|s| s.parse().unwrap_or(12)).unwrap_or(12);
     let seed: u64 = args.get(3).map(|s| s.parse().unwrap_or(42)).unwrap_or(42);
-    let _num_cases: usize = args.get(4).map(|s| s.parse().unwrap_or(20)).unwrap_or(20);
+    let override_cases: Option<usize> = args.get(4).map(|s| s.parse().ok()).unwrap_or(None);
+    let only_variant: Option<&str> = args.get(5).map(|s| s.as_str());
 
     let evidence_root =
         std::env::var("RANS_EVIDENCE_DIR").unwrap_or_else(|_| "evidence".to_string());
-    let receipt_dir = format!("{}/receipts", evidence_root);
-    let manifest_dir = format!("{}/manifests", evidence_root);
+
+    // If STAGING mode is active, write to evidence.staging/ instead
+    // This prevents partial evidence from overwriting the canonical directory.
+    use std::path::Path;
+    let staging_root =
+        if std::env::var("RANS_EVIDENCE_STAGING").is_ok() || !Path::new(&evidence_root).exists() {
+            evidence_root.clone()
+        } else {
+            // Generate into staging first
+            let staging_dir = format!(
+                "{}.staging/{}",
+                evidence_root,
+                chrono::Utc::now().format("%Y%m%d-%H%M%S")
+            );
+            println!("  Staging evidence to: {}", staging_dir);
+            staging_dir
+        };
+
+    let receipt_dir = format!("{}/receipts", staging_root);
+    let manifest_dir = format!("{}/manifests", staging_root);
     std::fs::create_dir_all(&receipt_dir)?;
     std::fs::create_dir_all(&manifest_dir)?;
 
@@ -50,6 +69,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut all_passed = true;
 
     for config in &court_configs {
+        // Apply --only variant filter if specified
+        if let Some(only) = only_variant {
+            if config.variant != only {
+                continue; // skip variants that don't match the filter
+            }
+        }
         let scales: &[u32] = if config.profile == ModelProfile::ScaleSweep {
             &[10, 11, 13, 14, 15, 16]
         } else {
@@ -68,6 +93,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         config.profile,
                     )?,
                 }
+            } else if config.variant == "simd" {
+                // SIMD is always 8-way interleaved — no separate single-state mode
+                ryg_rans_rs_oracle::run_simd_court(oracle, scale, seed, config.profile)?
             } else {
                 match config.mode {
                     CourtMode::SingleState => ryg_rans_rs_oracle::run_court_with_profile(
@@ -130,9 +158,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Write evidence index
+    // Write evidence index in the staging directory
     std::fs::write(
-        format!("{}/index.json", evidence_root),
+        format!("{}/index.json", staging_root),
         serde_json::to_string_pretty(&serde_json::json!({
             "schema_version": 1,
             "code_commit": std::env::var("RANS_GIT_COMMIT").ok().filter(|s| !s.is_empty()).unwrap_or_else(|| {
@@ -145,13 +173,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "receipts": index,
         }))?,
     )?;
-    println!("Evidence index: {}/index.json", evidence_root);
+    println!("Evidence index: {}/index.json", staging_root);
+
+    // If staging differs from canonical, atomically replace
+    if staging_root != evidence_root {
+        // Remove old canonical, copy staging into place
+        let _ = std::fs::remove_dir_all(&evidence_root);
+        std::fs::rename(&staging_root, &evidence_root)
+            .map_err(|e| format!("failed to replace canonical evidence: {}", e))?;
+        println!("  Staged evidence moved to: {}", evidence_root);
+    }
 
     if all_passed {
         println!("ALL COURTS PASSED");
         Ok(())
     } else {
-        eprintln!("SOME COURTS FAILED");
+        eprintln!("SOME COURTS FAILED — staging dir kept at {}", staging_root);
         std::process::exit(1);
     }
 }
@@ -161,7 +198,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn supported_paths(variant: &str) -> &'static [CourtPath] {
     match variant {
         "byte" | "r64" => &[CourtPath::Division, CourtPath::Reciprocal],
-        "word" => &[CourtPath::Division],
+        "word" | "simd" => &[CourtPath::Division],
         "alias" => &[CourtPath::Division],
         _ => &[],
     }
@@ -169,7 +206,7 @@ fn supported_paths(variant: &str) -> &'static [CourtPath] {
 
 fn build_court_configs() -> Vec<FullConfig> {
     let mut configs = Vec::new();
-    let variants = ["byte", "r64", "word", "alias"];
+    let variants = ["byte", "r64", "word", "alias", "simd"];
     let profiles = [
         ModelProfile::Uniform256,
         ModelProfile::Freq1Residual,
@@ -207,8 +244,11 @@ fn build_court_configs() -> Vec<FullConfig> {
         }
     }
 
-    // Interleaved2: interleaved courts for all variants
+    // Interleaved2: interleaved courts for all variants (except simd — simd is always 8-way)
     for &variant in &variants {
+        if variant == "simd" {
+            continue;
+        }
         for &path in supported_paths(variant) {
             for &profile in &profiles {
                 if profile == ModelProfile::ScaleSweep {

@@ -74,6 +74,8 @@ static void usage(const char *prog)
     fprintf(stderr, "  dec-stream-word                   scale_bits freq_csv compressed_hex num_symbols\n");
     fprintf(stderr, "  enc-stream-word-interleaved2       scale_bits freq_csv input_hex\n");
     fprintf(stderr, "  dec-stream-word-interleaved2       scale_bits freq_csv compressed_hex num_symbols\n");
+    fprintf(stderr, "  enc-stream-simd                   scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  dec-stream-simd                   scale_bits freq_csv compressed_hex num_symbols\n");
     fprintf(stderr, "\nAlias operations (alias method, byte rANS):\n");
     fprintf(stderr, "  trace-alias-table                  scale_bits freq_csv\n");
     fprintf(stderr, "  enc-stream-alias                  scale_bits freq_csv input_hex\n");
@@ -1629,6 +1631,135 @@ static void trace_dec_stream_word_interleaved2(uint32_t scale_bits,
            hex_encode(output.data(), output.size()).c_str());
 }
 
+// enc-stream-simd: 8-way interleaved word rANS encode (scalar states)
+static void trace_enc_stream_simd(uint32_t scale_bits,
+                                   const std::vector<uint32_t>& freqs,
+                                   const std::vector<uint8_t>& input)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    // Build word tables
+    RansWordTables tab;
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansWordTablesInitSymbol(&tab, (uint8_t)i, cum_freqs[i], freqs[i]);
+        }
+    }
+
+    uint16_t buf[64 * 1024];
+    uint16_t* ptr = buf + sizeof(buf) / sizeof(buf[0]);
+
+    // 8 interleaved scalar states
+    RansWordEnc states[8];
+    for (int i = 0; i < 8; i++) {
+        states[i] = RansWordEncInit();
+    }
+
+    // Encode in reverse, each symbol goes to state (i % 8)
+    int count = (int)input.size();
+    for (int i = count - 1; i >= 0; i--) {
+        int s = input[i];
+        RansWordEncPut(&states[i & 7], &ptr, cum_freqs[s], freqs[s]);
+    }
+
+    // Flush all 8 states in reverse order (7, 6, ..., 0)
+    for (int i = 7; i >= 0; i--) {
+        RansWordEncFlush(&states[i], &ptr);
+    }
+
+    size_t comp_words = (size_t)((buf + sizeof(buf) / sizeof(buf[0])) - ptr);
+    size_t comp_bytes = comp_words * sizeof(uint16_t);
+
+    printf("{\"op\":\"enc-stream-simd\""
+           ",\"scale_bits\":%u"
+           ",\"compressed_hex\":\"%s\""
+           ",\"compressed_size\":%zu"
+           "}\n",
+           scale_bits,
+           hex_encode((const uint8_t*)ptr, comp_bytes).c_str(),
+           comp_bytes);
+}
+
+// dec-stream-simd: 8-way SIMD rANS decode (two RansSimdDec units)
+static void trace_dec_stream_simd(uint32_t scale_bits,
+                                   const std::vector<uint32_t>& freqs,
+                                   const std::vector<uint8_t>& compressed,
+                                   size_t num_symbols)
+{
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    // Build word tables
+    RansWordTables tab;
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansWordTablesInitSymbol(&tab, (uint8_t)i, cum_freqs[i], freqs[i]);
+        }
+    }
+
+    // Decode: read u16 words from compressed stream
+    std::vector<uint16_t> words(compressed.size() / 2 + 64, 0);
+    memcpy(words.data(), compressed.data(), compressed.size());
+    uint16_t* ptr = words.data();
+
+    // Two RansSimdDec units for 8-way decode
+    RansSimdDec dec0, dec1;
+    RansSimdDecInit(&dec0, &ptr);
+    RansSimdDecInit(&dec1, &ptr);
+
+    size_t n = num_symbols;
+    size_t n8 = n & ~(size_t)7;
+    std::vector<uint8_t> output(n);
+
+    // Decode 8 symbols at a time using RansSimdDecSym + RansSimdDecRenorm
+    for (size_t pos = 0; pos < n8; pos += 8) {
+        uint32_t s0 = RansSimdDecSym(&dec0, &tab);
+        uint32_t s1 = RansSimdDecSym(&dec1, &tab);
+
+        // Use upstream SIMD renorm (handles all 4 lanes at once)
+        RansSimdDecRenorm(&dec0, &ptr);
+        RansSimdDecRenorm(&dec1, &ptr);
+
+        output[pos + 0] = (uint8_t)(s0 >> 0);
+        output[pos + 1] = (uint8_t)(s0 >> 8);
+        output[pos + 2] = (uint8_t)(s0 >> 16);
+        output[pos + 3] = (uint8_t)(s0 >> 24);
+        output[pos + 4] = (uint8_t)(s1 >> 0);
+        output[pos + 5] = (uint8_t)(s1 >> 8);
+        output[pos + 6] = (uint8_t)(s1 >> 16);
+        output[pos + 7] = (uint8_t)(s1 >> 24);
+    }
+
+    // Tail symbols: extract individual SIMD lanes and decode with RansWordDecSym
+    for (size_t pos = n8; pos < n; pos++) {
+        int lane = (int)(pos & 3);
+        RansWordDec s;
+        if ((pos & 4) == 0) {
+            s = dec0.lane[lane];
+        } else {
+            s = dec1.lane[lane];
+        }
+        uint8_t sym = RansWordDecSym(&s, &tab);
+        RansWordDecRenorm(&s, &ptr);
+        output[pos] = sym;
+    }
+
+    printf("{\"op\":\"dec-stream-simd\""
+           ",\"scale_bits\":%u"
+           ",\"num_symbols\":%zu"
+           ",\"decoded_hex\":\"%s\""
+           "}\n",
+           scale_bits, n,
+           hex_encode(output.data(), output.size()).c_str());
+}
+
 // ===========================================================================
 // Forward declarations for alias operations (defined after main)
 // ===========================================================================
@@ -1865,6 +1996,12 @@ int main(int argc, char *argv[])
         std::vector<uint8_t> compressed = hex_decode(argv[4]);
         size_t num_symbols = parse_u32(argv[5]);
         trace_dec_stream_word_interleaved2(scale_bits, freqs, compressed, num_symbols);
+    } else if (strcmp(op, "enc-stream-simd") == 0) {
+        if (argc != 5) usage(argv[0]);
+        trace_enc_stream_simd(parse_u32(argv[2]), parse_freq_csv(argv[3]), hex_decode(argv[4]));
+    } else if (strcmp(op, "dec-stream-simd") == 0) {
+        if (argc != 6) usage(argv[0]);
+        trace_dec_stream_simd(parse_u32(argv[2]), parse_freq_csv(argv[3]), hex_decode(argv[4]), parse_u32(argv[5]));
     // ---- Alias operations ----
     } else if (strcmp(op, "trace-alias-table") == 0) {
         if (argc != 4) usage(argv[0]);

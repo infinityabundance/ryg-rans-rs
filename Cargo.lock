@@ -369,7 +369,7 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "ryg-rans-rs"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "ryg-rans-rs-core",
  "ryg-rans-rs-simd",
@@ -377,7 +377,7 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-casefile"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "serde",
  "serde_json",
@@ -386,7 +386,7 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-cli"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "clap",
  "ryg-rans-rs",
@@ -395,16 +395,17 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-core"
-version = "0.1.10"
+version = "0.1.11"
 
 [[package]]
 name = "ryg-rans-rs-oracle"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "chrono",
  "hex",
  "ryg-rans-rs-casefile",
  "ryg-rans-rs-core",
+ "ryg-rans-rs-simd",
  "serde",
  "serde_json",
  "sha2",
@@ -412,7 +413,7 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-simd"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "ryg-rans-rs-core",
 ]

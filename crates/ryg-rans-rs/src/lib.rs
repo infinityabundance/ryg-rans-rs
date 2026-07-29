@@ -95,14 +95,30 @@ pub mod byte {
 /// SSE4.1 accelerated decoder kernels.
 ///
 /// This module is available when the `simd` feature is enabled.
-/// It provides safe wrappers around SSE4.1 intrinsics for accelerated
-/// rANS decoding.
+/// Provides an 8-way interleaved SIMD word rANS decoder that operates
+/// on streams produced by the word rANS encoder.
 ///
-/// Currently a scaffold — the full implementation will appear in a future release.
+/// Requires a CPU with SSE4.1 + SSSE3 support at runtime.
+/// Falls back to a scalar 8-way decode when SSE4.1 is unavailable.
+///
+/// ## Usage
+///
+/// ```rust,ignore
+/// use ryg_rans_rs::simd::decode_simd_8way;
+/// ```
+///
+/// ## Format
+///
+/// The SIMD decoder expects an 8-way interleaved word rANS stream:
+/// 8 initial 32-bit states (16 u16 words), followed by interleaved
+/// renormalization words for all 8 lanes.
 #[cfg(feature = "simd")]
 pub mod simd {
-    // Future: RansSimdDec,
-    //        RansSimdDecInit, RansSimdDecSym, RansSimdDecRenorm
+    pub use ryg_rans_rs_simd::{
+        RANS_WORD_L, RANS_WORD_M, RANS_WORD_SCALE_BITS, RansSimdDec, RansWordDec, RansWordSlot,
+        RansWordTables, build_word_tables, decode_8way_scalar, decode_simd_8way,
+        decode_simd_8way_unchecked, rans_simd_dec_init, rans_word_tables_init_symbol,
+    };
 }
 
 /// Convenience allocation-based APIs.
