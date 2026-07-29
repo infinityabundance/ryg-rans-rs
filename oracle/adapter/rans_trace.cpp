@@ -76,6 +76,8 @@ static void usage(const char *prog)
     fprintf(stderr, "  dec-stream-word-interleaved2       scale_bits freq_csv compressed_hex num_symbols\n");
     fprintf(stderr, "  enc-stream-simd                   scale_bits freq_csv input_hex\n");
     fprintf(stderr, "  dec-stream-simd                   scale_bits freq_csv compressed_hex num_symbols\n");
+    fprintf(stderr, "  enc-stream-word-interleaved16      scale_bits freq_csv input_hex\n");
+    fprintf(stderr, "  dec-stream-word-interleaved16      scale_bits freq_csv compressed_hex num_symbols\n");
     fprintf(stderr, "\nAlias operations (alias method, byte rANS):\n");
     fprintf(stderr, "  trace-alias-table                  scale_bits freq_csv\n");
     fprintf(stderr, "  enc-stream-alias                  scale_bits freq_csv input_hex\n");
@@ -1760,6 +1762,168 @@ static void trace_dec_stream_simd(uint32_t scale_bits,
            hex_encode(output.data(), output.size()).c_str());
 }
 
+// ---------------------------------------------------------------------------
+// 16-way interleaved Word rANS (AVX512.INTERLEAVED16 format)
+// ---------------------------------------------------------------------------
+
+// enc-stream-word-interleaved16: 16-state interleaved word rANS encode
+// The encoder processes symbols in reverse order, assigning each to lane i & 15.
+// States are flushed in reverse lane order (15 down to 0) so the forward
+// stream initializes lanes in ascending order (0 through 15).
+static void trace_enc_stream_word_interleaved16(uint32_t scale_bits,
+                                                 const std::vector<uint32_t>& freqs,
+                                                 const std::vector<uint8_t>& input)
+{
+    if (input.empty()) {
+        printf("{\"op\":\"enc-stream-word-interleaved16\""
+               ",\"scale_bits\":%u"
+               ",\"input_size\":0"
+               ",\"compressed_hex\":\"\""
+               ",\"compressed_size\":0"
+               ",\"decode_ok\":true"
+               "}\n", scale_bits);
+        return;
+    }
+
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    // Build word tables (needed for self-decode verification)
+    RansWordTables tab;
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansWordTablesInitSymbol(&tab, (uint8_t)i, cum_freqs[i], freqs[i]);
+        }
+    }
+
+    uint16_t buf[131072]; // output buffer
+    uint16_t* ptr = buf + sizeof(buf)/sizeof(buf[0]);
+
+    // 16 independent rANS states, initialized to L
+    uint32_t states[16];
+    for (int i = 0; i < 16; i++) states[i] = RANS_WORD_L;
+
+    // Encode symbols in reverse order, assigning to lane i & 15
+    for (int i = (int)input.size() - 1; i >= 0; i--) {
+        uint8_t s = input[i];
+        uint32_t f = freqs[s];
+        uint32_t st = cum_freqs[s];
+        int lane = i & 15;
+        uint32_t threshold = ((RANS_WORD_L >> scale_bits) << 16) * f;
+        if (states[lane] >= threshold) {
+            ptr--;
+            *ptr = (uint16_t)(states[lane] & 0xffff);
+            states[lane] >>= 16;
+        }
+        states[lane] = ((states[lane] / f) << scale_bits) + (states[lane] % f) + st;
+    }
+
+    // Flush states in REVERSE lane order (15 down to 0)
+    for (int idx = 15; idx >= 0; idx--) {
+        ptr -= 2;
+        ptr[0] = (uint16_t)(states[idx] & 0xffff);
+        ptr[1] = (uint16_t)((states[idx] >> 16) & 0xffff);
+    }
+
+    size_t comp_words = (size_t)((buf + sizeof(buf)/sizeof(buf[0])) - ptr);
+    size_t comp_bytes = comp_words * sizeof(uint16_t);
+    std::string comp_hex = hex_encode((const uint8_t*)ptr, comp_bytes);
+
+    // Self-decode verification
+    std::vector<uint16_t> words(comp_words + 2, 0);
+    memcpy(words.data(), ptr, comp_bytes);
+    uint16_t* dec_ptr = words.data();
+
+    // Self-decode verification using RansWordDecSym
+    bool decode_ok = true;
+    size_t n = input.size();
+    uint16_t* dptr = words.data();
+    uint32_t dstates[16];
+    for (int i = 0; i < 16; i++) {
+        dstates[i] = (uint32_t)dptr[0] | ((uint32_t)dptr[1] << 16);
+        dptr += 2;
+    }
+    for (size_t pos = 0; pos < n && decode_ok; pos++) {
+        int lane = (int)(pos & 15);
+        RansWordDec ds = dstates[lane];
+        uint8_t s = RansWordDecSym(&ds, &tab);
+        RansWordDecRenorm(&ds, &dptr);
+        dstates[lane] = ds;
+        if (s != input[pos]) decode_ok = false;
+    }
+
+    printf("{\"op\":\"enc-stream-word-interleaved16\""
+           ",\"scale_bits\":%u"
+           ",\"input_size\":%zu"
+           ",\"compressed_hex\":\"%s\""
+           ",\"compressed_size\":%zu"
+           ",\"decode_ok\":%s"
+           "}\n",
+           scale_bits, input.size(), comp_hex.c_str(), comp_bytes,
+           decode_ok ? "true" : "false");
+}
+
+// dec-stream-word-interleaved16: 16-state interleaved word rANS decode
+static void trace_dec_stream_word_interleaved16(uint32_t scale_bits,
+                                                 const std::vector<uint32_t>& freqs,
+                                                 const std::vector<uint8_t>& compressed,
+                                                 size_t num_symbols)
+{
+    if (compressed.size() < 64) {
+        printf("{\"op\":\"dec-stream-word-interleaved16\""
+               ",\"error\":\"compressed too short\""
+               "}\n");
+        return;
+    }
+
+    uint32_t cum_freqs[257];
+    cum_freqs[0] = 0;
+    for (int i = 0; i < 256; i++) {
+        cum_freqs[i+1] = cum_freqs[i] + freqs[i];
+    }
+
+    // Build word tables
+    RansWordTables tab;
+    for (int i = 0; i < 256; i++) {
+        if (freqs[i] > 0) {
+            RansWordTablesInitSymbol(&tab, (uint8_t)i, cum_freqs[i], freqs[i]);
+        }
+    }
+
+    // Decode: read u16 words
+    std::vector<uint16_t> words(compressed.size() / 2 + 2, 0);
+    memcpy(words.data(), compressed.data(), compressed.size());
+    uint16_t* ptr = words.data();
+
+    // Initialize 16 states
+    uint32_t states[16];
+    for (int i = 0; i < 16; i++) {
+        states[i] = (uint32_t)ptr[0] | ((uint32_t)ptr[1] << 16);
+        ptr += 2;
+    }
+
+    std::vector<uint8_t> output(num_symbols);
+    for (size_t pos = 0; pos < num_symbols; pos++) {
+        int lane = (int)(pos & 15);
+        RansWordDec ds = states[lane];
+        uint8_t sym = RansWordDecSym(&ds, &tab);
+        RansWordDecRenorm(&ds, &ptr);
+        output[pos] = sym;
+        states[lane] = ds;
+    }
+
+    printf("{\"op\":\"dec-stream-word-interleaved16\""
+           ",\"scale_bits\":%u"
+           ",\"num_symbols\":%zu"
+           ",\"decoded_hex\":\"%s\""
+           "}\n",
+           scale_bits, num_symbols,
+           hex_encode(output.data(), output.size()).c_str());
+}
+
 // ===========================================================================
 // Forward declarations for alias operations (defined after main)
 // ===========================================================================
@@ -2002,6 +2166,13 @@ int main(int argc, char *argv[])
     } else if (strcmp(op, "dec-stream-simd") == 0) {
         if (argc != 6) usage(argv[0]);
         trace_dec_stream_simd(parse_u32(argv[2]), parse_freq_csv(argv[3]), hex_decode(argv[4]), parse_u32(argv[5]));
+    // ---- 16-way interleaved operations ----
+    } else if (strcmp(op, "enc-stream-word-interleaved16") == 0) {
+        if (argc != 5) usage(argv[0]);
+        trace_enc_stream_word_interleaved16(parse_u32(argv[2]), parse_freq_csv(argv[3]), hex_decode(argv[4]));
+    } else if (strcmp(op, "dec-stream-word-interleaved16") == 0) {
+        if (argc != 6) usage(argv[0]);
+        trace_dec_stream_word_interleaved16(parse_u32(argv[2]), parse_freq_csv(argv[3]), hex_decode(argv[4]), parse_u32(argv[5]));
     // ---- Alias operations ----
     } else if (strcmp(op, "trace-alias-table") == 0) {
         if (argc != 4) usage(argv[0]);

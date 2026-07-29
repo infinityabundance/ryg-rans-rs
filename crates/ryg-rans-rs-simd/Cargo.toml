@@ -6,5 +6,9 @@ license = { workspace = true }
 repository = { workspace = true }
 description = "SSE4.1 accelerated rANS decoder kernels"
 
+[features]
+default = []
+std = []
+
 [dependencies]
 ryg-rans-rs-core = { version = "0.1.2", path = "../ryg-rans-rs-core" }

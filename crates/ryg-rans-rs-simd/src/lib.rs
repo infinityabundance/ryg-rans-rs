@@ -3,9 +3,16 @@
 
 extern crate alloc;
 
+#[cfg(feature = "std")]
+extern crate std;
+
 use alloc::vec;
 use alloc::vec::Vec;
 use core::arch::x86_64::*;
+
+pub mod avx512;
+pub mod backends;
+pub mod packed_table;
 
 // ---------------------------------------------------------------------------
 // Re-export core word rANS constants for convenience
@@ -378,6 +385,36 @@ fn simd_decode_inner(
     }
 
     Ok(output)
+}
+
+// ---------------------------------------------------------------------------
+// Public 8-way encode helper (used by packed_table tests)
+// ---------------------------------------------------------------------------
+
+/// Encode symbols into the 8-way interleaved Word rANS format.
+/// Used by tests in packed_table and court infrastructure.
+pub fn encode_8way_for_test(input: &[u8], freqs: &[u32], cum: &[u32]) -> Vec<u16> {
+    let mut buf = vec![0u16; input.len() * 4 + 128];
+    let mut writer = buf.len();
+    let mut states = [RANS_WORD_L; 8];
+    for i in (0..input.len()).rev() {
+        let s = input[i] as usize;
+        let f = freqs[s];
+        let st = cum[s];
+        let idx = i & 7;
+        if states[idx] >= ((RANS_WORD_L >> (RANS_WORD_SCALE_BITS as u32)) << 16) * f {
+            writer -= 1;
+            buf[writer] = (states[idx] & 0xffff) as u16;
+            states[idx] >>= 16;
+        }
+        states[idx] = ((states[idx] / f) << (RANS_WORD_SCALE_BITS as u32)) + (states[idx] % f) + st;
+    }
+    for idx in (0..8).rev() {
+        writer -= 2;
+        buf[writer] = (states[idx] & 0xffff) as u16;
+        buf[writer + 1] = ((states[idx] >> 16) & 0xffff) as u16;
+    }
+    buf[writer..].to_vec()
 }
 
 // ---------------------------------------------------------------------------
