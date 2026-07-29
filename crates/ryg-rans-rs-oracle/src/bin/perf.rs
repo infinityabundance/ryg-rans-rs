@@ -19,9 +19,12 @@
 //! - Median-based reporting (not mean)
 //! - Backend identity recorded and asserted
 
+#[cfg(any(target_feature = "avx512bw", feature = "std"))]
+use ryg_rans_rs_simd::avx512::{
+    decode_interleaved8_avx512vl_kernel, decode_interleaved16_avx512_kernel,
+};
 use ryg_rans_rs_simd::{
     RANS_WORD_SCALE_BITS,
-    avx512::{decode_interleaved8_avx512vl_kernel, decode_interleaved16_avx512_kernel},
     backends::DecodeBackend,
     encode_8way_for_test,
     packed_table::{
@@ -333,8 +336,12 @@ fn main() {
             if avx512vl_avail {
                 let (ns, _) = measure(
                     || unsafe {
-                        decode_interleaved8_avx512vl_kernel(&compressed_8way, &packed, size)
-                            .map(|r| r.0)
+                        ryg_rans_rs_simd::avx512::decode_interleaved8_avx512vl_kernel(
+                            &compressed_8way,
+                            &packed,
+                            size,
+                        )
+                        .map(|r| r.0)
                     },
                     n_iter,
                 );
@@ -378,8 +385,12 @@ fn main() {
             if avx512_avail {
                 let (ns, _) = measure(
                     || unsafe {
-                        decode_interleaved16_avx512_kernel(&compressed_16way, &packed, size)
-                            .map(|r| r.0)
+                        ryg_rans_rs_simd::avx512::decode_interleaved16_avx512_kernel(
+                            &compressed_16way,
+                            &packed,
+                            size,
+                        )
+                        .map(|r| r.0)
                     },
                     n_iter,
                 );
