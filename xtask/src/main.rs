@@ -687,28 +687,35 @@ fn cmd_seal() -> Result<(), String> {
             continue;
         }
         // Build canonical JSON with receipt_sha256 set to empty string
-        // using json! macro for same key ordering as oracle harness
-        let canonical = serde_json::json!({
-            "schema_version": r_json.get("schema_version"),
-            "court_id": r_json.get("court_id"),
-            "court_path": r_json.get("court_path"),
-            "variant": r_json.get("variant"),
-            "profile": r_json.get("profile"),
-            "scale_bits": r_json.get("scale_bits"),
-            "seed": r_json.get("seed"),
-            "num_cases": r_json.get("num_cases"),
-            "verdict": r_json.get("verdict"),
-            "upstream_commit": r_json.get("upstream_commit"),
-            "code_commit": r_json.get("code_commit"),
-            "pairs_compared": r_json.get("pairs_compared"),
-            "pairs_matched": r_json.get("pairs_matched"),
-            "residual_count": r_json.get("residual_count"),
-            "residual_ids": r_json.get("residual_ids"),
-            "manifest_sha256": r_json.get("manifest_sha256"),
-            "receipt_sha256": "",
-            "reproduction_command": r_json.get("reproduction_command"),
-            "oracle_compiler": r_json.get("oracle_compiler"),
-        });
+        // using an explicit serde_json::Map to avoid json! macro wrapping
+        // of Option<&Value> which can produce different serialization.
+        let mut canonical = serde_json::Map::new();
+        canonical.insert("schema_version".into(), r_json["schema_version"].clone());
+        canonical.insert("court_id".into(), r_json["court_id"].clone());
+        canonical.insert("court_path".into(), r_json["court_path"].clone());
+        canonical.insert("variant".into(), r_json["variant"].clone());
+        canonical.insert("profile".into(), r_json["profile"].clone());
+        canonical.insert("scale_bits".into(), r_json["scale_bits"].clone());
+        canonical.insert("seed".into(), r_json["seed"].clone());
+        canonical.insert("num_cases".into(), r_json["num_cases"].clone());
+        canonical.insert("verdict".into(), r_json["verdict"].clone());
+        canonical.insert("upstream_commit".into(), r_json["upstream_commit"].clone());
+        canonical.insert("code_commit".into(), r_json["code_commit"].clone());
+        canonical.insert("pairs_compared".into(), r_json["pairs_compared"].clone());
+        canonical.insert("pairs_matched".into(), r_json["pairs_matched"].clone());
+        canonical.insert("residual_count".into(), r_json["residual_count"].clone());
+        canonical.insert("residual_ids".into(), r_json["residual_ids"].clone());
+        canonical.insert("manifest_sha256".into(), r_json["manifest_sha256"].clone());
+        canonical.insert(
+            "receipt_sha256".into(),
+            serde_json::Value::String(String::new()),
+        );
+        canonical.insert(
+            "reproduction_command".into(),
+            r_json["reproduction_command"].clone(),
+        );
+        canonical.insert("oracle_compiler".into(), r_json["oracle_compiler"].clone());
+        let canonical = serde_json::Value::Object(canonical);
         let canonical_str = serde_json::to_string_pretty(&canonical)
             .map_err(|e| format!("canonical {}: {}", r_path, e))?;
         let computed = {
