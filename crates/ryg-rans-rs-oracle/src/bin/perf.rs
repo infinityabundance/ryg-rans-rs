@@ -506,7 +506,7 @@ fn main() {
             }
 
             // ---- Backend 4b: AVX512VL 8-way (preallocated kernel) ----
-            if avx512vl_avail {
+            if avx512vl8_ok {
                 let mut prealloc = vec![0u8; size];
                 let (ns_kernel, _) = measure_into(
                     &|buf: &mut [u8]| unsafe {
@@ -558,7 +558,7 @@ fn main() {
             ));
 
             // ---- Backend 6: AVX512 16-way ----
-            if avx512_avail {
+            if avx512_16_ok {
                 let (ns, _) = measure(
                     || unsafe {
                         ryg_rans_rs_simd::backends::decode_interleaved16_avx512(
@@ -588,7 +588,7 @@ fn main() {
             }
 
             // ---- Backend 6b: AVX512 16-way (preallocated kernel) ----
-            if avx512_avail {
+            if avx512_16_ok {
                 let mut prealloc = vec![0u8; size];
                 let (ns_kernel, _) = measure_into(
                     &|buf: &mut [u8]| unsafe {
@@ -620,7 +620,7 @@ fn main() {
             }
 
             // ---- Backend 7: AVX512VL 8-way manual gather ----
-            if avx512vl_avail {
+            if manual8_ok {
                 let (ns, _) = measure(
                     || unsafe {
                         ryg_rans_rs_simd::backends::decode_interleaved8_manual_gather(
@@ -650,7 +650,7 @@ fn main() {
             }
 
             // ---- Backend 8: AVX512 16-way manual gather ----
-            if avx512_avail {
+            if manual16_ok {
                 let (ns, _) = measure(
                     || unsafe {
                         ryg_rans_rs_simd::backends::decode_interleaved16_manual_gather(
@@ -680,7 +680,7 @@ fn main() {
             }
 
             // ---- Backend 9: AVX512VL 2x8 on 16-way format ----
-            if avx512vl_avail {
+            if twx8_ok {
                 let (ns, _) = measure(
                     || unsafe {
                         ryg_rans_rs_simd::backends::decode_interleaved16_2x8(
@@ -711,7 +711,7 @@ fn main() {
 
             // ---- Backend 10: Uniform256 table-free (16-way) ----
             // This kernel avoids table lookups entirely — only valid for uniform256 models.
-            if avx512_avail && profile.name == "UNIFORM256" {
+            if uniform_tf_ok {
                 let (ns, _) = measure(
                     || unsafe {
                         ryg_rans_rs_simd::model_kernels::decode_interleaved16_uniform256_avx512(

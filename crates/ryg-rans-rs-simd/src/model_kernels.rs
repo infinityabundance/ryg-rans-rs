@@ -76,10 +76,20 @@ pub unsafe fn decode_interleaved16_uniform256_avx512(
 
         // Precompute uniform-256 constants
         let mask_4095 = _mm512_set1_epi32(0x0fff); // slot mask: state & 4095
-        let freq_16 = _mm512_set1_epi32(16); // frequency for uniform model
         const SHIFT_12: u32 = 12; // state >> 12 (scale)
         const SHIFT_4: u32 = 4; // symbol = slot >> 4
-        const SHIFT_8: u32 = 8; // optimized: freq * (state>>12) = state>>8
+
+        // NOTE on the Uniform256 transition:
+        //   frequency = 16, start = symbol * 16
+        //   slot = state & 4095, bias = slot & 15, symbol = slot >> 4
+        //   new_state = 16 * (state >> 12) + (slot & 15)
+        //
+        // This is NOT equivalent to (state >> 8) + (slot & 15) because
+        //   state >> 8 = 16 * (state >> 12) + (slot >> 8)
+        // The term (slot >> 8) is 0..15, causing divergence for slots >= 256.
+        //
+        // So we compute: new_state = ((state >> 12) << 4) + bias
+        // which is: shift right 12, left 4 (multiply by 16), add bias.
 
         for i in (0..even16).step_by(16) {
             // Table-free decode: slot = state & 4095

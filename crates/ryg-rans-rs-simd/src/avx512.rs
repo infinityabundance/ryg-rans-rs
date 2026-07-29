@@ -1413,8 +1413,9 @@ pub unsafe fn decode_batch_interleaved16_avx512(
                     let job = &mut batch[j];
                     let output_len = job.output.len();
                     let cursor = cursors[j];
-                    if cursor < output_len && cursor > 0 {
-                        // Process remaining tail symbols (scalar fallback)
+                    if cursor < output_len {
+                        // Process remaining tail symbols (scalar fallback).
+                        // cursor can be 0 for blocks shorter than 16 symbols.
                         let mut ls: [u32; 16] = core::mem::zeroed();
                         _mm512_storeu_si512(ls.as_mut_ptr() as *mut __m512i, states[j]);
                         for i in cursor..output_len {
