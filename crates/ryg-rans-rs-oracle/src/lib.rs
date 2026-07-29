@@ -3,7 +3,10 @@
 //! Cross-decoding oracle harness. Produces tracked receipts under `evidence/receipts/`
 //! and canonical case manifests under `evidence/manifests/`.
 
-use ryg_rans_rs_simd::{RansWordTables as SimdTables, build_word_tables, decode_simd_8way, decode_simd_8way_unchecked, decode_8way_scalar};
+use ryg_rans_rs_simd::{
+    RansWordTables as SimdTables, build_word_tables, decode_8way_scalar, decode_simd_8way,
+    decode_simd_8way_unchecked,
+};
 use std::process::Command;
 
 /// Whether the Rust side uses division or reciprocal paths.
@@ -2481,7 +2484,9 @@ fn rust_word_simd_decode(
         // Compile-time features available — call unchecked SIMD directly
         let result = unsafe { decode_simd_8way_unchecked(&words, &tables, expected_len) };
         result.map(|v| (v, "simd-sse41"))
-    } else if std::is_x86_feature_detected!("sse4.1") && std::is_x86_feature_detected!("ssse3") {
+    } else if std::arch::is_x86_feature_detected!("sse4.1")
+        && std::arch::is_x86_feature_detected!("ssse3")
+    {
         // Runtime features available
         let result = unsafe { decode_simd_8way_unchecked(&words, &tables, expected_len) };
         result.map(|v| (v, "simd-sse41"))
@@ -2490,7 +2495,6 @@ fn rust_word_simd_decode(
         result.map(|v| (v, "scalar-8way"))
     };
     backend.map_err(|e| format!("SIMD decode: {}", e))
-}
 }
 
 /// Run a SIMD cross-decoding court (8-way interleaved word rANS with SIMD decode).
@@ -2591,11 +2595,10 @@ pub fn run_simd_court(
             scale_bits,
             input.len(),
         )
-        .map(|d| d == input)
+        .map(|(d, _backend)| d == input)
         .unwrap_or(false);
 
         // Verify Rust SIMD decode matches scalar 8-way decode
-        // (convert bytes to u16 words and use the scalar 8-way decoder from the simd crate)
         let simd_scalar_agree = {
             let c_words: Vec<u16> = c_compressed
                 .chunks(2)
@@ -2619,7 +2622,7 @@ pub fn run_simd_court(
                         input.len(),
                     );
                     match simd_dec {
-                        Ok(s) => s == input && dec == s,
+                        Ok((s, _backend)) => s == input && dec == s,
                         Err(_) => false,
                     }
                 }
@@ -2646,7 +2649,7 @@ pub fn run_simd_court(
             scale_bits,
             input.len(),
         )
-        .map(|d| d == input)
+        .map(|(d, _backend)| d == input)
         .unwrap_or(false);
 
         // C SIMD decode of Rust compressed (Rust→C cross)
