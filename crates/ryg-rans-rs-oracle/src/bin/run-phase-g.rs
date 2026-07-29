@@ -167,6 +167,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let court_id = entry.get("court_id").and_then(|c| c.as_str()).unwrap_or("");
         if !existing_ids.contains(court_id) {
             merged_receipts.push(entry.clone());
+        } else {
+            // Replace existing entry with new one (updated SHA-256)
+            if let Some(pos) = merged_receipts
+                .iter()
+                .position(|r| r.get("court_id").and_then(|c| c.as_str()) == Some(court_id))
+            {
+                merged_receipts[pos] = entry.clone();
+            }
         }
     }
 
@@ -211,32 +219,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::fs::create_dir_all(&canonical_receipt_dir)?;
         std::fs::create_dir_all(&canonical_manifest_dir)?;
 
-        // Copy all staging receipts to canonical
-        if let Ok(entries) = std::fs::read_dir(&receipt_dir) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let fname = entry.file_name();
-                    let fname_str = fname.to_string_lossy().to_string();
-                    let dest = format!("{}/{}", canonical_receipt_dir, fname_str);
-                    if !Path::new(&dest).exists() {
-                        std::fs::copy(entry.path(), &dest)?;
-                    }
-                }
-            }
+        // Copy all staging receipts to canonical (overwrite existing)
+        for entry in std::fs::read_dir(&receipt_dir)? {
+            let entry = entry?;
+            let fname = entry.file_name();
+            let fname_str = fname.to_string_lossy().to_string();
+            let dest = format!("{}/{}", canonical_receipt_dir, fname_str);
+            std::fs::copy(entry.path(), &dest)?;
         }
 
-        // Copy all staging manifests to canonical
-        if let Ok(entries) = std::fs::read_dir(&manifest_dir) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let fname = entry.file_name();
-                    let fname_str = fname.to_string_lossy().to_string();
-                    let dest = format!("{}/{}", canonical_manifest_dir, fname_str);
-                    if !Path::new(&dest).exists() {
-                        std::fs::copy(entry.path(), &dest)?;
-                    }
-                }
-            }
+        // Copy all staging manifests to canonical (overwrite existing)
+        for entry in std::fs::read_dir(&manifest_dir)? {
+            let entry = entry?;
+            let fname = entry.file_name();
+            let fname_str = fname.to_string_lossy().to_string();
+            let dest = format!("{}/{}", canonical_manifest_dir, fname_str);
+            std::fs::copy(entry.path(), &dest)?;
         }
 
         // Write merged index to canonical
