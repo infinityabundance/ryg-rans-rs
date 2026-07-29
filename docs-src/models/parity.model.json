@@ -731,11 +731,61 @@
     },
     {
       "id": "sse41.decoder",
-      "name": "SSE4.1 SIMD decoder",
-      "implementation_status": "scaffold",
+      "name": "SSE4.1 SIMD decoder (8-way interleaved)",
+      "implementation_status": "full",
       "upstream_file": "rans_word_sse41.h",
-      "claims": [],
-      "notes": ""
+      "functions": ["RansSimdDecSym", "RansSimdDecRenorm", "RansSimdDecInit"],
+      "claims": [
+        {
+          "profile": "INTERLEAVED8.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.SIMD.INTERLEAVED8.UNIFORM256.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.FREQ1.RESIDUAL.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.SIMD.INTERLEAVED8.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.SKEWED.255_1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.SIMD.INTERLEAVED8.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.SPARSE.2.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.SIMD.INTERLEAVED8.SPARSE.2.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.SPARSE.17.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.SIMD.INTERLEAVED8.SPARSE.17.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.PRIME.RESIDUE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.SIMD.INTERLEAVED8.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.RENORM.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.SIMD.INTERLEAVED8.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.LENGTH.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.SIMD.INTERLEAVED8.LENGTH.BOUNDARY.S12"
+        }
+      ],
+      "notes": "8-way interleaved SIMD decoder. Requires SSSE3+SSE4.1 for SIMD path; falls back to scalar 8-way decode when features unavailable."
     },
     {
       "id": "alias",

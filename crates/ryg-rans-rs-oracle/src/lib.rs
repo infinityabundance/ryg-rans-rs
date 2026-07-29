@@ -280,7 +280,7 @@ impl ModelProfile {
             ModelProfile::PrimeResidue => 20,
             ModelProfile::RenormBoundary => 20,
             ModelProfile::ScaleSweep => 5,      // per scale_bits value
-            ModelProfile::LengthBoundary => 12, // one per boundary length
+            ModelProfile::LengthBoundary => 28, // 0..17, 63..65, 127..129, 255..257, 1023
         }
     }
 
@@ -291,7 +291,10 @@ impl ModelProfile {
         let num_symbols = freqs.len();
         match self {
             ModelProfile::LengthBoundary => {
-                let lengths = [0, 1, 63, 64, 65, 127, 128, 129, 255, 256, 257, 1023];
+                let lengths = [
+                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 63, 64, 65, 127,
+                    128, 129, 255, 256, 257, 1023,
+                ];
                 let len = lengths[case_idx.min(lengths.len() - 1)];
                 let mut rng = SimpleRng::new(seed.wrapping_add(case_idx as u64));
                 (0..len)
@@ -2503,10 +2506,14 @@ pub fn run_simd_court(
     scale_bits: u32,
     seed: u64,
     profile: ModelProfile,
+    num_cases_override: Option<usize>,
 ) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
-    let num_cases = profile.num_cases();
+    let num_cases = num_cases_override.unwrap_or_else(|| profile.num_cases());
     let profile_label = profile.label();
-    let court_id = format!("RYG_RANS.SIMD.{}.S{}", profile_label, scale_bits);
+    let court_id = format!(
+        "RYG_RANS.SIMD.INTERLEAVED8.{}.S{}",
+        profile_label, scale_bits
+    );
 
     let c_enc_op = "enc-stream-simd";
     let c_dec_op = "dec-stream-simd";
@@ -2588,15 +2595,25 @@ pub fn run_simd_court(
         };
 
         // Rust SIMD decode of C compressed (C→Rust cross)
-        let c_to_rust = rust_word_simd_decode(
+        // Record backend to verify SIMD was actually used
+        let (c_to_rust, simd_backend) = match rust_word_simd_decode(
             &c_compressed,
             &raw_freqs,
             &cum_freqs,
             scale_bits,
             input.len(),
-        )
-        .map(|(d, _backend)| d == input)
-        .unwrap_or(false);
+        ) {
+            Ok((d, backend)) => (d == input, backend),
+            Err(_) => (false, "error"),
+        };
+
+        // Assert: SIMD court must use actual SIMD backend, not scalar fallback
+        if simd_backend != "simd-sse41" {
+            residuals.push(format!(
+                "{}.{:06}.BACKEND.{}",
+                court_id, case_idx, simd_backend
+            ));
+        }
 
         // Verify Rust SIMD decode matches scalar 8-way decode
         let simd_scalar_agree = {
@@ -2622,6 +2639,7 @@ pub fn run_simd_court(
                         input.len(),
                     );
                     match simd_dec {
+                        Ok((s, _backend)) => s == input && dec == s,
                         Ok((s, _backend)) => s == input && dec == s,
                         Err(_) => false,
                     }

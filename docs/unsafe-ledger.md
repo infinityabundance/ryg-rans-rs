@@ -13,7 +13,7 @@
 | Crate | Status | `unsafe` blocks |
 |---|---|---|
 | `ryg-rans-core` | `#![forbid(unsafe_code)]` | 0 |
-| `ryg-rans-simd` | Scaffold only — no implementation yet | 0 (planned) |
+| `ryg-rans-simd` | Implemented — SSE4.1 intrinsics | 7 unsafe fn (feature-gated under `#[target_feature]`), 42 intrinsic calls in `rans_simd_dec_sym_unchecked` and `rans_simd_dec_renorm_unchecked` |
 | `ryg-rans` | `#![deny(unsafe_code)]` | 0 |
 | `ryg-rans-oracle` | Safe | 0 |
 | `ryg-rans-casefile` | `#![no_std]`, safe | 0 |

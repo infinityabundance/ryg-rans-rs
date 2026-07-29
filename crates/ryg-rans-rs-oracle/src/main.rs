@@ -40,22 +40,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let evidence_root =
         std::env::var("RANS_EVIDENCE_DIR").unwrap_or_else(|_| "evidence".to_string());
 
-    // If STAGING mode is active, write to evidence.staging/ instead
-    // This prevents partial evidence from overwriting the canonical directory.
+    // Staging logic: always generate into a staging directory first,
+    // then atomically promote on success — unless this is a filtered run.
     use std::path::Path;
-    let staging_root =
-        if std::env::var("RANS_EVIDENCE_STAGING").is_ok() || !Path::new(&evidence_root).exists() {
-            evidence_root.clone()
-        } else {
-            // Generate into staging first
-            let staging_dir = format!(
-                "{}.staging/{}",
-                evidence_root,
-                chrono::Utc::now().format("%Y%m%d-%H%M%S")
-            );
-            println!("  Staging evidence to: {}", staging_dir);
-            staging_dir
-        };
+    let is_filtered_run = only_variant.is_some();
+    let staging_root = if is_filtered_run {
+        // Filtered runs always go to temp — never promote
+        let tmp = format!(
+            "{}.staging/filtered-{}-{}",
+            evidence_root,
+            only_variant.unwrap_or(""),
+            chrono::Utc::now().format("%Y%m%d-%H%M%S")
+        );
+        println!("  Filtered run → staging (no promotion): {}", tmp);
+        tmp
+    } else if Path::new(&evidence_root).exists() {
+        // Canonical exists — generate into staging, promote on success
+        let staging_dir = format!(
+            "{}.staging/{}",
+            evidence_root,
+            chrono::Utc::now().format("%Y%m%d-%H%M%S")
+        );
+        println!("  Staging evidence to: {}", staging_dir);
+        staging_dir
+    } else {
+        // No canonical yet — write directly
+        evidence_root.clone()
+    };
 
     let receipt_dir = format!("{}/receipts", staging_root);
     let manifest_dir = format!("{}/manifests", staging_root);
@@ -95,7 +106,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else if config.variant == "simd" {
                 // SIMD is always 8-way interleaved — no separate single-state mode
-                ryg_rans_rs_oracle::run_simd_court(oracle, scale, seed, config.profile)?
+                ryg_rans_rs_oracle::run_simd_court(
+                    oracle,
+                    scale,
+                    seed,
+                    config.profile,
+                    override_cases,
+                )?
             } else {
                 match config.mode {
                     CourtMode::SingleState => ryg_rans_rs_oracle::run_court_with_profile(
@@ -175,16 +192,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     println!("Evidence index: {}/index.json", staging_root);
 
-    // If staging differs from canonical, atomically replace
-    if staging_root != evidence_root {
-        // Remove old canonical, copy staging into place
-        let _ = std::fs::remove_dir_all(&evidence_root);
-        std::fs::rename(&staging_root, &evidence_root)
-            .map_err(|e| format!("failed to replace canonical evidence: {}", e))?;
-        println!("  Staged evidence moved to: {}", evidence_root);
-    }
-
     if all_passed {
+        let should_promote = staging_root != evidence_root && !is_filtered_run;
+        if should_promote {
+            // Atomic promote: rename canonical to backup, staging to canonical
+            let backup = format!(
+                "{}.backup.{}",
+                evidence_root,
+                chrono::Utc::now().format("%Y%m%d-%H%M%S")
+            );
+            if let Err(e) = std::fs::rename(&evidence_root, &backup) {
+                eprintln!("  WARNING: could not back up canonical evidence: {}", e);
+            } else {
+                match std::fs::rename(&staging_root, &evidence_root) {
+                    Ok(()) => {
+                        let _ = std::fs::remove_dir_all(&backup); // success — remove backup
+                        println!("  Promoted staging → canonical evidence");
+                    }
+                    Err(e) => {
+                        // Restore from backup
+                        let _ = std::fs::rename(&backup, &evidence_root);
+                        return Err(format!("failed to promote staging: {}", e).into());
+                    }
+                }
+            }
+        } else if is_filtered_run {
+            println!(
+                "  Filtered run — evidence kept in staging: {}",
+                staging_root
+            );
+        }
         println!("ALL COURTS PASSED");
         Ok(())
     } else {
