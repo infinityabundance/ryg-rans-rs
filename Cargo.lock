@@ -485,6 +485,8 @@ dependencies = [
  "ryg-rans-rs",
  "ryg-rans-rs-core",
  "ryg-rans-rs-simd",
+ "serde",
+ "serde_json",
  "sha2",
 ]
 

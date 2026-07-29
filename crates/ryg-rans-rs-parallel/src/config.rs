@@ -92,7 +92,9 @@ pub enum BackendPolicy {
 }
 
 /// Identifies a specific decode kernel/backend.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub enum BackendId {
     RawCopy,
     RleFill,

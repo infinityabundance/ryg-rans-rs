@@ -36,7 +36,7 @@ impl ExecutorTask for DecodeTask {
     }
 }
 
-fn decode_single_block(job: &DecodeBlockJob) -> Result<DecodedBlockResult, BlockError> {
+pub fn decode_single_block(job: &DecodeBlockJob) -> Result<DecodedBlockResult, BlockError> {
     let data = &job.block_data;
     if data.len() < 104 {
         return Err(BlockError {
