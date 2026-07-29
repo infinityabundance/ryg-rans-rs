@@ -319,21 +319,23 @@ pub unsafe fn decode_interleaved16_avx512(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
-) -> Result<DecodeResult, DecodeError> { unsafe {
-    #[cfg(any(target_feature = "avx512bw", feature = "std"))]
-    {
-        let (output, report) =
-            crate::avx512::decode_interleaved16_avx512_kernel(compressed, table, expected_len)
-                .map_err(|_| DecodeError::InputTooShort)?;
-        return Ok(DecodeResult {
-            output,
-            report,
-            backend: DecodeBackend::Avx512Interleaved16,
-        });
-    }
-    #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
-    {
-        Err(DecodeError::UnsupportedBackend)
+) -> Result<DecodeResult, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            let (output, report) =
+                crate::avx512::decode_interleaved16_avx512_kernel(compressed, table, expected_len)
+                    .map_err(|_| DecodeError::InputTooShort)?;
+            return Ok(DecodeResult {
+                output,
+                report,
+                backend: DecodeBackend::Avx512Interleaved16,
+            });
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
     }
 }
 
