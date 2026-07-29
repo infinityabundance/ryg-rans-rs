@@ -881,6 +881,7 @@ fn check_docker_matrix() -> Result<(), String> {
         "cross-court",
         "miri",
         "performance",
+        "parallel-stable",
     ];
     for expected in &expected_jobs {
         let found = jobs.iter().any(|j| {
