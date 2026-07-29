@@ -11,23 +11,29 @@
 
 The harness runs deterministic courts that compare Rust rANS encoding and decoding against a compiled C/C++ oracle binary (`rans_trace.cpp`).
 
-| Court | Surface | Receipts |
-|-------|---------|----------|
-| `BYTE.DIVISION` | 32-bit byte rANS division path | 44 |
-| `BYTE.RECIPROCAL` | 32-bit byte rANS reciprocal path | (included above) |
-| `R64.DIVISION` | 64-bit rANS division path | 44 |
-| `R64.RECIPROCAL` | 64-bit rANS reciprocal path | (included above) |
-| `WORD.DIVISION` | Word-aligned rANS (scalar) | 16 |
-| `ALIAS` | Alias method | 16 |
-| `SIMD.INTERLEAVED8` | SSE4.1 SIMD decoder | 8 |
-| **Total** | | **128** |
+| Court Surface | Receipts | Description |
+|---------------|----------|-------------|
+| Byte rANS (division + reciprocal) | 44 | 32-bit byte-aligned rANS |
+| R64 (division + reciprocal) | 44 | 64-bit rANS |
+| Word rANS (scalar) | 16 | Word-aligned rANS |
+| Alias method | 16 | Vose alias table + byte rANS |
+| SIMD.INTERLEAVED8 | 8 | SSE4.1 SIMD decoder |
+| **AVX512VL.INTERLEAVED8** | **8** | AVX-512VL 8-way decoder |
+| **AVX512.INTERLEAVED16** | **8** | AVX-512 16-way decoder |
+| **Total** | **144** | |
 
-Each court produces:
-- A `Receipt` JSON file containing verdict, counts, SHA-256 chains, reproduction command.
-- A `CaseManifest` JSON file containing all input cases, frequency models, C and Rust compressed streams, and per-case check results.
-- An `index.json` accumulating all receipt references.
+### Phase G: AVX-512 Courts
 
-The evidence is SHA-256-chained: manifest hash is embedded in the receipt, receipt hash is embedded in the index. Self-hashes prevent undetected modification.
+Two new court surfaces in `phase_g.rs`:
+
+#### `AVX512VL.INTERLEAVED8`
+- 8 checks per case: C self-decode, Rust scalar/SIMD self-decode, compressed match, C→Rust scalar/SIMD, Rust→C, SIMD/scalar agree, backend assertion
+- Rejects scalar fallback with `BACKEND.*` residual
+
+#### `AVX512.INTERLEAVED16`
+- 8 checks per case including cross-language decode
+- Backend assertion `avx512-16way` required
+- Independent C oracle for new 16-way format
 
 ## Usage
 
@@ -35,7 +41,7 @@ The evidence is SHA-256-chained: manifest hash is embedded in the receipt, recei
 # Build the oracle adapter
 cd oracle/adapter && make
 
-# Generate full evidence (10+ minutes for 128 courts)
+# Run all courts (144 receipts)
 RANS_EVIDENCE_STAGING=1 cargo run -p ryg-rans-rs-oracle \
     -- oracle/adapter/rans_trace 12 42 20
 
@@ -45,25 +51,24 @@ cargo xtask seal
 
 ### Environment Variables
 
-- `RANS_EVIDENCE_DIR` — Output directory for receipts and manifests (default: `evidence/`).
-- `RANS_GIT_COMMIT` — Commit hash to embed in evidence (default: `git rev-parse HEAD`).
-- `RANS_EVIDENCE_STAGING` — Use `evidence.staging/<timestamp>/` with atomic swap on success.
+- `RANS_EVIDENCE_DIR` — Output directory (default: `evidence/`).
+- `RANS_GIT_COMMIT` — Commit hash for evidence (default: `git rev-parse HEAD`).
+- `RANS_EVIDENCE_STAGING` — Use staging directory with atomic swap on success.
+
+## C Oracle Operations
+
+| Operation | Purpose |
+|-----------|---------|
+| `enc-stream-simd` | 8-way SIMD Word rANS encode |
+| `dec-stream-simd` | 8-way SIMD Word rANS decode |
+| `enc-stream-word-interleaved16` | 16-way Word rANS encode |
+| `dec-stream-word-interleaved16` | 16-way Word rANS decode |
+| Plus all byte/R64/alias/interleaved2 operations | |
 
 ## Performance Benchmark
 
-The crate includes a `perf` binary for measuring decode throughput:
-
 ```sh
-# With SIMD backend
-RUSTFLAGS="-C target-feature=+ssse3,+sse4.1" cargo run --release \
-    --bin perf -- oracle/adapter/rans_trace [only-size]
-```
-
-Measures across 5 profiles (Uniform256, Freq1Residual, Skewed.255_1, Sparse.17, Renorm.Boundary) and 7 sizes (64 B – 1 MiB). Reports GiB/s and ns/symbol for scalar and SIMD backends.
-
-For hardware counter measurement:
-```sh
-sudo perf stat -r 5 -e cycles,instructions,branches,branch-misses \
-    RUSTFLAGS="-C target-feature=+ssse3,+sse4.1" cargo run --release \
+# With SIMD + AVX-512
+RUSTFLAGS="-C target-feature=+ssse3,+sse4.1,+avx512f,+avx512vl,+avx512bw" cargo run --release \
     --bin perf -- oracle/adapter/rans_trace
 ```

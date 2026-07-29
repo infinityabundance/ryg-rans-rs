@@ -14,6 +14,11 @@ pub mod avx512;
 pub mod backends;
 pub mod packed_table;
 
+#[cfg(test)]
+pub mod malformed_input_tests;
+#[cfg(test)]
+pub mod mask_tests;
+
 // ---------------------------------------------------------------------------
 // Re-export core word rANS constants for convenience
 // ---------------------------------------------------------------------------
