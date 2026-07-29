@@ -900,6 +900,129 @@
       "upstream_file": "main.cpp",
       "claims": [],
       "notes": ""
+    },
+    {
+      "id": "avx512vl.interleaved8.decoder",
+      "name": "AVX512VL.INTERLEAVED8 word rANS decoder",
+      "implementation_status": "implemented",
+      "upstream_file": "rans_word_sse41.h",
+      "functions": [
+        "decode_interleaved8_avx512vl_kernel",
+        "PackedWordTable"
+      ],
+      "claims": [
+        {
+          "profile": "INTERLEAVED8.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.FREQ1.RESIDUAL.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.SKEWED.255_1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.SPARSE.2.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.SPARSE.2.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.SPARSE.17.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.SPARSE.17.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.PRIME.RESIDUE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.RENORM.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED8.LENGTH.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.LENGTH.BOUNDARY.S12"
+        }
+      ],
+      "notes": "Consumes the existing canonical eight-way Word rANS stream format. Uses AVX512VL 256-bit vectors with packed table gather."
+    },
+    {
+      "id": "avx512.interleaved16.decoder",
+      "name": "AVX512.INTERLEAVED16 word rANS decoder",
+      "implementation_status": "implemented",
+      "upstream_file": "rans_trace.cpp",
+      "functions": [
+        "decode_interleaved16_avx512_kernel",
+        "encode_interleaved16",
+        "decode_interleaved16_scalar"
+      ],
+      "claims": [
+        {
+          "profile": "INTERLEAVED16.UNIFORM256.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.UNIFORM256.S12"
+        },
+        {
+          "profile": "INTERLEAVED16.FREQ1.RESIDUAL.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.FREQ1.RESIDUAL.S12"
+        },
+        {
+          "profile": "INTERLEAVED16.SKEWED.255_1.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.SKEWED.255_1.S12"
+        },
+        {
+          "profile": "INTERLEAVED16.SPARSE.2.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.SPARSE.2.S12"
+        },
+        {
+          "profile": "INTERLEAVED16.SPARSE.17.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.SPARSE.17.S12"
+        },
+        {
+          "profile": "INTERLEAVED16.PRIME.RESIDUE.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.PRIME.RESIDUE.S12"
+        },
+        {
+          "profile": "INTERLEAVED16.RENORM.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.RENORM.BOUNDARY.S12"
+        },
+        {
+          "profile": "INTERLEAVED16.LENGTH.BOUNDARY.S12",
+          "behavior_status": "full",
+          "performance_status": "unsealed",
+          "receipt": "RYG_RANS.AVX512.INTERLEAVED16.LENGTH.BOUNDARY.S12"
+        }
+      ],
+      "notes": "Consumes the new canonical sixteen-way Word rANS stream format with reverse-flush ordering. Uses AVX512 512-bit vectors with packed table gather."
     }
   ]
 }
