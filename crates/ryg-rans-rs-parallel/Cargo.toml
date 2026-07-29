@@ -11,3 +11,8 @@ ryg-rans-rs-core = { version = "0.1.23", path = "../ryg-rans-rs-core", features 
 ryg-rans-rs = { version = "0.1.23", path = "../ryg-rans-rs", default-features = false, features = ["alloc"], optional = true }
 ryg-rans-rs-simd = { version = "0.1.23", path = "../ryg-rans-rs-simd", features = ["std"], optional = true }
 crossbeam-channel = { version = "0.5", features = ["std"] }
+sha2 = "0.10"
+
+[features]
+default = ["simd"]
+simd = ["ryg-rans-rs-simd"]
