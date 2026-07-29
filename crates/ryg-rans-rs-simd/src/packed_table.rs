@@ -244,14 +244,36 @@ impl fmt::Display for EquivalenceError {
 // Scalar eight-way decode using packed table (verification reference)
 // ---------------------------------------------------------------------------
 
+/// 8-way decode report with real words consumed and final states.
+#[derive(Debug, Clone, Copy)]
+pub struct DecodeReport8 {
+    /// Total u16 words consumed from the compressed stream.
+    pub words_consumed: usize,
+    /// Final state of each of the 8 lanes after decode completes.
+    pub final_states: [u32; 8],
+}
+
 /// Decode 8 symbols using packed table (scalar reference).
 ///
-/// Must produce exactly the same output as `decode_8way_scalar`.
+/// Returns output bytes only.  See `decode_8way_packed_scalar_with_report`
+/// for a version that also returns words consumed and final states.
 pub fn decode_8way_packed_scalar(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<Vec<u8>, &'static str> {
+    decode_8way_packed_scalar_with_report(compressed, table, expected_len).map(|(out, _)| out)
+}
+
+/// Decode 8 symbols using packed table (scalar reference) with report.
+///
+/// Returns decoded output plus a `DecodeReport8` containing actual words
+/// consumed from the input stream and the final state of each lane.
+pub fn decode_8way_packed_scalar_with_report(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<(Vec<u8>, DecodeReport8), &'static str> {
     if compressed.len() < 16 {
         return Err("compressed too short for 8 init states");
     }
@@ -299,7 +321,13 @@ pub fn decode_8way_packed_scalar(
         }
     }
 
-    Ok(output)
+    Ok((
+        output,
+        DecodeReport8 {
+            words_consumed: pos,
+            final_states: states,
+        },
+    ))
 }
 
 // ---------------------------------------------------------------------------

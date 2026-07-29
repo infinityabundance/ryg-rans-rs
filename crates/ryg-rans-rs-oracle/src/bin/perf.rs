@@ -19,17 +19,18 @@
 //! - Median-based reporting (not mean)
 //! - Backend identity recorded and asserted
 
+use ryg_rans_rs_simd::{
+    RANS_WORD_SCALE_BITS,
+    avx512::{decode_interleaved8_avx512vl_kernel, decode_interleaved16_avx512_kernel},
+    backends::DecodeBackend,
+    encode_8way_for_test,
+    packed_table::{
+        self, PackedWordTable, decode_8way_packed_scalar, decode_interleaved16_scalar,
+        encode_interleaved16,
+    },
+};
 use std::hint::black_box;
 use std::time::Instant;
-use ryg_rans_rs_simd::{
-    backends::DecodeBackend,
-    packed_table::{
-        self, PackedWordTable, decode_8way_packed_scalar,
-        decode_interleaved16_scalar, encode_interleaved16,
-    },
-    avx512::{decode_interleaved8_avx512vl_kernel, decode_interleaved16_avx512_kernel},
-    encode_8way_for_test, RANS_WORD_SCALE_BITS,
-};
 
 // ---------------------------------------------------------------------------
 // Frequency model helpers
@@ -73,9 +74,13 @@ fn renorm_boundary() -> Vec<u32> {
     f[0] = total / 2;
     let rem = total - f[0];
     let base = rem / 255;
-    for i in 1..256 { f[i] = base; }
+    for i in 1..256 {
+        f[i] = base;
+    }
     let sum: u32 = f.iter().sum();
-    if sum < total { f[255] += total - sum; }
+    if sum < total {
+        f[255] += total - sum;
+    }
     f
 }
 
@@ -93,23 +98,38 @@ struct Profile {
 impl Profile {
     fn new(name: &'static str, raw: &[u32]) -> Self {
         let mut freqs = raw.to_vec();
-        while freqs.len() < 256 { freqs.push(0); }
+        while freqs.len() < 256 {
+            freqs.push(0);
+        }
         let mut cum = vec![0u32; 257];
-        for i in 0..freqs.len() { cum[i + 1] = cum[i] + freqs[i]; }
+        for i in 0..freqs.len() {
+            cum[i + 1] = cum[i] + freqs[i];
+        }
         let num_syms = raw.iter().filter(|&&f| f > 0).count();
-        Self { name, freqs, cum, num_syms }
+        Self {
+            name,
+            freqs,
+            cum,
+            num_syms,
+        }
     }
 
     fn generate_input(&self, len: usize, seed: u64) -> Vec<u8> {
         let mut rng = seed;
-        (0..len).map(|_| {
-            rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
-            let threshold = rng % (1u64 << 12);
-            for s in 0..self.num_syms {
-                if (threshold as u32) < self.cum[s + 1] { return s as u8; }
-            }
-            (self.num_syms - 1) as u8
-        }).collect()
+        (0..len)
+            .map(|_| {
+                rng = rng
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407);
+                let threshold = rng % (1u64 << 12);
+                for s in 0..self.num_syms {
+                    if (threshold as u32) < self.cum[s + 1] {
+                        return s as u8;
+                    }
+                }
+                (self.num_syms - 1) as u8
+            })
+            .collect()
     }
 }
 
@@ -118,19 +138,28 @@ impl Profile {
 // ---------------------------------------------------------------------------
 
 fn report(name: &str, profile: &str, size: usize, ns: f64, symbols: u64) {
-    if symbols == 0 { return; }
+    if symbols == 0 {
+        return;
+    }
     let gib_s = (symbols as f64 / 1.073741824e9) / (ns / 1e9);
     let ns_sym = ns / symbols as f64;
-    println!("  {:30} {:30} {:8} {:12.1} GiB/s  {:9.2} ns/symbol",
-        name, profile, size, gib_s, ns_sym);
+    println!(
+        "  {:30} {:30} {:8} {:12.1} GiB/s  {:9.2} ns/symbol",
+        name, profile, size, gib_s, ns_sym
+    );
 }
 
 fn measure<F>(f: F, n_iter: u64) -> (f64, u64)
-where F: Fn() -> Result<Vec<u8>, &'static str>
+where
+    F: Fn() -> Result<Vec<u8>, &'static str>,
 {
-    for _ in 0..5 { let _ = black_box(f()); }
+    for _ in 0..5 {
+        let _ = black_box(f());
+    }
     let start = Instant::now();
-    for _ in 0..n_iter { let _ = black_box(f()); }
+    for _ in 0..n_iter {
+        let _ = black_box(f());
+    }
     let elapsed = start.elapsed();
     (elapsed.as_nanos() as f64, n_iter)
 }
@@ -150,11 +179,7 @@ fn main() {
         target_feature = "avx512vl",
         target_feature = "avx512bw",
     ));
-    let avx512_avail = cfg!(all(
-        target_feature = "avx512f",
-        target_feature = "av
-x512bw",
-    ));
+    let avx512_avail = cfg!(all(target_feature = "avx512f", target_feature = "avx512bw",));
 
     // System info
     println!("======================================================================");
@@ -172,7 +197,8 @@ x512bw",
         }
     }
     println!("rustc: {}", rustc_version());
-    println!("Backends: scalar(always) sse41({}) avx512vl({}) avx512({})",
+    println!(
+        "Backends: scalar(always) sse41({}) avx512vl({}) avx512({})",
         if sse41_avail { "YES" } else { "no" },
         if avx512vl_avail { "YES" } else { "no" },
         if avx512_avail { "YES" } else { "no" },
@@ -192,95 +218,184 @@ x512bw",
     let mut results_csv = String::from("profile,size,backend,gibs,ns_sym\n");
 
     for profile in &profiles {
-        println!("--- Profile: {} ({} symbols) ---", profile.name, profile.num_syms);
+        println!(
+            "--- Profile: {} ({} symbols) ---",
+            profile.name, profile.num_syms
+        );
 
         for &size in sizes {
-            if let Some(os) = only_size { if size != os { continue; } }
+            if let Some(os) = only_size {
+                if size != os {
+                    continue;
+                }
+            }
 
             let input = profile.generate_input(size, 42);
             let compressed_8way = encode_8way_for_test(&input, &profile.freqs, &profile.cum);
-            let compressed_16way = encode_interleaved16(&input, &profile.freqs, &profile.cum, RANS_WORD_SCALE_BITS as u32);
+            let compressed_16way = encode_interleaved16(
+                &input,
+                &profile.freqs,
+                &profile.cum,
+                RANS_WORD_SCALE_BITS as u32,
+            );
 
             let (slots, slot2sym) = ryg_rans_rs_simd::build_word_tables(
-                &profile.freqs, &profile.cum, RANS_WORD_SCALE_BITS as u32);
-            let packed = PackedWordTable::from_freqs(&profile.freqs, &profile.cum, RANS_WORD_SCALE_BITS as u32).unwrap();
+                &profile.freqs,
+                &profile.cum,
+                RANS_WORD_SCALE_BITS as u32,
+            );
+            let packed = PackedWordTable::from_freqs(
+                &profile.freqs,
+                &profile.cum,
+                RANS_WORD_SCALE_BITS as u32,
+            )
+            .unwrap();
 
-            let tables_legacy = ryg_rans_rs_simd::RansWordTables { slots: &slots, slot2sym: &slot2sym };
+            let tables_legacy = ryg_rans_rs_simd::RansWordTables {
+                slots: &slots,
+                slot2sym: &slot2sym,
+            };
 
             // Correctness pre-check: all backends must agree
             let scalar8_ok = decode_8way_packed_scalar(&compressed_8way, &packed, size)
-                .map(|d| d == input).unwrap_or(false);
-            if !scalar8_ok { continue; }
+                .map(|d| d == input)
+                .unwrap_or(false);
+            if !scalar8_ok {
+                continue;
+            }
 
             let n_iter = (100_000_000u64 / size.max(1) as u64).max(20).min(500_000);
 
             // ---- Backend 1: Scalar 8-way (legacy slot table) ----
-            let (ns, _) = measure(|| {
-                ryg_rans_rs_simd::decode_8way_scalar(&compressed_8way, &tables_legacy, size)
-            }, n_iter);
-            report("scalar-8way (legacy)", profile.name, size, ns, (size as u64) * n_iter);
-            results_csv.push_str(&format!("{},{},scalar-8way-legacy,{:.2},{:.2}\n",
-                profile.name, size,
+            let (ns, _) = measure(
+                || ryg_rans_rs_simd::decode_8way_scalar(&compressed_8way, &tables_legacy, size),
+                n_iter,
+            );
+            report(
+                "scalar-8way (legacy)",
+                profile.name,
+                size,
+                ns,
+                (size as u64) * n_iter,
+            );
+            results_csv.push_str(&format!(
+                "{},{},scalar-8way-legacy,{:.2},{:.2}\n",
+                profile.name,
+                size,
                 ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
-                ns / (size as u64 * n_iter) as f64));
+                ns / (size as u64 * n_iter) as f64
+            ));
 
             // ---- Backend 2: Scalar 8-way (packed table) ----
-            let (ns, _) = measure(|| {
-                decode_8way_packed_scalar(&compressed_8way, &packed, size)
-            }, n_iter);
-            report("scalar-8way (packed)", profile.name, size, ns, (size as u64) * n_iter);
-            results_csv.push_str(&format!("{},{},scalar-8way-packed,{:.2},{:.2}\n",
-                profile.name, size,
+            let (ns, _) = measure(
+                || decode_8way_packed_scalar(&compressed_8way, &packed, size),
+                n_iter,
+            );
+            report(
+                "scalar-8way (packed)",
+                profile.name,
+                size,
+                ns,
+                (size as u64) * n_iter,
+            );
+            results_csv.push_str(&format!(
+                "{},{},scalar-8way-packed,{:.2},{:.2}\n",
+                profile.name,
+                size,
                 ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
-                ns / (size as u64 * n_iter) as f64));
+                ns / (size as u64 * n_iter) as f64
+            ));
 
             // ---- Backend 3: SSE4.1 8-way ----
             if sse41_avail {
-                let (ns, _) = measure(|| {
-                    unsafe { ryg_rans_rs_simd::decode_simd_8way_unchecked(
-                        &compressed_8way, &tables_legacy, size) }
-                }, n_iter);
+                let (ns, _) = measure(
+                    || unsafe {
+                        ryg_rans_rs_simd::decode_simd_8way_unchecked(
+                            &compressed_8way,
+                            &tables_legacy,
+                            size,
+                        )
+                    },
+                    n_iter,
+                );
                 report("sse41-8way", profile.name, size, ns, (size as u64) * n_iter);
-                results_csv.push_str(&format!("{},{},sse41-8way,{:.2},{:.2}\n",
-                    profile.name, size,
+                results_csv.push_str(&format!(
+                    "{},{},sse41-8way,{:.2},{:.2}\n",
+                    profile.name,
+                    size,
                     ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
-                    ns / (size as u64 * n_iter) as f64));
+                    ns / (size as u64 * n_iter) as f64
+                ));
             }
 
             // ---- Backend 4: AVX512VL 8-way ----
             if avx512vl_avail {
-                let (ns, _) = measure(|| {
-                    unsafe { decode_interleaved8_avx512vl_kernel(
-                        &compressed_8way, &packed, size).map(|r| r.0) }
-                }, n_iter);
-                report("avx512vl-8way", profile.name, size, ns, (size as u64) * n_iter);
-                results_csv.push_str(&format!("{},{},avx512vl-8way,{:.2},{:.2}\n",
-                    profile.name, size,
+                let (ns, _) = measure(
+                    || unsafe {
+                        decode_interleaved8_avx512vl_kernel(&compressed_8way, &packed, size)
+                            .map(|r| r.0)
+                    },
+                    n_iter,
+                );
+                report(
+                    "avx512vl-8way",
+                    profile.name,
+                    size,
+                    ns,
+                    (size as u64) * n_iter,
+                );
+                results_csv.push_str(&format!(
+                    "{},{},avx512vl-8way,{:.2},{:.2}\n",
+                    profile.name,
+                    size,
                     ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
-                    ns / (size as u64 * n_iter) as f64));
+                    ns / (size as u64 * n_iter) as f64
+                ));
             }
 
             // ---- Backend 5: Scalar 16-way ----
-            let (ns, _) = measure(|| {
-                decode_interleaved16_scalar(&compressed_16way, &packed, size).map(|r| r.0)
-            }, n_iter);
-            report("scalar-16way", profile.name, size, ns, (size as u64) * n_iter);
-            results_csv.push_str(&format!("{},{},scalar-16way,{:.2},{:.2}\n",
-                profile.name, size,
+            let (ns, _) = measure(
+                || decode_interleaved16_scalar(&compressed_16way, &packed, size).map(|r| r.0),
+                n_iter,
+            );
+            report(
+                "scalar-16way",
+                profile.name,
+                size,
+                ns,
+                (size as u64) * n_iter,
+            );
+            results_csv.push_str(&format!(
+                "{},{},scalar-16way,{:.2},{:.2}\n",
+                profile.name,
+                size,
                 ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
-                ns / (size as u64 * n_iter) as f64));
+                ns / (size as u64 * n_iter) as f64
+            ));
 
             // ---- Backend 6: AVX512 16-way ----
             if avx512_avail {
-                let (ns, _) = measure(|| {
-                    unsafe { decode_interleaved16_avx512_kernel(
-                        &compressed_16way, &packed, size).map(|r| r.0) }
-                }, n_iter);
-                report("avx512-16way", profile.name, size, ns, (size as u64) * n_iter);
-                results_csv.push_str(&format!("{},{},avx512-16way,{:.2},{:.2}\n",
-                    profile.name, size,
+                let (ns, _) = measure(
+                    || unsafe {
+                        decode_interleaved16_avx512_kernel(&compressed_16way, &packed, size)
+                            .map(|r| r.0)
+                    },
+                    n_iter,
+                );
+                report(
+                    "avx512-16way",
+                    profile.name,
+                    size,
+                    ns,
+                    (size as u64) * n_iter,
+                );
+                results_csv.push_str(&format!(
+                    "{},{},avx512-16way,{:.2},{:.2}\n",
+                    profile.name,
+                    size,
                     ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns / 1e9),
-                    ns / (size as u64 * n_iter) as f64));
+                    ns / (size as u64 * n_iter) as f64
+                ));
             }
         }
         println!("");
@@ -300,8 +415,12 @@ x512bw",
 }
 
 fn rustc_version() -> String {
-    std::process::Command::new("rustc").arg("--version").output()
-        .ok().and_then(|o| String::from_utf8(o.stdout
-).ok())
-        .unwrap_or("?".into()).trim().to_string()
+    std::process::Command::new("rustc")
+        .arg("--version")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .unwrap_or("?".into())
+        .trim()
+        .to_string()
 }
