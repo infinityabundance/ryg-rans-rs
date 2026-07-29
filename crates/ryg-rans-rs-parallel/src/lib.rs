@@ -38,6 +38,7 @@ mod plan;
 mod reorder;
 mod report;
 mod resource;
+mod schedule;
 mod scratch;
 mod verify;
 
@@ -54,5 +55,6 @@ pub use plan::*;
 pub use reorder::*;
 pub use report::*;
 pub use resource::*;
+pub use schedule::*;
 pub use scratch::*;
 pub use verify::*;
