@@ -93,7 +93,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Write manifest
         let m_path = format!("{}/manifest-{}.json", manifest_dir, receipt.court_id);
-        let m_json = serde_json::to_string_pretty(&manifest)?;
+        let m_json = serde_json::to_string(&manifest)?;
         std::fs::write(&m_path, &m_json)?;
 
         // Compute receipt SHA-256 for index
@@ -129,7 +129,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Write manifest
         let m_path = format!("{}/manifest-{}.json", manifest_dir, receipt.court_id);
-        let m_json = serde_json::to_string_pretty(&manifest)?;
+        let m_json = serde_json::to_string(&manifest)?;
         std::fs::write(&m_path, &m_json)?;
 
         // Compute receipt SHA-256 for index
