@@ -1,6 +1,6 @@
 [package]
 name = "ryg-rans-rs-simd"
-version = "0.1.21"
+version = "0.1.22"
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
@@ -11,4 +11,4 @@ default = []
 std = []
 
 [dependencies]
-ryg-rans-rs-core = { version = "0.1.21", path = "../ryg-rans-rs-core" }
+ryg-rans-rs-core = { version = "0.1.22", path = "../ryg-rans-rs-core" }
