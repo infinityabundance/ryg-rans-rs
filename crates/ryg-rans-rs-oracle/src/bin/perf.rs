@@ -163,6 +163,23 @@ where
     (elapsed.as_nanos() as f64, n_iter)
 }
 
+/// Measure a closure that decodes into a preallocated buffer.
+/// Returns (total_ns, iteration_count).
+fn measure_into<F>(f: &F, output: &mut [u8], n_iter: u64) -> (f64, u64)
+where
+    F: Fn(&mut [u8]) -> Result<(), &'static str>,
+{
+    for _ in 0..5 {
+        let _ = black_box(f(output));
+    }
+    let start = Instant::now();
+    for _ in 0..n_iter {
+        let _ = black_box(f(output));
+    }
+    let elapsed = start.elapsed();
+    (elapsed.as_nanos() as f64, n_iter)
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -358,6 +375,38 @@ fn main() {
                 ));
             }
 
+            // ---- Backend 4b: AVX512VL 8-way (preallocated kernel) ----
+            if avx512vl_avail {
+                let mut prealloc = vec![0u8; size];
+                let (ns_kernel, _) = measure_into(
+                    &|buf: &mut [u8]| unsafe {
+                        ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl_into(
+                            &compressed_8way,
+                            &packed,
+                            buf,
+                        )
+                        .map(|_| ())
+                        .map_err(|_| "decode failed")
+                    },
+                    &mut prealloc,
+                    n_iter,
+                );
+                report(
+                    "avx512vl-8way (kernel)",
+                    profile.name,
+                    size,
+                    ns_kernel,
+                    (size as u64) * n_iter,
+                );
+                results_csv.push_str(&format!(
+                    "{},{},avx512vl-8way-kernel,{:.2},{:.2}\n",
+                    profile.name,
+                    size,
+                    ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns_kernel / 1e9),
+                    ns_kernel / (size as u64 * n_iter) as f64
+                ));
+            }
+
             // ---- Backend 5: Scalar 16-way ----
             let (ns, _) = measure(
                 || decode_interleaved16_scalar(&compressed_16way, &packed, size).map(|r| r.0),
@@ -407,6 +456,38 @@ fn main() {
                     ns / (size as u64 * n_iter) as f64
                 ));
             }
+
+            // ---- Backend 6b: AVX512 16-way (preallocated kernel) ----
+            if avx512_avail {
+                let mut prealloc = vec![0u8; size];
+                let (ns_kernel, _) = measure_into(
+                    &|buf: &mut [u8]| unsafe {
+                        ryg_rans_rs_simd::backends::decode_interleaved16_avx512_into(
+                            &compressed_16way,
+                            &packed,
+                            buf,
+                        )
+                        .map(|_| ())
+                        .map_err(|_| "decode failed")
+                    },
+                    &mut prealloc,
+                    n_iter,
+                );
+                report(
+                    "avx512-16way (kernel)",
+                    profile.name,
+                    size,
+                    ns_kernel,
+                    (size as u64) * n_iter,
+                );
+                results_csv.push_str(&format!(
+                    "{},{},avx512-16way-kernel,{:.2},{:.2}\n",
+                    profile.name,
+                    size,
+                    ((size as u64 * n_iter) as f64 / 1.073741824e9) / (ns_kernel / 1e9),
+                    ns_kernel / (size as u64 * n_iter) as f64
+                ));
+            }
         }
         println!("");
     }
@@ -416,7 +497,12 @@ fn main() {
     println!("======================================================================");
     println!("{}", results_csv);
     println!("======================================================================");
-    println!(" Benchmark complete.");
+    println!(" Benchmark methodology:");
+    println!("   - 'allocating' = Vec<u8> allocation + resize inside timed loop");
+    println!("   - '(kernel)' = preallocated output buffer outside timed loop");
+    println!("   - 5 warmup iterations discarded");
+    println!("   - black_box prevents DCE");
+    println!("   - Single aggregate Instant measurement (not distribution)");
     println!(" To reproduce with perf counters:");
     println!("   sudo perf stat -r 5 -e cycles,instructions,... \\");
     println!("     RUSTFLAGS='-C target-feature=+ssse3,+sse4.1,+avx512f,+avx512vl,+avx512bw' \\");

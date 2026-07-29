@@ -244,6 +244,32 @@ pub fn decode_interleaved8_scalar(
     })
 }
 
+/// Decode 8-way using the explicit AVX512VL backend into a preallocated buffer.
+///
+/// # Safety
+///
+/// Caller must ensure AVX512F + AVX512VL + AVX512BW are available at runtime.
+/// `output.len()` must equal the number of symbols to decode.
+pub unsafe fn decode_interleaved8_avx512vl_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            let report =
+                crate::avx512::decode_interleaved8_avx512vl_into(compressed, table, output)
+                    .map_err(|_| DecodeError::InputTooShort)?;
+            Ok(report)
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
+    }
+}
+
 /// Decode 8-way using the explicit AVX512VL backend.
 ///
 /// # Safety
@@ -308,6 +334,31 @@ pub fn decode_interleaved16_scalar(
         report,
         backend: DecodeBackend::Scalar16,
     })
+}
+
+/// Decode 16-way using the explicit AVX512 backend into a preallocated buffer.
+///
+/// # Safety
+///
+/// Caller must ensure AVX512F + AVX512BW are available at runtime.
+/// `output.len()` must equal the number of symbols to decode.
+pub unsafe fn decode_interleaved16_avx512_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, DecodeError> {
+    unsafe {
+        #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+        {
+            let report = crate::avx512::decode_interleaved16_avx512_into(compressed, table, output)
+                .map_err(|_| DecodeError::InputTooShort)?;
+            Ok(report)
+        }
+        #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+        {
+            Err(DecodeError::UnsupportedBackend)
+        }
+    }
 }
 
 /// Decode 16-way using the explicit AVX512 backend.
