@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.SIMD.INTERLEAVED8.FREQ1.RESIDUAL.S12",
+  "court_path": "SIMD",
+  "variant": "simd",
+  "profile": "FREQ1.RESIDUAL",
+  "scale_bits": 12,
+  "seed": 42,
+  "num_cases": 20,
+  "verdict": "admitted_match",
+  "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
+  "code_commit": "c397ec85beff0de5aa074edc7696218d7aa23c05",
+  "pairs_compared": 120,
+  "pairs_matched": 120,
+  "residual_count": 0,
+  "residual_ids": [],
+  "manifest_sha256": "38a47be7dfae713213ceeb08db9b1d66d3a17190f939bee39081b34b2f373715",
+  "receipt_sha256": "",
+  "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- simd /run/media/one/1tb_kingston1/ryg-rans-rs/oracle/adapter/rans_trace 12 42 20",
+  "oracle_compiler": "g++ (Debian 12)"
+}

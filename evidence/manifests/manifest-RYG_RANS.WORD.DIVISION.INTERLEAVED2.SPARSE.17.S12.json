@@ -275,7 +275,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000001",
@@ -545,7 +546,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000002",
@@ -815,7 +817,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000003",
@@ -1085,7 +1088,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000004",
@@ -1355,7 +1359,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000005",
@@ -1625,7 +1630,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000006",
@@ -1895,7 +1901,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000007",
@@ -2165,7 +2172,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000008",
@@ -2435,7 +2443,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000009",
@@ -2705,7 +2714,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000010",
@@ -2975,7 +2985,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000011",
@@ -3245,7 +3256,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000012",
@@ -3515,7 +3527,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000013",
@@ -3785,7 +3798,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000014",
@@ -4055,7 +4069,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000015",
@@ -4325,7 +4340,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000016",
@@ -4595,7 +4611,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000017",
@@ -4865,7 +4882,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000018",
@@ -5135,7 +5153,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     },
     {
       "case_id": "CASE.000019",
@@ -5405,7 +5424,8 @@
       "c_self_decode": true,
       "rust_self_decode": true,
       "c_to_rust": true,
-      "rust_to_c": true
+      "rust_to_c": true,
+      "simd_scalar_agree": false
     }
   ]
 }
