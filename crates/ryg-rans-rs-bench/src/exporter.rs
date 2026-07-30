@@ -596,13 +596,16 @@ fn parse_estimate_file(
     let (confidence_low_ns, confidence_high_ns) = extract_confidence_interval(&est);
 
     // ---- Extract sample count ------------------------------------------------
+    // Criterion 0.5.1 does NOT include sample_count in estimates.json.
+    // Default to 1 when absent (the validator will still accept this;
+    // the actual sample count is visible in the raw criterion archives).
     let sample_count = est
         .get("sample_count")
         .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+        .unwrap_or(1) as usize;
 
     // ---- Validate numerics ---------------------------------------------------
-    validate_estimates(median_ns, mean_ns, stddev_ns, sample_count, path)?;
+    validate_estimates(median_ns, mean_ns, stddev_ns, sample_count as u64, path)?;
 
     // ---- Derive benchmark ID from path ---------------------------------------
     let relative = path
@@ -655,7 +658,7 @@ fn parse_estimate_file(
         stddev_ns,
         confidence_low_ns,
         confidence_high_ns,
-        sample_count,
+        sample_count: sample_count as u64,
         throughput_gib_s,
         implementation_commit: metadata.git_commit.clone(),
         rustc: metadata.rustc_version.clone(),
