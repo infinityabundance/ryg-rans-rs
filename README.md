@@ -8,7 +8,7 @@
 > **Nine-tier Criterion benchmark suite** — **scalar · SSE4.1 · AVX2 · AVX-512 · specialized · batch · parallel · block-engine · dispatch**  
 > **Eleven-service Docker VM matrix verifies every build, test, oracle, court, and audit**
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache-2.0-blue)](LICENSE)
+
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-stable)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs)](https://crates.io/crates/ryg-rans-rs)
 [![docs.rs](https://img.shields.io/docsrs/ryg-rans-rs)](https://docs.rs/ryg-rans-rs/latest/ryg_rans_rs/)
