@@ -1,15 +1,15 @@
 [package]
 name = "ryg-rans-rs-parallel"
-version = "0.1.26"
+version = "0.1.27"
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 description = "Deterministic parallel block engine for rANS entropy coding — bounded, cancellable, thread-count-independent output"
 
 [dependencies]
-ryg-rans-rs-core = { version = "0.1.26", path = "../ryg-rans-rs-core", features = ["alloc"] }
-ryg-rans-rs = { version = "0.1.26", path = "../ryg-rans-rs", default-features = false, features = ["alloc"], optional = true }
-ryg-rans-rs-simd = { version = "0.1.26", path = "../ryg-rans-rs-simd", features = ["std"], optional = true }
+ryg-rans-rs-core = { version = "0.1.27", path = "../ryg-rans-rs-core", features = ["alloc"] }
+ryg-rans-rs = { version = "0.1.27", path = "../ryg-rans-rs", default-features = false, features = ["alloc"], optional = true }
+ryg-rans-rs-simd = { version = "0.1.27", path = "../ryg-rans-rs-simd", features = ["std"], optional = true }
 crossbeam-channel = { version = "0.5", features = ["std"] }
 sha2 = "0.10"
 serde = { version = "1", features = ["derive"] }

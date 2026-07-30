@@ -645,7 +645,7 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "ryg-rans-rs"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "ryg-rans-rs-core",
  "ryg-rans-rs-simd",
@@ -653,7 +653,7 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-bench"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "criterion",
  "rand",
@@ -667,7 +667,7 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-casefile"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "serde",
  "serde_json",
@@ -676,7 +676,7 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-cli"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "clap",
  "clap_complete",
@@ -691,11 +691,11 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-core"
-version = "0.1.26"
+version = "0.1.27"
 
 [[package]]
 name = "ryg-rans-rs-oracle"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "chrono",
  "hex",
@@ -709,7 +709,7 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-parallel"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "crossbeam-channel",
  "ryg-rans-rs",
@@ -722,7 +722,7 @@ dependencies = [
 
 [[package]]
 name = "ryg-rans-rs-simd"
-version = "0.1.26"
+version = "0.1.27"
 dependencies = [
  "ryg-rans-rs-core",
 ]
