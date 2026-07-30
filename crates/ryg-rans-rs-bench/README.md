@@ -363,15 +363,36 @@ Or use Criterion's baseline comparison feature for statistical significance.
 ### Scaling Matrix
 
 The parallel engine benchmarks produce a scaling matrix showing throughput at
-1, 2, 4, 6, 8, 12, and 16 threads:
+1, 2, 4, 8, and 16 threads.  Measured on **AMD Ryzen 7 9800X3D** (8 cores / 16 threads)
+with 64 MiB block-engine decode+integrity workload (64 × 1 MiB blocks, AVX2 runtime,
+cold executor, queue depth 64):
 
 ```
-Threads:   1      2      4      6      8      12     16
-GiB/s:    1.56   3.02   5.89   8.45   10.12  12.34  13.01
-Efficiency: 100%   97%    94%    90%    81%    66%    52%
+Threads:   1        2         4         8         16
+GiB/s:    0.90     1.69      3.24      5.25      6.36
+Speedup:  1.00×    1.87×     3.60×     5.83×     7.07×
+Efficiency: 100%  93.9%     90.0%     72.9%     44.2%
+Gain vs previous:   —     1.88×     1.92×     1.62×     1.21×
 ```
 
-Efficiency = (speedup / thread count) × 100%. Perfect linear scaling = 100%.
+Efficiency = (speedup / thread count) × 100%.
+
+**SMT gain** = `throughput(16) / throughput(8) = 1.211×`. The 21.1% gain from
+simultaneous multithreading after all eight physical cores are occupied is meaningful
+and indicates the workload is not purely memory-bound.
+
+| Threads | Interpretation |
+|--------|----------------|
+| 1–4 | Near-linear scaling (~90%+ efficiency). The block engine parallelizes almost perfectly across physical cores. |
+| 8 | 5.25 GiB/s at 72.9% efficiency. Cache/memory bandwidth start to constrain. Still the efficiency sweet spot. |
+| 16 | 6.36 GiB/s — maximum throughput. SMT adds 21% but efficiency drops to 44%. Suitable when throughput, not efficiency, is the goal. |
+
+**Policy recommendation:**
+- Default throughput mode: available logical processors, capped by block count
+- Efficiency / shared-system mode: physical-core count (8)
+- General modeled blocks: scalar 16-way
+- Uniform256 blocks: AVX2 table-free where benchmark policy admits it
+- The architecture's real win is **deterministic multicore composition**, not wider SIMD
 
 ---
 

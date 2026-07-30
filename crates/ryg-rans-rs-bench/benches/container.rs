@@ -84,11 +84,67 @@ fn preflight_block_engine(
         })
         .collect();
 
-    // Preflight: every thread count must produce identical output
+    // Establish 1-thread canonical reference with full report fields
+    let cfg_1t = config_for_threads(1);
+    let dec_1t = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(decode_jobs.clone(), &cfg_1t)
+        .expect("block-engine preflight decode 1t");
+    let one_thread_outputs: Vec<Vec<u8>> = dec_1t.blocks.iter().map(|b| b.output.clone()).collect();
+    let one_thread_backends: Vec<_> = dec_1t.blocks.iter().map(|b| b.backend).collect();
+    let one_thread_words: Vec<_> = dec_1t.blocks.iter().map(|b| b.words_consumed).collect();
+    let one_thread_states: Vec<Vec<u32>> = dec_1t
+        .blocks
+        .iter()
+        .map(|b| b.final_states.clone())
+        .collect();
+    let one_thread_hashes: Vec<_> = dec_1t.blocks.iter().map(|b| b.output_hash).collect();
+
+    // Verify every thread count against 1-thread reference
     for &tc in THREAD_COUNTS {
         let cfg = config_for_threads(tc);
         let dec = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(decode_jobs.clone(), &cfg)
-            .expect(&format!("preflight decode {}t", tc));
+            .expect(&format!("block-engine preflight decode {}t", tc));
+
+        assert_eq!(
+            dec.blocks.len(),
+            dec_1t.blocks.len(),
+            "block-engine preflight {}t: block count mismatch",
+            tc
+        );
+
+        for (i, (block, ref_block)) in dec.blocks.iter().zip(dec_1t.blocks.iter()).enumerate() {
+            assert_eq!(
+                block.block_index, ref_block.block_index,
+                "block-engine preflight {}t: block_index mismatch at {}",
+                tc, i
+            );
+            assert_eq!(
+                block.output, one_thread_outputs[i],
+                "block-engine preflight {}t: output mismatch at block {}",
+                tc, i
+            );
+            assert_eq!(
+                block.backend, one_thread_backends[i],
+                "block-engine preflight {}t: backend mismatch at block {}",
+                tc, i
+            );
+            assert_eq!(
+                block.words_consumed, one_thread_words[i],
+                "block-engine preflight {}t: words_consumed mismatch at block {}",
+                tc, i
+            );
+            assert_eq!(
+                block.final_states, one_thread_states[i],
+                "block-engine preflight {}t: final_states mismatch at block {}",
+                tc, i
+            );
+            assert_eq!(
+                block.output_hash, one_thread_hashes[i],
+                "block-engine preflight {}t: output_hash mismatch at block {}",
+                tc, i
+            );
+        }
+
+        // Concatenated output must match original
         let mut full = Vec::new();
         for b in &dec.blocks {
             full.extend_from_slice(&b.output);

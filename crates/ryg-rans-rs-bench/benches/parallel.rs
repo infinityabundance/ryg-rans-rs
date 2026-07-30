@@ -119,6 +119,11 @@ fn preflight_parallel(
     let one_thread_outputs: Vec<Vec<u8>> = dec_1t.blocks.iter().map(|b| b.output.clone()).collect();
     let one_thread_backends: Vec<_> = dec_1t.blocks.iter().map(|b| b.backend).collect();
     let one_thread_words: Vec<_> = dec_1t.blocks.iter().map(|b| b.words_consumed).collect();
+    let one_thread_states: Vec<Vec<u32>> = dec_1t
+        .blocks
+        .iter()
+        .map(|b| b.final_states.clone())
+        .collect();
     let one_thread_hashes: Vec<_> = dec_1t.blocks.iter().map(|b| b.output_hash).collect();
 
     let mut concatenated_1t = Vec::new();
@@ -168,6 +173,11 @@ fn preflight_parallel(
             assert_eq!(
                 block.words_consumed, one_thread_words[i],
                 "preflight {}t: words_consumed mismatch at block {}",
+                tc, i
+            );
+            assert_eq!(
+                block.final_states, one_thread_states[i],
+                "preflight {}t: final_states mismatch at block {}",
                 tc, i
             );
             assert_eq!(

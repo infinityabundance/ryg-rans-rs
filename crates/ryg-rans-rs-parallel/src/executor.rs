@@ -185,14 +185,31 @@ pub struct ExecutorReport<R> {
 ///   tasks check this token for cancellation.  If not provided, an internal
 ///   token is used that is only cancelled on worker panic.
 ///
-/// # Boundedness guarantee
+/// # Boundedness — current limitations
 ///
-/// The job channel is bounded to `effective_queue` slots.  This bounds the
-/// number of tasks in-flight at any time, which bounds memory usage.  The
-/// result collector is unbounded (a `Mutex<Vec>`), but because only
-/// `effective_queue` tasks can be in-flight, at most `effective_queue`
-/// results can be outstanding; the coordinator does not submit more until
-/// workers consume and produce results.
+/// **The job channel is bounded** to `effective_queue` slots.  This bounds
+/// the number of tasks in-flight at any time, bounding peak memory for
+/// active tasks.
+///
+/// **The result collector is NOT bounded end-to-end.** All completed
+/// results are accumulated in a `Mutex<Vec<R>>` and reordering happens
+/// only after every worker joins.  This means that for an N-block workload,
+/// all N results may be resident simultaneously in the collector.
+///
+/// Current memory shape:
+/// ```text
+/// all input tasks (Vec<T>)          — allocated upfront
+/// + bounded job queue               — effective_queue slots
+/// + all completed results (Mutex)   — unbounded, all N results
+/// + final ordered Vec               — all N results
+/// = peak memory ~ 2× N results + bounded queue
+/// ```
+///
+/// A future version should implement a **coordinator drain loop** that
+/// consumes results from a bounded result channel while submitting new
+/// jobs, enabling true end-to-end boundedness at the cost of more complex
+/// coordinator logic.  See the `decode_streaming()` documentation for
+/// additional context on the streaming architecture.
 ///
 /// # Cancellation
 ///

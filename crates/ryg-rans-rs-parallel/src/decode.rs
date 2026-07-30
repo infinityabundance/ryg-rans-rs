@@ -1558,7 +1558,15 @@ impl ParallelDecoder {
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
         let jobs: Vec<DecodeBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {
-            return Ok(OrderedDecodedBlocks { blocks: Vec::new() });
+            return Ok(OrderedDecodedBlocks {
+                blocks: Vec::new(),
+                execution: crate::job::ExecutionMetadata {
+                    requested_workers: 0,
+                    effective_workers: 0,
+                    queue_capacity: 0,
+                    block_count: 0,
+                },
+            });
         }
         let bc = jobs.len();
         let wc = crate::resource::effective_worker_count(config, bc)?;
@@ -1580,6 +1588,9 @@ impl ParallelDecoder {
             config.worker_stack_size,
             Some(cancel.clone()),
         )?;
+
+        // Capture execution metadata BEFORE consuming report.results
+        let effective_workers = report.effective_workers;
 
         // Process results through reorder buffer
         let mut reorder = ReorderBuffer::new(
@@ -1610,9 +1621,18 @@ impl ParallelDecoder {
         }
 
         ordered.sort_by_key(|b| b.block_index);
-        Ok(OrderedDecodedBlocks { blocks: ordered })
+        Ok(OrderedDecodedBlocks {
+            blocks: ordered,
+            execution: crate::job::ExecutionMetadata {
+                requested_workers: wc,
+                effective_workers,
+                queue_capacity: qc,
+                block_count: bc,
+            },
+        })
     }
 
+    /// Streaming decode for non-seekable input.
     /// Streaming decode for non-seekable or incremental input.
     ///
     /// This method reads blocks from an iterator and dispatches them to the
@@ -1664,7 +1684,15 @@ impl ParallelDecoder {
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
         let jobs: Vec<DecodeBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {
-            return Ok(OrderedDecodedBlocks { blocks: Vec::new() });
+            return Ok(OrderedDecodedBlocks {
+                blocks: Vec::new(),
+                execution: crate::job::ExecutionMetadata {
+                    requested_workers: 0,
+                    effective_workers: 0,
+                    queue_capacity: 0,
+                    block_count: 0,
+                },
+            });
         }
 
         let bc = jobs.len();
@@ -1697,6 +1725,8 @@ impl ParallelDecoder {
             config.worker_stack_size,
             Some(cancel.clone()),
         )?;
+
+        let effective_workers = report.effective_workers;
 
         let mut reorder = ReorderBuffer::new(
             config.max_in_flight_blocks.get(),
@@ -1742,7 +1772,15 @@ impl ParallelDecoder {
         }
 
         ordered.sort_by_key(|b| b.block_index);
-        Ok(OrderedDecodedBlocks { blocks: ordered })
+        Ok(OrderedDecodedBlocks {
+            blocks: ordered,
+            execution: crate::job::ExecutionMetadata {
+                requested_workers: wc,
+                effective_workers,
+                queue_capacity: qc,
+                block_count: bc,
+            },
+        })
     }
 }
 

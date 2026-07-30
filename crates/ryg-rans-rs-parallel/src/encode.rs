@@ -745,7 +745,15 @@ impl ParallelEncoder {
     ) -> Result<OrderedEncodedBlocks, ParallelError> {
         let jobs: Vec<EncodeBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {
-            return Ok(OrderedEncodedBlocks { blocks: Vec::new() });
+            return Ok(OrderedEncodedBlocks {
+                blocks: Vec::new(),
+                execution: crate::job::ExecutionMetadata {
+                    requested_workers: 0,
+                    effective_workers: 0,
+                    queue_capacity: 0,
+                    block_count: 0,
+                },
+            });
         }
 
         let block_count = jobs.len();
@@ -806,6 +814,12 @@ impl ParallelEncoder {
 
         Ok(OrderedEncodedBlocks {
             blocks: ordered_blocks,
+            execution: crate::job::ExecutionMetadata {
+                requested_workers: worker_count,
+                effective_workers: report.effective_workers,
+                queue_capacity,
+                block_count,
+            },
         })
     }
 

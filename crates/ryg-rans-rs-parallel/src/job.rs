@@ -298,6 +298,22 @@ pub struct VerifiedBlockResult {
     pub backend: BackendId,
 }
 
+/// Execution metadata for a parallel operation run.
+///
+/// Carries the actual worker count, queue capacity, and block count
+/// so benchmark evidence can prove exactly how many workers executed.
+#[derive(Debug, Clone, Copy)]
+pub struct ExecutionMetadata {
+    /// Number of worker threads requested by the caller.
+    pub requested_workers: usize,
+    /// Number of worker threads actually created (clamped to block count).
+    pub effective_workers: usize,
+    /// Capacity of the bounded job queue.
+    pub queue_capacity: usize,
+    /// Total number of blocks in this operation.
+    pub block_count: usize,
+}
+
 /// Ordered collection of encoded block results.
 ///
 /// # Guarantee
@@ -315,6 +331,8 @@ pub struct VerifiedBlockResult {
 pub struct OrderedEncodedBlocks {
     /// Blocks in ascending `block_index` order.
     pub blocks: Vec<EncodedBlockResult>,
+    /// Execution metadata for this operation.
+    pub execution: ExecutionMetadata,
 }
 
 /// Ordered collection of decoded block results.
@@ -334,4 +352,6 @@ pub struct OrderedEncodedBlocks {
 pub struct OrderedDecodedBlocks {
     /// Blocks in ascending `block_index` order.
     pub blocks: Vec<DecodedBlockResult>,
+    /// Execution metadata for this operation.
+    pub execution: ExecutionMetadata,
 }
