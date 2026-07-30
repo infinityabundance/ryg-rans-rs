@@ -1478,15 +1478,22 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
             reproduction_command: repro_command,
         };
 
-        // Serialize without receipt_sha256, hash it, then set it
+        // Write receipt without receipt_sha256, read back the file bytes, hash those,
+        // then set the hash and write the final version.
         let receipt_json_no_hash = serde_json::to_string_pretty(&receipt)
             .map_err(|e| format!("serialize receipt {}: {}", perf_id, e))?;
-        let receipt_self_hash = sha256_hex(receipt_json_no_hash.as_bytes());
+        let receipt_path = receipts_dir.join(format!("receipt-{}.json", perf_id));
+        std::fs::write(&receipt_path, &receipt_json_no_hash)
+            .map_err(|e| format!("write receipt (no hash) {:?}: {}", receipt_path, e))?;
+
+        // Read back and hash the actual file bytes
+        let receipt_file_bytes = std::fs::read(&receipt_path)
+            .map_err(|e| format!("read receipt {:?}: {}", receipt_path, e))?;
+        let receipt_self_hash = sha256_hex(&receipt_file_bytes);
         receipt.receipt_sha256 = receipt_self_hash.clone();
 
         let receipt_json = serde_json::to_string_pretty(&receipt)
             .map_err(|e| format!("serialize receipt (final) {}: {}", perf_id, e))?;
-        let receipt_path = receipts_dir.join(format!("receipt-{}.json", perf_id));
         std::fs::write(&receipt_path, &receipt_json)
             .map_err(|e| format!("write receipt {:?}: {}", receipt_path, e))?;
         receipt_sha256s.push(receipt_self_hash);
@@ -1698,13 +1705,17 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
             warn(format!("receipt {} has empty receipt_sha256", perf_id));
             continue;
         }
-        // Compute self-hash by serializing without receipt_sha256 field
-        // We need to strip receipt_sha256, re-serialize, then hash
+        // Verify self-hash by zeroing out receipt_sha256 and re-serializing
+        // with the same pretty format used when writing, so the bytes match
+        // what was originally hashed.
         let mut receipt_no_self = receipt_json.clone();
         if let Some(obj) = receipt_no_self.as_object_mut() {
-            obj.remove("receipt_sha256");
+            obj.insert(
+                "receipt_sha256".to_string(),
+                serde_json::Value::String(String::new()),
+            );
         }
-        let canonical = serde_json::to_string(&receipt_no_self)
+        let canonical = serde_json::to_string_pretty(&receipt_no_self)
             .map_err(|e| format!("re-serialize receipt {}: {}", perf_id, e))?;
         let computed_hash = sha256_hex(canonical.as_bytes());
         if computed_hash != receipt_self_hash {
