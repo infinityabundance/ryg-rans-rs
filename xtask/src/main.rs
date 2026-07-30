@@ -1695,27 +1695,20 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
         let receipt_path = receipts_dir.join(format!("receipt-{}.json", perf_id));
         let receipt_content = std::fs::read_to_string(&receipt_path)
             .map_err(|e| format!("read receipt {:?}: {}", receipt_path, e))?;
-        let receipt_json: serde_json::Value = serde_json::from_str(&receipt_content)
-            .map_err(|e| format!("parse receipt {:?}: {}", receipt_path, e))?;
-        let receipt_self_hash = receipt_json
-            .get("receipt_sha256")
-            .and_then(|s| s.as_str())
-            .unwrap_or("");
+        let mut receipt: ryg_rans_rs_casefile::PerformanceReceipt =
+            serde_json::from_str(&receipt_content)
+                .map_err(|e| format!("parse receipt {:?}: {}", receipt_path, e))?;
+        let receipt_self_hash = receipt.receipt_sha256.clone();
         if receipt_self_hash.is_empty() {
             warn(format!("receipt {} has empty receipt_sha256", perf_id));
             continue;
         }
         // Verify self-hash by zeroing out receipt_sha256 and re-serializing
-        // with the same pretty format used when writing, so the bytes match
+        // with the same pretty format used when writing (via the struct's
+        // Serialize impl, preserving field order), so the bytes match
         // what was originally hashed.
-        let mut receipt_no_self = receipt_json.clone();
-        if let Some(obj) = receipt_no_self.as_object_mut() {
-            obj.insert(
-                "receipt_sha256".to_string(),
-                serde_json::Value::String(String::new()),
-            );
-        }
-        let canonical = serde_json::to_string_pretty(&receipt_no_self)
+        receipt.receipt_sha256 = String::new();
+        let canonical = serde_json::to_string_pretty(&receipt)
             .map_err(|e| format!("re-serialize receipt {}: {}", perf_id, e))?;
         let computed_hash = sha256_hex(canonical.as_bytes());
         if computed_hash != receipt_self_hash {
