@@ -55,8 +55,7 @@ upstream revision, built through parity courts:
 4. Every surface is sealed by a **SHA-256-chained receipt** with self-hash verification
 5. Every release requires a **Docker VM matrix run** with 11 services
 
-The goal is **critical-safety-infrastructure quality** — a library that can be depended upon
-in security-sensitive, correctness-critical, long-lived systems.
+
 
 ### What this project covers
 
