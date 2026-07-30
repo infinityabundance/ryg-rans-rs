@@ -158,6 +158,11 @@ pub struct ExecutorReport<R> {
     pub results: Vec<R>,
     /// Number of worker panics that occurred.
     pub worker_panics: usize,
+    /// Number of worker threads that were actually created.
+    /// This is clamped to `[1, min(requested, total_tasks)]`.
+    /// Use this in benchmark evidence to prove the intended thread
+    /// count was actually executed.
+    pub effective_workers: usize,
 }
 
 /// Run a set of tasks on a bounded executor and collect results.
@@ -233,6 +238,7 @@ where
         return Ok(ExecutorReport {
             results: Vec::new(),
             worker_panics: 0,
+            effective_workers: 0,
         });
     }
 
@@ -364,6 +370,7 @@ where
     Ok(ExecutorReport {
         results,
         worker_panics: panic_errors.len(),
+        effective_workers,
     })
 }
 
@@ -379,6 +386,7 @@ impl<R> fmt::Debug for ExecutorReport<R> {
         f.debug_struct("ExecutorReport")
             .field("results", &self.results.len())
             .field("worker_panics", &self.worker_panics)
+            .field("effective_workers", &self.effective_workers)
             .finish()
     }
 }

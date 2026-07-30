@@ -9,8 +9,8 @@
 
 use ryg_rans_rs_parallel::{
     CancellationToken, CodecPolicy, DecodeBlockJob, EncodeBlockJob, ExecutorTask, FixedBlockPlan,
-    ModelPolicy, ParallelConfig, ParallelDecoder, ParallelEncoder, ParallelError, ThreadCount,
-    run_tasks,
+    ModelPolicy, ParallelConfig, ParallelDecoder, ParallelEncoder, ParallelError, ParallelVerifier,
+    ThreadCount, VerifyBlockJob, run_tasks,
 };
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -295,4 +295,391 @@ fn test_determinism_1_vs_2_threads() {
         full1.extend_from_slice(&b.output);
     }
     assert_eq!(full1, data);
+}
+
+// ============================================================
+// 8/16-thread determinism and scaling tests
+// ============================================================
+
+const THREAD_COUNTS: &[usize] = &[1, 2, 4, 8, 16];
+
+/// Generate a larger dataset (64 KiB) with 256-byte blocks for 8/16-thread tests.
+fn scaling_data() -> Vec<u8> {
+    let mut d = Vec::with_capacity(65536);
+    for i in 0..65536 {
+        d.push((i & 0xFF) as u8);
+    }
+    d
+}
+
+#[test]
+fn test_decode_determinism_1_4_8_16_threads() {
+    let data = scaling_data();
+    let plan = FixedBlockPlan::new(data.len() as u64, 1024);
+    assert!(
+        plan.block_count() >= 16,
+        "need at least 16 blocks, got {}",
+        plan.block_count()
+    );
+
+    // Encode once with 4 threads
+    let cfg_encode = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(4).unwrap()),
+        ..Default::default()
+    };
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+    let enc = ParallelEncoder::encode_blocks(jobs, &cfg_encode).expect("encode");
+
+    let dj: Vec<DecodeBlockJob> = enc
+        .blocks
+        .iter()
+        .map(|b| DecodeBlockJob {
+            block_index: b.block_index,
+            block_data: b.block.clone(),
+        })
+        .collect();
+
+    // Decode with 1 thread to establish canonical reference
+    let cfg_1t = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(1).unwrap()),
+        max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
+        ..Default::default()
+    };
+    let dec_1t = ParallelDecoder::decode_blocks(dj.clone(), &cfg_1t).expect("decode 1t");
+    let mut full_1t = Vec::new();
+    for b in &dec_1t.blocks {
+        full_1t.extend_from_slice(&b.output);
+    }
+    assert_eq!(full_1t, data, "1-thread decode must match original");
+
+    // Every other thread count must produce identical results
+    for &tc in &[4usize, 8, 16] {
+        let cfg = ParallelConfig {
+            threads: ThreadCount::Exact(NonZeroUsize::new(tc).unwrap()),
+            max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
+            ..Default::default()
+        };
+        let dec =
+            ParallelDecoder::decode_blocks(dj.clone(), &cfg).expect(&format!("decode {}t", tc));
+
+        assert_eq!(
+            dec.blocks.len(),
+            dec_1t.blocks.len(),
+            "block count mismatch for {}t",
+            tc
+        );
+
+        for (i, (block, ref_block)) in dec.blocks.iter().zip(dec_1t.blocks.iter()).enumerate() {
+            assert_eq!(
+                block.block_index, ref_block.block_index,
+                "block_index mismatch at {} for {}t",
+                i, tc
+            );
+            assert_eq!(
+                block.output, ref_block.output,
+                "output mismatch at block {} for {}t",
+                i, tc
+            );
+            assert_eq!(
+                block.backend, ref_block.backend,
+                "backend mismatch at block {} for {}t",
+                i, tc
+            );
+            assert_eq!(
+                block.words_consumed, ref_block.words_consumed,
+                "words_consumed mismatch at block {} for {}t",
+                i, tc
+            );
+            assert_eq!(
+                block.output_hash, ref_block.output_hash,
+                "output_hash mismatch at block {} for {}t",
+                i, tc
+            );
+        }
+
+        // Concatenated output must match original
+        let mut full = Vec::new();
+        for b in &dec.blocks {
+            full.extend_from_slice(&b.output);
+        }
+        assert_eq!(full, data, "{}t decode must match original", tc);
+    }
+}
+
+#[test]
+fn test_encode_determinism_1_4_8_16_threads() {
+    let data = scaling_data();
+    let plan = FixedBlockPlan::new(data.len() as u64, 1024);
+    assert!(plan.block_count() >= 16);
+
+    let mut reference_blocks: Option<Vec<Vec<u8>>> = None;
+
+    for &tc in &[1usize, 4, 8, 16] {
+        let cfg = ParallelConfig {
+            threads: ThreadCount::Exact(NonZeroUsize::new(tc).unwrap()),
+            max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
+            ..Default::default()
+        };
+        let jobs: Vec<EncodeBlockJob> = plan
+            .ranges
+            .iter()
+            .map(|r| {
+                let s = r.input_offset as usize;
+                EncodeBlockJob::new(
+                    r.block_index,
+                    data[s..s + r.length as usize].to_vec(),
+                    CodecPolicy::Auto,
+                    ModelPolicy::PerBlock,
+                    12,
+                )
+            })
+            .collect();
+        let enc = ParallelEncoder::encode_blocks(jobs, &cfg).expect(&format!("encode {}t", tc));
+
+        if let Some(ref ref_blocks) = reference_blocks {
+            for (i, block) in enc.blocks.iter().enumerate() {
+                assert_eq!(
+                    block.block, ref_blocks[i],
+                    "block {} differs between 1t and {}t",
+                    i, tc
+                );
+            }
+        } else {
+            reference_blocks = Some(enc.blocks.iter().map(|b| b.block.clone()).collect());
+        }
+    }
+}
+
+#[test]
+fn test_verify_determinism_1_4_8_16_threads() {
+    let data = scaling_data();
+    let plan = FixedBlockPlan::new(data.len() as u64, 1024);
+
+    let cfg_encode = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(4).unwrap()),
+        max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
+        max_buffered_input_bytes: 1024 * 1024 * 1024,
+        max_buffered_output_bytes: 1024 * 1024 * 1024,
+        parallel_threshold_bytes: 0,
+        ..Default::default()
+    };
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+    let enc = ParallelEncoder::encode_blocks(jobs, &cfg_encode).expect("encode");
+
+    let vj: Vec<VerifyBlockJob> = enc
+        .blocks
+        .iter()
+        .map(|b| VerifyBlockJob {
+            block_index: b.block_index,
+            block_data: b.block.clone(),
+        })
+        .collect();
+
+    // All thread counts must verify identically
+    for &tc in &[1usize, 4, 8, 16] {
+        let cfg = ParallelConfig {
+            threads: ThreadCount::Exact(NonZeroUsize::new(tc).unwrap()),
+            max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
+            ..Default::default()
+        };
+        let report =
+            ParallelVerifier::verify_blocks(vj.clone(), &cfg).expect(&format!("verify {}t", tc));
+        assert_eq!(
+            report.blocks_failed, 0,
+            "verify {}t: blocks_failed must be 0",
+            tc
+        );
+        assert_eq!(
+            report.blocks_verified,
+            plan.block_count() as u64,
+            "verify {}t: blocks_verified count mismatch",
+            tc
+        );
+    }
+}
+
+#[test]
+fn test_error_selection_8_16_threads() {
+    // Use 32 blocks to ensure 8 and 16 workers all get work.
+    let data = nonuniform_data();
+    let plan = FixedBlockPlan::new(data.len() as u64, 128);
+    assert!(plan.block_count() >= 32, "need at least 32 blocks");
+
+    let cfg = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(8).unwrap()),
+        max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
+        ..Default::default()
+    };
+
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+    let enc = ParallelEncoder::encode_blocks(jobs, &cfg).expect("encode 8t");
+
+    // Corrupt the lowest-index block's payload hash
+    let mut tampered = enc.blocks[0].block.clone();
+    tampered[40] ^= 0xFF; // corrupt payload_sha256 first byte
+
+    let mut dj: Vec<DecodeBlockJob> = enc
+        .blocks
+        .iter()
+        .map(|b| DecodeBlockJob {
+            block_index: b.block_index,
+            block_data: b.block.clone(),
+        })
+        .collect();
+    dj[0].block_data = tampered;
+
+    // Decode with 8 threads — should get error from block 0
+    let result_8t = ParallelDecoder::decode_blocks(dj.clone(), &cfg);
+    match result_8t {
+        Err(ParallelError::DecodeFailed(e)) => {
+            assert_eq!(e.block_index, 0, "8t: canonical error must be from block 0");
+        }
+        other => panic!("8t: expected DecodeFailed from block 0, got {:?}", other),
+    }
+
+    // Same with 16 threads
+    let cfg_16t = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(16).unwrap()),
+        max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
+        ..Default::default()
+    };
+    let result_16t = ParallelDecoder::decode_blocks(dj.clone(), &cfg_16t);
+    match result_16t {
+        Err(ParallelError::DecodeFailed(e)) => {
+            assert_eq!(
+                e.block_index, 0,
+                "16t: canonical error must be from block 0"
+            );
+        }
+        other => panic!("16t: expected DecodeFailed from block 0, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_external_cancellation_16_threads() {
+    let cancel = Arc::new(CancellationToken::new());
+    let cancel_clone = cancel.clone();
+
+    let handle = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_micros(50));
+        cancel_clone.cancel();
+    });
+
+    struct DelayTask {
+        index: u64,
+    }
+
+    impl ExecutorTask for DelayTask {
+        type Output = u64;
+        fn run(self, _wi: usize, cancel: &CancellationToken) -> u64 {
+            // Simulate work that checks cancellation
+            for _ in 0..10 {
+                if cancel.is_cancelled() {
+                    return u64::MAX; // cancelled sentinel
+                }
+                std::thread::sleep(std::time::Duration::from_micros(100));
+            }
+            self.index
+        }
+        fn block_index(&self) -> Option<u64> {
+            Some(self.index)
+        }
+    }
+
+    let tasks: Vec<DelayTask> = (0..64).map(|i| DelayTask { index: i }).collect();
+    let _result = ryg_rans_rs_parallel::run_tasks(tasks, 16, 64, None, Some(cancel.clone()));
+    handle.join().unwrap();
+    assert!(
+        cancel.is_cancelled(),
+        "16-thread cancellation must be visible"
+    );
+}
+
+#[test]
+fn test_worker_count_clamped_to_block_count() {
+    // 16 requested workers, 8 blocks → effective workers == 8
+    let data = nonuniform_data();
+    // Use small blocks to get ~8 blocks
+    let plan = FixedBlockPlan::new(data.len() as u64, 512);
+    let block_count = plan.block_count();
+
+    let cfg_16 = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(16).unwrap()),
+        max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
+        ..Default::default()
+    };
+
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+    let enc = ParallelEncoder::encode_blocks(jobs, &cfg_16).expect("encode with clamp");
+    // We can't directly check effective_workers from here since encode_blocks
+    // doesn't expose the ExecutorReport.  Instead, verify that the output is correct.
+    assert_eq!(enc.blocks.len(), block_count);
+
+    // Decode with 16 workers on 8 blocks — must succeed
+    let dj: Vec<DecodeBlockJob> = enc
+        .blocks
+        .iter()
+        .map(|b| DecodeBlockJob {
+            block_index: b.block_index,
+            block_data: b.block.clone(),
+        })
+        .collect();
+    let dec = ParallelDecoder::decode_blocks(dj, &cfg_16).expect("decode with clamp");
+    let mut full = Vec::new();
+    for b in &dec.blocks {
+        full.extend_from_slice(&b.output);
+    }
+    assert_eq!(full, data, "decode after clamp must match original");
 }

@@ -591,17 +591,19 @@ fn build_empty_block(block_index: u64) -> Vec<u8> {
     buf.push(1); // block_version
     buf.push(0); // block_kind = RANS
     buf.extend_from_slice(&block_index.to_le_bytes());
-    buf.extend_from_slice(&0u16.to_le_bytes()); // codec_id
+    // Use WORD_INTERLEAVED16 (codec 8) — the default for the parallel encoder.
+    // The strict parser requires codec_id to be 7 or 8.
+    buf.extend_from_slice(&8u16.to_le_bytes()); // codec_id = WORD_INTERLEAVED16
     buf.push(12); // scale_bits
-    buf.push(16); // state_count
+    buf.push(16); // state_count (must match codec 8)
     buf.push(0); // model_encoding
     buf.extend_from_slice(&[0u8; 3]); // reserved
     buf.extend_from_slice(&0u32.to_le_bytes()); // uncompressed_length
     buf.extend_from_slice(&0u32.to_le_bytes()); // payload_length
     buf.extend_from_slice(&0u32.to_le_bytes()); // model_length
     buf.extend_from_slice(&[0u8; 4]); // reserved2
-    buf.extend_from_slice(&sha256(&[])); // payload_sha256 = SHA-256 of empty
-    buf.extend_from_slice(&empty_hash); // decoded_sha256 = real SHA-256 of empty
+    buf.extend_from_slice(&empty_hash); // payload_sha256 = SHA-256 of empty payload
+    buf.extend_from_slice(&empty_hash); // decoded_sha256 = SHA-256 of empty data
     buf
 }
 
