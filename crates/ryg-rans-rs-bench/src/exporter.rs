@@ -522,6 +522,14 @@ fn walk_dir(
         if path.is_dir() {
             walk_dir(root, &path, records, seen_ids, metadata, runtime_features)?;
         } else if path.file_name().and_then(|n| n.to_str()) == Some("estimates.json") {
+            // Skip estimate files inside /change/ directories — those are
+            // baseline-comparison statistics which contain NaN values when
+            // no baseline comparison has been run.  Only measurement
+            // estimate files (inside /iter/ or /new/ directories) contain
+            // valid timing statistics suitable for performance evidence.
+            if path.to_string_lossy().contains("/change/") {
+                continue;
+            }
             let mut record = parse_estimate_file(&path, root, metadata, runtime_features)?;
 
             // Validate and push if valid
