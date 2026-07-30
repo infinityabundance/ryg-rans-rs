@@ -62,6 +62,16 @@ pub enum DecodeBackend {
     Avx512ManualGather16,
     /// AVX512VL two-vector interleaved16 (2 × 256-bit on 16-way format).
     Avx512Vl2x8On16,
+    /// AVX2 8-way manual gather (scalar table loads into vector).
+    Avx2ManualGather8,
+    /// AVX2 8-way hardware gather (`_mm256_i32gather_epi32`).
+    Avx2HardwareGather8,
+    /// AVX2 two-vector interleaved16 (2 × 256-bit on 16-way format).
+    Avx2TwoBy8On16,
+    /// AVX2 Uniform256 table-free 16-way decode.
+    Avx2Uniform256TableFree16,
+    /// AVX2 batched decode of four independent 16-way streams.
+    Avx2Batch4On16,
 }
 
 impl DecodeBackend {
@@ -86,6 +96,11 @@ impl DecodeBackend {
             DecodeBackend::Avx512VlManualGather8 => "avx512vl-manual-gather-8way",
             DecodeBackend::Avx512ManualGather16 => "avx512-manual-gather-16way",
             DecodeBackend::Avx512Vl2x8On16 => "avx512vl-2x8-on16",
+            DecodeBackend::Avx2ManualGather8 => "avx2-manual-gather-8way",
+            DecodeBackend::Avx2HardwareGather8 => "avx2-hardware-gather-8way",
+            DecodeBackend::Avx2TwoBy8On16 => "avx2-2x8-on16",
+            DecodeBackend::Avx2Uniform256TableFree16 => "avx2-uniform256-tablefree-16way",
+            DecodeBackend::Avx2Batch4On16 => "avx2-batch4-on16",
         }
     }
 }
@@ -144,6 +159,59 @@ pub enum DecodeError {
 // The compile-time check is weaker but sufficient for environments where
 // the binary is compiled for a specific CPU (embedded, kernel, cross-compiled).
 
+/// Public runtime detection wrappers for benchmark use.
+#[doc(hidden)]
+pub fn avx2_available_checked() -> bool {
+    avx2_available()
+}
+
+/// Public runtime detection wrappers for benchmark use.
+#[doc(hidden)]
+pub fn avx512vl_available_checked() -> bool {
+    avx512vl_available()
+}
+
+/// Check whether SSE4.1 is available at runtime.
+fn sse41_available() -> bool {
+    #[cfg(feature = "std")]
+    {
+        std::is_x86_feature_detected!("sse4.1")
+    }
+    #[cfg(not(feature = "std"))]
+    {
+        cfg!(target_feature = "sse4.1")
+    }
+}
+
+/// Public runtime detection wrapper for SSE4.1.
+#[doc(hidden)]
+pub fn sse41_available_checked() -> bool {
+    sse41_available()
+}
+
+/// Public runtime detection wrapper for AVX-512.
+#[doc(hidden)]
+pub fn avx512_available_checked() -> bool {
+    avx512_available()
+}
+
+/// Check whether a frequency model is Uniform256.
+///
+/// Returns true if `scale_bits == 12` and every 4-byte chunk in `model_data`
+/// equals 16 (u32 LE).
+pub fn check_uniform256(model_data: &[u8], scale_bits: u8) -> bool {
+    if scale_bits != 12 || model_data.len() < 1024 {
+        return false;
+    }
+    for chunk in model_data.chunks_exact(4).take(256) {
+        let f = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+        if f != 16 {
+            return false;
+        }
+    }
+    true
+}
+
 /// Check whether AVX512F + AVX512VL + AVX512BW are available.
 fn avx512vl_available() -> bool {
     #[cfg(feature = "std")]
@@ -171,6 +239,22 @@ fn avx512_available() -> bool {
     #[cfg(not(feature = "std"))]
     {
         cfg!(all(target_feature = "avx512f", target_feature = "avx512bw",))
+    }
+}
+
+/// Check whether AVX2 is available at runtime.
+///
+/// When `std` is enabled, uses `is_x86_feature_detected!("avx2")` to query
+/// CPUID.  When `std` is not available, falls back to compile-time
+/// `cfg!(target_feature = "avx2")`.
+fn avx2_available() -> bool {
+    #[cfg(feature = "std")]
+    {
+        std::is_x86_feature_detected!("avx2")
+    }
+    #[cfg(not(feature = "std"))]
+    {
+        cfg!(target_feature = "avx2")
     }
 }
 
@@ -453,12 +537,22 @@ pub unsafe fn decode_interleaved8_avx512vl(
 
 /// Decode 16-way interleaved Word rANS using the best available backend.
 ///
-/// Selection priority: scalar (fastest on measured Zen 5) → AVX512.
-/// On the Ryzen 7 9800X3D, scalar 16-way achieves 1.44-1.83 GiB/s vs
-/// AVX512 16-way at 0.64-1.32 GiB/s (0.43-0.72× scalar).
+/// Selection priority: scalar (fastest on measured Zen 5) → AVX2 2×8 → AVX512.
+/// Available explicit backends: AVX2 manual/hardware gather 8-way, AVX2 2×8,
+/// AVX2 Uniform256 table-free, AVX2 batch4, AVX512VL 8-way, AVX512 16-way.
 ///
-/// Explicit AVX512 selection remains available via `decode_interleaved16_avx512`
-/// for courts, cross-verification, benchmarks, and future architectures.
+/// On the Ryzen 7 9800X3D, scalar 16-way achieves 1.44-1.83 GiB/s vs
+/// AVX512 16-way at 0.64-1.32 GiB/s (0.43-0.72× scalar).  AVX2 2×8 has
+/// not yet been benchmarked on this platform.
+///
+/// **Auto-dispatch is intentionally conservative.**  The default is scalar
+/// until architecture-specific performance data supports changing it.
+/// Use explicit AVX2 backends (`decode_interleaved16_avx2_2x8_checked`,
+/// `decode_interleaved16_uniform256_avx2_checked`) for benchmarking and
+/// courts where you want to assert exact backend identity.
+///
+/// Explicit backends remain available for cross-verification, future CPUs
+/// with faster gathers, and for users who explicitly request them.
 pub fn decode_interleaved16_auto(
     compressed: &[u16],
     table: &PackedWordTable,
@@ -534,6 +628,148 @@ pub unsafe fn decode_interleaved16_avx512(
         {
             Err(DecodeError::UnsupportedBackend)
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// AVX2 safe wrappers
+// ---------------------------------------------------------------------------
+
+/// Safe wrapper for AVX2 manual-gather 8-way decode.
+///
+/// Checks AVX2 runtime support before executing.  If AVX2 is not available
+/// at runtime, returns `UnsupportedBackend`.
+pub fn decode_interleaved8_avx2_manual_gather_checked(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !avx2_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    let perm_table = crate::avx2_renorm::build_avx2_renorm_table();
+    unsafe {
+        let (output, report) = crate::avx2::decode_interleaved8_avx2_manual_gather(
+            compressed,
+            table,
+            expected_len,
+            &perm_table,
+        )
+        .map_err(|_| DecodeError::InputTooShort)?;
+        Ok(DecodeResult {
+            output,
+            report,
+            backend: DecodeBackend::Avx2ManualGather8,
+        })
+    }
+}
+
+/// Safe wrapper for AVX2 hardware-gather 8-way decode.
+pub fn decode_interleaved8_avx2_hardware_gather_checked(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !avx2_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    let perm_table = crate::avx2_renorm::build_avx2_renorm_table();
+    unsafe {
+        let (output, report) = crate::avx2::decode_interleaved8_avx2_hardware_gather(
+            compressed,
+            table,
+            expected_len,
+            &perm_table,
+        )
+        .map_err(|_| DecodeError::InputTooShort)?;
+        Ok(DecodeResult {
+            output,
+            report,
+            backend: DecodeBackend::Avx2HardwareGather8,
+        })
+    }
+}
+
+/// Safe wrapper for AVX2 2×8 sixteen-way decode.
+pub fn decode_interleaved16_avx2_2x8_checked(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !avx2_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    let perm_table = crate::avx2_renorm::build_avx2_renorm_table();
+    unsafe {
+        let (output, report) = crate::avx2::decode_interleaved16_avx2_2x8(
+            compressed,
+            table,
+            expected_len,
+            &perm_table,
+        )
+        .map_err(|_| DecodeError::InputTooShort)?;
+        Ok(DecodeResult {
+            output,
+            report,
+            backend: DecodeBackend::Avx2TwoBy8On16,
+        })
+    }
+}
+
+/// Safe wrapper for AVX2 Uniform256 table-free sixteen-way decode.
+///
+/// Caller must validate that the model is Uniform256 before calling this.
+pub fn decode_interleaved16_uniform256_avx2_checked(
+    compressed: &[u16],
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !avx2_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    let perm_table = crate::avx2_renorm::build_avx2_renorm_table();
+    unsafe {
+        let (output, report) = crate::avx2::decode_interleaved16_uniform256_avx2(
+            compressed,
+            expected_len,
+            &perm_table,
+        )
+        .map_err(|_| DecodeError::InputTooShort)?;
+        Ok(DecodeResult {
+            output,
+            report,
+            backend: DecodeBackend::Avx2Uniform256TableFree16,
+        })
+    }
+}
+
+/// Safe wrapper for AVX2 batch-four sixteen-way decode.
+///
+/// Checks AVX2 runtime support before executing.  Each job's output must
+/// be pre-sized to its expected decoded length.
+pub fn decode_batch4_interleaved16_avx2_checked(
+    jobs: &mut [crate::avx2::Avx2DecodeJob<'_>],
+) -> Result<Vec<DecodeResult>, DecodeError> {
+    if !avx2_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    let perm_table = crate::avx2_renorm::build_avx2_renorm_table();
+    unsafe {
+        let reports = crate::avx2::decode_batch4_interleaved16_avx2(jobs, &perm_table)
+            .map_err(|_| DecodeError::InputTooShort)?;
+
+        let results: Vec<DecodeResult> = reports
+            .into_iter()
+            .enumerate()
+            .map(|(idx, report)| {
+                let job = &jobs[idx];
+                DecodeResult {
+                    output: job.output.to_vec(),
+                    report,
+                    backend: DecodeBackend::Avx2Batch4On16,
+                }
+            })
+            .collect();
+        Ok(results)
     }
 }
 

@@ -2,7 +2,8 @@
 
 > **The mathematical heart of rANS entropy coding — pure safe Rust.**  
 > `#![no_std]` + `#![forbid(unsafe_code)]` — works in embedded, kernel, and Wasm.  
-> 7 algorithmic surfaces · 144 behavioral receipts · Kani-proven arithmetic · Malformed-stream hardened.
+> 7 algorithmic surfaces · 144 behavioral receipts · Kani-proven arithmetic · Malformed-stream hardened.  
+> **Foundation for Phase I parallel block engine frequency normalization.**
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs-core)](https://crates.io/crates/ryg-rans-rs-core)
@@ -24,6 +25,7 @@
 10. [Feature Flags](#feature-flags)
 11. [Testing Strategy](#testing-strategy)
 12. [Performance Characteristics](#performance-characteristics)
+13. [Frequency Normalization — `normalize_frequencies`](#frequency-normalization--normalize_frequencies)
 
 ---
 
@@ -60,6 +62,14 @@ a distinct combination of state size, renormalization unit, and encoding strateg
 | Word rANS | `rans_word_sse41.h` | 32-bit | 16-bit word | 12 (fixed) | Division |
 | Alias method | `main_alias.cpp` | 32-bit | 8-bit byte | 8..=17 | Division + alias |
 | 16-way scalar | (new format) | 32-bit | 16-bit word | 12 (fixed) | Division |
+
+### Phase I Integration
+
+The **Phase I parallel block engine** (`ryg-rans-rs-parallel`) depends on this crate for
+its mathematical foundation — specifically the Word rANS encoding/decoding primitives and
+the `RANS_WORD_L`, `RANS_WORD_M`, and `RANS_WORD_SCALE_BITS` constants. The parallel engine's
+`normalize_frequencies` function uses core's frequency model invariants to produce tables
+compatible with the SIMD packed table decoder in `ryg-rans-rs-simd`.
 
 ---
 
@@ -526,6 +536,13 @@ std = []        # Enables std::error::Error impls for error types
 - **std**: Implements `std::error::Error` for the error types, making them compatible with
   `anyhow`, `eyre`, and other error-handling frameworks.
 
+### Downstream Integration
+
+The `ryg-rans-rs-parallel` crate (Phase I parallel block engine) depends on this crate
+with the `alloc` feature to build frequency models and cumulative frequency tables. The
+`ryg-rans-rs-simd` crate depends on this crate without extra features for the constant
+definitions (`RANS_WORD_L`, `RANS_WORD_M`, `RANS_WORD_SCALE_BITS`).
+
 ---
 
 ## Testing Strategy
@@ -558,3 +575,50 @@ Every test uses deterministic inputs — no randomness that could make tests fla
 Round-trip tests verify that `decode(encode(input)) == input` for a range of inputs.
 Equivalence tests verify that different algorithmic paths produce identical results.
 Malformed tests verify that invalid inputs produce errors (not panics or UB).
+
+---
+
+## Frequency Normalization — `normalize_frequencies`
+
+Although defined in the `ryg-rans-rs-parallel` crate, the **canonical frequency
+normalizer** is a direct consequence of the mathematical invariants established by this
+core crate. It transforms raw symbol counts into a frequency table that satisfies the
+core's requirements for rANS encode/decode:
+
+### Guarantees
+
+1. **Sum = total**: The output frequencies sum exactly to `1 << scale_bits` (typically 4096).
+2. **Every observed symbol gets ≥ 1**: The "reserved slot" algorithm guarantees no symbol
+   becomes undecodable (zero frequency would cause division-by-zero during decode).
+3. **No frequency exceeds 4095**: Every output fits in the 12-bit packed table field
+   used by the SIMD decoder.
+4. **Fully deterministic**: Same raw counts always produce the same normalized output —
+   essential for reproducible compression across threads and runs.
+
+### Algorithm
+
+1. **Reserve** `nonzero_count` slots — one per observed symbol.
+2. **Scale** each observed frequency proportionally into the remaining
+   `total - nonzero_count` space, clamped to `[1, 4094]`.
+3. **Distribute remainder** — any leftover units are assigned greedily to the largest
+   frequencies not yet at the cap of 4095.
+
+### Why This Matters for Phase I
+
+The Phase I parallel block engine encodes each block independently using Word rANS with
+`scale_bits = 12`. Every block's frequency model must be normalized to `4096` total before
+encoding. The `normalize_frequencies` function, combined with core's `build_word_tables`
+and `PackedWordTable::from_freqs` (in the SIMD crate), forms the complete model-building
+pipeline:
+
+```
+raw byte counts → normalize_frequencies → cum_freqs → PackedWordTable → SIMD/scalar decode
+```
+
+### Relationship to Core Invariants
+
+The normalizer produces frequencies that satisfy core's `validate_freq_model` checks:
+- Cumulative frequencies are monotonically non-decreasing
+- Total matches `1 << scale_bits`
+- No frequency exceeds the allowed range for `scale_bits = 12`
+- No zero frequencies for observed symbols

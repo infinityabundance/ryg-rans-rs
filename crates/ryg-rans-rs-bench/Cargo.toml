@@ -1,0 +1,54 @@
+[package]
+name = "ryg-rans-rs-bench"
+version = "0.1.25"
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "Criterion benchmark suite for all ryg-rans-rs execution tiers"
+publish = false
+
+[dependencies]
+ryg-rans-rs-simd = { workspace = true, features = ["std"] }
+ryg-rans-rs-parallel = { workspace = true }
+ryg-rans-rs-core = { workspace = true }
+criterion = { workspace = true }
+sha2 = "0.10"
+rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bench]]
+name = "scalar"
+harness = false
+
+[[bench]]
+name = "sse41"
+harness = false
+
+[[bench]]
+name = "avx2"
+harness = false
+
+[[bench]]
+name = "avx512"
+harness = false
+
+[[bench]]
+name = "specialized"
+harness = false
+
+[[bench]]
+name = "batch"
+harness = false
+
+[[bench]]
+name = "parallel"
+harness = false
+
+[[bench]]
+name = "container"
+harness = false
+
+[[bench]]
+name = "dispatch"
+harness = false

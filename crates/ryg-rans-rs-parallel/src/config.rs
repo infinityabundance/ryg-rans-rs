@@ -100,9 +100,19 @@ pub enum BackendId {
     RleFill,
     Scalar8,
     Scalar16,
+    Sse41Interleaved8,
+    Avx512VlInterleaved8,
+    Avx512Interleaved16,
+    Avx512VlManualGather8,
+    Avx512ManualGather16,
     Avx512Vl2x8,
     Avx512Batch4,
     Uniform256TableFree16,
+    Avx2ManualGather8,
+    Avx2HardwareGather8,
+    Avx2TwoBy8On16,
+    Avx2Uniform256TableFree16,
+    Avx2Batch4On16,
 }
 
 impl BackendId {
@@ -113,9 +123,19 @@ impl BackendId {
             Self::RleFill => "rle-fill",
             Self::Scalar8 => "scalar-8way",
             Self::Scalar16 => "scalar-16way",
+            Self::Sse41Interleaved8 => "sse41-interleaved-8way",
+            Self::Avx512VlInterleaved8 => "avx512vl-interleaved-8way",
+            Self::Avx512Interleaved16 => "avx512-interleaved-16way",
+            Self::Avx512VlManualGather8 => "avx512vl-manual-gather-8way",
+            Self::Avx512ManualGather16 => "avx512-manual-gather-16way",
             Self::Avx512Vl2x8 => "avx512vl-2x8",
             Self::Avx512Batch4 => "avx512-batch4",
             Self::Uniform256TableFree16 => "uniform256-tablefree-16way",
+            Self::Avx2ManualGather8 => "avx2-manual-gather-8way",
+            Self::Avx2HardwareGather8 => "avx2-hardware-gather-8way",
+            Self::Avx2TwoBy8On16 => "avx2-2x8-on16",
+            Self::Avx2Uniform256TableFree16 => "avx2-uniform256-tablefree-16way",
+            Self::Avx2Batch4On16 => "avx2-batch4-on16",
         }
     }
 }

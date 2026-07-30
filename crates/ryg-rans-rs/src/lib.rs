@@ -115,9 +115,9 @@ pub mod byte {
 #[cfg(feature = "simd")]
 pub mod simd {
     pub use ryg_rans_rs_simd::{
-        RANS_WORD_L, RANS_WORD_M, RANS_WORD_SCALE_BITS, RansSimdDec, RansWordDec, RansWordSlot,
-        RansWordTables, build_word_tables, decode_8way_scalar, decode_simd_8way,
-        decode_simd_8way_unchecked, rans_simd_dec_init, rans_word_tables_init_symbol,
+        RANS_WORD_L, RANS_WORD_M, RANS_WORD_SCALE_BITS, RansSimdDec, RansWordSlot, RansWordTables,
+        build_word_tables, decode_8way_scalar, decode_simd_8way, decode_simd_8way_unchecked,
+        rans_simd_dec_init, rans_word_tables_init_symbol,
     };
 }
 

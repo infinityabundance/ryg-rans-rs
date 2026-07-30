@@ -87,6 +87,10 @@ pub struct DecodedBlockResult {
     pub output_verified: bool,
     /// SHA-256 of the decoded output (computed during processing).
     pub output_hash: [u8; 32],
+    /// Words consumed from the compressed stream (0 if unknown).
+    pub words_consumed: usize,
+    /// Final rANS states after decode (empty if unknown).
+    pub final_states: Vec<u32>,
     /// Elapsed wall time for this block's processing, if measured.
     pub elapsed_ns: Option<u64>,
 }

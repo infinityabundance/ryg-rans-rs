@@ -25,6 +25,7 @@
 //! | `cache` | Shared immutable model/table cache |
 //! | `resource` | Memory estimation and accounting |
 
+mod block;
 mod cache;
 mod cancellation;
 mod config;
@@ -42,6 +43,7 @@ mod schedule;
 mod scratch;
 mod verify;
 
+pub use block::*;
 pub use cache::*;
 pub use cancellation::CancellationToken;
 pub use config::*;

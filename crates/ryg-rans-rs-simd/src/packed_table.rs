@@ -569,6 +569,142 @@ pub fn decode_interleaved16_scalar(
     Ok((output, report))
 }
 
+/// 16-way scalar decode into a preallocated output buffer.
+///
+/// Same algorithm as `decode_interleaved16_scalar` but writes into `output`
+/// instead of allocating.  Returns the decode report.
+pub fn decode_interleaved16_scalar_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport, &'static str> {
+    let n = output.len();
+    if n == 0 {
+        return Ok(DecodeReport {
+            words_consumed: 0,
+            final_states: [0u32; 16],
+        });
+    }
+    if compressed.len() < 32 {
+        return Err("compressed too short for 16 init states");
+    }
+
+    let mut states = [0u32; 16];
+    for i in 0..16 {
+        states[i] = compressed[i * 2] as u32 | (compressed[i * 2 + 1] as u32) << 16;
+    }
+    let mut pos = 32;
+    let even16 = n & !15;
+
+    for i in (0..even16).step_by(16) {
+        for lane in 0..16 {
+            let x = states[lane];
+            let slot = x as usize & (RANS_WORD_M - 1);
+            let entry = table.get(slot);
+            output[i + lane] = entry.symbol();
+            states[lane] = entry.freq() * (x >> (RANS_WORD_SCALE_BITS as u32)) + entry.bias();
+        }
+        for lane in 0..16 {
+            if states[lane] < crate::RANS_WORD_L {
+                if pos >= compressed.len() {
+                    return Err("unexpected EOF in 16-way into renorm");
+                }
+                states[lane] = (states[lane] << 16) | compressed[pos] as u32;
+                pos += 1;
+            }
+        }
+    }
+
+    for i in even16..n {
+        let lane = i & 15;
+        let x = states[lane];
+        let slot = x as usize & (RANS_WORD_M - 1);
+        let entry = table.get(slot);
+        output[i] = entry.symbol();
+        states[lane] = entry.freq() * (x >> (RANS_WORD_SCALE_BITS as u32)) + entry.bias();
+        if states[lane] < crate::RANS_WORD_L {
+            if pos >= compressed.len() {
+                return Err("unexpected EOF in 16-way into tail");
+            }
+            states[lane] = (states[lane] << 16) | compressed[pos] as u32;
+            pos += 1;
+        }
+    }
+
+    Ok(DecodeReport {
+        words_consumed: pos,
+        final_states: states,
+    })
+}
+
+/// 8-way packed scalar decode into a preallocated output buffer.
+///
+/// Same algorithm as `decode_8way_packed_scalar_with_report` but writes
+/// into `output` instead of allocating.  Returns the decode report.
+pub fn decode_8way_packed_scalar_into(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    output: &mut [u8],
+) -> Result<DecodeReport8, &'static str> {
+    let n = output.len();
+    if n == 0 {
+        return Ok(DecodeReport8 {
+            words_consumed: 0,
+            final_states: [0u32; 8],
+        });
+    }
+    if compressed.len() < 16 {
+        return Err("compressed too short for 8 init states");
+    }
+
+    let mut states = [0u32; 8];
+    for i in 0..8 {
+        states[i] = compressed[i * 2] as u32 | (compressed[i * 2 + 1] as u32) << 16;
+    }
+    let mut pos = 16;
+    let even8 = n & !7;
+
+    for i in (0..even8).step_by(8) {
+        for lane in 0..8 {
+            let x = states[lane];
+            let slot = x as usize & (RANS_WORD_M - 1);
+            let entry = table.get(slot);
+            output[i + lane] = entry.symbol();
+            states[lane] = entry.freq() * (x >> (RANS_WORD_SCALE_BITS as u32)) + entry.bias();
+        }
+        for lane in 0..8 {
+            if states[lane] < crate::RANS_WORD_L {
+                if pos >= compressed.len() {
+                    return Err("unexpected EOF in 8-way into renorm");
+                }
+                states[lane] = (states[lane] << 16) | compressed[pos] as u32;
+                pos += 1;
+            }
+        }
+    }
+
+    for i in even8..n {
+        let lane = i & 7;
+        let x = states[lane];
+        let slot = x as usize & (RANS_WORD_M - 1);
+        let entry = table.get(slot);
+        output[i] = entry.symbol();
+        states[lane] = entry.freq() * (x >> (RANS_WORD_SCALE_BITS as u32)) + entry.bias();
+        if states[lane] < crate::RANS_WORD_L {
+            if pos >= compressed.len() {
+                return Err("unexpected EOF in 8-way into tail");
+            }
+            states[lane] = (states[lane] << 16) | compressed[pos] as u32;
+            pos += 1;
+        }
+    }
+
+    Ok(DecodeReport8 {
+        words_consumed: pos,
+        final_states: states,
+    })
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------

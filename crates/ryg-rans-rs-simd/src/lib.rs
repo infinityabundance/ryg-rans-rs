@@ -10,11 +10,16 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::arch::x86_64::*;
 
+pub mod avx2;
+pub mod avx2_renorm;
 pub mod avx512;
 pub mod backends;
 #[cfg(target_feature = "avx512bw")]
 pub mod model_kernels;
 pub mod packed_table;
+
+#[cfg(all(test, target_feature = "avx2"))]
+pub mod avx2_tests;
 
 #[cfg(all(test, target_feature = "avx512bw"))]
 pub mod malformed_input_tests;

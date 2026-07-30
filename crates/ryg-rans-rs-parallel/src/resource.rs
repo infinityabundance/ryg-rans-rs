@@ -65,16 +65,10 @@ pub fn effective_worker_count(
     let requested = match config.threads {
         crate::ThreadCount::Exact(n) => n.get(),
         crate::ThreadCount::AvailableParallelism => {
-            #[cfg(feature = "std")]
-            {
-                std::thread::available_parallelism()
-                    .map(core::num::NonZeroUsize::get)
-                    .unwrap_or(1)
-            }
-            #[cfg(not(feature = "std"))]
-            {
-                1
-            }
+            // The parallel crate always has std, so this is always available.
+            std::thread::available_parallelism()
+                .map(core::num::NonZeroUsize::get)
+                .unwrap_or(1)
         }
     };
 
