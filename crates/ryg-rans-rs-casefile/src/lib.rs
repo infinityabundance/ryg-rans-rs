@@ -46,6 +46,8 @@
 #![forbid(unsafe_code)]
 
 extern crate alloc;
+#[cfg(feature = "std")]
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt;
 
@@ -140,4 +142,135 @@ impl fmt::Display for Residual {
             self.case_id, self.court_id, self.class, self.severity, self.status
         )
     }
+}
+
+// ---------------------------------------------------------------------------
+// Performance types — available when the `std` feature is enabled.
+// ---------------------------------------------------------------------------
+
+/// Schema version for performance evidence.
+pub const PERF_SCHEMA_VERSION: u32 = 1;
+
+/// CPU metadata for performance runs.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct CpuMetadata {
+    pub model: String,
+    pub features: Vec<String>,
+    pub microcode: Option<String>,
+    pub smt_enabled: bool,
+    pub governor: String,
+}
+
+/// OS metadata for performance runs.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct OsMetadata {
+    pub kernel: String,
+    pub os: String,
+    pub memory: Option<String>,
+}
+
+/// Artifact hashes for a performance run.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct PerformanceArtifactHashes {
+    pub criterion_archive_sha256: String,
+    pub results_json_sha256: String,
+    pub results_csv_sha256: String,
+    pub host_metadata_sha256: String,
+    pub commands_log_sha256: String,
+}
+
+/// A single benchmark case within a performance receipt.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct PerformanceCase {
+    pub benchmark_id: String,
+    pub backend_requested: String,
+    pub backend_executed: String,
+    pub profile: String,
+    pub bytes: u64,
+    pub threads_requested: usize,
+    pub threads_effective: usize,
+    pub sample_count: usize,
+    pub median_ns: f64,
+    pub mean_ns: f64,
+    pub stddev_ns: f64,
+    pub confidence_interval_95_low_ns: f64,
+    pub confidence_interval_95_high_ns: f64,
+    pub throughput_gib_s: f64,
+    pub verification_passed: bool,
+    pub output_hash: String,
+    pub words_consumed_hash: Option<String>,
+    pub final_states_hash: Option<String>,
+    pub status: String,
+}
+
+/// Performance manifest — describes one performance sealing run for one surface.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct PerformanceManifest {
+    pub schema_version: u32,
+    pub performance_id: String,
+    pub surface: String,
+    pub implementation_commit: String,
+    pub run_id: String,
+    pub host_id: String,
+    pub benchmark_cases: Vec<PerformanceCase>,
+    pub artifact_hashes: PerformanceArtifactHashes,
+    pub command: String,
+    pub rustflags: String,
+    pub criterion_version: String,
+    pub rustc_version: String,
+    pub cpu: CpuMetadata,
+    pub os: OsMetadata,
+    pub dirty_tree: bool,
+}
+
+/// Performance receipt — seals a performance manifest.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct PerformanceReceipt {
+    pub schema_version: u32,
+    pub performance_id: String,
+    pub surface: String,
+    pub verdict: String,
+    pub implementation_commit: String,
+    pub evidence_commit: String,
+    pub run_id: String,
+    pub host_id: String,
+    pub cases_declared: u64,
+    pub cases_executed: u64,
+    pub cases_verified: u64,
+    pub cases_failed: u64,
+    pub residual_count: u32,
+    pub residual_ids: Vec<String>,
+    pub manifest_sha256: String,
+    pub criterion_archive_sha256: String,
+    pub results_json_sha256: String,
+    pub results_csv_sha256: String,
+    pub host_metadata_sha256: String,
+    pub commands_log_sha256: String,
+    pub receipt_sha256: String,
+    pub reproduction_command: String,
+}
+
+/// Performance index entry.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct PerformanceIndexEntry {
+    pub performance_id: String,
+    pub sha256: String,
+}
+
+/// Performance index.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct PerformanceIndex {
+    pub schema_version: u32,
+    pub implementation_commit: String,
+    pub run_id: String,
+    pub host_id: String,
+    pub receipts: Vec<PerformanceIndexEntry>,
 }

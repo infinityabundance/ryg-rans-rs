@@ -10,7 +10,7 @@ publish = false
 [dependencies]
 ryg-rans-rs-simd = { workspace = true, features = ["std"] }
 ryg-rans-rs-parallel = { workspace = true }
-ryg-rans-rs-core = { workspace = true }
+ryg-rans-rs-core = { workspace = true, features = ["std", "alloc"] }
 criterion = { workspace = true }
 sha2 = "0.10"
 rand = "0.8"
@@ -51,4 +51,16 @@ harness = false
 
 [[bench]]
 name = "dispatch"
+harness = false
+
+[[bench]]
+name = "byte_rans"
+harness = false
+
+[[bench]]
+name = "r64"
+harness = false
+
+[[bench]]
+name = "alias"
 harness = false
