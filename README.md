@@ -3,8 +3,10 @@
 > **A native Rust forensic reconstruction of Fabian Giesen's public-domain `ryg_rans`**  
 > **144 sealed behavioral receipts across 7 algorithmic surfaces**  
 > **Phases A–G: Byte rANS · 64-bit rANS · Word rANS · Alias method · SSE4.1 · AVX512VL · AVX512**  
+> **Phase H–J: AVX2 portability tier · Batch4 · 2×8-on-16 · Uniform256 table-free**  
 > **Phase I: Deterministic parallel block engine** — **fully implemented, 63 passing tests**  
-> **Ten-service Docker VM matrix verifies every build, test, oracle, court, and audit**
+> **Nine-tier Criterion benchmark suite** — **scalar · SSE4.1 · AVX2 · AVX-512 · specialized · batch · parallel · block-engine · dispatch**  
+> **Eleven-service Docker VM matrix verifies every build, test, oracle, court, and audit**
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache-2.0-blue)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-stable)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)
@@ -51,7 +53,7 @@ upstream revision, built through parity courts:
 2. Every encoded byte stream is verified byte-for-byte in both directions
 3. Every observed difference is a first-class **residual** — tracked, classified, resolved
 4. Every surface is sealed by a **SHA-256-chained receipt** with self-hash verification
-5. Every release requires a **Docker VM matrix run** with 10 services
+5. Every release requires a **Docker VM matrix run** with 11 services
 
 The goal is **critical-safety-infrastructure quality** — a library that can be depended upon
 in security-sensitive, correctness-critical, long-lived systems.
@@ -76,16 +78,19 @@ in security-sensitive, correctness-critical, long-lived systems.
 
 ## Evidence Status
 
-| Surface | Behaviour | Performance | Receipts |
-|---------|-----------|-------------|----------|
-| 32-bit byte rANS (division + reciprocal) | **Sealed** | Unsealed | 44 |
-| 64-bit rANS (division + reciprocal) | **Sealed** | Unsealed | 44 |
-| Word rANS (division, table-based) | **Sealed** | Unsealed | 16 |
-| Alias method (Vose table, byte rANS) | **Sealed** | Unsealed | 16 |
-| SSE4.1 SIMD decoder (8-way interleaved) | **Sealed** | Unsealed | 8 |
-| **AVX512VL.INTERLEAVED8** (AVX-512 8-way) | **Sealed** | Unsealed | 8 |
-| **AVX512.INTERLEAVED16** (AVX-512 16-way) | **Sealed** | Unsealed | 8 |
-| **Total** | | | **144** |
+| Surface | Behaviour | Performance | Behaviour Receipts | Performance Receipts |
+|---------|-----------|-------------|------------------:|--------------------:|
+| 32-bit byte rANS — division + reciprocal | **Sealed** | Unmeasured | 44 | 0 |
+| 64-bit rANS — division + reciprocal | **Sealed** | Unmeasured | 44 | 0 |
+| Word rANS — scalar table-based | **Sealed** | **Benchmarked — unsealed** | 16 | 0 |
+| Alias method — Vose table, byte rANS | **Sealed** | Unmeasured | 16 | 0 |
+| SSE4.1 SIMD decoder — 8-way interleaved | **Sealed** | **Benchmarked — unsealed** | 8 | 0 |
+| AVX512VL.INTERLEAVED8 | **Sealed** | Build/runtime measurement pending | 8 | 0 |
+| AVX512.INTERLEAVED16 | **Sealed** | Build/runtime measurement pending | 8 | 0 |
+| Phase H optimization backends | **Test-verified** | **Benchmarked — unsealed** | 0 | 0 |
+| Phase J AVX2 backends | **Test-verified** | **Benchmarked — unsealed** | 0 | 0 |
+| Phase I parallel block engine | **Test-verified** | **Benchmarked — unsealed** | 0 | 0 |
+| **Total** | | | **144** | **0** |
 
 ### Receipt Accounting
 
@@ -405,9 +410,9 @@ cargo bench -p ryg-rans-rs-bench
 **Run a single tier:**
 
 ```sh
-cargo bench -p ryg-rans-rs-bench -- bench scalar
-cargo bench -p ryg-rans-rs-bench -- bench parallel
-cargo bench -p ryg-rans-rs-bench -- bench avx2
+cargo bench -p ryg-rans-rs-bench --bench scalar
+cargo bench -p ryg-rans-rs-bench --bench parallel
+cargo bench -p ryg-rans-rs-bench --bench avx2
 ```
 
 ---
@@ -444,14 +449,14 @@ The seal gate enforces 16 mandatory checks (see below).
 
 | Crate | Version | `no_std` | `unsafe` | Purpose |
 |-------|---------|----------|----------|---------|
-| [`ryg-rans-rs-core`](./crates/ryg-rans-rs-core) | 0.1.25 | ✅ Yes | ✅ Forbid | Algorithmic heart — byte/R64/Word/Alias rANS, malformed validation, Kani proofs |
-| [`ryg-rans-rs-simd`](./crates/ryg-rans-rs-simd) | 0.1.25 | ✅ Yes | ⚠️ 7 fn | SSE4.1 + AVX512VL + AVX512 decode kernels, scalar fallback |
-| [`ryg-rans-rs`](./crates/ryg-rans-rs) | 0.1.25 | ✅ Yes | ✅ Deny | Public facade — re-exports core + optional SIMD |
-| [`ryg-rans-rs-parallel`](./crates/ryg-rans-rs-parallel) | 0.1.25 | ❌ No | ✅ Forbid | **Phase I** — deterministic parallel block engine. Bounded executor, FixedBlockPlan, ReorderBuffer, CancellationToken. 63 tests |
-| [`ryg-rans-rs-cli`](./crates/ryg-rans-rs-cli) | 0.1.25 | ❌ No | ❌ No | **Production CLI** — `ryg-rans` binary with encode, decode, inspect, verify, model, trace, compare, bench, capabilities, completions. RYGRANS v1 container format. 10 stable exit codes. Resource limits, atomic output |
-| [`ryg-rans-rs-bench`](./crates/ryg-rans-rs-bench) | 0.1.25 | ❌ No | ❌ No | **Criterion benchmark suite** — 9 tiers: scalar, sse41, avx2, avx512, specialized, batch, parallel, container, dispatch. Deterministic corpora, real SIMD execution |
-| [`ryg-rans-rs-oracle`](./crates/ryg-rans-rs-oracle) | 0.1.25 | ❌ No | ❌ No | Forensic court harness, evidence generation, perf benchmarks |
-| [`ryg-rans-rs-casefile`](./crates/ryg-rans-rs-casefile) | 0.1.25 | ✅ Yes | ❌ No | Evidence schema types — Casefile, Receipt, Residual |
+| [`ryg-rans-rs-core`](./crates/ryg-rans-rs-core) | 0.1.27 | ✅ Yes | ✅ Forbid | Algorithmic heart — byte/R64/Word/Alias rANS, malformed validation, Kani proofs |
+| [`ryg-rans-rs-simd`](./crates/ryg-rans-rs-simd) | 0.1.27 | ✅ Yes | ⚠️ 7 fn | SSE4.1 + AVX512VL + AVX512 decode kernels, scalar fallback |
+| [`ryg-rans-rs`](./crates/ryg-rans-rs) | 0.1.27 | ✅ Yes | ✅ Deny | Public facade — re-exports core + optional SIMD |
+| [`ryg-rans-rs-parallel`](./crates/ryg-rans-rs-parallel) | 0.1.27 | ❌ No | ✅ Forbid | **Phase I** — deterministic parallel block engine. Bounded executor, FixedBlockPlan, ReorderBuffer, CancellationToken. 63 tests |
+| [`ryg-rans-rs-cli`](./crates/ryg-rans-rs-cli) | 0.1.27 | ❌ No | ❌ No | **Production CLI** — `ryg-rans` binary with encode, decode, inspect, verify, model, trace, compare, bench, capabilities, completions. RYGRANS v1 container format. 10 stable exit codes. Resource limits, atomic output |
+| [`ryg-rans-rs-bench`](./crates/ryg-rans-rs-bench) | 0.1.27 | ❌ No | ❌ No | **Criterion benchmark suite** — 9 tiers: scalar, sse41, avx2, avx512, specialized, batch, parallel, container, dispatch. Deterministic corpora, real SIMD execution |
+| [`ryg-rans-rs-oracle`](./crates/ryg-rans-rs-oracle) | 0.1.27 | ❌ No | ❌ No | Forensic court harness, evidence generation, perf benchmarks |
+| [`ryg-rans-rs-casefile`](./crates/ryg-rans-rs-casefile) | 0.1.27 | ✅ Yes | ❌ No | Evidence schema types — Casefile, Receipt, Residual |
 
 ---
 

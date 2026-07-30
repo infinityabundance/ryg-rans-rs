@@ -273,6 +273,9 @@ loop {
 
 | Version | Phase | Key Changes |
 |---------|-------|-------------|
+| **0.1.27** | **J** | **Criterion all-tier benchmark suite, 8/16-thread scaling matrix, strict block parser, ultra-thorough documentation** |
+| **0.1.26** | **J** | **AVX2 portability tier, Batch4, real SSE execution, backend truthfulness, Phase I CLI integration** |
+| **0.1.25** | **I** | **Phase I parallel block engine: bounded executor, FixedBlockPlan, ReorderBuffer, CancellationToken, 63 tests. Published all 7 workspace crates.** |
 | **0.1.15** | **G** | **AVX512VL 8-way + AVX512 16-way decode kernels** |
 | 0.1.14 | H | Malformed-stream hardening, fuzzing, Kani proofs |
 | 0.1.13 | F | SSE4.1 SIMD decoder, 128 receipts |
