@@ -813,47 +813,46 @@ const SURFACE_NAMES: &[&str] = &[
 ];
 
 /// Map a Criterion benchmark ID to a surface index (0..9).
+///
+/// Criterion 0.5 flattens `/` in benchmark group names to `_` when creating
+/// directory names, so we check for `_` as the separator between the bench
+/// name and the group path.
 fn classify_benchmark_id(id: &str) -> Option<usize> {
-    if id.starts_with("byte-rans/") {
+    // Split on `/iter` to get the tier portion of the ID
+    let tier = id.split("/iter").next().unwrap_or(id);
+
+    if tier.starts_with("byte-rans_") {
         return Some(0); // BYTE
     }
-    if id.starts_with("r64/") {
+    if tier.starts_with("r64_") {
         return Some(1); // R64
     }
-    if id.starts_with("scalar/") {
+    if tier.starts_with("scalar_") {
         return Some(2); // WORD.SCALAR
     }
-    if id.starts_with("alias/") {
+    if tier.starts_with("alias_") {
         return Some(3); // ALIAS
     }
-    if id.starts_with("sse41/") {
+    if tier.starts_with("sse41_") {
         return Some(4); // SSE41.INTERLEAVED8
     }
-    if id.starts_with("avx512/") {
+    if tier.starts_with("avx512_") {
         // Filter by backend: 8-way → AVX512VL.INTERLEAVED8, 16-way → AVX512.INTERLEAVED16
-        if id.contains("8way") || id.contains("vl") || id.contains("avx512vl") {
+        if tier.contains("8way") || tier.contains("vl") || tier.contains("avx512vl") {
             return Some(5); // AVX512VL.INTERLEAVED8
         }
-        if id.contains("16way") || id.contains("avx512") {
+        if tier.contains("16way") || tier.contains("avx512") {
             return Some(6); // AVX512.INTERLEAVED16
-        }
-        // Default heuristic: if unsure, check the tier/backend part
-        let parts: Vec<&str> = id.split('/').collect();
-        if parts.len() > 1 {
-            let backend = parts[1].to_lowercase();
-            if backend.contains("vl") || backend.contains("8way") {
-                return Some(5);
-            }
         }
         return Some(6);
     }
-    if id.starts_with("specialized/") {
+    if tier.starts_with("specialized_") {
         return Some(7); // PHASE_H
     }
-    if id.starts_with("avx2/") || id.starts_with("batch/") || id.starts_with("dispatch/") {
+    if tier.starts_with("avx2_") || tier.starts_with("batch_") || tier.starts_with("dispatch_") {
         return Some(8); // PHASE_J.AVX2
     }
-    if id.starts_with("parallel/") || id.starts_with("block-engine/") {
+    if tier.starts_with("parallel_") || tier.starts_with("block-engine_") {
         return Some(9); // PHASE_I.PARALLEL
     }
     None
