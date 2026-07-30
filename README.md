@@ -1,7 +1,8 @@
 # ryg-rans-rs
 
 > **A native Rust forensic reconstruction of Fabian Giesen's public-domain `ryg_rans`**  
-> **144 sealed behavioral receipts across 7 algorithmic surfaces**  
+> **144 sealed behavioral receipts
+> **10 sealed performance receipts** across 7 algorithmic surfaces**  
 > **Phases A–G: Byte rANS · 64-bit rANS · Word rANS · Alias method · SSE4.1 · AVX512VL · AVX512**  
 > **Phase H–J: AVX2 portability tier · Batch4 · 2×8-on-16 · Uniform256 table-free**  
 > **Phase I: Deterministic parallel block engine** — **fully implemented, 63 passing tests**  
@@ -79,17 +80,17 @@ upstream revision, built through parity courts:
 
 | Surface | Behaviour | Performance | Behaviour Receipts | Performance Receipts |
 |---------|-----------|-------------|------------------:|--------------------:|
-| 32-bit byte rANS — division + reciprocal | **Sealed** | Unmeasured | 44 | 0 |
-| 64-bit rANS — division + reciprocal | **Sealed** | Unmeasured | 44 | 0 |
-| Word rANS — scalar table-based | **Sealed** | **Benchmarked — unsealed** | 16 | 0 |
-| Alias method — Vose table, byte rANS | **Sealed** | Unmeasured | 16 | 0 |
-| SSE4.1 SIMD decoder — 8-way interleaved | **Sealed** | **Benchmarked — unsealed** | 8 | 0 |
-| AVX512VL.INTERLEAVED8 | **Sealed** | Build/runtime measurement pending | 8 | 0 |
-| AVX512.INTERLEAVED16 | **Sealed** | Build/runtime measurement pending | 8 | 0 |
-| Phase H optimization backends | **Test-verified** | **Benchmarked — unsealed** | 0 | 0 |
-| Phase J AVX2 backends | **Test-verified** | **Benchmarked — unsealed** | 0 | 0 |
-| Phase I parallel block engine | **Test-verified** | **Benchmarked — unsealed** | 0 | 0 |
-| **Total** | | | **144** | **0** |
+| 32-bit byte rANS — division + reciprocal | **Sealed** | **Sealed** | 44 | 1 |
+| 64-bit rANS — division + reciprocal | **Sealed** | **Sealed** | 44 | 1 |
+| Word rANS — scalar table-based | **Sealed** | **Sealed** | 16 | 1 |
+| Alias method — Vose table, byte rANS | **Sealed** | **Sealed** | 16 | 1 |
+| SSE4.1 SIMD decoder — 8-way interleaved | **Sealed** | **Sealed** | 8 | 1 |
+| AVX512VL.INTERLEAVED8 | **Sealed** | **Sealed** | 8 | 1 |
+| AVX512.INTERLEAVED16 | **Sealed** | **Sealed** | 8 | 1 |
+| Phase H optimization backends | **Test-verified** | **Sealed** | 0 | 1 |
+| Phase J AVX2 backends | **Test-verified** | **Sealed** | 0 | 1 |
+| Phase I parallel block engine | **Test-verified** | **Sealed** | 0 | 1 |
+| **Total** | | | **144** | **10** |
 
 ### Receipt Accounting
 
