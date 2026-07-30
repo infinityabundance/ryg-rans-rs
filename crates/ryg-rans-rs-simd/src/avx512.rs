@@ -7,12 +7,139 @@
 //! On targets without AVX-512, the module exists but is empty.  All dependent
 //! code must be cfg-gated at the call site.
 //!
-//! This module implements two complementary AVX-512 accelerated Word rANS decode
-//! surfaces.  Both use a **packed u32 table** (`PackedWordTable`) where each 32-bit
+//! ## Overview
+//!
+//! This module implements **four** AVX-512 accelerated Word rANS decode surfaces,
+//! each targeting a different microarchitectural trade-off:
+//!
+//! | Kernel | Vector width | Gather method | Format compat | ISA required |
+//! |--------|-------------|---------------|---------------|-------------|
+//! | `decode_interleaved8_avx512vl_*` | 256-bit (8×u32) | HW gather | Canonical 8-way | `avx512f+vl+bw` |
+//! | `decode_interleaved16_avx512_*`  | 512-bit (16×u32) | HW gather | New 16-way | `avx512f+bw` |
+//! | `decode_interleaved{8,16}_manual_gather_*` | 256/512-bit | Scalar gather loop | Same as above | Same as above |
+//! | `decode_interleaved16_2x8_*`     | 2×256-bit (2×8×u32) | HW gather (×2) | New 16-way | `avx512f+vl+bw` |
+//!
+//! All surfaces use a **packed u32 table** (`PackedWordTable`) where each 32-bit
 //! entry packs `frequency(12 bits) | bias(12 bits) | symbol(8 bits)`.  A single
 //! `_mm256_i32gather_epi32` or `_mm512_i32gather_epi32` instruction loads all three
 //! fields for the entire SIMD width, eliminating the scalar extraction bottleneck
 //! that limited the SSE4.1 implementation.
+//!
+//! ## AVX512VL 8-way hardware gather decoder (`decode_interleaved8_avx512vl_*`)
+//!
+//! The canonical 8-way kernel using 256-bit YMM registers (AVX512VL = 256-bit
+//! subset of AVX-512).  Each iteration:
+//!
+//! 1. **GATHER**: Indices = `state & 4095`.  `_mm256_i32gather_epi32` loads 8×u32
+//!    packed entries from 8 distinct table slots in a single instruction.
+//! 2. **UNPACK**: Bit-extract freq (low 12), bias (next 12), symbol (high 8)
+//!    with three SIMD operations (AND + shift+AND + shift).
+//! 3. **NARROW + STORE**: `_mm256_cvtepi32_epi8` (VPMOVDB) narrows 8×i32 lanes
+//!    to 8 bytes; `_mm_storel_epi64` stores them.  This avoids a temp `[u32; 8]`
+//!    buffer and a scalar copy loop present in earlier SSE4.1 implementations.
+//! 4. **UPDATE**: `state = (state >> 12) * freq + bias` — lane-wise multiply-add.
+//! 5. **RENORM**: `_mm256_cmplt_epu32_mask` computes a lane mask for states
+//!    below `RANS_WORD_L` (65536).  `renorm_mask.count_ones()` gives word count.
+//!    Renorm words are compacted and expanded via `_mm256_maskz_expand_epi32`,
+//!    then shifted into their lanes via `shift + or`.
+//!
+//! Compatible with the canonical 8-way stream format from scalar, SSE4.1, and
+//! AVX2 implementations.  This is the **drop-in SIMD replacement** for the
+//! existing standardised format.
+//!
+//! ## AVX512 16-way hardware gather decoder (`decode_interleaved16_avx512_*`)
+//!
+//! The 16-way kernel using 512-bit ZMM registers.  Doubles the arithmetic density
+//! (16 symbols decoded per gather vs 8) at the cost of a **new stream format**:
+//!
+//! - 16 independent rANS states instead of 8.
+//! - Encoding assigns symbols to lane `= i & 15`.
+//! - Initial states occupy 32 u16 words (16 × [low16, high16]) instead of 16.
+//! - Lane ordering matches the 8-way convention: states are flushed in reverse
+//!   lane order (15 down to 0) because the writer moves backward; the forward
+//!   reader thus sees states in ascending lane order (0 up to 15).
+//!
+//! Internally the kernel uses the same 5-step pipeline as the 8-way variant,
+//! but with `_mm512_*` intrinsics throughout.  The gather uses
+//! `_mm512_i32gather_epi32` (single 512-bit load covering 16×4-byte entries).
+//! Symbol narrow uses `_mm512_cvtepi32_epi8` to compress 16×i32 → 16 packed bytes
+//! in one µop.
+//!
+//! The 16-way format is **not compatible** with the 8-way format — an 8-way stream
+//! will be rejected by the 16-way decoder (and vice versa) because the initial
+//! state count differs.
+//!
+//! ## Manual-gather decoders (fallback for buggy microcode)
+//!
+//! `decode_interleaved{8,16}_manual_gather_*` replace the hardware `i32gather`
+//! instruction with a scalar loop: store SIMD indices to a temp array, perform
+//! 8 or 16 individual `table[idx]` loads, then reload the entries as a vector.
+//! This is strictly slower than the hardware-gather path but serves as:
+//!
+//! - A **correctness baseline**: manual gather is immune to any potential gather
+//!   hardware erratum (e.g., Intel SKX102/SKX162).
+//! - A **performance comparison**: the delta between manual and hardware gather
+//!   measures the actual benefit of the gather instruction on a given µarch.
+//!
+//! ## 2×8-on-16 decoder using AVX512VL (`decode_interleaved16_2x8_*`)
+//!
+//! This decoder processes the 16-way stream format but splits the 16 lanes into
+//! **two independent 8-lane groups**, each managed by a separate `__m256i` register
+//! (`state_lo` for lanes 0–7, `state_hi` for lanes 8–15).  Each group runs its
+//! own full gather–unpack–narrow–update–renorm chain.
+//!
+//! **Rationale**: On CPUs where 512-bit ZMM operations downclock the vector unit
+//! (e.g., Ice Lake, Tiger Lake at 512-bit width), splitting into two 256-bit chains
+//! avoids the frequency throttle.  On CPUs without this penalty (Zen 5, Granite
+//! Rapids), the 2×8-on-16 decoder may still be competitive because the out-of-order
+//! scheduler can overlap the two independent gather-and-arithmetic chains, hiding
+//! memory latency.
+//!
+//! Tail handling for the 2×8 decoder applies the scalar fallback to whichever of
+//! `state_lo` or `state_hi` contains the active lane for each remaining symbol.
+//! Final states are merged from the two YMM buffers into a single `[u32; 16]`.
+//!
+//! ## Lane ordering
+//!
+//! All decoders in this module use **natural lane order**: lane 0 corresponds to
+//! state index 0, lane 1 to index 1, etc.  This matches the forward-stream layout
+//! where the reader sees state[0] first (at the beginning of the encoded buffer)
+//! and state[15] last (at the end).  The flush/init handshake in all decoders
+//! correctly recovers this ordering: each initial state is reconstructed as
+//! `compressed[i*2] | (compressed[i*2+1] << 16)`, with `i` ranging over the
+//! stream positions in forward order.
+//!
+//! Symbol output follows the same convention: the decoded symbol for group `k`
+//! at iteration `i` lands at `output[i*W + k]`, where `W` is the decoder width
+//! (8 or 16).  The `_mm_storel_epi64` and `_mm_storeu_si128` stores write bytes
+//! in lane order without any transposition.
+//!
+//! ## Tail handling
+//!
+//! When the total symbol count `expected_len` is not evenly divisible by the
+//! decoder width, a **scalar fallback loop** processes the remaining 1–7 (8-way)
+//! or 1–15 (16-way) symbols:
+//!
+//! 1. Save the SIMD state vector to a temp `[u32; W]` array.
+//! 2. For each remaining symbol at position `i`, compute `lane = i & mask` (where
+//!    mask = 7 or 15).
+//! 3. Perform the lookup (`state[lane] & 4095 → table entry`), extract symbol,
+//!    compute new state, and conditionally renormalize — all in scalar code.
+//! 4. Write the modified lane back into the temp array and reload the SIMD state.
+//!
+//! The scalar fallback is proven correct by exhaustive testing of every possible
+//! tail length (1–15 proved in `test_avx512_16way_all_tails`).  It is intentionally
+//! simple and auditable rather than optimised, since tail iterations are a small
+//! fraction of total work for typical block sizes (≥1 KiB).
+//!
+//! ## Batched multi-stream decoder (`decode_batch_interleaved16_avx512`)
+//!
+//! In addition to the single-stream kernels, this module provides a batched decoder
+//! that processes up to **4 independent 16-way streams in round-robin** fashion.
+//! Each iteration decodes one 16-symbol group from stream 0, then stream 1, etc.
+//! This allows the CPU to overlap the gather latency of one stream with the
+//! arithmetic of another, improving aggregate throughput on wide out-of-order
+//! cores.  All streams must share the same codec parameters (scale_bits).
 //!
 //! ## Design rationale: Why AVX-512 instead of waiting for AVX-1024?
 //!
@@ -54,9 +181,11 @@
 //! the Rust intrinsic `_mm256_mask_expand_epi16` has an ambiguous memory-access
 //! contract: inactive masked lanes may or may not read memory, depending on the
 //! microarchitecture.  To guarantee no overread beyond the provided slice, we use
-//! a **lane-wise scalar loop**: for each active lane, read exactly one `u16` from
-//! the stream.  This is provably safe and the loop runs at most 8 or 16 iterations
-//! (typically 1–2).
+//! a compact-then-expand approach: load the needed renorm words into a compact
+//! array, widen to u32, then use `maskz_expand_epi32` with zero-masking semantics
+//! to distribute them.  This is provably safe — inactive lanes always read from
+//! the known-valid compact buffer — and the cost is one cache-line write per
+//! decode iteration (typically ≤3 active lanes).
 //!
 //! ## ISA requirements
 //!
@@ -64,6 +193,7 @@
 //! |--------|------------------|-----|
 //! | `decode_interleaved8_avx512vl_kernel` | `avx512f, avx512vl, avx512bw` | Gather requires AVX512F; 256-bit ops need AVX512VL; byte/word mask needs AVX512BW |
 //! | `decode_interleaved16_avx512_kernel`  | `avx512f, avx512bw` | Gather requires AVX512F; 512-bit ops don't need AVX512VL; mask needs AVX512BW |
+//! | `decode_interleaved16_2x8_kernel`     | `avx512f, avx512vl, avx512bw` | 256-bit ops; mask requires AVX512BW |
 //!
 //! ## Safety
 //!

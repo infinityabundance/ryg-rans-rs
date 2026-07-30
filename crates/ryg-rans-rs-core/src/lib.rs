@@ -10,21 +10,119 @@
 //! byte-aligned and 64-bit rANS encoder/decoder variants from Fabian Giesen's
 //! public-domain [`ryg_rans`](https://github.com/rygorous/ryg_rans) repository.
 //!
-//! ## Variants
+//! ## Core algorithmic surfaces
 //!
-//! | Variant | Upstream File | Key Constants | Renormalization Unit | State Width |
-//! |---------|---------------|---------------|---------------------|-------------|
-//! | Byte rANS (32-bit) | `rans_byte.h` | `RANS_BYTE_L = 2^23` | 8-bit (byte) | 31-bit effective |
-//! | 64-bit rANS | `rans64.h` | `RANS64_L = 2^31` | 32-bit (word) | 63-bit effective |
+//! This crate exposes four encoding/decoding surfaces built on the same ANS
+//! state machine, each targeting different throughput/latency trade-offs:
 //!
-//! Both variants provide:
+//! | Surface | State width | Renorm unit | Key consts | Upstream origin |
+//! |---------|-------------|-------------|------------|-----------------|
+//! | **Byte rANS** | `u32` (31-bit effective) | `u8` (byte) | `RANS_BYTE_L = 1<<23` | `rans_byte.h` |
+//! | **R64 rANS** | `u64` (63-bit effective) | `u32` (word) | `RANS64_L = 1<<31` | `rans64.h` |
+//! | **Word rANS** | `u32` | `u16` (16-bit word) | `RANS_WORD_L = 1<<16`, `RANS_WORD_SCALE_BITS = 12` | `rans_word_sse41.h` |
+//! | **Alias rANS** | `u32` (Byte rANS) | `u8` (byte) | `ALIAS_LOG2_NSYMS = 8` | `main_alias.cpp` |
+//!
+//! **Byte rANS** (32-bit): The canonical byte-aligned rANS from `rans_byte.h`.
+//! Renormalization emits/consumes single bytes.  State space is 31 bits effective
+//! (32-bit `u32` with `L = 2^23`).  Best for throughput-oriented applications
+//! where byte granularity is acceptable.
+//!
+//! **R64 rANS** (64-bit): The 64-bit variant from `rans64.h`.  Renormalization
+//! emits/consumes 32-bit words.  State space is 63 bits effective (`u64` with
+//! `L = 2^31`).  Better compression efficiency (fewer renormalization steps per
+//! symbol) at the cost of larger per-word overhead.  Uses `rans64_mul_hi` for
+//! the reciprocal multiply-high fast path.
+//!
+//! **Word rANS** (32-bit, 16-bit renormalization): The scalar path from
+//! `rans_word_sse41.h`.  Uses 32-bit state with 16-bit renormalization words.
+//! This is the foundation surface for all SIMD implementations (SSE4.1, AVX2,
+//! AVX-512).  `RANS_WORD_SCALE_BITS` is hardcoded to 12 at the upstream level
+//! — all SIMD decode tables are 4096 entries (16 KiB).
+//!
+//! **Alias rANS** (Vose's alias method): Byte rANS using an alias table for
+//! O(1) symbol lookup during decoding instead of binary search on cumulative
+//! frequencies.  Constructed via Vose's algorithm from a normalized frequency
+//! distribution.  Requires the `alloc` feature.  Upstream origin: `main_alias.cpp`.
+//!
+//! All four surfaces share common structure:
 //! - **Division-based reference path**: `C(s,x) = ((x/freq) << scale_bits) + (x%freq) + start`
-//! - **Reciprocal-multiply fast path**: Uses multiply-high approximation to avoid
-//!   integer division in the encode hot loop (Alverson's method).
+//! - **Reciprocal-multiply fast path** (Byte, R64): Uses multiply-high approximation
+//!   to avoid integer division in the encode hot loop (Alverson's method).
 //! - **Two-state interleaving**: Encodes symbols into two interleaved streams
-//!   for superscalar throughput.
+//!   for superscalar throughput (Byte only; Word rANS uses 8/16-way SIMD interleaving).
 //! - **Step-only operations**: Decoder advance without renormalization, enabling
 //!   interleaved decoding patterns.
+//!
+//! ## Key constants
+//!
+//! The following constants are re-exported by the SIMD crate (`ryg-rans-rs-simd`)
+//! as the foundation for packed-table construction and SIMD decode loops:
+//!
+//! - **`RANS_WORD_L`** (`1 << 16` = 65536): Lower bound of the normalisation
+//!   interval for Word rANS.  The state is kept in `[L, M * L)` range through
+//!   renormalisation.
+//! - **`RANS_WORD_M`** (`4096` = `1 << RANS_WORD_SCALE_BITS`): The fixed number
+//!   of slots in the Word rANS decode table.  `M = 1 << 12 = 4096`.  Each slot
+//!   corresponds to one possible masked state value (`state & (M - 1)`).
+//! - **`RANS_WORD_SCALE_BITS`** (`12`): The number of frequency scaling bits.
+//!   Frequencies sum to `1 << scale_bits = 4096`.  Hardcoded at the upstream
+//!   level — all Word rANS encode/decode formulas assume this value.
+//!
+//! ## Invariants: `no_std` and `forbid(unsafe_code)`
+//!
+//! This crate carries two crate-level attributes that enforce fundamental safety
+//! and portability properties:
+//!
+//! ### `#![no_std]`
+//!
+//! The core algorithmic surfaces do not depend on the standard library.  They
+//! can be compiled for any target that supports `core`, including embedded
+//! systems, kernels, and WebAssembly.  Features that need allocation (`alloc`)
+//! or the standard library (`std`) are gated behind Cargo features:
+//!
+//! - `alloc` — enables `AliasTable`, `BackwardWord32Writer`, `Vec`-returning
+//!   helpers.  Uses `extern crate alloc` internally.
+//! - `std` — enables implementation of `std::error::Error` for error types.
+//!   Activates `alloc` implicitly.
+//! - `default` — enables `std`.
+//!
+//! ### `#![forbid(unsafe_code)]`
+//!
+//! The entire algorithmic core contains zero `unsafe` blocks.  This is a
+//! deliberate design choice: the rANS state machine (encoding/decoding symbols,
+//! renormalisation, state transitions) is pure arithmetic on `u32`/`u64` values
+//! with no pointer provenance or aliasing concerns.  All `unsafe` code in the
+//! project is confined to:
+//!
+//! - The SIMD crate (`ryg-rans-rs-simd`), where intrinsics require it.
+//! - The benchmark crate (`ryg-rans-rs-bench`), for FFI oracle comparison.
+//!
+//! This boundary ensures that any correctness bug in the core propagates as a
+//! detectable wrong-symbol decode rather than undefined behavior.
+//!
+//! ## Kani proofs
+//! <!-- 7 proofs, see kani/*.rs -->
+//!
+//! The `kani/` directory contains **verification harnesses** using the Kani Rust
+//! Verifier to symbolically prove critical properties of the core algorithms.
+//! These proofs are run with `cargo kani` (not `cargo test`) and require the
+//! Kani toolchain.  Each proof covers the full range of valid inputs (not just
+//! a subset):
+//!
+//! | Proof | File | What it proves |
+//! |-------|------|----------------|
+//! | `kani_enc_symbol_new_valid` | `kani/enc_symbol_new_proof.rs` | For **any** valid `(start, freq, scale_bits)`, `RansByteEncSymbol::new()` returns `Ok`. |
+//! | `kani_enc_symbol_new_invalid_scale` | `kani/enc_symbol_new_proof.rs` | `scale_bits = 0` or `scale_bits > 16` always produces `InvalidScaleBits`. |
+//! | `kani_enc_symbol_new_zero_freq` | `kani/enc_symbol_new_proof.rs` | `freq = 0` always produces `ZeroFrequency`. |
+//! | `kani_byte_encode_decode_inversion` | `kani/encode_decode_inversion_proof.rs` | For **any** valid state `x` and symbol `(start, freq)`, `D(s, C(s, x)) = x` (encoding is inverted by decoding). |
+//! | `kani_reciprocal_equals_division` | `kani/reciprocal_proof.rs` | Byte rANS: the reciprocal-multiply fast path produces the exact same `C(s, x)` as the division-based reference for **all** valid parameters. |
+//! | `kani_r64_reciprocal_equals_division` | `kani/r64_reciprocal_proof.rs` | R64 rANS: same proof as above but for 64-bit state space. |
+//! | `kani_state_update_no_overflow` | `kani/packed_entry_proof.rs` | For any 12-bit freq, bias, and `(state >> 12) < 2^20`, the Widening mullo product `freq * (state >> 12)` does not overflow `u32`. |
+//! | `kani_packed_entry_fields` | `kani/packed_entry_proof.rs` | Packing/unpacking the 32-bit entry preserves all three fields exactly. |
+//! | `kani_slot_index_bounded` | `kani/packed_entry_proof.rs` | `state & 4095` is always in `0..4096`. |
+//!
+//! These proofs increase confidence that the core algorithms are correct for
+//! all inputs without requiring exhaustive testing.
 //!
 //! ## Encoding Semantics (from upstream)
 //!
@@ -54,6 +152,7 @@
 //! - `ByteReader` / `Word32Reader` for decoding input
 //! - `SliceBackwardWriter` for convenient `&mut [u8]` encoding
 //! - `&[u8]` implements `ForwardReader` directly for decoding
+//! - `BackwardWord16Writer` / `Word16Reader` for Word rANS (16-bit words)
 
 use core::fmt;
 

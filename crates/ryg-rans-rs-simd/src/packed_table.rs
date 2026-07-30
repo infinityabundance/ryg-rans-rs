@@ -1,7 +1,22 @@
 //! # Packed decode table for Word rANS
 //!
 //! A `u32`-packed representation of the 4096-slot Word rANS decode table,
-//! optimized for AVX-512 gather operations.
+//! optimized for SIMD gather operations (AVX2 `VPGATHERDD` / AVX-512
+//! `VPGATHERDD`).
+//!
+//! ## Why pack three fields into one u32?
+//!
+//! The Word rANS decode step requires three pieces of data per slot:
+//! **frequency**, **bias**, and **symbol**.  In the original (non-packed)
+//! representation these were stored in separate arrays (`RansWordSlot` for
+//! freq+bias, `slot2sym` for symbol bytes).  This required **two loads per
+//! slot**, disrupting SIMD gather patterns.
+//!
+//! By packing all three fields into a single `u32`, each gather instruction
+//! (`VPGATHERDD`) loads exactly **one 32-bit word per lane**.  The fields
+//! are then extracted with bitwise AND and shift instructions — a single
+//! uop per field on modern x86.  This halves the number of gather operations
+//! and eliminates load-port pressure from the second load.
 //!
 //! ## Layout
 //!
@@ -13,6 +28,23 @@
 //! bits 24..31   symbol     (8 bits)
 //! ```
 //!
+//! Field assignment is designed so that:
+//! - `freq` and `bias` are at **constant bit offsets** (0–11, 12–23) accessible
+//!   with a single mask (`0x0fff`) after optional right-shift.
+//! - `symbol` occupies the high byte, naturally aligning with `_mm256_srli_epi32(v, 24)`
+//!   for extraction — no mask needed after the shift.
+//! - The combined u32 is **gather-friendly**: a single 4-byte load per lane.
+//!
+//! ## Why 4096 slots? The RANS_WORD_M constant
+//!
+//! Word rANS uses a **12-bit cumulative frequency scale** (`RANS_WORD_SCALE_BITS = 12`),
+//! meaning the total probability sum of all symbols must equal `1 << 12 = 4096`.
+//! The decode table has exactly one entry per possible cumulative frequency value,
+//! hence `RANS_WORD_M = 4096`.  Each entry corresponds to a "slot" in the range
+//! `[0, 4096)`, and the slot index is computed from the current state as
+//! `state & (RANS_WORD_M - 1)` (a bitmask, not a modulo, because 4096 is a
+//! power of two).
+//!
 //! ## Invariants
 //!
 //! - Exactly 4096 entries (one per cumulative-frequency slot).
@@ -21,16 +53,96 @@
 //! - `symbol` in `0..=255`.
 //! - `frequency + bias` produces correct `(freq * (x >> 12) + bias)` decode.
 //! - All entries are initialized (no padding or uninit slots).
+//! - The table is 64-byte aligned (cache-line aligned) to benefit gather
+//!   and vector load instructions.
 //!
 //! ## Construction
 //!
 //! `PackedWordTable::from_freqs()` validates the frequency model before
 //! constructing the table, returning `Err(ModelError)` on invalid input.
+//! The validation catches:
+//! - `scale_bits` not equal to 12
+//! - Non-monotonic cumulative frequencies
+//! - Frequency/cumulative mismatch
+//! - Zero-frequency symbols (which would make decode impossible)
+//! - Total != 4096
 //!
 //! ## Equivalence
 //!
 //! `PackedWordTable` is provably equivalent to the existing `RansWordSlot` +
-//! `slot2sym` representation: round-trip conversion tests verify every entry.
+//! `slot2sym` representation: `verify_equivalence()` checks every entry
+//! against the canonical slot-based tables, and round-trip conversion tests
+//! verify every slot.
+//!
+//! ## Scalar decoders in this module
+//!
+//! This module also contains the **pure-Rust scalar reference decoders** for
+//! both the 8-way and 16-way interleaved stream formats.  These serve as:
+//! 1. **Verification references** for SIMD backends (bitstream compatibility is
+//!    verified against these).
+//! 2. **Fallback decoders** when no SIMD backend is available.
+//! 3. **Performance baselines** for speed-of-light comparisons.
+//!
+//! ### 8-way scalar algorithm (`decode_8way_packed_scalar_with_report`)
+//!
+//! The 8-way interleaved stream has 8 independent rANS states.  The decoder:
+//! 1. Initializes 8 states from the first 16 u16 words (2 u16 per state).
+//! 2. Processes symbols in groups of 8:
+//!    a. **Decode step** (lanes 0..7): For each lane, mask `state & 4095` to get
+//!       a slot index, look up the packed entry, extract symbol, compute
+//!       `new_state = freq * (state >> 12) + bias`.
+//!    b. **Renorm step** (lanes 0..7 again): For each lane, if `new_state < L`,
+//!       consume one u16 word from the stream and set
+//!       `state = (new_state << 16) | word`.
+//! 3. **Tail handling**: Remaining symbols (1–7) are decoded one at a time,
+//!    each reading from the correct lane.
+//!
+//! The critical ordering constraint is **decode all lanes first, then renorm
+//! all lanes**.  This is what makes the stream independently decodable by
+//! different backends — the renorm words for a group of 8 symbols appear
+//! consecutively after the 8 decoded symbols' worth of state transitions.
+//!
+//! ### 16-way scalar algorithm (`decode_interleaved16_scalar`)
+//!
+//! Same structure as 8-way but with 16 lanes:
+//! 1. 16 states from the first 32 u16 words.
+//! 2. Process in groups of 16: decode lanes 0..15, then renorm lanes 0..15.
+//! 3. Tail for remaining 1–15 symbols.
+//!
+//! ### `_into` variants
+//!
+//! `decode_interleaved16_scalar_into` and `decode_8way_packed_scalar_into` are
+//! **preallocated-output** variants that accept an `&mut [u8]` output buffer
+//! instead of allocating a `Vec<u8>`.  This enables:
+//! - Reuse of output buffers across multiple decode calls.
+//! - Decoding directly into a caller-managed memory region.
+//! - Zero-copy interop with external allocators.
+//! - Matching the interface of SIMD `_into` functions for consistent dispatch.
+//!
+//! ## Lane ordering and renorm ordering
+//!
+//! Both the 8-way and 16-way stream formats use **ascending lane order**:
+//! - Initial states are stored in the stream as `[state0_lo, state0_hi,
+//!   state1_lo, state1_hi, ...]` (lane 0 first, lane N last).
+//! - Symbol decode order matches output order: `output[i]` comes from lane
+//!   `i & 7` (8-way) or `i & 15` (16-way).
+//! - Renorm order is **also ascending** (lane 0 first).  This is the
+//!   natural order for scalar loops and matches the encoder's flush order
+//!   (reverse lane order on encode, so forward decode sees ascending).
+//!
+//! SIMD backends must match this ascending renorm order exactly to maintain
+//! bitstream compatibility.  Any deviation (e.g., renorming lanes in parallel
+//! without serializing the word consumption order) would produce a different
+//! stream.
+//!
+//! ## Tail handling
+//!
+//! When the output length is not a multiple of 8 (8-way) or 16 (16-way), the
+//! remaining symbols are decoded one at a time as a "tail" using scalar code.
+//! Each tail symbol reads from the correct lane, decodes, renorms if needed,
+//! and writes back to the state.  This is semantically equivalent to processing
+//! the same lane in a full group — the only difference is that we process
+//! fewer than 8/16 symbols per iteration.
 
 use alloc::boxed::Box;
 use alloc::vec;
@@ -40,6 +152,15 @@ use core::fmt;
 use crate::{RANS_WORD_M, RANS_WORD_SCALE_BITS, RansWordSlot};
 
 /// Error returned when packing an entry with out-of-range fields.
+///
+/// Each field in the packed u32 has a fixed bit width:
+/// - `freq`: 12 bits (max 4095)
+/// - `bias`: 12 bits (max 4095)
+/// - `symbol`: 8 bits (max 255)
+///
+/// This error captures which field overflowed, its actual value, and the
+/// maximum allowed value.  It implements `Display` for user-facing error
+/// messages and `PartialEq` for test assertions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PackedEntryError {
     pub field: &'static str,
@@ -59,7 +180,30 @@ impl core::fmt::Display for PackedEntryError {
 
 /// A single packed entry in the Word rANS decode table.
 ///
-/// Layout: `freq | (bias << 12) | ((symbol as u32) << 24)`.
+/// All three fields needed for a single decode step are packed into one u32:
+///
+/// ```text
+/// bits  0..11   frequency  (12 bits)  — extracted with `entry & 0x0fff`
+/// bits 12..23   bias       (12 bits)  — extracted with `(entry >> 12) & 0x0fff`
+/// bits 24..31   symbol     (8 bits)   — extracted with `(entry >> 24) as u8`
+/// ```
+///
+/// ## Why this matters for SIMD
+///
+/// A single 32-bit gather loads an entire entry in one transaction.  The
+/// three fields are extracted with bitwise operations that map to single
+/// uops on modern x86:
+/// - `vpand` for freq mask
+/// - `vpsrld` + `vpand` for bias
+/// - `vpsrld` for symbol (no mask needed, symbol is in the high byte)
+///
+/// This avoids the two-load-per-slot pattern of the non-packed representation
+/// (load RansWordSlot for freq+bias, then load slot2sym for symbol).
+///
+/// ## Representation
+///
+/// `#[repr(transparent)]` ensures `PackedWordEntry` has the same ABI as `u32`,
+/// allowing safe pointer casting for gather operations.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PackedWordEntry(pub u32);
@@ -121,9 +265,34 @@ impl PackedWordEntry {
     }
 }
 
-/// 4096-slot packed Word rANS decode table, heap-allocated with explicit alignment.
+/// 4096-slot packed Word rANS decode table, heap-allocated with 64-byte alignment.
 ///
-/// Alignment of 64 bytes (cache-line) to benefit gathers.
+/// ## Why 64-byte alignment?
+///
+/// The 4096-slot table is exactly 16 KB (`4096 × 4 bytes`), fitting in L1
+/// data cache on modern x86 CPUs (32 KB L1D).  64-byte alignment ensures:
+/// 1. **Cache-line alignment**: The table starts at a cache-line boundary,
+///    avoiding false sharing and partial-line loads.
+/// 2. **Gather performance**: `VPGATHERDD` and `VPGATHERDQ` benefit from
+///    aligned base addresses, especially on Intel CPUs where alignment
+///    affects the gather microcode flow.
+/// 3. **Vector load alignment**: 256-bit and 512-bit loads from the table
+///    use aligned move instructions (`vmovdqa`) when the base is aligned.
+///
+/// ## Memory layout
+///
+/// The entries are stored in a `Box<[PackedWordEntry; 4096]>` — a heap-allocated
+/// fixed-size array.  This guarantees that:
+/// - The allocation is exactly 16 KB (no Vec overhead).
+/// - The pointer is stable across moves (Box gives a stable address).
+/// - All entries are initialized and valid (no partial construction).
+///
+/// ## Indexing
+///
+/// Entries are indexed by `state & 0xfff` (the low 12 bits of the current
+/// rANS state).  Since `RANS_WORD_M = 4096 = 1 << 12`, the bitmask
+/// `& (M - 1)` is equivalent to modulo but uses only a single `vpand`
+/// instruction in SIMD.
 #[repr(align(64))]
 #[derive(Clone, Debug)]
 pub struct PackedWordTable {
@@ -244,9 +413,36 @@ impl PackedWordTable {
 
     /// Verify equivalence with the existing `RansWordSlot` + `slot2sym` representation.
     ///
-    /// Requires both `slots` and `slot2sym` to have exactly `RANS_WORD_M` (4096)
-    /// entries. Returns `Ok(())` if every entry matches, otherwise returns the
-    /// first mismatching slot index and details.
+    /// This is a **formal verification bridge** between the old (slot-based)
+    /// and new (packed) table representations.  It iterates over all 4096
+    /// slots and checks that:
+    ///
+    /// ```text
+    /// PackedWordEntry::from_slot(&slots[i], slot2sym[i]) == self.entries[i]
+    /// ```
+    ///
+    /// where `from_slot` packs `slots[i].freq` (12 bits), `slots[i].bias`
+    /// (12 bits), and `slot2sym[i]` (8 bits) into a single u32.
+    ///
+    /// ## Why this is critical
+    ///
+    /// Court evidence receipts assert that decoding was performed against
+    /// a specific table.  If the packed table differs from the canonical
+    /// slot-based table at any slot, decoding results would differ — and
+    /// the evidence chain would be broken.  This verification ensures:
+    ///
+    /// 1. **Bit-exact equivalence**: Both representations produce identical
+    ///    decode results for every possible `state & 4095`.
+    /// 2. **No silent truncation**: All three fields fit within their
+    ///    assigned bit widths (confirmed by `try_pack` validation).
+    /// 3. **Forward compatibility**: If the slot-based representation
+    ///    changes in the future, this check will catch the divergence.
+    ///
+    /// ## Returns
+    ///
+    /// - `Ok(())` if all 4096 entries match.
+    /// - `Err(EquivalenceError)` on the first mismatch, including the slot
+    ///   index, expected packed value, and actual packed value.
     pub fn verify_equivalence(
         &self,
         slots: &[RansWordSlot],

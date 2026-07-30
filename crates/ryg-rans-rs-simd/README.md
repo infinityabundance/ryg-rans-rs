@@ -3,11 +3,13 @@
 > **SIMD-accelerated Word rANS decode kernels — SSE4.1, AVX2, AVX512VL, AVX-512.**  
 > `#![no_std]` — works in embedded and kernel contexts on x86_64.  
 > 8-way and 16-way interleaved decode with scalar fallback.  
-> **46 tests** · 256 + 65536 mask exhaustion · 7 unsafe functions, all documented.  
+> **46 tests** · 256 + 65536 mask exhaustion · 7 core unsafe functions, all documented.  
 > **Criterion benchmark suite** — 9 bench tiers across scalar, SSE4.1, AVX2, AVX-512, batch, parallel, container, dispatch.
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs-simd)](https://crates.io/crates/ryg-rans-rs-simd)
+
+**Version: 0.1.27** · 46 unit tests · 14 AVX2-specific · 7 Kani-proofed invariants from core
 
 ---
 
@@ -212,7 +214,14 @@ shuffle   = perm_table[perm_idx]
 result    = _mm256_permutevar8x32_epi32(states, shuffle)
 ```
 
+The permutation table is built once at initialization time by `build_avx2_renorm_table`.
+For each of the 256 mask values, it computes the shuffle vector that compacts the active
+lanes to the front and places inactive lanes at the end. This lets the renormalization
+loop consume exactly `popcount(mask)` contiguous `u16` words from the input stream.
+
 ### Available Backend Functions
+
+The 10 AVX2 backend functions cover all stream formats and dispatch modes:
 
 | Function | Safety | Behavior |
 |----------|--------|----------|
@@ -227,6 +236,10 @@ result    = _mm256_permutevar8x32_epi32(states, shuffle)
 | `decode_interleaved16_uniform256_avx2_checked` | ✅ Safe | Runtime-checked dispatch |
 | `decode_batch4_interleaved16_avx2_checked` | ✅ Safe | Runtime-checked dispatch |
 
+Each `_checked` variant verifies via `is_x86_feature_detected!("avx2")` before calling
+the underlying unsafe kernel, returning `Err(DecodeError::UnsupportedBackend)` on
+machines without AVX2 support.
+
 ---
 
 ## The Packed Table Design
@@ -234,6 +247,7 @@ result    = _mm256_permutevar8x32_epi32(states, shuffle)
 ### Why a Separate Table Format?
 
 The existing Word rANS table (`RansWordSlot` + `slot2sym`) uses two separate arrays:
+
 - `slots: &[RansWordSlot]` — 4096 × 4 bytes = 16 KB, each entry has `freq: u16` and `bias: u16`
 - `slot2sym: &[u8]` — 4096 × 1 byte = 4 KB
 
@@ -259,13 +273,20 @@ pub struct PackedWordEntry(pub u32);
 and bias are bounded by 4095. Symbol is bounded by 255. All three fit in 32 bits with
 room to spare.
 
-### Benefits of Packing
+### Packed Table Layout Rationale
+
+The packed table packs three values into one `u32` because:
 
 1. **Single gather**: One `_mm256_i32gather_epi32` loads freq, bias, and symbol for all lanes
 2. **16 KB table**: Fits in L1 data cache on modern x86_64 CPUs (32 KB L1D)
 3. **64-byte alignment**: `#[repr(align(64))]` aligns to cache line boundary
 4. **Bitwise extraction**: `freq = entry & 0xfff`, `bias = (entry >> 12) & 0xfff`,
    `symbol = entry >> 24` — all single-cycle operations
+
+The alignment to 64 bytes (cache line) is critical for throughput. A misaligned gather
+can cross cache line boundaries, doubling the latency of each gather instruction. The
+64-byte alignment guarantees that all 16 table entries accessed in a single 512-bit
+gather fall within at most two cache lines.
 
 ### Equivalence Guarantee
 
@@ -278,6 +299,24 @@ This function compares every slot (0..4095) between the packed table and the leg
 representation. Any mismatch is reported with the exact slot index, expected value,
 and actual value. This is called in unit tests to prove that the packed table is
 mathematically identical to the legacy representation.
+
+### Table Construction
+
+```rust
+pub fn from_freqs(freqs: &[u32], cum_freqs: &[u32], scale_bits: u32)
+    -> Result<PackedWordTable, &'static str>
+```
+
+Construction validates:
+1. `freqs` has 256 entries, each ≤ 4095
+2. `cum_freqs` has 257 entries, monotonically non-decreasing
+3. `cum_freqs[256]` == `1 << scale_bits`
+4. `scale_bits` is 12
+
+Then for each slot `s` in `0..4096`:
+- Find the symbol `sym` where `cum_freqs[sym] <= s < cum_freqs[sym+1]`
+- Compute `bias = s - cum_freqs[sym]`
+- Store `(freqs[sym] | (bias << 12) | (sym << 24))` in `entries[s]`
 
 ---
 
@@ -325,6 +364,7 @@ lanes) and is provably safe.
 ### Tail Handling
 
 For lengths not divisible by 8, the remaining `r` symbols (1..7) use scalar logic:
+
 1. Store SIMD state to `[u32; 8]` temp array
 2. Decode each active lane individually
 3. Load modified state back into SIMD register
@@ -363,6 +403,7 @@ The reverse flush produces an ascending forward layout because the writer moves 
 
 The existing 8-way format uses two 4-lane SIMD units — an artifact of SSE4.1's 128-bit
 registers. AVX512's 512-bit registers can handle 16 lanes natively. The new format:
+
 - Eliminates two-unit coordination overhead
 - Doubles arithmetic density (16 symbols per gather vs 8)
 - Has simpler tail handling (0..15 remainder vs two units with 0..3 remainders)
@@ -415,6 +456,10 @@ compile-time target features set via `RUSTFLAGS="-C target-feature=..."`.
 | `decode_interleaved16_uniform256_avx2_checked` | ✅ Safe | Runtime-checked AVX2 uniform |
 | `decode_interleaved16_avx512` | ⚠️ Unsafe | Caller must ensure CPU support |
 | `decode_batch4_interleaved16_avx2_checked` | ✅ Safe | Runtime-checked AVX2 batch4 |
+| `decode_8way_packed_scalar` | ✅ Safe | 8-way scalar decode (allocates output) |
+| `decode_8way_packed_scalar_into` | ✅ Safe | 8-way into preallocated buffer |
+| `decode_interleaved16_scalar_into` | ✅ Safe | 16-way into preallocated buffer |
+| `encode_interleaved16` | ✅ Safe | 16-way encoder |
 
 The unsafe functions exist for callers who have already performed runtime detection and
 wish to avoid the overhead of checking again.
@@ -431,6 +476,7 @@ result[i] = sum(a[i][0..3] * b[i][0..3])
 ```
 
 The rANS state transition is:
+
 ```
 state[i] = frequency[i] × (state[i] >> 12) + bias[i]
 ```
@@ -569,11 +615,43 @@ results. Verification checks:
 2. **Words consumed**: exact match with scalar decoder
 3. **Final states**: exact match with scalar decoder (16 lanes)
 
+The verification is enforced by the `verify_16way` and `verify_8way` functions in
+`ryg-rans-rs-bench::common::verification`, which assert on all three dimensions before
+the timing loop begins.
+
+### Benchmark Metadata
+
+Every benchmark run captures metadata for reproducibility:
+
+- `rustc_version`: Full rustc version string
+- `target_features`: CPU features compiled in (sse4.1, avx2, avx512f, etc.)
+- `cpu_model`: From `/proc/cpuinfo` (or `std::env::consts::ARCH`)
+- `os_info`: OS + architecture
+- `git_commit`: Current git HEAD
+- `dirty_tree`: Whether working tree has uncommitted changes
+- `num_cpus`: Available parallelism
+
+### Structured Export
+
+Results can be exported to JSON and CSV via the `exporter` module:
+
+```rust
+use ryg_rans_rs_bench::exporter::{load_criterion_estimates, export_summary};
+
+let metadata = BenchMetadata::collect();
+let records = load_criterion_estimates(
+    &std::path::PathBuf::from("target/criterion"),
+    &metadata,
+)?;
+let (json_path, json_hash) = export_summary(&records, &output_dir)?;
+```
+
 ---
 
 ## Unsafe Code Policy
 
-This crate contains 7 `unsafe fn` for SSE4.1 and AVX-512 intrinsics. Every one is:
+This crate contains 7 core `unsafe fn` for SSE4.1 and AVX-512 intrinsics, plus additional
+AVX2 `unsafe fn`. Every one is:
 
 1. **Gated by `#[target_feature(enable = "...")]`** — ensures the correct CPU features
    are compiled in
@@ -582,7 +660,7 @@ This crate contains 7 `unsafe fn` for SSE4.1 and AVX-512 intrinsics. Every one i
 3. **Only reachable through safe APIs** — the `_auto` functions perform runtime detection
    before calling unsafe kernels
 
-### The 7 Unsafe Functions
+### The 7 Core Unsafe Functions
 
 | Function | ISA | Why Unsafe | Safety Contract |
 |----------|-----|------------|-----------------|
@@ -623,10 +701,12 @@ each with equivalent safety contracts — documented in `avx2.rs` and `avx2_reno
 ### Mask Exhaustion
 
 Every possible renormalization mask is tested:
+
 - **8-way**: 256 masks (2^8) — takes < 1 second in debug
 - **16-way**: 65,536 masks (2^16) — requires `--release` (~1 second)
 
 For each mask, we verify:
+
 1. Correct popcount equals words consumed
 2. Truncated stream (one fewer word) is correctly rejected
 3. Full stream decodes without error
@@ -634,12 +714,14 @@ For each mask, we verify:
 ### Fuzzing
 
 Two AVX-512 fuzz targets verify scalar/AVX512 equivalence on random inputs:
+
 - `avx512vl8_roundtrip`: Encode → scalar decode → AVX512VL decode → compare output + consumption
 - `avx512_16way_roundtrip`: Same for 16-way format
 
 ### Kani Proofs
 
 Three proofs in the core crate verify:
+
 - `kani_packed_entry_fields`: Pack/unpack round-trips exactly
 - `kani_state_update_no_overflow`: State update arithmetic stays bounded
 - `kani_slot_index_bounded`: Slot index always < 4096 (table bounds)
@@ -728,6 +810,10 @@ default = []
 std = []     # Enables std::is_x86_feature_detected! for runtime backend detection
 ```
 
+Without `std`, runtime detection falls back to compile-time `cfg!(target_feature = "...")`
+checks. This means the `_checked` functions will only succeed on builds where the relevant
+target features were enabled via `RUSTFLAGS`.
+
 ---
 
 ## Build and Test
@@ -756,3 +842,7 @@ cargo bench -p ryg-rans-rs-bench --bench avx2
 # Run batch benchmarks (batch4 multi-stream)
 cargo bench -p ryg-rans-rs-bench --bench batch
 ```
+
+---
+
+*Part of the ryg-rans-rs project. Version 0.1.27. Phase J.*

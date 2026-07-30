@@ -10,25 +10,112 @@
 //! 3. **Dispatch**: Auto-selection (`_auto` functions) and explicit backend selection
 //!    (`_scalar`, `_avx512vl`, `_avx512` functions).
 //!
-//! ## Auto-dispatch policy
+//! ## Auto-dispatch architecture
 //!
-//! The `_auto` functions select the fastest available backend.  The priority is:
+//! The auto-dispatch functions (`decode_interleaved8_auto` and
+//! `decode_interleaved16_auto`) perform runtime CPU feature detection to select the
+//! fastest available backend.  The dispatch is intentionally conservative:
 //!
 //! ```text
-//! 8-way:  AVX512VL → SSE4.1 → scalar
-//! 16-way: AVX512 → scalar
+//! 8-way:  scalar (default, fastest on Zen 5) → SSE4.1 → AVX512VL
+//! 16-way: scalar (default, fastest on Zen 5) → AVX2 → AVX512
 //! ```
 //!
-//! This priority order is based on expected throughput, not availability.  If the
-//! required ISA feature is not detected at runtime, the next backend in priority
-//! order is used.
+//! ### Why is scalar the default?
+//!
+//! On the AMD Ryzen 7 9800X3D (Zen 5), the 16 KB packed decode table is
+//! **L1-resident** (32 KB L1D cache).  Sequential scalar loads from L1
+//! complete in ~4 cycles, while SIMD gather instructions (`VPGATHERDD`)
+//! take ~10–15 cycles on this microarchitecture.  This makes the scalar
+//! decoder ~2–3× faster than any SIMD backend for the 8-way format.
+//!
+//! Explicit SIMD backends remain available for:
+//! - **Cross-verification**: comparing backend outputs for correctness.
+//! - **Future CPUs**: microarchitectures with faster gather execution.
+//! - **Users who prefer SIMD**: choosing a specific backend via `_checked`.
+//! - **Court evidence**: asserting a specific backend in behavioral receipts.
+//!
+//! ## Runtime feature detection
+//!
+//! The detection functions use a **two-tier strategy**:
+//!
+//! 1. **`std` feature enabled**: Calls `std::is_x86_feature_detected!()` which
+//!    executes the CPUID instruction at runtime.  This is the most reliable
+//!    method because it detects features available on the actual CPU.
+//! 2. **`no_std` context**: Falls back to `cfg!(target_feature = "...")` which
+//!    checks compile-time target features from `-C target-feature=...` flags.
+//!    This is sufficient for embedded or cross-compiled environments where
+//!    the binary targets a known CPU.
+//!
+//! ### Detection functions
+//!
+//! | Function | Checks | Requires (std) | Requires (no_std) |
+//! |----------|--------|----------------|-------------------|
+//! | `avx2_available_checked()` | AVX2 | `avx2` | `target_feature = "avx2"` |
+//! | `avx512vl_available_checked()` | AVX512F+VL+BW | `avx512f+avx512vl+avx512bw` | same (all three) |
+//! | `sse41_available_checked()` | SSE4.1 | `sse4.1` | `target_feature = "sse4.1"` |
+//! | `avx512_available_checked()` | AVX512F+BW | `avx512f+avx512bw` | same (both) |
+//!
+//! The `_checked` wrappers are `#[doc(hidden)]` and exposed publicly for
+//! benchmark tools to query feature support.
+//!
+//! ## Checked wrapper architecture
+//!
+//! Each AVX2 backend has a corresponding **safe `_checked` wrapper**:
+//!
+//! 1. Call `avx2_available()` (runtime detection).
+//! 2. If AVX2 is available, build the renormalization permutation table
+//!    (`build_avx2_renorm_table()`).
+//! 3. Call the `unsafe` SIMD kernel inside an `unsafe { }` block (safe because
+//!    we verified AVX2 support in step 1).
+//! 4. Wrap the result in a `DecodeResult` with the correct `DecodeBackend` label.
+//! 5. If AVX2 is not available, return `Err(DecodeError::UnsupportedBackend)`.
+//!
+//! | Wrapper | Inner kernel | Backend variant |
+//! |---------|-------------|-----------------|
+//! | `decode_interleaved8_avx2_manual_gather_checked` | `decode_interleaved8_avx2_manual_gather` | `Avx2ManualGather8` |
+//! | `decode_interleaved8_avx2_hardware_gather_checked` | `decode_interleaved8_avx2_hardware_gather` | `Avx2HardwareGather8` |
+//! | `decode_interleaved16_avx2_2x8_checked` | `decode_interleaved16_avx2_2x8` | `Avx2TwoBy8On16` |
+//! | `decode_interleaved16_uniform256_avx2_checked` | `decode_interleaved16_uniform256_avx2` | `Avx2Uniform256TableFree16` |
+//! | `decode_batch4_interleaved16_avx2_checked` | `decode_batch4_interleaved16_avx2` | `Avx2Batch4On16` |
+//!
+//! ## DecodeResult and DecodeReport
+//!
+//! - `DecodeResult` bundles the decoded output (`Vec<u8>`), a `DecodeReport`
+//!   (words consumed + 16 final states), and the `DecodeBackend` identity.
+//!   The backend field is critical for court evidence — it proves that a
+//!   specific SIMD backend was actually used.
+//! - `DecodeReport` is returned by the `_into` variants and contains only
+//!   the metadata (no output vector).  This allows callers who manage their
+//!   own buffers to avoid the allocation overhead of `DecodeResult`.
+//!
+//! ## Error handling
+//!
+//! The `DecodeError` enum provides backend-aware error types:
+//! - `InputTooShort`: The compressed stream is truncated.
+//! - `InvalidTable`: The decode table is malformed.
+//! - `UnsupportedBackend`: The requested SIMD ISA is not available.
+//! - `OutputLengthMismatch`: The output buffer size doesn't match the
+//!   expected decode count.
+//! - `TrailingData`: Extra data remains after complete decode.
+//! - `StateInvariantViolation`: A rANS state invariant was violated.
+//!
+//! ## check_uniform256 helper
+//!
+//! The `check_uniform256` function tests whether a frequency model represents
+//! a **Uniform256** distribution: all 256 symbols have frequency 16, and
+//! `scale_bits == 12`.  This is a fast-path check that iterates over the
+//! first 256 frequency entries (1024 bytes) and verifies each u32 equals 16.
+//! When true, the Uniform256 table-free decoder can be used, which avoids
+//! all table lookups by computing `symbol = slot >> 4` and `bias = slot & 15`.
 //!
 //! ## Safety
 //!
-//! The safe `_auto` functions never execute unsupported instructions.  They perform
-//! runtime CPU feature detection before calling any `#[target_feature]`-gated kernel.
-//! The explicit `_avx512vl` and `_avx512` functions are `unsafe` and require the
-//! caller to ensure CPU support.
+//! The safe `_auto` and `_checked` functions never execute unsupported
+//! instructions.  They perform runtime CPU feature detection before calling
+//! any `#[target_feature]`-gated kernel.  The explicit `_avx512vl` and
+//! `_avx512` functions are `unsafe` and require the caller to ensure CPU
+//! support.
 
 use crate::packed_table::{DecodeReport, PackedWordTable};
 use alloc::vec::Vec;

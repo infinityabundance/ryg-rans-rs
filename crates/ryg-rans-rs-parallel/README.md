@@ -1,6 +1,9 @@
 # ryg-rans-rs-parallel — Deterministic Parallel Block Engine
 
-**Phase I — Fully Implemented** · 63 passing tests (56 unit + 7 integration)
+**Phase I — Fully Implemented** · **Version 0.1.27** · 63 passing tests (56 unit + 7 integration)
+
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs-parallel)](https://crates.io/crates/ryg-rans-rs-parallel)
 
 A bounded, cancellable, deterministic parallel rANS encode/decode/verify engine built on top of `ryg-rans-rs-core` (portable scalar codecs) and `ryg-rans-rs-simd` (optional SIMD-accelerated kernels).
 
@@ -29,14 +32,7 @@ Instead, Phase I exploits **block-level parallelism**: the input is partitioned 
 
 ### Independent blocks (« FixedBlockPlan »)
 
-![Block Plan Architecture](https://via.placeholder.com/1x1?text=+)
-
-1. **`FixedBlockPlan`** partitions input into deterministic ranges based only on input length and block size — thread-count-independent.
-2. Each block independently builds its frequency model and compressed payload.
-3. Workers encode/decode blocks concurrently — **no shared mutable state between blocks**.
-4. A `ReorderBuffer` ensures ordered commit in ascending block-index order.
-
-```
+```text
 Input:  [ block 0 ][ block 1 ][ block 2 ]...[ block N ]
            │           │           │
            ▼           ▼           ▼
@@ -48,6 +44,11 @@ Input:  [ block 0 ][ block 1 ][ block 2 ]...[ block N ]
            ▼           ▼           ▼
         Output: [ block 0 ][ block 1 ][ block 2 ]...[ block N ]
 ```
+
+1. **`FixedBlockPlan`** partitions input into deterministic ranges based only on input length and block size — thread-count-independent.
+2. Each block independently builds its frequency model and compressed payload.
+3. Workers encode/decode blocks concurrently — **no shared mutable state between blocks**.
+4. A `ReorderBuffer` ensures ordered commit in ascending block-index order.
 
 ### Seekable versus streaming architecture
 
@@ -140,6 +141,25 @@ The default `BackendPolicy::Auto` is **conservative — scalar-first**. It selec
 ### map_backend()
 
 `map_backend()` correctly maps every distinct `DecodeBackend` variant from `ryg-rans-rs-simd` to a distinct `BackendId` in the parallel crate. This ensures that decode reports carry ground-truth backend identity — not a coerced or defaulted value.
+
+### BackendId enum
+
+```rust
+pub enum BackendId {
+    Scalar8,
+    Scalar16,
+    Sse41,
+    Avx2ManualGather8,
+    Avx2HardwareGather8,
+    Avx2TwoBy8On16,
+    Avx2Uniform256TableFree16,
+    Avx2Batch4,
+    Avx512Vl2x8,
+    Avx512Batch4,
+    Avx512Vl8Way,
+    Avx51216Way,
+}
+```
 
 ---
 
@@ -348,3 +368,7 @@ std::thread::spawn(move || {
 | `crossbeam-channel` | Bounded multi-producer/multi-consumer work queue |
 | `sha2` | SHA-256 hashing for payload and decoded-data integrity |
 | `serde` / `serde_json` | JSON-serializable execution reports |
+
+---
+
+*Part of the ryg-rans-rs project. Version 0.1.27. Phase I.*

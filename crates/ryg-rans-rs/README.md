@@ -1,12 +1,14 @@
 # ryg-rans-rs
 
 > **Public facade for ryg-rans-rs — rANS entropy coding in Rust.**  
-> Safe, `no_std`-compatible API. Re-exports the deterministic core, optionally adds SSE4.1 and AVX-512 decode kernels.  
+> Safe, `no_std`-compatible API. Re-exports the deterministic core, optionally adds SSE4.1, AVX2, and AVX-512 decode kernels.  
 > 144 behavioral receipts across 7 algorithmic surfaces, sealed via bit-exact C↔Rust cross-decoding courts.
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs)](https://crates.io/crates/ryg-rans-rs)
 [![docs.rs](https://img.shields.io/docsrs/ryg-rans-rs)](https://docs.rs/ryg-rans-rs/latest/ryg_rans_rs/)
+
+**Version: 0.1.27** — Phase J
 
 ---
 
@@ -44,6 +46,27 @@ core and SIMD crates remain independently versioned and tested.
 3. **Versioning flexibility**: Core and SIMD can version independently
 4. **Safety boundary**: The facade is `#![deny(unsafe_code)]` — users never directly
    interact with unsafe SIMD intrinsics
+
+### Re-Export Architecture
+
+The facade re-exports from its dependencies using `pub use`:
+
+- **`ryg-rans-rs-core`**: Everything in the `byte` module is re-exported as the
+  `byte` module of the facade. The core's `lib.rs` is re-exported verbatim.
+- **`ryg-rans-rs-simd`**: Conditionally compiled behind `#[cfg(feature = "simd")]`.
+  When enabled, the SIMD crate's public API becomes available under the `simd` module.
+- **Helper modules**: The `alloc_utils` module provides convenience functions
+  (`encode_byte`, `decode_byte`) that wrap the core's traits with `Vec`-based I/O.
+
+The dependency graph is:
+
+```
+ryg-rans-rs (facade, #![deny(unsafe_code)])
+    ↓ imports
+ryg-rans-rs-core (#![forbid(unsafe_code)])     ryg-rans-rs-simd (unsafe fn, #[target_feature])
+    ↓ depends on ↓
+(no dependencies)                                 ryg-rans-rs-core
+```
 
 ---
 
@@ -163,11 +186,39 @@ The `simd` module is enabled with `features = ["simd"]` in your `Cargo.toml`.
 | `DecodeBackend` | Enum with stable labels: `scalar-8way`, `avx512vl-8way`, etc. |
 | `DecodeResult` | Output + report + backend identity |
 
+### How to Use With and Without SIMD
+
+**Without SIMD (default)**: The `byte` module is always available. All encode/decode
+operations use pure safe Rust scalar code. This works on any platform — x86_64, ARM,
+RISC-V, Wasm, etc.
+
+```toml
+[dependencies]
+ryg-rans-rs = "0.1.27"
+```
+
+**With SIMD**: Enable the `simd` feature to get SSE4.1, AVX2, and AVX-512 decode kernels.
+These are only available on x86_64 with the appropriate CPU features. The `_auto` functions
+perform runtime detection and fall back to scalar if no SIMD is available.
+
+```toml
+[dependencies]
+ryg-rans-rs = { version = "0.1.27", features = ["simd"] }
+```
+
+**With alloc**: Enable the `alloc` feature for `Vec`-based convenience functions.
+
+```toml
+[dependencies]
+ryg-rans-rs = { version = "0.1.27", features = ["alloc", "simd"] }
+```
+
 ### ISA Requirements
 
 | Backend | Required `target_feature` | First CPU Support |
 |---------|--------------------------|-------------------|
 | SSE4.1 8-way | `+ssse3,+sse4.1` | Intel Core 2 (2008), AMD Bulldozer (2011) |
+| AVX2 8-way/16-way | `+avx2` | Intel Haswell (2013), AMD Excavator (2015) |
 | AVX512VL 8-way | `+avx512f,+avx512vl,+avx512bw` | Intel Ice Lake (2019), AMD Zen 4 (2022) |
 | AVX512 16-way | `+avx512f,+avx512bw` | Intel Ice Lake (2019), AMD Zen 4 (2022) |
 
@@ -178,8 +229,21 @@ The `simd` module is enabled with `features = ["simd"]` in your `Cargo.toml`.
 | Feature | What It Enables | `no_std` Compatible | Typical Use Case |
 |---------|----------------|-------------------|------------------|
 | (default) | Core re-export only | ✅ Yes | Embedded, kernel, Wasm |
-| `simd` | `ryg-rans-rs-simd` (SSE4.1 + AVX-512) | ✅ Yes (cfg dispatch) | Performance-sensitive decoding |
+| `simd` | `ryg-rans-rs-simd` (SSE4.1 + AVX2 + AVX-512) | ✅ Yes (cfg dispatch) | Performance-sensitive decoding |
 | `alloc` | `alloc_utils` + alias table | ✅ Yes (extern alloc) | Heap-allocated decode |
+
+### How Features Compose
+
+| Feature Combination | What Works | Example Use Case |
+|--------------------|------------|------------------|
+| (none) | `byte` module only | Embedded decoder with fixed buffers |
+| `alloc` | `byte` + `alloc_utils` + alias table | Desktop CLI tool with Vec-based I/O |
+| `simd` | `byte` + `simd` module | Performance-critical decode with runtime dispatch |
+| `alloc` + `simd` | Everything | Full-featured application with SIMD + convenience APIs |
+
+The facade is `#![no_std]` friendly. Both `byte` and `simd` modules work without `std`.
+The `simd` module's runtime detection falls back to compile-time `cfg!(target_feature)`
+when `std` is not available.
 
 ---
 
@@ -262,10 +326,11 @@ loop {
 |-------|------|-------------|
 | **Core crate** | All arithmetic | `#![forbid(unsafe_code)]` — compile-time |
 | **Facade crate** | Re-exports only | `#![deny(unsafe_code)]` — compile-time |
-| **SIMD crate** | Intrinsics | 7 `unsafe fn`, all `#[target_feature]`-gated |
+| **SIMD crate** | Intrinsics | 7 core `unsafe fn`, all `#[target_feature]`-gated |
 | **SIMD dispatch** | Runtime detection | Safe `_auto` functions check CPU features |
 | **No overread** | Input bounds | Every decoder checks length before reading |
 | **No overflow** | Arithmetic bounds | Kani proofs for critical formulas |
+| **No panic** | Error handling | All errors are typed — no `unwrap` in production paths |
 
 ---
 
@@ -273,7 +338,7 @@ loop {
 
 | Version | Phase | Key Changes |
 |---------|-------|-------------|
-| **0.1.27** | **J** | **Criterion all-tier benchmark suite, 8/16-thread scaling matrix, strict block parser, ultra-thorough documentation** |
+| **0.1.27** | **J** | **Criterion all-tier benchmark suite, 8/16-thread scaling matrix, strict block parser, ultra-thorough documentation across all 8 crates** |
 | **0.1.26** | **J** | **AVX2 portability tier, Batch4, real SSE execution, backend truthfulness, Phase I CLI integration** |
 | **0.1.25** | **I** | **Phase I parallel block engine: bounded executor, FixedBlockPlan, ReorderBuffer, CancellationToken, 63 tests. Published all 7 workspace crates.** |
 | **0.1.15** | **G** | **AVX512VL 8-way + AVX512 16-way decode kernels** |
@@ -283,3 +348,7 @@ loop {
 | 0.1.11 | E | Alias method seal, 120 receipts |
 | 0.1.10 | E | Alias implementation |
 | 0.1.9 | D | Word rANS seal, Docker stamp |
+
+---
+
+*Part of the ryg-rans-rs project. Version 0.1.27. Phase J.*

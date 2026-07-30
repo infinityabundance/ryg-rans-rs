@@ -31,6 +31,177 @@
 //!    with a broadcast blend mask.
 //! 4. **No `_mm256_cvtepi32_epi8` (VPMOVDB)**: Use two-step pack:
 //!    `_mm256_packus_epi32` → `_mm_packus_epi16` → store.
+//!
+//! ## Architecture: AVX2 manual-gather 8-way decoder
+//!
+//! The **manual-gather** decoder (decode_interleaved8_avx2_manual_gather_into)
+//! loads table entries using **scalar loads** rather than hardware gather:
+//!
+//! 1. Extract 8 slot indices from the state vector (`state & 4095`).
+//! 2. Store indices to a `[u32; 8]` buffer on the stack.
+//! 3. Load 8 packed entries via **scalar loads** (`table.get(slot).0`) into
+//!    another `[u32; 8]` buffer.
+//! 4. Load that buffer into a YMM register with `_mm256_loadu_si256`.
+//! 5. Unpack freq, bias, symbol using SIMD bitwise operations.
+//! 6. Compute new state: `freq * (state >> 12) + bias`.
+//! 7. Renormalize using the AVX2 permutation-based renormalizer.
+//!
+//! **Why manual gather?** On CPUs where `VPGATHERDD` is microcoded (Intel
+//! pre-Ice Lake), it can take 10–15 cycles per instruction.  Scalar loads
+//! from L1 cache (~4 cycles) plus the overhead of storing/loading from
+//! stack buffers can be competitive or faster.  This backend is provided
+//! as an alternative for such CPUs.
+//!
+//! The scalar loads are also **deterministic** — they don't have the
+//! fault-suppression semantics of hardware gathers, which can cause
+//! issues near page boundaries.
+//!
+//! ## Architecture: AVX2 hardware-gather 8-way decoder
+//!
+//! The **hardware-gather** decoder (decode_interleaved8_avx2_hardware_gather_into)
+//! uses `_mm256_i32gather_epi32` (`VPGATHERDD`) to load 8 packed entries
+//! from 8 different table slots in **one instruction**:
+//!
+//! 1. Compute 8 slot indices via `state & 4095`.
+//! 2. Issue `_mm256_i32gather_epi32(table_ptr, indices, 4)` — the third
+//!    argument (4) is the element byte stride.
+//! 3. The CPU automatically handles: address generation, memory access,
+//!    and merging with the mask register.
+//! 4. Unpack fields and compute new state same as manual-gather.
+//! 5. Renormalize using the AVX2 permutation-based renormalizer.
+//!
+//! This is the **simpler and faster** backend on CPUs with efficient gather
+//! (Intel Skylake-X, Ice Lake+, AMD Zen 4+, Zen 5).  It avoids the
+//! store/reload round-trip of the manual-gather approach.
+//!
+//! ## Architecture: AVX2 2×8 on 16-way decoder
+//!
+//! The **2×8 on 16-way** decoder (decode_interleaved16_avx2_2x8_into)
+//! represents 16 lanes as **two independent 8-lane vectors**:
+//!
+//! - `state_lo` = lanes 0–7 (stored in one YMM register)
+//! - `state_hi` = lanes 8–15 (stored in another YMM register)
+//!
+//! Each iteration processes **16 symbols**:
+//! 1. **Low group** (lanes 0–7): hardware gather, unpack, compute new state,
+//!    renormalize (consumes words from the stream).
+//! 2. **High group** (lanes 8–15): hardware gather, unpack, compute new state,
+//!    renormalize (consumes more words from the stream).
+//! 3. Store 8 symbols from low group at `output[i..i+8]` and 8 symbols from
+//!    high group at `output[i+8..i+16]`.
+//!
+//! **Renormalization order**: low lanes (0–7) first, then high lanes (8–15).
+//! This matches the scalar sixteen-way decoder's ascending lane order exactly.
+//! Within each 8-lane group, the renormalizer processes lanes in ascending
+//! order (determined by the permutation table entries for each mask pattern).
+//!
+//! The total ordering is: lane 0, 1, ..., 7, 8, 9, ..., 15 — identical to
+//! the scalar 16-way decoder.
+//!
+//! ## Architecture: AVX2 Uniform256 table-free decoder
+//!
+//! The **Uniform256** decoder (decode_interleaved16_uniform256_avx2_into) is
+//! a **specialized fast path** for uniform distributions where all 256 symbols
+//! have frequency exactly 16 and `scale_bits == 12`.
+//!
+//! Under this condition, the slot-to-symbol mapping simplifies:
+//!
+//! ```text
+//! slot      = state & 4095           // 12-bit slot index
+//! symbol    = slot >> 4              // slot / 16  (because freq = 16)
+//! bias      = slot & 15              // slot % 16
+//! new_state = ((state >> 12) << 4) + bias  // = (state >> 12) * 16 + bias
+//! ```
+//!
+//! **No table lookup is required** — all values are computed with bit shifts
+//! and masks.  This eliminates:
+//! - Gather instructions (the main bottleneck on Zen 5).
+//! - The 16 KB packed table (freeing L1 cache for other data).
+//! - Table construction and validation overhead.
+//!
+//! The kernel processes 16 symbols per iteration (two 8-lane groups with
+//! hardware-gather-free arithmetic), making it the **fastest possible decode
+//! path** for uniform data.
+//!
+//! **Caller must validate** Uniform256 via `check_uniform256()` before calling.
+//! If the model is not Uniform256, the decoded output will be incorrect.
+//!
+//! ## Architecture: AVX2 Batch4 decoder
+//!
+//! The **batch-four** decoder (decode_batch4_interleaved16_avx2) decodes
+//! **up to 4 independent 16-way streams** in a **round-robin** fashion.
+//!
+//! The round-robin scheduler works as follows:
+//! 1. Initialize up to 4 jobs, each with its own compressed stream, table,
+//!    and output buffer.
+//! 2. Process jobs in groups of 4 (chunks of up to 4 per batch).
+//! 3. For each active job, decode **one 16-symbol group** (low 8 + high 8).
+//! 4. Move to the next job — this interleaving allows the CPU to overlap
+//!    the gather latency of one stream with the arithmetic of another.
+//! 5. Repeat until all jobs are fully decoded.
+//! 6. Process tails (remaining symbols < 16) using scalar fallback.
+//!
+//! **Why round-robin?** Gather instructions have high latency (~10–15 cycles).
+//! By issuing a gather for job 0, then immediately issuing a gather for job 1
+//! while job 0's gather is in-flight, the CPU can pipeline the memory accesses
+//! and hide latency.  This is especially beneficial when the table is L1-resident
+//! but gather throughput is limited.
+//!
+//! Each job uses the 2×8 representation (two YMM registers) and the AVX2
+//! permutation-based renormalizer.  Jobs are processed in groups of 4 because
+//! that provides enough independent work to keep the execution units busy
+//! without overflowing register pressure.
+//!
+//! ## Lane ordering convention
+//!
+//! All AVX2 decoders follow the same lane ordering as the scalar decoders:
+//!
+//! ```text
+//! lo vector = [state0, state1, state2, state3, state4, state5, state6, state7]
+//! hi vector = [state8, state9, state10, state11, state12, state13, state14, state15]
+//! ```
+//!
+//! - Lane 0 corresponds to `output[i]`, lane 1 to `output[i+1]`, etc.
+//! - In the 8-way decoders, only the lo vector is used.
+//! - In 2×8 and Uniform256, both lo and hi are used.
+//! - In Batch4, each of the up to 4 jobs has its own lo/hi pair.
+//!
+//! ## Renorm ordering
+//!
+//! Renormalization **must** occur in ascending lane order to match the
+//! encoder's flush order (which is **reverse** lane order on encode, so
+//! the forward decoder sees ascending).  The permutation-based renormalizer
+//! (`renorm8_avx2`) guarantees this because:
+//! - For each 8-bit mask, the permutation table assigns compact word 0 to
+//!   the lowest-numbered active lane, compact word 1 to the next, etc.
+//! - Within the 2×8 decoders, lo (lanes 0–7) is renormalized before hi
+//!   (lanes 8–15), preserving the global ascending order.
+//!
+//! ## Tail handling per backend
+//!
+//! Each AVX2 backend has a **scalar tail fallback** that processes remaining
+//! symbols (fewer than 8 for 8-way, fewer than 16 for 16-way) one at a time:
+//! 1. Extract the state vector to a `[u32; 8]` buffer.
+//! 2. For each remaining symbol, compute lane = i & 7 (or i & 15),
+//!    read the state, decode, compute new state, maybe renormalize.
+//! 3. Write the updated state back to the vector via `_mm256_loadu_si256`.
+//! 4. After all tail symbols, collect the final states for the report.
+//!
+//! The tail is **not vectorized** because the overhead of SIMD for <8 lanes
+//! is higher than just doing scalar work.
+//!
+//! ## Why the `_into` API?
+//!
+//! All AVX2 kernels use the `_into` convention: they accept `output: &mut [u8]`
+//! instead of creating a `Vec<u8>`.  This provides:
+//! 1. **Zero allocation**: The caller controls memory, avoiding repeated
+//!    Vec allocations in decode loops.
+//! 2. **Externally managed buffers**: Decode directly into mmap'd regions,
+//!    shared memory, or pre-allocated pools.
+//! 3. **Consistent interface**: Matches the scalar `_into` variants and the
+//!    AVX-512 `_into` functions, enabling uniform dispatch.
+//! 4. **Report-only return**: Returns `DecodeReport` (words consumed + final
+//!    states) instead of `DecodeResult`, avoiding the need to clone the output.
 
 use crate::RANS_WORD_L;
 use crate::RANS_WORD_M;

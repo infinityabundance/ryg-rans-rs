@@ -2,25 +2,121 @@
 //!
 //! AVX2 lacks AVX-512's `_mm256_maskz_expand_epi32` instruction for
 //! distributing compact renormalization words to active lanes.  Instead,
-//! we use a **permutation table** approach:
+//! we use a **permutation table** approach.  This module implements the
+//! full renormalization pipeline for 8-way SIMD decode on AVX2.
 //!
-//! 1. Compare each state against RANS_WORD_L using unsigned comparison to
-//!    produce an 8-bit mask (which lanes need renormalization).
-//! 2. Count ones in the mask to determine how many u16 words to consume.
-//! 3. Copy those compact words into a u32 scratch buffer.
-//! 4. Load the permutation indices for this mask from a 256-entry table.
-//! 5. Use `_mm256_permutevar8x32_epi32` (vpermd) to distribute compact
-//!    words to their correct lanes.
-//! 6. Shift each state left by 16 bits and OR with the expanded words.
-//! 7. Blend the renormalized lanes with the unchanged lanes using
-//!    `_mm256_blendv_epi8`.
+//! ## The Renormalization Problem
+//!
+//! In Word rANS, after each decode step, a state may drop below the
+//! threshold `RANS_WORD_L` (65536).  When that happens, we need to
+//! "renormalize" by shifting the state left by 16 bits and ORing in
+//! a u16 word from the compressed stream.  Critically, **which lanes
+//! need renormalization is data-dependent** — it varies each iteration
+//! based on the symbols decoded.
+//!
+//! In SIMD, the challenge is: we have 8 independent states, each of which
+//! may or may not need a word.  The renorm words are stored **compactly**
+//! in the input stream — only the lanes that actually need renorming
+//! consume a word.  We need to:
+//!
+//! 1. Determine which lanes need renorming (compute the mask).
+//! 2. Count how many words to consume (popcount of the mask).
+//! 3. Load exactly those words from the stream.
+//! 4. Distribute them to the correct lanes.
+//! 5. Left-shift each state by 16 and OR with the distributed word.
+//! 6. Blend renormed lanes with unchanged lanes.
+//!
+//! AVX-512 does this in one instruction (`_mm256_maskz_expand_epi32`).
+//! AVX2 requires a multi-step workaround.
+//!
+//! ## The Permutation Table Approach
+//!
+//! The key insight is that since the 8-bit mask has only 256 possible values,
+//! we can **precompute** the shuffle pattern for every possible mask.  For
+//! each mask value, we store 8 permutation indices that tell `vpermd` where
+//! to place each compact word.
+//!
+//! The algorithm:
+//!
+//! 1. **Compute the mask**: Use the signed compare trick (XOR with 0x80000000)
+//!    to produce an unsigned-less-than comparison, then compress the 32-bit
+//!    movemask result into an 8-bit lane mask.
+//!
+//! 2. **If mask == 0**: No lanes need renormalization.  Return unchanged.
+//!
+//! 3. **Count words**: `mask_u8.count_ones()` gives the number of u16 words
+//!    to consume from the compressed stream.
+//!
+//! 4. **Load compact words**: Copy the required number of u16 words from the
+//!    input stream into a `[u32; 8]` scratch buffer (zero-extended to u32).
+//!    Load this buffer into a YMM register.
+//!
+//! 5. **Look up permutation indices**: For the observed mask, load 8 × i32
+//!    permutation indices from the precomputed table.
+//!
+//! 6. **Permute**: `_mm256_permutevar8x32_epi32(compact_v, perm_indices)`
+//!    distributes the compact words to their correct lanes.  Active lane N
+//!    receives the N-th compact word (in lane-order); inactive lanes receive
+//!    word 0 (which will be discarded by blending).
+//!
+//! 7. **Shift and OR**: `_mm256_slli_epi32(states, 16)` then OR with the
+//!    permuted words.  This produces candidate renormed states.
+//!
+//! 8. **Blend**: Use `_mm256_blendv_epi8` to select renormed lanes where
+//!    the mask bit is 1, and original states where the mask bit is 0.
+//!    The blend mask is constructed by broadcasting the 8-bit mask and
+//!    extracting each lane's bit with `_mm256_srlv_epi32`.
+//!
+//! ## Why a table instead of computed shuffle masks?
+//!
+//! Computing the permutation indices on-the-fly would require a loop or
+//! a series of conditional moves — both of which are slow and hard to
+//! vectorize.  By precomputing the table at startup (or compile-time), we
+//! reduce the per-iteration work to:
+//!
+//! - One `_mm256_load_si256` (aligned load from the table)
+//! - One `_mm256_permutevar8x32_epi32` (vpermd)
+//!
+//! The table is only **256 × 8 × 4 = 8 KB**, fitting comfortably in L1
+//! cache (which is 32 KB on modern x86).  The table is also fully
+//! deterministic — the same mask always produces the same permutation,
+//! which is essential for reproducible decoding.
+//!
+//! ## Comparison with AVX-512
+//!
+//! | Step | AVX2 (this module) | AVX-512 |
+//! |------|-------------------|---------|
+//! | Mask compute | XOR + signed compare + movemask compaction | `_mm256_cmplt_epu32_mask` (1 uop) |
+//! | Expand | Precomputed table + vpermd | `_mm256_maskz_expand_epi32` (1 uop) |
+//! | Blend | Broadcast + srlv + sub + blendv | `_mm256_mask_blend_epi32` (1 uop) |
+//! | Table size | 8 KB | None |
+//! | Per-iteration cost | ~5-6 uops | ~3 uops |
+//!
+//! The AVX2 approach is about 2–3× more expensive per renormalization
+//! iteration, but still much faster than a scalar fallback (which would
+//! require 8 separate branches).
 //!
 //! ## Table format
 //!
-//! For each 8-bit mask (256 entries), store the source index for each of
-//! the 8 output lanes.  Active lanes receive compact words in ascending
-//! lane order.  Inactive lanes may reference any safe source index because
-//! they will be removed by blending.
+//! For each 8-bit mask (256 entries), we store the source index for each of
+//! the 8 output lanes:
+//!
+//! ```text
+//! indices[mask][lane] = compact_word_index   // if lane is active
+//!                      or 0                  // if lane is inactive (ignored by blend)
+//! ```
+//!
+//! Active lanes receive compact words in **ascending lane order**:
+//! - The lowest-numbered active lane gets compact word 0
+//! - The next active lane gets compact word 1
+//! - ... and so on.
+//!
+//! This ensures the renorm words are consumed in the same order as the
+//! scalar decoder: lane 0 first, then lane 1, etc.
+//!
+//! Inactive lanes are assigned index 0 (safe because `blendv` discards them).
+//! Any value ≤ 7 would work for inactive lanes since they're masked away,
+//! but 0 is the simplest to verify in tests.
 //!
 //! ## Safety
 //!
@@ -32,6 +128,16 @@ use crate::backends::DecodeError;
 use core::arch::x86_64::*;
 
 /// Result of an 8-way AVX2 renormalization operation.
+///
+/// Contains the updated 8 states after renormalization, plus metadata:
+/// - `observed_mask`: Which lanes needed renormalization (bit N = 1 means
+///   lane N consumed a word).  This is useful for debugging and verification.
+/// - `words_consumed`: Number of u16 words consumed from the input stream.
+///   Equals `observed_mask.count_ones()` in normal operation, but the caller
+///   should use this field rather than recomputing popcount to avoid bugs.
+///
+/// The calling decode kernel is responsible for advancing its reader position
+/// by `words_consumed` and updating the state vector.
 #[derive(Debug, Clone, Copy)]
 pub struct Avx2Renorm8Result {
     pub states: [u32; 8],
@@ -41,13 +147,51 @@ pub struct Avx2Renorm8Result {
 
 /// The 256-entry permutation lookup table for AVX2 renormalization.
 ///
-/// `indices[mask][lane]` gives the source index for `vpermd` to place
-/// the correct compact word at `lane`.  Active lane 0 gets compact word 0,
-/// active lane 1 gets compact word 1, etc.  Inactive lanes are set to 0
-/// (they will be masked away by blend).
+/// This table maps every possible 8-bit lane mask to a set of 8 permutation
+/// indices that `vpermd` (`_mm256_permutevar8x32_epi32`) uses to distribute
+/// compact renormalization words to their correct lanes.
+///
+/// ## Why a table?
+///
+/// The AVX2 `vpermd` instruction selects each output lane from any of the 8
+/// source lanes using a 32-bit index per lane.  We need to map:
+///
+/// ```text
+/// compact_words[0..popcount(mask)]  →  active lanes in ascending order
+/// ```
+///
+/// This is a gather-like operation that would require a loop or conditionals
+/// to compute on-the-fly.  Precomputing the 256-entry table is cheap (8 KB)
+/// and turns the critical path into a single aligned load + vpermd.
+///
+/// ## Table construction
+///
+/// `indices[mask][lane]` =
+/// - If bit `lane` of `mask` is 1: the sequential index of this lane among
+///   active lanes (0 for the first active lane, 1 for the second, etc.)
+/// - If bit `lane` of `mask` is 0: 0 (a safe value discarded by the blend)
+///
+/// For example, `mask = 0b00000101` (lanes 0 and 2 active):
+/// ```text
+/// indices[0b00000101] = [0, 0, 1, 0, 0, 0, 0, 0]
+/// // lane 0 gets compact word 0
+/// // lane 2 gets compact word 1
+/// ```
+///
+/// `vpermd` with these indices would place compact_words[0] at lane 0,
+/// compact_words[1] at lane 2, and compact_words[0] at all other lanes
+/// (safe because blending removes them).
+///
+/// ## Alignment
+///
+/// `#[repr(align(32))]` ensures each row of 8 × i32 (32 bytes) is aligned
+/// to a 256-bit vector boundary, so `_mm256_load_si256` (aligned load) can
+/// be used instead of the slower `_mm256_loadu_si256`.
 #[repr(align(32))]
 #[derive(Clone)]
 pub struct Avx2RenormPermutations {
+    /// `indices[mask][lane]` — 256 masks × 8 lanes each.
+    /// Must be accessed with mask values in range 0..=255 only.
     pub indices: [[i32; 8]; 256],
 }
 
@@ -59,14 +203,40 @@ impl core::fmt::Debug for Avx2RenormPermutations {
     }
 }
 
-/// Build the 256-entry permutation table.
+/// Build the 256-entry permutation table for AVX2 renormalization.
 ///
-/// For each mask (0..255), compute the source index for each of the 8 lanes.
-/// For mask bit = 1 (active), assign the next compact word index.
-/// For mask bit = 0 (inactive), assign 0 (safe because blending removes it).
+/// For each mask value from 0 to 255, computes the 8 permutation indices
+/// that tell `vpermd` where to distribute compact renormalization words.
 ///
-/// This function is deterministic and should be called once at startup or
-/// tested exhaustively at compile-time.
+/// ## Algorithm
+///
+/// For mask bit = 1 at position `lane`:
+///   - This lane is **active** (needs a renormalization word).
+///   - Assign the next available compact word index (0, 1, 2, ...)
+///     in ascending lane order (lane 0 first).
+/// For mask bit = 0 at position `lane`:
+///   - This lane is **inactive** (does not need a word).
+///   - Assign index 0 (any value works, but 0 is simple to verify in tests).
+///
+/// ## Determinism
+///
+/// This function is fully deterministic — the same input always produces
+/// the same table.  It can be called at startup or even in tests without
+/// randomization concerns.  The table is verified exhaustively in unit
+/// tests (`test_permutation_table_coverage`).
+///
+/// ## Memory
+///
+/// The table is 256 × 8 × 4 = 8,192 bytes (8 KB), fitting comfortably in
+/// L1 cache (typically 32 KB on modern x86).  The 32-byte alignment ensures
+/// each row can be loaded with a single aligned `vmovdqa` instruction.
+///
+/// ## Usage
+///
+/// This function is called once per decode operation by the `_checked`
+/// wrappers in `backends.rs` and once at `Avx2Context::new()`.  For batch
+/// operations (`decode_batch4_interleaved16_avx2`), a single table is shared
+/// across all jobs.
 pub fn build_avx2_renorm_table() -> Avx2RenormPermutations {
     let mut indices = [[0i32; 8]; 256];
     for mask in 0..=255u16 {
@@ -86,17 +256,110 @@ pub fn build_avx2_renorm_table() -> Avx2RenormPermutations {
 
 /// Perform 8-way AVX2 renormalization.
 ///
-/// Takes 8 states as a `__m256i`, determines which lanes have state <
-/// RANS_WORD_L, reads the required number of u16 renorm words from
-/// `input`, distributes them to the correct lanes via the permutation
-/// table, and returns the updated states plus metadata.
+/// This is the core SIMD renormalization primitive used by all AVX2 decode
+/// kernels.  It determines which of the 8 lanes need renormalization (their
+/// state is below `RANS_WORD_L`), consumes the required number of u16 words
+/// from the input stream, distributes them to the correct lanes via the
+/// permutation table, and returns the updated states.
 ///
-/// # Safety
+/// ## Algorithm Details
+///
+/// ### Step 1: Compute the unsigned comparison mask (lines 107–138)
+///
+/// AVX2 lacks a direct unsigned compare instruction for 32-bit integers.
+/// We work around this with the **signed compare trick**:
+///
+/// ```text
+/// state < L  (unsigned)  ⇔  (state ^ 0x80000000) < (L ^ 0x80000000)  (signed)
+/// ```
+///
+/// XOR with `0x80000000` flips the sign bit, effectively biasing unsigned
+/// values into signed-comparable space.  Then `_mm256_cmpgt_epi32` performs
+/// a signed greater-than comparison.  By swapping operands (`biased_l >
+/// biased_states`), we get the equivalent of unsigned less-than.
+///
+/// The comparison result is a vector of all-ones (true) or all-zeros (false)
+/// for each lane.  `_mm256_movemask_epi8` extracts the sign bit of each byte
+/// into a 32-bit mask.  Since each 32-bit lane has its comparison result sign
+/// in byte `4*i+3`, we compact those 8 bits into a u8 lane mask.
+///
+/// ### Step 2: Early exit if no lanes need renorm (lines 140–149)
+///
+/// If `mask_u8 == 0`, all states are ≥ L and no renormalization is needed.
+/// We store the unchanged states and return with `words_consumed = 0`.
+/// This is the common case for large states (most decodes produce states
+/// well above L).
+///
+/// ### Step 3: Count words needed and check bounds (lines 151–156)
+///
+/// `mask_u8.count_ones()` gives the number of u16 words to consume.  We
+/// verify the input has enough words before reading to avoid out-of-bounds
+/// access.
+///
+/// ### Step 4: Pack compact words into u32 scratch buffer (lines 158–163)
+///
+/// The compact words are 16-bit, but `vpermd` operates on 32-bit lanes.
+/// We zero-extend each u16 to u32 and store in a `[u32; 8]` buffer on the
+/// stack, then load it into a YMM register.
+///
+/// ### Step 5: Load permutation indices from table (lines 165–167)
+///
+/// `perm_table.indices[mask_u8 as usize]` is a `[i32; 8]` exactly 32 bytes
+/// (aligned to 32 bytes by the `#[repr(align(32))]` on `Avx2RenormPermutations`).
+/// We load it with an aligned 256-bit load into a YMM register.
+///
+/// ### Step 6: Permute compact words to correct lanes (lines 169–172)
+///
+/// `_mm256_permutevar8x32_epi32(compact_v, perm_indices)` (vpermd):
+/// For each output lane `i`, `output[i] = compact_v[perm_indices[i]]`.
+/// Active lanes get the correct compact word; inactive lanes get word 0
+/// (safe because the next step blends them away).
+///
+/// ### Step 7: Shift state and OR with expanded words (lines 174–176)
+///
+/// Each state is left-shifted by 16 bits (`_mm256_slli_epi32(states, 16)`)
+/// to make room for the 16-bit renorm word, then ORed with the expanded
+/// words.  This produces candidate renormed states for all lanes.
+///
+/// ### Step 8: Blend renormed with unchanged lanes (lines 178–194)
+///
+/// We need to select renormed states only where the mask bit = 1.  Since
+/// AVX2 lacks a per-lane u32 blend, we use `_mm256_blendv_epi8` (byte-level
+/// blend).  The blend mask must be all-ones (0xFFFFFFFF) for active lanes
+/// and all-zeros for inactive lanes.
+///
+/// The blend mask is constructed by:
+/// 1. Broadcasting the 8-bit mask to all 32-bit lanes.
+/// 2. Shifting right by lane index to extract each lane's bit.
+/// 3. Subtracting from zero: `0 - bit` produces all-ones for bit=1,
+///    all-zeros for bit=0.
+///
+/// The final result selects renormed lanes where mask=1, original states
+/// where mask=0.
+///
+/// ### Step 9: Store and return (lines 196–204)
+///
+/// The blended result is stored to a `[u32; 8]` array and returned via
+/// `Avx2Renorm8Result` along with the mask and word count.
+///
+/// ## Why this is correct
+///
+/// The key invariant is that **renorm words are consumed in ascending lane
+/// order** (lane 0 first).  This is guaranteed by the permutation table
+/// construction: `build_avx2_renorm_table` assigns compact word 0 to the
+/// lowest-numbered active lane, word 1 to the next, etc.  This matches the
+/// scalar decoder's loop order and the encoder's flush order (reverse lane
+/// order on encode, so forward decode reads ascending).
+///
+/// ## Safety
 ///
 /// - Requires AVX2 CPU feature at runtime.
 /// - `states` must be a valid `__m256i` (8 × u32).
 /// - `input` must have at least `popcount(mask)` words available.
-/// - `perm_table` must be the pre-built `Avx2RenormPermutations`.
+/// - `perm_table` must be a valid, pre-built `Avx2RenormPermutations`.
+/// - The function is marked `#[target_feature(enable = "avx2")]` but this
+///   does not check the feature at runtime — the caller must ensure AVX2
+///   is available before calling.
 #[target_feature(enable = "avx2")]
 pub unsafe fn renorm8_avx2(
     states: __m256i,

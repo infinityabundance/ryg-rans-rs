@@ -3,6 +3,76 @@
 //! Generates machine-readable JSON and CSV summaries from Criterion estimate
 //! data after benchmark completion.  Called programmatically or as a
 //! post-processing step.
+//!
+//! ## JSON schema
+//!
+//! The output `results.json` is an array of `BenchRecord` objects with the
+//! following fields:
+//!
+//! ```json
+//! {
+//!   "benchmark_id": "avx512/avx512_16way/interleaved16/IncompressibleLike/1MiB",
+//!   "tier":           "avx512",        // benchmark binary name
+//!   "backend":        "avx512_16way",  // specific backend label
+//!   "api":            "interleaved16", // API surface
+//!   "profile":        "IncompressibleLike", // model profile
+//!   "bytes":          1048576,          // input size in bytes
+//!   "threads":        1,                // thread count (1 for single-threaded)
+//!   "median_ns":      1234567.89,       // median wall-clock time (ns)
+//!   "mean_ns":        1245678.90,       // mean wall-clock time (ns)
+//!   "stddev_ns":      12345.67,         // standard deviation (ns)
+//!   "throughput_gib_s": 7.89,           // median throughput in GiB/s
+//!   "implementation_commit": "abc123def456", // git commit SHA
+//!   "rustc":          "rustc 1.82.0 (...)", // rustc version string
+//!   "cpu":            "AMD Ryzen 9 9950X 16-Core Processor", // CPU model name
+//!   "target_features": ["avx512f", "avx512bw"]  // enabled target features
+//! }
+//! ```
+//!
+//! Fields are derived from two sources:
+//! - **Criterion estimate files**: `median`, `mean`, `std_dev` from each
+//!   `estimates.json` file under `target/criterion/<benchmark>/<backend>/<api>/<profile>/<size>/`.
+//! - **System metadata**: `implementation_commit`, `rustc`, `cpu`, `target_features`
+//!   are captured once at benchmark start by `common::metadata::BenchMetadata`.
+//!
+//! The `benchmark_id` is reconstructed from the directory path relative to the
+//! Criterion output root, giving the 5-part key `<tier>/<backend>/<api>/<profile>/<size>`.
+//! Byte counts are extracted by parsing size tokens like `1MiB`, `64KiB`, `4x1MiB`
+//! from the path leaf (see `extract_bytes`).
+//!
+//! ## CSV schema
+//!
+//! The output `results.csv` contains one header row followed by one data row
+//! per `BenchRecord`.  Fields that may contain commas, double-quotes, or
+//! newlines are escaped using standard CSV quoting (wrapped in double-quotes,
+//! internal double-quotes doubled).
+//!
+//! Columns:
+//! ```text
+//! benchmark_id,tier,backend,api,profile,bytes,threads,median_ns,mean_ns,stddev_ns,throughput_gib_s,commit
+//! ```
+//!
+//! The throughput column is omitted from CSV because it is derived from
+//! `bytes` and `median_ns` — consumers can recompute it as `(bytes / median_ns)
+//! * 1e9 / (1024³)`.
+//!
+//! ## Usage
+//!
+//! The exporter is called automatically from `benches/` binaries via
+//! `criterion_post_processing`.  It can also be invoked standalone:
+//!
+//! ```bash
+//! # After benchmarks complete:
+//! cargo run -p ryg-rans-rs-bench --bin export -- target/criterion artifacts/
+//! # Writes artifacts/results.json and artifacts/results.csv
+//! ```
+//!
+//! ## Integrity
+//!
+//! The JSON export returns a SHA-256 hex digest of the serialized content
+//! alongside the file path.  CI pipelines can log this hash for traceability.
+//! The CSV export does not include a hash — consumers should use the JSON hash
+//! as the canonical content identifier and regenerate CSV from it.
 
 use std::collections::HashMap;
 use std::fs;

@@ -1,6 +1,7 @@
 # ryg-rans-rs-cli
 
 > **Production-grade rANS compression CLI — `ryg-rans`**  
+> Version 0.1.27 — Phase J  
 > Versioned block-streaming container format (RYGRANS v1).  
 > SHA-256 integrity verification. Resource-bounded, deterministic, non-panicking.  
 > Encode, decode, inspect, verify, compare, benchmark, trace.  
@@ -369,3 +370,7 @@ cargo bench -p ryg-rans-rs-bench
 # Run only parallel engine benchmarks
 cargo bench -p ryg-rans-rs-bench -- "block-engine/"
 ```
+
+---
+
+*Part of the ryg-rans-rs project. Version 0.1.27. Phase J.*

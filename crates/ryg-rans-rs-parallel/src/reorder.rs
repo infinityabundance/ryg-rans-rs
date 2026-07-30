@@ -1,48 +1,148 @@
-//! # Bounded ordered result buffer
+//! # Bounded ordered result buffer — out-of-order commit serialiser
 //!
-//! Workers may finish in any order.  The ordered commit requires results in
-//! ascending block-index order.  This module provides a bounded reorder buffer
-//! that collects out-of-order results and emits them only when the next
-//! sequential block is available.
+//! ## The problem
 //!
-//! ## Bounds
+//! Workers in a thread pool may finish blocks in any order.  Worker A may
+//! get blocks 0 and 10; worker B may get blocks 5 and 3.  The output
+//! container requires blocks in ascending index order (0, 1, 2, ...).
+//! Without a reorder buffer, we would need to either:
 //!
-//! The buffer enforces:
-//! - Maximum number of buffered blocks (count-based backpressure)
-//! - Maximum total buffered decoded bytes (memory-based backpressure)
+//! - **Wait synchronously**: Block the commit until each block finishes.
+//!   This serialises the pipeline and defeats parallelism.
+//! - **Accept unordered output**: Violates the container format requirement.
 //!
-//! A slow early block causes producer backpressure rather than unbounded growth.
-//! Once the buffer is full, insertions block until a slot frees up (via commit).
+//! ## The solution: sparse slot array + gap tracking + draining
+//!
+//! The reorder buffer maintains a `BTreeMap<u64, T>` keyed by block index.
+//! Results are inserted in any order.  A monotonically increasing
+//! `next_expected` counter tracks the next sequential block to commit.
+//!
+//! ### Insert path:
+//!
+//! ```text
+//! insert(result):
+//!   if result.block_index < next_expected:
+//!     → Err (already committed, duplicate)
+//!   if result.block_index == next_expected:
+//!     → advance next_expected, return Ok(Some(result))  [immediate commit]
+//!   if pending.contains_key(result.block_index):
+//!     → Err (duplicate in-flight, should never happen)
+//!   if pending.len() >= max_blocks or current_bytes + size > max_bytes:
+//!     → Err (ResourceLimit)  [backpressure]
+//!   → store in pending, return Ok(None)  [buffered]
+//! ```
+//!
+//! ### Drain path:
+//!
+//! ```text
+//! drain_ready():
+//!   while pending.contains(next_expected):
+//!     remove it, advance next_expected, append to result Vec
+//!   return result Vec
+//! ```
+//!
+//! ## Backpressure model
+//!
+//! The buffer enforces **two independent limits**:
+//!
+//! 1. **Count limit** (`max_blocks`): Maximum number of out-of-order results
+//!    stored simultaneously.  Prevents the pending map from growing without
+//!    bound due to many small blocks.
+//! 2. **Byte limit** (`max_bytes`): Maximum total bytes (sum of result sizes
+//!    via `BufferSized`) stored simultaneously.  Prevents a single large
+//!    block from consuming all memory while waiting for a slow early block.
+//!
+//! When either limit is reached, further `insert()` calls return
+//! `Err(BlockErrorKind::ResourceLimit)`.  The caller (executor commit logic)
+//! must apply backpressure to the producer, typically by blocking the job
+//! dispatch channel until `drain_ready()` frees capacity.
+//!
+//! ## Why `BTreeMap` instead of a slot array?
+//!
+//! A fixed-size slot array (`Vec<Option<T>>`) indexed by block number would
+//! be simpler but would waste memory on sparse insertions.  `BTreeMap` is
+//! O(log N) per operation, which is acceptable for typical block counts
+//! (hundreds to millions).  The constant factor is low because `u64` keys
+//! are cheap to compare.
 
 use crate::error::{BlockError, BlockErrorKind};
 use std::collections::BTreeMap;
 
-/// A bounded reorder buffer keyed by block index.
+/// A bounded reorder buffer that serialises out-of-order results into
+/// ascending block-index order.
 ///
-/// `T` is the type of result to reorder (e.g., `EncodedBlockResult` or `DecodedBlockResult`).
-/// The buffer expects results to have a `block_index: u64` field accessible via the
-/// `HasBlockIndex` trait.
+/// # Type parameter
+///
+/// `T` is the type of result to reorder (e.g., `EncodedBlockResult` or
+/// `DecodedBlockResult`).  `T` must implement `HasBlockIndex` (to read
+/// its block index) and `BufferSized` (to report its memory footprint).
+///
+/// # State machine
+///
+/// ```text
+///                   ┌──────────────┐
+///                   │  Empty       │
+///                   │  (no pending)│
+///                   └──────┬───────┘
+///                           │
+///                  insert(out-of-order)
+///                           │
+///                           ▼
+///                   ┌──────────────┐
+///   ┌──────────────►│  Pending     │◄───────────────┐
+///   │               │  (buffered)  │                │
+///   │               └──────┬───────┘                │
+///   │                      │                        │
+///   │           insert(next_expected)               │
+///   │           or drain_ready() hits               │
+///   │                      │                        │
+///   │                      ▼                        │
+///   │               ┌──────────────┐                │
+///   │               │  Emitting    │────────────────┘
+///   │               │  (committed) │  insert(out-of-order)
+///   │               └──────────────┘
+///   │                      │
+///   └──────────────────────┘
+///       all blocks drained
+/// ```
 #[derive(Debug)]
 pub struct ReorderBuffer<T> {
-    /// Storage for out-of-order results, keyed by block_index.
+    /// Sparse storage for out-of-order results, keyed by block_index.
+    /// Uses `BTreeMap` for ordered iteration during draining.
     pending: BTreeMap<u64, T>,
-    /// The next expected block index (0-based).
+    /// The next expected block index (0-based).  Monotonically increasing.
     next_expected: u64,
-    /// Maximum number of buffered blocks.
+    /// Maximum number of buffered blocks (count-based backpressure).
     max_blocks: usize,
-    /// Maximum total bytes buffered.
+    /// Maximum total bytes buffered (memory-based backpressure).
     max_bytes: u64,
-    /// Current total bytes buffered (sum of sizes using the `BufferSized` trait).
+    /// Current total bytes buffered (sum of sizes via `BufferSized`).
     current_bytes: u64,
 }
 
-/// Trait for types that have a block index.
+/// Trait for types that carry a block index (the primary key for reordering).
+///
+/// Implemented for `EncodedBlockResult`, `DecodedBlockResult`, and similar
+/// result types.  The `ReorderBuffer` uses this trait to extract the index
+/// from a generic `T`.
 pub trait HasBlockIndex {
+    /// Return the 0-based block index of this item.
     fn block_index(&self) -> u64;
 }
 
-/// Trait for types that report their buffered size in bytes.
+/// Trait for types that report their memory footprint for backpressure.
+///
+/// The `ReorderBuffer` uses this trait to track the total memory consumed
+/// by buffered results.  The reported size should be the number of bytes
+/// that the item contributes to heap memory (e.g., `Vec::capacity() * size_of::<u8>()`).
+///
+/// # Accuracy
+///
+/// Overestimating is safer than underestimating.  If the reported size is
+/// too low, the buffer may exceed its memory budget.  Conservative estimates
+/// are preferred.
 pub trait BufferSized {
+    /// Return the approximate memory footprint of this item in bytes.
     fn buffer_size(&self) -> u64;
 }
 
@@ -50,7 +150,18 @@ impl<T> ReorderBuffer<T>
 where
     T: HasBlockIndex + BufferSized,
 {
-    /// Create a new reorder buffer.
+    /// Create a new bounded reorder buffer.
+    ///
+    /// # Parameters
+    ///
+    /// - `max_blocks`: Maximum number of out-of-order results to buffer.
+    ///   When this limit is reached, further insertions return `ResourceLimit`.
+    /// - `max_bytes`: Maximum total memory (sum of `BufferSized` sizes) to
+    ///   buffer.  When this limit is reached, further insertions return
+    ///   `ResourceLimit`.
+    ///
+    /// Both limits must be respected.  Either one being exceeded blocks
+    /// further inserts.
     pub fn new(max_blocks: usize, max_bytes: u64) -> Self {
         Self {
             pending: BTreeMap::new(),
@@ -61,12 +172,31 @@ where
         }
     }
 
-    /// Insert a result into the buffer.
+    /// Insert a result into the reorder buffer.
     ///
-    /// Returns `Ok(Some(result))` if the result is the next expected block and
-    /// should be committed immediately.
-    /// Returns `Ok(None)` if the result is buffered for later commit.
-    /// Returns `Err` if the result is for an already-committed block (duplicate).
+    /// # Return value
+    ///
+    /// - `Ok(Some(result))`: The result is the next expected block and should
+    ///   be committed immediately.  No buffering occurred.
+    /// - `Ok(None)`: The result was buffered because it arrived out of order.
+    ///   It will be returned by a future `drain_ready()` call once all earlier
+    ///   blocks have been committed.
+    /// - `Err(BlockError)`: The insertion failed.  Either the block index is
+    ///   already committed (duplicate) or a resource limit was exceeded.
+    ///
+    /// # Error conditions
+    ///
+    /// - `BlockErrorKind::OutputCommit`: Block index < `next_expected` (already
+    ///   committed) or duplicate index already in `pending`.
+    /// - `BlockErrorKind::ResourceLimit`: `pending.len() >= max_blocks` or
+    ///   `current_bytes + result.buffer_size() > max_bytes`.
+    ///
+    /// # Backpressure protocol
+    ///
+    /// The caller should handle `ResourceLimit` by applying backpressure
+    /// to the producer (e.g., blocking the job submission channel until
+    /// `drain_ready()` frees capacity).  The executor commit loop typically
+    /// calls `drain_ready()` after each successful insert.
     pub fn insert(&mut self, result: T) -> Result<Option<T>, BlockError> {
         let idx = result.block_index();
 
@@ -113,7 +243,24 @@ where
     }
 
     /// Drain all consecutively available results from the buffer.
-    /// Returns results in ascending block-index order.
+    ///
+    /// Starting from `next_expected`, removes and returns all results that
+    /// are present in `pending` in ascending order.  Stops at the first
+    /// gap (a block index not yet received).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// // pending: {3, 4, 6}, next_expected = 3
+    /// let ready = buf.drain_ready();  // returns [3, 4]
+    /// // next_expected is now 5; block 6 remains pending.
+    /// ```
+    ///
+    /// # Why stop at gaps?
+    ///
+    /// The output must be in strict ascending order.  If block 5 is missing,
+    /// blocks 6+ cannot be committed yet.  They remain pending until block 5
+    /// arrives.
     pub fn drain_ready(&mut self) -> Vec<T> {
         let mut ready = Vec::new();
         while let Some(result) = self.pending.remove(&self.next_expected) {
@@ -125,22 +272,32 @@ where
         ready
     }
 
-    /// Number of buffered results.
+    /// Return the number of currently buffered results.
+    ///
+    /// This is the count of out-of-order results waiting for a gap to fill.
+    /// It does not include results that were immediately committed.
     pub fn buffered_count(&self) -> usize {
         self.pending.len()
     }
 
-    /// Current total bytes buffered.
+    /// Return the total estimated memory used by buffered results (in bytes).
     pub fn buffered_bytes(&self) -> u64 {
         self.current_bytes
     }
 
-    /// The next expected block index.
+    /// Return the next block index expected for sequential commit.
+    ///
+    /// This is the block index of the next result that will be immediately
+    /// committed (returned as `Ok(Some(...))` from `insert()`).
     pub fn next_expected(&self) -> u64 {
         self.next_expected
     }
 
-    /// Whether all results have been committed (empty and no pending).
+    /// Whether all results have been committed (no pending entries).
+    ///
+    /// Returns `true` if all processed blocks have been inserted and
+    /// drained.  This does **not** imply that all blocks are done,
+    /// only that no results are waiting in the buffer.
     pub fn is_complete(&self) -> bool {
         self.pending.is_empty()
     }

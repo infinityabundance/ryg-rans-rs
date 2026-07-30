@@ -2,6 +2,91 @@
 //!
 //! Every corpus is reproducible from a seed + profile.  The same seed
 //! always produces identical bytes, frequencies, and compressed streams.
+//! This determinism is **required by Criterion**: benchmark measurements are
+//! only meaningful when the workload is identical across runs.  Non-deterministic
+//! corpora would produce different compressibility on each run, making
+//! regression detection impossible.
+//!
+//! ## Model profiles
+//!
+//! The 8 profiles exercise different characteristics of the rANS codec:
+//!
+//! | Profile | Pattern | What it tests |
+//! |---------|---------|---------------|
+//! | `Uniform256` | Every symbol 0..=255 appears exactly 16 times per 4096-byte block | Throughput under perfectly uniform distribution (best-case entropy). All frequencies equal, no renorm skew. |
+//! | `Freq1Residual` | 99.9% symbol 0, 0.1% random other symbols | Worst-case for SIMD gather patterns: near-zero entropy with a very sparse residual tail. Tests whether `cmpl_freq = M - 1` handling is correct. |
+//! | `Skewed2551` | 255/256 probability of symbol 0, 1/256 of uniform random symbol | Strong skew testing the reciprocal-multiply path when freq disparity is 255:1. |
+//! | `Sparse2` | Symbols 0 and 1 with equal (1/2) probability | Minimal alphabet size test (2 symbols).  Exercises the full total allocation across just two symbols. |
+//! | `Sparse17` | 17 symbols with uniform random distribution | Odd-sized alphabet — not a power of two.  Tests the remainder distribution in `build_normalized_model`. |
+//! | `PrimeResidue` | Lehmer RNG modulo 257, mapped through `& 0xFF` | Deterministic chaotic sequence with non-uniform distribution.  Tests decoder stability under data that is neither fully random nor fully structured. |
+//! | `RenormBoundary` | Alternating runs of 0x00 and 0xFF every 16 bytes | Designed to trigger frequent renormalisation: the alternating pattern produces state values that oscillate near the `RANS_WORD_L` boundary. |
+//! | `IncompressibleLike` | Each byte is a fresh uniform random value from `StdRng` | Realistic near-incompressible data.  Tests worst-case expansion (nearly every symbol triggers renormalisation for freq=1). |
+//!
+//! ## Why deterministic seeds matter for Criterion
+//!
+//! Criterion measures wall-clock time.  If the corpus changes between runs,
+//! variation in compressibility (and thus the number of renormalisation steps
+//! per symbol) would be conflated with variation in the backend's performance.
+//! Fixed seeds ensure:
+//!
+//! 1. **Reproducible corpus bytes**: `generate_data(profile, length, seed)`
+//!    returns identical bytes every time, for every supported length.
+//! 2. **Reproducible frequencies**: `build_normalized_model` sees the same
+//!    histogram and produces the same quantised frequencies.
+//! 3. **Reproducible compressed streams**: The encode step (called from
+//!    `Corpus::encode_16way()`) sees identical symbols and freqs, so the
+//!    compressed stream byte-for-byte matches across runs.
+//! 4. **Comparable throughput**: Because every symbol and renormalisation
+//!    event is identical, timing differences reflect only the backend's
+//!    instruction-level efficiency.
+//!
+//! ## `build_normalized_model` algorithm details
+//!
+//! The normalisation step converts raw symbol frequencies (from counting bytes
+//! in the data) into a quantised frequency distribution that sums exactly to
+//! `total` (typically `1 << 12 = 4096` for Word rANS) with no individual
+//! frequency exceeding 4095 (the 12-bit packed-table limit).
+//!
+//! The algorithm proceeds in four phases:
+//!
+//! ### Phase 1: Reserve minimum frequencies
+//! Every symbol that appeared at least once in the data gets a minimum frequency
+//! of 1.  The `reserved = nonzero_count` tokens are set aside from the total.
+//! If more distinct symbols exist than `total` tokens available (impossible for
+//! 256 symbols with `total >= 256`, but handled for robustness), symbols are
+//! assigned 1 each in round-robin until the total is exhausted.
+//!
+//! ### Phase 2: Proportional scaling
+//! The remaining `available = total - reserved` tokens are distributed in
+//! proportion to each symbol's raw frequency, clamped to a maximum of 4094
+//! (leaving room for the remainder distribution in Phase 3).  The scaling
+//! formula is:
+//!
+//! ```text
+//! freq[i] = 1 + min(4094, raw[i] * available / sum(raw))
+//! ```
+//!
+//! This ensures that symbols with higher raw counts receive proportionally
+//! more tokens, while every observed symbol keeps at least 1.
+//!
+//! ### Phase 3: Remainder distribution
+//! After proportional scaling, the sum may be less than `total` by up to
+//! `nonzero_count - 1` tokens (due to truncation in integer division).  These
+//! remaining tokens are distributed greedily: at each step, find the frequency
+//! with the largest value that is still below 4095, and increment it by 1.
+//! This produces a near-optimal approximation of the true distribution while
+//! respecting the 12-bit field width.
+//!
+//! A fallback path handles the edge case where all frequencies are already at
+//! 4095 (this can only happen when `total = 4096` and `nonzero_count = 2`,
+//! since 4095 + 4095 = 8190 > 4096).  In this case, remaining tokens are
+//! assigned to symbol 0 (up to 4095) and then symbol 1.
+//!
+//! ### Phase 4: Debug assertions
+//! After normalisation, three invariants are checked with `debug_assert`:
+//! - `cum[256] == total` (frequencies sum to exactly `total`)
+//! - All frequencies `<= 4095` (fit in 12-bit packed field)
+//! - Cumulative frequencies are non-decreasing (`freq[i] + cum[i] <= cum[i+1]`)
 
 use std::vec::Vec;
 
