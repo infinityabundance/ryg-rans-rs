@@ -1648,11 +1648,9 @@ impl ParallelDecoder {
         for r in report.results {
             match r {
                 Ok(b) => match reorder.insert(b) {
-                    Ok(Some(ready)) => {
-                        ordered.push(ready);
-                        ordered.extend(reorder.drain_ready());
+                    Ok(committed) => {
+                        ordered.extend(committed);
                     }
-                    Ok(None) => {}
                     Err(e) => et.record(e),
                 },
                 Err(e) => et.record(e),
@@ -1809,15 +1807,12 @@ impl ParallelDecoder {
                     // for sequential output, but we compute the stream hash
                     // during reorder drain to ensure canonical order.
                     match reorder.insert(b) {
-                        Ok(Some(ready)) => {
-                            sha2::Digest::update(&mut stream_hasher, &ready.output);
-                            ordered.push(ready);
-                            for rd in reorder.drain_ready() {
-                                sha2::Digest::update(&mut stream_hasher, &rd.output);
-                                ordered.push(rd);
+                        Ok(committed) => {
+                            for ready in committed {
+                                sha2::Digest::update(&mut stream_hasher, &ready.output);
+                                ordered.push(ready);
                             }
                         }
-                        Ok(None) => {}
                         Err(e) => et.record(e),
                     }
                 }
@@ -1934,13 +1929,11 @@ impl ParallelDecoder {
                 let mut sink = sink_rc.lock().unwrap();
                 match result {
                     Ok(b) => match reorder.insert(b) {
-                        Ok(Some(ready)) => {
-                            sink(ready);
-                            for rd in reorder.drain_ready() {
-                                sink(rd);
+                        Ok(committed) => {
+                            for ready in committed {
+                                sink(ready);
                             }
                         }
-                        Ok(None) => {}
                         Err(e) => et.record(e),
                     },
                     Err(e) => et.record(e),

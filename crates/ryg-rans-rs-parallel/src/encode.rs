@@ -811,19 +811,14 @@ impl ParallelEncoder {
 
         for result in report.results {
             match result {
-                Ok(block) => {
-                    match reorder.insert(block) {
-                        Ok(Some(ready)) => {
-                            ordered_blocks.push(ready);
-                            // Drain any additional ready blocks
-                            ordered_blocks.extend(reorder.drain_ready());
-                        }
-                        Ok(None) => { /* buffered */ }
-                        Err(e) => {
-                            error_tracker.record(e);
-                        }
+                Ok(block) => match reorder.insert(block) {
+                    Ok(committed) => {
+                        ordered_blocks.extend(committed);
                     }
-                }
+                    Err(e) => {
+                        error_tracker.record(e);
+                    }
+                },
                 Err(e) => {
                     error_tracker.record(e);
                 }

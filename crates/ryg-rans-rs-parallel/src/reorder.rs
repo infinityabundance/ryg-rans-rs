@@ -172,35 +172,38 @@ where
         }
     }
 
-    /// Insert a result into the reorder buffer.
+    /// Insert a result into the reorder buffer and atomically return every
+    /// newly committable result.
     ///
     /// # Return value
     ///
-    /// - `Ok(Some(result))`: The result is the next expected block and should
-    ///   be committed immediately.  No buffering occurred.
-    /// - `Ok(None)`: The result was buffered because it arrived out of order.
-    ///   It will be returned by a future `drain_ready()` call once all earlier
-    ///   blocks have been committed.
-    /// - `Err(BlockError)`: The insertion failed.  Either the block index is
-    ///   already committed (duplicate) or a resource limit was exceeded.
+    /// Returns `Ok(Vec<T>)` containing:
+    ///
+    /// - The newly inserted item, if it was (or became) the next expected
+    ///   block.
+    /// - Every contiguous pending item it unblocks, in strictly ascending
+    ///   block-index order.
+    ///
+    /// The returned vector is empty only when the item was buffered because
+    /// an earlier block is still missing (a gap exists).
+    ///
+    /// # Caller obligation
+    ///
+    /// **There is no separate drain call required after insertion.**  Every
+    /// result that can be committed is returned by this call.  A final
+    /// `drain_ready()` is retained only as a diagnostics/inspection API for
+    /// asserting completeness at the end of a run.
     ///
     /// # Error conditions
     ///
-    /// - `BlockErrorKind::OutputCommit`: Block index < `next_expected` (already
-    ///   committed) or duplicate index already in `pending`.
+    /// - `BlockErrorKind::OutputCommit`: Block index < `next_expected`
+    ///   (already committed) or duplicate index already in `pending`.
     /// - `BlockErrorKind::ResourceLimit`: `pending.len() >= max_blocks` or
-    ///   `current_bytes + result.buffer_size() > max_bytes`.
-    ///
-    /// # Backpressure protocol
-    ///
-    /// The caller should handle `ResourceLimit` by applying backpressure
-    /// to the producer (e.g., blocking the job submission channel until
-    /// `drain_ready()` frees capacity).  The executor commit loop typically
-    /// calls `drain_ready()` after each successful insert.
-    pub fn insert(&mut self, result: T) -> Result<Option<T>, BlockError> {
-        let idx = result.block_index();
+    ///   `current_bytes + item.buffer_size() > max_bytes`.
+    pub fn insert(&mut self, item: T) -> Result<Vec<T>, BlockError> {
+        let idx = item.block_index();
 
-        // Check for already-committed block (index < next_expected)
+        // Already-committed block (index < next_expected)
         if idx < self.next_expected {
             return Err(BlockError {
                 block_index: idx,
@@ -208,7 +211,7 @@ where
             });
         }
 
-        // Check for duplicate in-flight
+        // Duplicate in-flight
         if self.pending.contains_key(&idx) {
             return Err(BlockError {
                 block_index: idx,
@@ -216,14 +219,18 @@ where
             });
         }
 
-        // If this is the next expected block, return it immediately
+        // If this is the next expected block, commit it and then drain
+        // every contiguous pending block it unblocks.
         if idx == self.next_expected {
             self.next_expected += 1;
-            return Ok(Some(result));
+            let mut committed = Vec::new();
+            committed.push(item);
+            self.drain_into(&mut committed);
+            return Ok(committed);
         }
 
         // Otherwise, buffer it.  Check bounds first.
-        let size = result.buffer_size();
+        let size = item.buffer_size();
         if self.pending.len() >= self.max_blocks {
             return Err(BlockError {
                 block_index: idx,
@@ -238,37 +245,30 @@ where
         }
 
         self.current_bytes += size;
-        self.pending.insert(idx, result);
-        Ok(None)
+        self.pending.insert(idx, item);
+        Ok(Vec::new())
     }
 
-    /// Drain all consecutively available results from the buffer.
-    ///
-    /// Starting from `next_expected`, removes and returns all results that
-    /// are present in `pending` in ascending order.  Stops at the first
-    /// gap (a block index not yet received).
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// // pending: {3, 4, 6}, next_expected = 3
-    /// let ready = buf.drain_ready();  // returns [3, 4]
-    /// // next_expected is now 5; block 6 remains pending.
-    /// ```
-    ///
-    /// # Why stop at gaps?
-    ///
-    /// The output must be in strict ascending order.  If block 5 is missing,
-    /// blocks 6+ cannot be committed yet.  They remain pending until block 5
-    /// arrives.
-    pub fn drain_ready(&mut self) -> Vec<T> {
-        let mut ready = Vec::new();
+    /// Drain all consecutively available results from the buffer into `out`.
+    fn drain_into(&mut self, out: &mut Vec<T>) {
         while let Some(result) = self.pending.remove(&self.next_expected) {
             let size = result.buffer_size();
             self.current_bytes = self.current_bytes.saturating_sub(size);
             self.next_expected += 1;
-            ready.push(result);
+            out.push(result);
         }
+    }
+
+    /// Drain all consecutively available results from the buffer.
+    ///
+    /// Retained as a **diagnostics/inspection** API for asserting completeness
+    /// at the end of a run.  Callers using [`Self::insert`] do not need to
+    /// call this after every insertion — `insert` already returns everything
+    /// newly committable.  Call this once after the final insertion to pick up
+    /// any tail that was buffered before the last gap closed.
+    pub fn drain_ready(&mut self) -> Vec<T> {
+        let mut ready = Vec::new();
+        self.drain_into(&mut ready);
         ready
     }
 
@@ -342,8 +342,14 @@ mod tests {
     fn test_sequential_insert() {
         let mut buf = ReorderBuffer::new(16, 65536);
         for i in 0..5 {
-            let r = buf.insert(TestResult { index: i, size: 10 }).unwrap();
-            assert!(r.is_some(), "sequential insert {} should return ready", i);
+            let committed = buf.insert(TestResult { index: i, size: 10 }).unwrap();
+            assert_eq!(
+                committed.len(),
+                1,
+                "sequential insert {} should commit 1",
+                i
+            );
+            assert_eq!(committed[0].index, i);
         }
         assert!(buf.is_complete());
     }
@@ -352,37 +358,88 @@ mod tests {
     fn test_out_of_order_insert() {
         let mut buf = ReorderBuffer::new(16, 65536);
         // Insert 1 before 0 (order 1, 0, 2)
-        assert!(
-            buf.insert(TestResult { index: 1, size: 10 })
-                .unwrap()
-                .is_none()
-        );
+        let c1 = buf.insert(TestResult { index: 1, size: 10 }).unwrap();
+        assert!(c1.is_empty(), "block 1 must buffer (gap at 0)");
         assert_eq!(buf.buffered_count(), 1);
-        // Insert 0: should return ready, and also drain 1
-        let r0 = buf.insert(TestResult { index: 0, size: 10 }).unwrap();
-        assert!(r0.is_some());
-        // After draining 0, 1 should also be ready
-        let drained = buf.drain_ready();
-        assert_eq!(drained.len(), 1); // block 1
+        // Insert 0: should return [0, 1] atomically — no separate drain call.
+        let c0 = buf.insert(TestResult { index: 0, size: 10 }).unwrap();
+        assert_eq!(c0.len(), 2, "insert(0) must atomically return [0, 1]");
+        assert_eq!(c0[0].index, 0);
+        assert_eq!(c0[1].index, 1);
         assert!(buf.is_complete());
     }
 
     #[test]
     fn test_reverse_order() {
         let mut buf = ReorderBuffer::new(16, 65536);
-        // Insert 4,3,2,1,0 (reverse order)
+        // Insert 4,3,2,1 (reverse order) — all buffered.
         for i in (1..5).rev() {
-            let r = buf.insert(TestResult { index: i, size: 10 }).unwrap();
-            assert!(r.is_none(), "block {} should buffer (not next)", i);
+            let c = buf.insert(TestResult { index: i, size: 10 }).unwrap();
+            assert!(c.is_empty(), "block {} should buffer (not next)", i);
         }
         assert_eq!(buf.buffered_count(), 4);
-        // Now insert 0 — it IS next_expected (0), so it should return Some
-        let r0 = buf.insert(TestResult { index: 0, size: 10 }).unwrap();
-        assert!(r0.is_some(), "block 0 should be ready");
-        // Drain should return the 4 buffered blocks (1,2,3,4)
-        let drained = buf.drain_ready();
-        assert_eq!(drained.len(), 4);
+        // Insert 0 — atomically commits [0,1,2,3,4].
+        let c0 = buf.insert(TestResult { index: 0, size: 10 }).unwrap();
+        assert_eq!(c0.len(), 5, "insert(0) must atomically return [0..4]");
+        for (i, item) in c0.iter().enumerate() {
+            assert_eq!(item.index, i as u64);
+        }
         assert!(buf.is_complete());
+    }
+
+    #[test]
+    fn test_permutation_atomic_commit() {
+        // Property-style: for N up to 8, every insertion order must produce
+        // the exact sequence [0..N-1] when commit batches are concatenated.
+        use std::collections::HashSet;
+        for n in 1..=8usize {
+            // Build all permutations via Heap's algorithm (iterative).
+            let mut perm: Vec<usize> = (0..n).collect();
+            let mut perms: Vec<Vec<usize>> = Vec::new();
+            perms.push(perm.clone());
+            let mut c = vec![0usize; n];
+            let mut i = 0usize;
+            while i < n {
+                if c[i] < i {
+                    if i % 2 == 0 {
+                        perm.swap(0, i);
+                    } else {
+                        perm.swap(c[i], i);
+                    }
+                    perms.push(perm.clone());
+                    c[i] += 1;
+                    i = 0;
+                } else {
+                    c[i] = 0;
+                    i += 1;
+                }
+            }
+            let mut seen: HashSet<Vec<usize>> = HashSet::new();
+            for p in &perms {
+                if !seen.insert(p.clone()) {
+                    continue;
+                }
+                let mut buf = ReorderBuffer::new(64, 65536);
+                let mut out: Vec<u64> = Vec::new();
+                for &idx in p {
+                    let committed = buf
+                        .insert(TestResult {
+                            index: idx as u64,
+                            size: 10,
+                        })
+                        .unwrap();
+                    out.extend(committed.iter().map(|t| t.index));
+                }
+                out.extend(buf.drain_ready().iter().map(|t| t.index));
+                assert_eq!(
+                    out,
+                    (0..n as u64).collect::<Vec<u64>>(),
+                    "permutation {:?} must commit [0..{}]",
+                    p,
+                    n - 1
+                );
+            }
+        }
     }
 
     #[test]
@@ -394,6 +451,16 @@ mod tests {
     }
 
     #[test]
+    fn test_stale_index_rejected() {
+        let mut buf = ReorderBuffer::new(16, 65536);
+        buf.insert(TestResult { index: 1, size: 10 }).unwrap();
+        buf.insert(TestResult { index: 0, size: 10 }).unwrap(); // commits [0,1]
+        // Block 0 is now stale (already committed) — must be rejected.
+        let stale = buf.insert(TestResult { index: 0, size: 10 });
+        assert!(stale.is_err(), "stale index must be rejected");
+    }
+
+    #[test]
     fn test_buffer_full() {
         let mut buf = ReorderBuffer::new(2, 65536);
         // Insert block 2 and 3 (buffer them, since 0 is expected)
@@ -402,6 +469,16 @@ mod tests {
         // Buffer is full (max_blocks = 2)
         let r = buf.insert(TestResult { index: 4, size: 10 });
         assert!(r.is_err());
+    }
+
+    #[test]
+    fn test_byte_limit_reached() {
+        let mut buf = ReorderBuffer::new(16, 25); // max 25 bytes total
+        buf.insert(TestResult { index: 2, size: 10 }).unwrap();
+        buf.insert(TestResult { index: 3, size: 10 }).unwrap();
+        // current_bytes = 20; adding a 10-byte item exceeds 25.
+        let r = buf.insert(TestResult { index: 4, size: 10 });
+        assert!(r.is_err(), "byte limit must be enforced");
     }
 
     #[test]
