@@ -466,13 +466,15 @@ impl ParallelVerifier {
                 config: config.clone(),
             })
             .collect();
-        let report: ExecutorReport<Result<BlockVerificationResult, BlockError>> = run_tasks(
-            tasks,
-            worker_count,
-            queue_capacity,
-            config.worker_stack_size,
-            external_cancel,
-        )?;
+        let report: ExecutorReport<Result<BlockVerificationResult, BlockError>> =
+            crate::executor::run_tasks_with_affinity(
+                tasks,
+                worker_count,
+                queue_capacity,
+                config.worker_stack_size,
+                external_cancel,
+                config.affinity.clone(),
+            )?;
 
         let mut results = Vec::with_capacity(block_count);
         let mut error_tracker = crate::error::CanonicalErrorTracker::new();

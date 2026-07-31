@@ -109,10 +109,68 @@ pub fn create_decode_plan(
     cpu_has_avx512: bool,
     cpu_has_avx512vl: bool,
     cpu_has_avx2: bool,
+    disable_simd: bool,
 ) -> DecodePlan {
     // Determine if the model is uniform256
     let uniform256 = is_uniform256_model(model_data, scale_bits);
 
+    // disable_simd: a diagnostic safety control.  It forces scalar
+    // selection for every auto/manual policy and makes an explicit SIMD
+    // request a config conflict (returned by the caller as a typed error
+    // before any execution).  Scalar kernels are always safe.
+    if disable_simd {
+        match backend_policy {
+            // Explicit SIMD + disable_simd is a config conflict; signal it
+            // by returning a scalar plan.  The caller validates and rejects
+            // the combination before execution (see execute_decode_plan).
+            crate::config::BackendPolicy::Explicit(b) => match b {
+                crate::config::BackendId::Scalar8 => DecodePlan::Scalar8 { scale_bits },
+                crate::config::BackendId::Scalar16
+                | crate::config::BackendId::Sse41Interleaved8 => DecodePlan::Scalar16 {
+                    scale_bits,
+                    is_uniform256: uniform256,
+                },
+                _ => {
+                    // Any other explicit backend is SIMD — the caller must
+                    // reject; we return Scalar16 as a defensive fallback.
+                    DecodePlan::Scalar16 {
+                        scale_bits,
+                        is_uniform256: uniform256,
+                    }
+                }
+            },
+            _ => match codec_id {
+                7 => DecodePlan::Scalar8 { scale_bits },
+                _ => DecodePlan::Scalar16 {
+                    scale_bits,
+                    is_uniform256: uniform256,
+                },
+            },
+        }
+    } else {
+        create_decode_plan_inner(
+            codec_id,
+            scale_bits,
+            model_data,
+            backend_policy,
+            cpu_has_avx512,
+            cpu_has_avx512vl,
+            cpu_has_avx2,
+            uniform256,
+        )
+    }
+}
+
+fn create_decode_plan_inner(
+    codec_id: u16,
+    scale_bits: u8,
+    model_data: &[u8],
+    backend_policy: crate::config::BackendPolicy,
+    cpu_has_avx512: bool,
+    cpu_has_avx512vl: bool,
+    cpu_has_avx2: bool,
+    uniform256: bool,
+) -> DecodePlan {
     match backend_policy {
         crate::config::BackendPolicy::Portable => {
             // Only portable scalar kernels
@@ -257,6 +315,7 @@ mod tests {
             false,
             false,
             false,
+            false,
         );
         assert!(matches!(plan, DecodePlan::Scalar16 { .. }));
     }
@@ -273,6 +332,7 @@ mod tests {
             false,
             false,
             true,
+            false,
         );
         assert!(matches!(
             plan,
@@ -291,6 +351,7 @@ mod tests {
             false,
             false,
             true,
+            false,
         );
         assert!(matches!(
             plan2,
@@ -310,6 +371,7 @@ mod tests {
             false,
             false,
             true,
+            false,
         );
         assert!(matches!(
             plan,
@@ -327,6 +389,7 @@ mod tests {
             false,
             false,
             true,
+            false,
         );
         assert!(matches!(plan2, DecodePlan::Scalar8 { .. }));
     }
@@ -343,6 +406,7 @@ mod tests {
             false,
             false,
             true,
+            false,
         );
         assert!(matches!(plan, DecodePlan::Avx2TwoBy8On16 { .. }));
     }
@@ -355,6 +419,7 @@ mod tests {
             12,
             &uniform,
             crate::config::BackendPolicy::Portable,
+            false,
             false,
             false,
             false,
@@ -373,6 +438,24 @@ mod tests {
             false,
             false,
             false,
+            false,
+        );
+        assert!(matches!(plan, DecodePlan::Scalar16 { .. }));
+    }
+
+    #[test]
+    fn test_disable_simd_forces_scalar() {
+        let uniform = uniform256_model_data();
+        // Explicit SIMD request + disable_simd must fall back to scalar.
+        let plan = create_decode_plan(
+            8,
+            12,
+            &uniform,
+            crate::config::BackendPolicy::Explicit(BackendId::Avx2TwoBy8On16),
+            false,
+            false,
+            true,
+            true,
         );
         assert!(matches!(plan, DecodePlan::Scalar16 { .. }));
     }

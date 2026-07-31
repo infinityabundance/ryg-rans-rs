@@ -278,6 +278,29 @@ where
     T: ExecutorTask<Output = R> + Send + 'static,
     R: Send + 'static,
 {
+    run_tasks_with_affinity(
+        tasks,
+        worker_count,
+        max_queue,
+        stack_size,
+        external_cancel,
+        crate::config::AffinityPolicy::None,
+    )
+}
+
+/// [`run_tasks`] with an explicit worker affinity policy.
+pub fn run_tasks_with_affinity<T, R>(
+    tasks: Vec<T>,
+    worker_count: usize,
+    max_queue: usize,
+    stack_size: Option<usize>,
+    external_cancel: Option<Arc<CancellationToken>>,
+    affinity: crate::config::AffinityPolicy,
+) -> Result<ExecutorReport<R>, ParallelError>
+where
+    T: ExecutorTask<Output = R> + Send + 'static,
+    R: Send + 'static,
+{
     let total_tasks = tasks.len();
     if total_tasks == 0 {
         return Ok(ExecutorReport {
@@ -316,6 +339,11 @@ where
     let completed = Arc::new(AtomicUsize::new(0));
     let cancelled_tasks = Arc::new(AtomicUsize::new(0));
 
+    // Validate the affinity policy upfront — a typed error before any work
+    // starts, never a silent ignore.  The per-worker application below may
+    // still fail at runtime; that failure is surfaced as a WorkerPanic.
+    crate::affinity::validate_affinity_policy(&affinity)?;
+
     // Spawn workers
     let mut handles = Vec::with_capacity(effective_workers);
     for i in 0..effective_workers {
@@ -325,6 +353,7 @@ where
         let started = started.clone();
         let completed = completed.clone();
         let cancelled_tasks = cancelled_tasks.clone();
+        let affinity = affinity.clone();
 
         let mut builder = std::thread::Builder::new();
         builder = builder.name(format!("ryg-parallel-{}", i));
@@ -334,6 +363,12 @@ where
 
         let handle = builder
             .spawn(move || {
+                // Apply the configured affinity before any task executes.
+                // A runtime failure here is an invariant violation; the
+                // resulting panic is caught by the join loop below and
+                // surfaced as a WorkerPanic (never silently ignored).
+                crate::affinity::apply_worker_affinity(&affinity, i, effective_workers)
+                    .expect("affinity application failed");
                 for task in rx {
                     if cancel.is_cancelled() {
                         cancelled_tasks.fetch_add(1, Ordering::Relaxed);
@@ -416,9 +451,21 @@ where
 
     let submitted = producer.join().unwrap_or(0);
 
-    // Join all workers.
-    for handle in handles {
-        let _ = handle.join();
+    // Join all workers.  A join failure means a worker panicked OUTSIDE
+    // catch_unwind (e.g. affinity application failure before the task
+    // loop).  Surface it as a WorkerPanic rather than silently ignoring.
+    let mut join_failures: Vec<usize> = Vec::new();
+    for (wi, handle) in handles.into_iter().enumerate() {
+        if handle.join().is_err() {
+            join_failures.push(wi);
+        }
+    }
+
+    if let Some(wi) = join_failures.first() {
+        return Err(ParallelError::WorkerPanic {
+            block_index: None,
+            worker_index: *wi,
+        });
     }
 
     let was_cancelled = cancel.is_cancelled();
@@ -650,6 +697,101 @@ where
         started_tasks: started_count,
         completed_tasks: completed_count,
         cancelled_tasks: cancelled_count,
+        returned_results,
+        cancelled: was_cancelled,
+    })
+}
+
+/// Run tasks sequentially on the calling thread — no worker pool.
+///
+/// Used when `parallel_threshold_bytes` is not met: below the threshold,
+/// thread spawn + queue overhead exceeds any parallel gain, so the
+/// operation runs inline on the calling thread.  Tasks execute in
+/// declaration order.  Cancellation is still honoured cooperatively.
+pub fn run_tasks_sequential<T, R>(
+    tasks: Vec<T>,
+    external_cancel: Option<Arc<CancellationToken>>,
+) -> Result<ExecutorReport<R>, ParallelError>
+where
+    T: ExecutorTask<Output = R> + Send + 'static,
+    R: Send + 'static,
+{
+    let total_tasks = tasks.len();
+    let cancel = external_cancel.unwrap_or_else(|| Arc::new(CancellationToken::new()));
+    let mut results = Vec::with_capacity(total_tasks);
+    let mut started = 0usize;
+    let mut completed = 0usize;
+    let mut cancelled_tasks = 0usize;
+    let mut submitted = 0usize;
+    let mut panic_errors: Vec<(WorkerIndex, String, Option<u64>)> = Vec::new();
+
+    for task in tasks {
+        if cancel.is_cancelled() {
+            cancelled_tasks += total_tasks - submitted;
+            break;
+        }
+        submitted += 1;
+        let block_index_for_panic = task_block_index(&task);
+        started += 1;
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| task.run(0, &cancel))) {
+            Ok(r) => {
+                completed += 1;
+                results.push(r);
+            }
+            Err(panic_payload) => {
+                let msg = if let Some(s) = panic_payload.downcast_ref::<&str>() {
+                    s.to_string()
+                } else if let Some(s) = panic_payload.downcast_ref::<String>() {
+                    s.clone()
+                } else {
+                    "unknown panic".to_string()
+                };
+                completed += 1;
+                panic_errors.push((0, msg, block_index_for_panic));
+                cancel.cancel();
+                cancelled_tasks += total_tasks - submitted;
+                break;
+            }
+        }
+    }
+
+    let was_cancelled = cancel.is_cancelled();
+
+    if !panic_errors.is_empty() {
+        let lowest_panic = panic_errors
+            .iter()
+            .min_by_key(|(_, _, block_idx)| block_idx.unwrap_or(u64::MAX));
+        if let Some((wi, _msg, block_idx)) = lowest_panic {
+            return Err(ParallelError::WorkerPanic {
+                block_index: *block_idx,
+                worker_index: *wi,
+            });
+        }
+    }
+
+    if was_cancelled && results.len() != total_tasks {
+        return Err(ParallelError::Cancelled {
+            completed: results.len(),
+            expected: total_tasks,
+        });
+    }
+    if !was_cancelled && results.len() != total_tasks {
+        return Err(ParallelError::IncompleteExecution {
+            completed: results.len(),
+            expected: total_tasks,
+        });
+    }
+
+    let returned_results = results.len();
+    Ok(ExecutorReport {
+        results,
+        worker_panics: panic_errors.len(),
+        effective_workers: 1,
+        declared_tasks: total_tasks,
+        submitted_tasks: submitted,
+        started_tasks: started,
+        completed_tasks: completed,
+        cancelled_tasks,
         returned_results,
         cancelled: was_cancelled,
     })

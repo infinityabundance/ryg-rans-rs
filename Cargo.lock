@@ -747,6 +747,7 @@ name = "ryg-rans-rs-parallel"
 version = "0.1.30"
 dependencies = [
  "crossbeam-channel",
+ "libc",
  "ryg-rans-rs",
  "ryg-rans-rs-core",
  "ryg-rans-rs-simd",

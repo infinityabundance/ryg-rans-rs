@@ -132,14 +132,6 @@ pub struct ParallelConfig {
     /// Controls which implementation of the rANS decode inner loop is
     /// used.  See `BackendPolicy` enum docs for the full decision tree.
     pub backend_policy: BackendPolicy,
-    /// Error selection policy for choosing among multiple concurrent failures.
-    ///
-    /// Because workers run concurrently, multiple blocks can fail in the
-    /// same execution.  This policy determines which error is surfaced.
-    /// The only available option is `LowestBlockIndex`, which guarantees
-    /// deterministic, reproducible error reporting regardless of thread
-    /// scheduling order.
-    pub error_policy: ErrorPolicy,
     /// Optional per-worker stack size, in bytes.
     ///
     /// `None` uses the Rust runtime default (typically 2 MiB on Linux).
@@ -147,19 +139,12 @@ pub struct ParallelConfig {
     /// default is almost always sufficient.  Raise this only if the
     /// frequency model construction uses deep recursion.
     pub worker_stack_size: Option<usize>,
-    /// Whether to skip inner SIMD batching in the decode loop.
-    ///
-    /// When `true`, the decode inner loop processes one u16 word at a
-    /// time rather than batching multiple words into a SIMD register.
-    /// This is a debug/validation toggle — batching is always faster
-    /// on hardware that supports it.
-    pub disable_inner_batching: bool,
     /// Whether to disable all SIMD-accelerated decode kernels.
     ///
     /// When `true`, the execution planner will never select an SIMD
     /// decode plan, even if the `BackendPolicy` is `Explicit(simd_backend)`.
-    /// This is a last-resort debugging flag for isolating SIMD-related
-    /// correctness issues on specific hardware.
+    /// An explicit SIMD request combined with `disable_simd = true` is a
+    /// config conflict and is rejected with a typed error before execution.
     pub disable_simd: bool,
     /// SMT/hyper-threading policy for worker placement.
     ///
@@ -189,9 +174,7 @@ impl Default for ParallelConfig {
             parallel_threshold_bytes: 1024 * 1024,       // 1 MiB
             affinity: AffinityPolicy::None,
             backend_policy: BackendPolicy::Portable,
-            error_policy: ErrorPolicy::LowestBlockIndex,
             worker_stack_size: None,
-            disable_inner_batching: false,
             disable_simd: false,
             smt_policy: SmtPolicy::UseAllLogical,
             integrity_policy: IntegrityPolicy::Strict,
@@ -429,31 +412,17 @@ impl BackendId {
 /// Error selection policy for choosing among concurrent block failures.
 ///
 /// # Determinism requirement
+/// Error selection is **fixed** to the lowest failing block index.
 ///
 /// Multiple blocks can fail concurrently.  Without a deterministic
 /// selection policy, the returned error would depend on the order
 /// workers finish, which is nondeterministic.  This would break the
 /// core invariant of the parallel engine: same input → same output.
 ///
-/// # Why only one variant?
-///
 /// `LowestBlockIndex` is the **only** policy that guarantees
-/// deterministic error reporting.  Other plausible policies
-/// ("most severe", "first discovered") depend on timing or
-/// comparison of incomparable error kinds.  If more policies
-/// are added, they must all be proven deterministic.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ErrorPolicy {
-    /// Always return the error from the lowest failing block index.
-    ///
-    /// Among blocks at the same index, the `BlockErrorKind` ordinal
-    /// determines priority (lower ordinal wins).  This is implemented
-    /// by `CanonicalErrorTracker`.
-    ///
-    /// This is the only policy that guarantees deterministic,
-    /// reproducible error reporting regardless of thread scheduling.
-    LowestBlockIndex,
-}
+/// deterministic error reporting, implemented by `CanonicalErrorTracker`.
+/// It is therefore not configurable — configuration theater with a
+/// single option was removed in Phase L.
 
 /// SMT/hyper-threading policy for determining effective worker count.
 ///

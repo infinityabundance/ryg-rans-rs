@@ -1,4 +1,4 @@
-#![forbid(unsafe_code)]
+#![cfg_attr(not(feature = "affinity"), forbid(unsafe_code))]
 
 //! # ryg-rans-rs-parallel — Deterministic Parallel Block Engine
 //!
@@ -25,6 +25,7 @@
 //! | `cache` | Shared immutable model/table cache |
 //! | `resource` | Memory estimation and accounting |
 
+mod affinity;
 mod block;
 mod cache;
 mod cancellation;
@@ -43,6 +44,7 @@ mod schedule;
 mod scratch;
 mod verify;
 
+pub use affinity::*;
 pub use block::*;
 pub use cache::*;
 pub use cancellation::CancellationToken;

@@ -376,6 +376,28 @@ pub fn decode_single_block(
     let codec_id = header.codec_id;
     let backend_policy = config.backend_policy;
     let (_avx512, _avx512vl, _avx2) = cpu_feature_detection();
+
+    // disable_simd with an explicit SIMD backend is a config conflict.
+    // Reject it as a typed error before any execution rather than silently
+    // substituting scalar.
+    if config.disable_simd {
+        if let crate::config::BackendPolicy::Explicit(b) = backend_policy {
+            let is_simd = !matches!(
+                b,
+                crate::config::BackendId::Scalar8
+                    | crate::config::BackendId::Scalar16
+                    | crate::config::BackendId::RawCopy
+                    | crate::config::BackendId::RleFill
+            );
+            if is_simd {
+                return Err(BlockError {
+                    block_index: bi,
+                    kind: BlockErrorKind::Codec,
+                });
+            }
+        }
+    }
+
     let plan = create_decode_plan(
         codec_id,
         header.scale_bits,
@@ -384,6 +406,7 @@ pub fn decode_single_block(
         _avx512,
         _avx512vl,
         _avx2,
+        config.disable_simd,
     );
 
     let executed = execute_decode_plan(
@@ -1604,14 +1627,10 @@ impl ParallelDecoder {
             });
         }
         let bc = jobs.len();
-        let wc = crate::resource::effective_worker_count(config, bc)?;
-        let qc = config.max_in_flight_blocks.get().max(wc);
 
         // ---- max_buffered_input_bytes enforcement ----
-        // The documented semantics: reject the operation when the total
-        // compressed input bytes of all declared blocks exceeds the
-        // configured input budget.  This bounds the compressed side of
-        // the pipeline before any worker memory is committed.
+        // Checked BEFORE the sequential threshold so the budget is enforced
+        // on every path (parallel and sequential).
         let input_bytes: u64 = jobs.iter().map(|j| j.block_data.len() as u64).sum();
         if input_bytes > config.max_buffered_input_bytes {
             return Err(ParallelError::ResourceLimit(format!(
@@ -1619,6 +1638,58 @@ impl ParallelDecoder {
                 input_bytes, config.max_buffered_input_bytes
             )));
         }
+
+        // ---- parallel_threshold_bytes: sequential fallback ----
+        // Below the threshold, run the decode inline on the calling thread
+        // without spawning a worker pool (thread spawn + queue overhead
+        // exceeds any parallel gain for small inputs).
+        if input_bytes < config.parallel_threshold_bytes {
+            let tasks: Vec<DecodeTask> = jobs
+                .into_iter()
+                .map(|j| DecodeTask {
+                    job: j,
+                    config: config.clone(),
+                })
+                .collect();
+            let report = crate::executor::run_tasks_sequential(tasks, external_cancel)?;
+            let mut reorder = ReorderBuffer::new(
+                config.max_in_flight_blocks.get(),
+                config.max_buffered_output_bytes,
+            );
+            let mut ordered = Vec::with_capacity(bc);
+            let mut et = crate::error::CanonicalErrorTracker::new();
+            for r in report.results {
+                match r {
+                    Ok(b) => match reorder.insert(b) {
+                        Ok(committed) => ordered.extend(committed),
+                        Err(e) => et.record(e),
+                    },
+                    Err(e) => et.record(e),
+                }
+            }
+            ordered.extend(reorder.drain_ready());
+            if let Some(c) = et.canonical_error() {
+                return Err(ParallelError::DecodeFailed(Box::new(c.clone())));
+            }
+            ordered.sort_by_key(|b| b.block_index);
+            let completed_blocks = ordered.len();
+            let cancelled = report.cancelled;
+            return Ok(OrderedDecodedBlocks {
+                blocks: ordered,
+                execution: crate::job::ExecutionMetadata {
+                    requested_workers: 1,
+                    effective_workers: 1,
+                    queue_capacity: 1,
+                    block_count: bc,
+                    declared_blocks: bc,
+                    completed_blocks,
+                    cancelled,
+                },
+            });
+        }
+
+        let wc = crate::resource::effective_worker_count(config, bc)?;
+        let qc = config.max_in_flight_blocks.get().max(wc);
 
         let tasks: Vec<DecodeTask> = jobs
             .into_iter()
@@ -1632,18 +1703,25 @@ impl ParallelDecoder {
         // If the caller supplied none, run_tasks creates its own internal
         // token that is only cancelled on worker panic.
         let report: ExecutorReport<Result<DecodedBlockResult, BlockError>> =
-            run_tasks(tasks, wc, qc, config.worker_stack_size, external_cancel)?;
+            crate::executor::run_tasks_with_affinity(
+                tasks,
+                wc,
+                qc,
+                config.worker_stack_size,
+                external_cancel,
+                config.affinity.clone(),
+            )?;
 
-        // Capture execution metadata BEFORE consuming report.results
         let effective_workers = report.effective_workers;
 
-        // Process results through reorder buffer
         let mut reorder = ReorderBuffer::new(
             config.max_in_flight_blocks.get(),
             config.max_buffered_output_bytes,
         );
         let mut ordered = Vec::with_capacity(bc);
         let mut et = crate::error::CanonicalErrorTracker::new();
+        use sha2::Digest;
+        let mut stream_hasher = sha2::Sha256::new();
 
         for r in report.results {
             match r {

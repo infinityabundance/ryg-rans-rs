@@ -777,8 +777,6 @@ impl ParallelEncoder {
         }
 
         let block_count = jobs.len();
-        let worker_count = crate::resource::effective_worker_count(config, block_count)?;
-        let queue_capacity = config.max_in_flight_blocks.get().max(worker_count);
 
         // ---- max_buffered_input_bytes enforcement (encode) ----
         let input_bytes: u64 = jobs.iter().map(|j| j.data.len() as u64).sum();
@@ -789,17 +787,62 @@ impl ParallelEncoder {
             )));
         }
 
+        // ---- parallel_threshold_bytes: sequential fallback ----
+        if input_bytes < config.parallel_threshold_bytes {
+            let tasks: Vec<EncodeTask> = jobs.into_iter().map(|job| EncodeTask { job }).collect();
+            let report = crate::executor::run_tasks_sequential(tasks, external_cancel)?;
+            let mut reorder = ReorderBuffer::new(
+                config.max_in_flight_blocks.get(),
+                config.max_buffered_output_bytes,
+            );
+            let mut ordered_blocks = Vec::with_capacity(block_count);
+            let mut error_tracker = crate::error::CanonicalErrorTracker::new();
+            for result in report.results {
+                match result {
+                    Ok(block) => match reorder.insert(block) {
+                        Ok(committed) => ordered_blocks.extend(committed),
+                        Err(e) => error_tracker.record(e),
+                    },
+                    Err(e) => error_tracker.record(e),
+                }
+            }
+            ordered_blocks.extend(reorder.drain_ready());
+            if let Some(canonical) = error_tracker.canonical_error() {
+                return Err(ParallelError::EncodeFailed(Box::new(canonical.clone())));
+            }
+            ordered_blocks.sort_by_key(|b| b.block_index);
+            let completed_blocks = ordered_blocks.len();
+            let cancelled = report.cancelled;
+            return Ok(OrderedEncodedBlocks {
+                blocks: ordered_blocks,
+                execution: crate::job::ExecutionMetadata {
+                    requested_workers: 1,
+                    effective_workers: 1,
+                    queue_capacity: 1,
+                    block_count,
+                    declared_blocks: block_count,
+                    completed_blocks,
+                    cancelled,
+                },
+            });
+        }
+
+        let worker_count = crate::resource::effective_worker_count(config, block_count)?;
+        let queue_capacity = config.max_in_flight_blocks.get().max(worker_count);
+
         // Convert jobs to tasks
         let tasks: Vec<EncodeTask> = jobs.into_iter().map(|job| EncodeTask { job }).collect();
 
         // Run tasks in parallel with the external cancellation token.
-        let report: ExecutorReport<Result<EncodedBlockResult, BlockError>> = run_tasks(
-            tasks,
-            worker_count,
-            queue_capacity,
-            config.worker_stack_size,
-            external_cancel,
-        )?;
+        let report: ExecutorReport<Result<EncodedBlockResult, BlockError>> =
+            crate::executor::run_tasks_with_affinity(
+                tasks,
+                worker_count,
+                queue_capacity,
+                config.worker_stack_size,
+                external_cancel,
+                config.affinity.clone(),
+            )?;
 
         // Collect results through reorder buffer
         let mut reorder = ReorderBuffer::new(
