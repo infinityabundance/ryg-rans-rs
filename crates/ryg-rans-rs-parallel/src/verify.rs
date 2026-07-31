@@ -193,7 +193,12 @@ struct VerifyTask {
 impl ExecutorTask for VerifyTask {
     type Output = Result<BlockVerificationResult, BlockError>;
 
-    fn run(self, _worker_index: usize, cancel: &CancellationToken) -> Self::Output {
+    fn run(
+        self,
+        _worker_index: usize,
+        cancel: &CancellationToken,
+        _scratch: &mut crate::scratch::WorkerScratch,
+    ) -> Self::Output {
         cancel.check().map_err(|_| BlockError {
             block_index: self.job.block_index,
             kind: BlockErrorKind::Codec,

@@ -173,7 +173,12 @@ impl ExecutorTask for DecodeTask {
     /// will be discarded.  The `_wi` (worker index) parameter is unused here
     /// but required by the `ExecutorTask` trait — it could be used in the
     /// future to pin tasks to specific NUMA nodes or CPU cores.
-    fn run(self, _wi: usize, cancel: &CancellationToken) -> Self::Output {
+    fn run(
+        self,
+        _wi: usize,
+        cancel: &CancellationToken,
+        _scratch: &mut crate::scratch::WorkerScratch,
+    ) -> Self::Output {
         cancel.check().map_err(|_| BlockError {
             block_index: self.job.block_index,
             kind: BlockErrorKind::Codec,
@@ -304,38 +309,53 @@ pub fn decode_single_block(
         });
     }
 
-    // Parse frequency model from model_data
-    let freqs: Vec<u32> = if model_len >= 1024 {
-        model_data
-            .chunks_exact(4)
-            .take(256)
-            .map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]]))
-            .collect()
-    } else {
-        // Zero model length — use uniform model
-        let scale = header.scale_bits;
-        let total = 1u32 << scale;
-        let uniform_freq = total / 256;
-        vec![uniform_freq; 256]
-    };
-
-    if freqs.len() != 256 {
-        return Err(BlockError {
-            block_index: bi,
-            kind: BlockErrorKind::Model,
-        });
-    }
-
-    // Validate that frequencies sum to expected total
+    // Parse frequency model from model_data — via the bounded model cache.
+    // The cache is keyed by (model_sha256, scale_bits, codec_id) and stores
+    // validated immutable artifacts (freqs + uniform256 flag).  Backend
+    // selection happens AFTER the lookup, so a cached artifact is never
+    // reused under incompatible execution conditions.  A miss simply
+    // rebuilds the artifacts (always correct).
+    let codec_id = header.codec_id;
     let scale = header.scale_bits;
-    let expected_total = 1u32 << scale;
-    let sum: u64 = freqs.iter().map(|&f| f as u64).sum();
-    if sum != expected_total as u64 {
-        return Err(BlockError {
-            block_index: bi,
-            kind: BlockErrorKind::Model,
-        });
-    }
+    let artifacts = crate::cache::cached_model_artifacts(codec_id, scale, model_data, || {
+        let freqs: Vec<u32> = if model_len >= 1024 {
+            model_data
+                .chunks_exact(4)
+                .take(256)
+                .map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+                .collect()
+        } else {
+            // Zero model length — use uniform model
+            let total = 1u32 << scale;
+            let uniform_freq = total / 256;
+            vec![uniform_freq; 256]
+        };
+
+        if freqs.len() != 256 {
+            return None;
+        }
+
+        // Validate that frequencies sum to expected total
+        let expected_total = 1u32 << scale;
+        let sum: u64 = freqs.iter().map(|&f| f as u64).sum();
+        if sum != expected_total as u64 {
+            return None;
+        }
+
+        // Uniform256 detection: all frequencies == 16 at scale_bits == 12.
+        let uniform256 = scale == 12 && freqs.iter().all(|&f| f == 16);
+
+        Some(crate::cache::ValidatedModelArtifacts { freqs, uniform256 })
+    })
+    .ok_or(BlockError {
+        block_index: bi,
+        kind: BlockErrorKind::Model,
+    })?;
+
+    let freqs = artifacts.freqs;
+    // `artifacts.uniform256` is available for future plan construction;
+    // the plan function currently re-detects it from model_data, which is
+    // a cheap scan and keeps create_decode_plan's signature stable.
 
     // ----- Step 3: Extract and verify payload -----
     let payload_offset = model_end;

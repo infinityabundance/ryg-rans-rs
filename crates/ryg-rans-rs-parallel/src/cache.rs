@@ -240,6 +240,67 @@ impl<T> ModelCache<T> {
     }
 }
 
+/// Model-derived artifacts that are safe to cache by model identity.
+///
+/// The cached value deliberately separates **model-derived immutable
+/// artifacts** from **runtime backend selection**: the frequencies and
+/// uniform256 flag depend only on the model bytes + scale + codec, which
+/// is exactly the cache key.  Backend choice (which depends on runtime
+/// CPU capabilities, build features, and `disable_simd`) is made after
+/// the cache lookup, per block, so a cached artifact is never reused
+/// under incompatible execution conditions.
+#[derive(Debug, Clone)]
+pub struct ValidatedModelArtifacts {
+    /// Parsed 256 × u32 frequencies (validated sum == 1 << scale_bits).
+    pub freqs: Vec<u32>,
+    /// Whether the model is the Uniform256 distribution.
+    pub uniform256: bool,
+}
+
+/// Process-global shared model cache used by `decode_single_block`.
+///
+/// Bounded to 64 entries and 16 MiB; FIFO eviction.  Mutex-guarded for
+/// thread safety.  A cache miss simply rebuilds the artifacts (always
+/// correct), so the cache is a pure performance optimisation.
+static GLOBAL_MODEL_CACHE: std::sync::OnceLock<
+    std::sync::Mutex<ModelCache<ValidatedModelArtifacts>>,
+> = std::sync::OnceLock::new();
+
+/// Look up model artifacts in the global cache, or build and insert them.
+///
+/// Returns cloned artifacts so the caller never holds the cache lock
+/// across decoding work (no poisoned-lock cascade, no lock in the hot
+/// path).  The key is derived from the exact model bytes, scale bits,
+/// and codec ID.
+pub fn cached_model_artifacts(
+    codec_id: u16,
+    scale_bits: u8,
+    model_data: &[u8],
+    build: impl FnOnce() -> Option<ValidatedModelArtifacts>,
+) -> Option<ValidatedModelArtifacts> {
+    let key = ModelCacheKey {
+        model_sha256: crate::encode::sha256(model_data),
+        scale_bits,
+        codec_id,
+    };
+    let cache = GLOBAL_MODEL_CACHE
+        .get_or_init(|| std::sync::Mutex::new(ModelCache::new(64, 16 * 1024 * 1024)));
+    {
+        let guard = cache.lock().ok()?;
+        if let Some(v) = guard.get(&key) {
+            return Some(v.clone());
+        }
+    }
+    // Build outside the lock so concurrent duplicate construction is
+    // possible but cheap; the last insert wins deterministically.
+    let artifacts = build()?;
+    let entry_bytes = (artifacts.freqs.len() * 4) as u64 + 64;
+    if let Ok(mut guard) = cache.lock() {
+        guard.insert(key, artifacts.clone(), entry_bytes);
+    }
+    Some(artifacts)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -310,5 +371,34 @@ mod tests {
         assert!(!cache.is_empty());
         cache.clear();
         assert!(cache.is_empty());
+    }
+
+    #[test]
+    fn test_cached_model_artifacts_hit() {
+        let uniform_bytes = [0u8; 256];
+        let first = cached_model_artifacts(8, 12, &uniform_bytes, || {
+            Some(ValidatedModelArtifacts {
+                freqs: vec![16; 256],
+                uniform256: true,
+            })
+        });
+        // Second call must be served from the global cache: the build
+        // closure is never invoked on a hit, so panic if it runs.
+        let second = cached_model_artifacts(8, 12, &uniform_bytes, || {
+            panic!("build closure must not run on cache hit")
+        });
+        assert!(first.is_some());
+        assert!(second.is_some());
+        assert_eq!(first.unwrap().freqs, second.unwrap().freqs);
+    }
+
+    #[test]
+    fn test_cached_model_artifacts_miss_build_none() {
+        // Distinct model bytes from the hit test: the global cache is shared
+        // across tests in this process, so using the same key would make the
+        // result order-dependent.
+        let miss_bytes = [1u8; 256];
+        let result = cached_model_artifacts(8, 12, &miss_bytes, || None);
+        assert!(result.is_none());
     }
 }

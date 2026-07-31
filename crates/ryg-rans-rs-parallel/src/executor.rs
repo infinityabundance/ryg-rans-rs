@@ -85,7 +85,7 @@
 //!    `"ryg-parallel-{i}"`, and optionally given a custom stack size.
 //! 2. **Receive loop** — Workers call `rx.iter()` on their clone of the job
 //!    receiver.  They receive `Some(task)` for real work, `None` to break.
-//! 3. **Execute** — `catch_unwind(AssertUnwindSafe(|| task.run(i, &cancel)))`.
+//! 3. **Execute** — `catch_unwind(AssertUnwindSafe(|| task.run(i, &cancel, &mut scratch)))`.
 //!    On success, the result is pushed to the Mutex collector.  On panic, the
 //!    panic message is extracted, pushed as an `Err`, and cancellation is
 //!    triggered (internal token).
@@ -94,6 +94,7 @@
 
 use crate::cancellation::CancellationToken;
 use crate::error::ParallelError;
+use crate::scratch::WorkerScratch;
 use std::fmt;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -116,8 +117,9 @@ type WorkerIndex = usize;
 ///
 /// 1. The coordinator creates `T: ExecutorTask` values and submits them to
 ///    the bounded job channel via `run_tasks`.
-/// 2. A worker dequeues the task and calls `task.run(worker_index, &cancel)`
-///    inside a `catch_unwind` guard.
+/// 2. A worker dequeues the task and calls
+///    `task.run(worker_index, &cancel, &mut scratch)` inside a `catch_unwind`
+///    guard.
 /// 3. The returned `Output` value is pushed into the shared Mutex result
 ///    collector.
 /// 4. If `run` panics, `block_index()` is called to attribute the panic to
@@ -132,7 +134,17 @@ pub trait ExecutorTask: Send + 'static {
     type Output: Send + 'static;
 
     /// Execute this task with the given worker index and cancellation token.
-    fn run(self, worker_index: WorkerIndex, cancel: &CancellationToken) -> Self::Output;
+    ///
+    /// `scratch` is the worker's exclusive scratch buffer — reused across
+    /// tasks to avoid per-block allocation churn.  There is no shared
+    /// mutable scratch between workers and no lock in the per-symbol hot
+    /// path.  The scratch must not outlive this call.
+    fn run(
+        self,
+        worker_index: WorkerIndex,
+        cancel: &CancellationToken,
+        scratch: &mut WorkerScratch,
+    ) -> Self::Output;
 
     /// Return the block index for this task, if known.
     ///
@@ -364,11 +376,11 @@ where
         let handle = builder
             .spawn(move || {
                 // Apply the configured affinity before any task executes.
-                // A runtime failure here is an invariant violation; the
-                // resulting panic is caught by the join loop below and
-                // surfaced as a WorkerPanic (never silently ignored).
                 crate::affinity::apply_worker_affinity(&affinity, i, effective_workers)
                     .expect("affinity application failed");
+                // Worker-exclusive scratch: created once, reused across
+                // tasks (reset between tasks), no shared mutable state.
+                let mut scratch = WorkerScratch::new(4096, 64 * 1024 * 1024);
                 for task in rx {
                     if cancel.is_cancelled() {
                         cancelled_tasks.fetch_add(1, Ordering::Relaxed);
@@ -379,7 +391,7 @@ where
                     started.fetch_add(1, Ordering::Relaxed);
 
                     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        task.run(i, &cancel)
+                        task.run(i, &cancel, &mut scratch)
                     })) {
                         Ok(r) => {
                             completed.fetch_add(1, Ordering::Relaxed);
@@ -401,6 +413,10 @@ where
                             cancel.cancel();
                         }
                     }
+                    // Reset scratch for the next task regardless of outcome
+                    // (success, error, or panic) so no stale data leaks
+                    // between blocks.
+                    scratch.reset();
                 }
             })
             .map_err(|e| ParallelError::ThreadCreate(format!("worker {}: {}", i, e)))?;
@@ -589,6 +605,9 @@ where
 
         let handle = builder
             .spawn(move || {
+                // Worker-exclusive scratch: created once, reused across
+                // tasks (reset between tasks), no shared mutable state.
+                let mut scratch = WorkerScratch::new(4096, 64 * 1024 * 1024);
                 for task in rx {
                     if cancel.is_cancelled() {
                         cancelled_tasks.fetch_add(1, Ordering::Relaxed);
@@ -597,7 +616,7 @@ where
                     let block_index_for_panic = task_block_index(&task);
                     started.fetch_add(1, Ordering::Relaxed);
                     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        task.run(i, &cancel)
+                        task.run(i, &cancel, &mut scratch)
                     })) {
                         Ok(r) => {
                             completed.fetch_add(1, Ordering::Relaxed);
@@ -616,6 +635,10 @@ where
                             cancel.cancel();
                         }
                     }
+                    // Reset scratch for the next task regardless of outcome
+                    // (success, error, or panic) so no stale data leaks
+                    // between blocks.
+                    scratch.reset();
                 }
             })
             .map_err(|e| ParallelError::ThreadCreate(format!("worker {}: {}", i, e)))?;
@@ -724,6 +747,9 @@ where
     let mut cancelled_tasks = 0usize;
     let mut submitted = 0usize;
     let mut panic_errors: Vec<(WorkerIndex, String, Option<u64>)> = Vec::new();
+    // Worker-exclusive scratch: created once, reused across tasks (reset
+    // between tasks), no shared mutable state.
+    let mut scratch = WorkerScratch::new(4096, 64 * 1024 * 1024);
 
     for task in tasks {
         if cancel.is_cancelled() {
@@ -733,7 +759,9 @@ where
         submitted += 1;
         let block_index_for_panic = task_block_index(&task);
         started += 1;
-        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| task.run(0, &cancel))) {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            task.run(0, &cancel, &mut scratch)
+        })) {
             Ok(r) => {
                 completed += 1;
                 results.push(r);
@@ -753,6 +781,9 @@ where
                 break;
             }
         }
+        // Reset scratch for the next task regardless of outcome so no stale
+        // data leaks between blocks.
+        scratch.reset();
     }
 
     let was_cancelled = cancel.is_cancelled();
@@ -829,7 +860,12 @@ mod tests {
     impl ExecutorTask for TestTask {
         type Output = u32;
 
-        fn run(self, _worker_index: usize, _cancel: &CancellationToken) -> u32 {
+        fn run(
+            self,
+            _worker_index: usize,
+            _cancel: &CancellationToken,
+            _scratch: &mut WorkerScratch,
+        ) -> u32 {
             self.value
         }
     }
@@ -867,7 +903,12 @@ mod tests {
     impl ExecutorTask for PanicTask {
         type Output = u32;
 
-        fn run(self, _worker_index: usize, _cancel: &CancellationToken) -> u32 {
+        fn run(
+            self,
+            _worker_index: usize,
+            _cancel: &CancellationToken,
+            _scratch: &mut WorkerScratch,
+        ) -> u32 {
             panic!("test panic");
         }
     }

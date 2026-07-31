@@ -11,7 +11,7 @@ use ryg_rans_rs_parallel::{
     CancellationToken, CodecPolicy, DecodeBlockJob, DecodedBlockResult, EncodeBlockJob,
     ExecutorTask, FixedBlockPlan, ModelPolicy, OrderedEncodedBlocks, ParallelConfig,
     ParallelDecoder, ParallelEncoder, ParallelError, ParallelVerifier, ThreadCount, VerifyBlockJob,
-    run_tasks,
+    WorkerScratch, run_tasks,
 };
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
@@ -67,7 +67,7 @@ fn test_executor_external_cancellation() {
     struct WorkTask;
     impl ExecutorTask for WorkTask {
         type Output = u32;
-        fn run(self, _wi: usize, _cancel: &CancellationToken) -> u32 {
+        fn run(self, _wi: usize, _cancel: &CancellationToken, _scratch: &mut WorkerScratch) -> u32 {
             std::thread::sleep(std::time::Duration::from_micros(200));
             42
         }
@@ -90,7 +90,12 @@ struct PanicOnBlockTask {
 
 impl ExecutorTask for PanicOnBlockTask {
     type Output = Result<u64, ()>;
-    fn run(self, _wi: usize, _cancel: &CancellationToken) -> Self::Output {
+    fn run(
+        self,
+        _wi: usize,
+        _cancel: &CancellationToken,
+        _scratch: &mut WorkerScratch,
+    ) -> Self::Output {
         if self.index == self.panic_at {
             panic!("intentional panic at block {}", self.index);
         }
@@ -611,7 +616,7 @@ fn test_external_cancellation_16_threads() {
 
     impl ExecutorTask for DelayTask {
         type Output = u64;
-        fn run(self, _wi: usize, cancel: &CancellationToken) -> u64 {
+        fn run(self, _wi: usize, cancel: &CancellationToken, _scratch: &mut WorkerScratch) -> u64 {
             // Simulate work that checks cancellation
             for _ in 0..10 {
                 if cancel.is_cancelled() {
@@ -854,7 +859,7 @@ fn test_executor_completeness_counters() {
     struct CountTask(u64);
     impl ExecutorTask for CountTask {
         type Output = u64;
-        fn run(self, _wi: usize, _cancel: &CancellationToken) -> u64 {
+        fn run(self, _wi: usize, _cancel: &CancellationToken, _scratch: &mut WorkerScratch) -> u64 {
             self.0
         }
     }
@@ -899,7 +904,7 @@ fn test_executor_cancelled_not_ok() {
     struct CountTask(u64);
     impl ExecutorTask for CountTask {
         type Output = u64;
-        fn run(self, _wi: usize, _cancel: &CancellationToken) -> u64 {
+        fn run(self, _wi: usize, _cancel: &CancellationToken, _scratch: &mut WorkerScratch) -> u64 {
             self.0
         }
     }

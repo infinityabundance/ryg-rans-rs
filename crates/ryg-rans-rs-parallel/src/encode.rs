@@ -89,12 +89,20 @@ struct EncodeTask {
 impl ExecutorTask for EncodeTask {
     type Output = Result<EncodedBlockResult, BlockError>;
 
-    fn run(self, _worker_index: usize, cancel: &CancellationToken) -> Self::Output {
+    fn run(
+        self,
+        _worker_index: usize,
+        cancel: &CancellationToken,
+        _scratch: &mut crate::scratch::WorkerScratch,
+    ) -> Self::Output {
         cancel.check().map_err(|_| BlockError {
             block_index: self.job.block_index,
             kind: BlockErrorKind::Codec,
         })?;
 
+        // `encode_single_block` currently allocates its own model bytes, so
+        // the scratch's `model_buffer` is not yet plumbed through.  Accept
+        // and ignore the scratch for now.
         encode_single_block(self.job)
     }
 
