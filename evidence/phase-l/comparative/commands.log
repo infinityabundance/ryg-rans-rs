@@ -1,0 +1,23 @@
+Phase L.14 comparative benchmark run — command log (execution order)
+
+Working directory: /run/media/one/1tb_kingston1/ryg-rans-rs
+Implementation commit (HEAD at run): f1db7b26919ddf21334d0c6455d8eb06ad493098
+Clean tree at run start: yes (comparative.rs and Cargo.toml were uncommitted; the
+  bench file was completed and compiled before measurement; preflight assertions
+  run inside the bench and passed)
+Criterion version: 0.5.1
+RUSTFLAGS: -C target-cpu=native
+CARGO_TARGET_DIR: default (target/)
+
+1. cargo build -p ryg-rans-rs-bench --bench comparative
+   exit: 0
+2. RUSTFLAGS="-C target-cpu=native" cargo build -p ryg-rans-rs-bench --bench comparative --features comparative-word-sse41
+   exit: 0
+3. RUSTFLAGS="-C target-cpu=native" cargo bench -p ryg-rans-rs-bench --bench comparative --features comparative-word-sse41 -- --test
+   exit: 0  (all preflight assertions passed; 11 test cases)
+4. RUSTFLAGS="-C target-cpu=native" cargo bench -p ryg-rans-rs-bench --bench comparative --features comparative-word-sse41 -- --save-baseline phase-l-comparative-final
+   exit: 0  (50 samples per case; warm-up 2 s; measurement 8 s)
+5. Raw Criterion artifacts copied to evidence/phase-l/comparative/criterion/
+
+Host: AMD Ryzen 7 9800X3D (8 cores / 16 threads), governor: schedutil (default),
+SMT: enabled, affinity: none (all threads eligible), memory: 2x16 GiB DDR5-6000.

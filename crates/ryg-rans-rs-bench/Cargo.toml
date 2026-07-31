@@ -16,6 +16,15 @@ sha2 = "0.10"
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Phase L.14 comparative court: maintained FFI bindings to upstream ryg_rans
+# (https://github.com/m4tx/ryg-rans-sys), pinned to the exact version.
+ryg-rans-sys = { version = "=1.2.0", features = ["byte", "64"] }
+
+[features]
+# The upstream word_sse41 FFI surface requires SSE4.1 to be compiled in
+# (its build script checks target_feature).  Enable this feature (under
+# RUSTFLAGS="-C target-cpu=native") to include the word-rANS C comparison.
+comparative-word-sse41 = ["ryg-rans-sys/word_sse41"]
 
 [[bench]]
 name = "scalar"
@@ -63,4 +72,8 @@ harness = false
 
 [[bench]]
 name = "alias"
+harness = false
+
+[[bench]]
+name = "comparative"
 harness = false

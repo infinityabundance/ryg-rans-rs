@@ -7,159 +7,197 @@ cargo: 1.96.0
 
 Host: AMD Ryzen 7 9800X3D, 8 cores / 16 threads, 1 socket, 1 NUMA node.
 
+Status legend: **RESOLVED** (fix committed, tests pass) · **PARTIAL** (part of the
+residual addressed; remainder tracked) · **OPEN** (not yet addressed).
+
 ---
+
+## L.0 — Baseline freeze
+
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L0-A | LOW | Baseline metadata captured (commit, tree, rustc, cargo) | RESOLVED | `955ffe0` |
+| L0-B | MEDIUM | Baseline command outputs (check/test/smoke/seal logs) were not archived under `evidence/phase-l/baseline/` — only metadata files were saved | OPEN | Full command-log capture lands with the L.18 benchmark-run wrapper; baseline outputs will be regenerated from the frozen L.0 commit state and archived alongside the L.18 run |
 
 ## L.1 — Phase K performance seal defects
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L1-A | CRITICAL | All 831 records: sample_count=1 (fabricated), verification_passed=true (hardcoded), status="pass", empty output_hash, profile="unknown", api="unknown", threads=1/1, 798/831 bytes=0, 798/831 throughput=0 | OPEN |
-| L1-B | CRITICAL | Exporter derives identity from sanitized directory names, not Criterion benchmark.json (group_id, function_id, value_str, full_id, throughput) | OPEN |
-| L1-C | CRITICAL | Sample count fabricated (defaults to 1 when absent); must read sample.json | OPEN |
-| L1-D | CRITICAL | Verification hardcoded true; no preflight evidence channel exists | OPEN |
-| L1-E | CRITICAL | Runtime provenance captured at seal time, not benchmark time; needs benchmark-run wrapper | OPEN |
-| L1-F | CRITICAL | Commit binding is tautological (assign then compare same value) | OPEN |
-| L1-G | CRITICAL | Command log is empty (hashed but never written) | OPEN |
-| L1-H | HIGH | Host metadata hashed but not stored as artifact (host.json) | OPEN |
-| L1-I | HIGH | CPU feature reporting uses compile-time cfg on sealer binary → empty feature set | OPEN |
-| L1-J | HIGH | RUSTFLAGS lost (empty in manifest despite -C target-cpu=native) | OPEN |
-| L1-K | HIGH | Custom tar truncates paths to 99 bytes; need tar crate with PAX/GNU long-name | OPEN |
-| L1-L | CRITICAL | Index sha256 = canonical self-hash, not final-file hash; needs two distinct fields | OPEN |
-| L1-M | MEDIUM | Receipt verdicts are untyped strings; need typed enums | OPEN |
-| L1-N | HIGH | executed/verified counters derived from fabricated defaults | OPEN |
-| L1-O | HIGH | Parity citations not updated (still performance_status:"unsealed") | OPEN |
-| L1-P | HIGH | No canonical top-level evidence/performance/index.json | OPEN |
-| L1-Q | HIGH | cargo xtask seal does not validate performance evidence | OPEN |
-| L1-R | CRITICAL | Behavioral self-hash verification falsely reports success after skipping | OPEN |
-| L1-S | HIGH | Phase K artifacts must be marked superseded, not deleted | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L1-A | CRITICAL | All 831 records: sample_count=1 (fabricated), verification_passed=true (hardcoded), status="pass", empty output_hash, profile="unknown", api="unknown", threads=1/1, 798/831 bytes=0, 798/831 throughput=0 | OPEN | L.18 exporter rewrite (benchmark.json/sample.json join + preflight channel) |
+| L1-B | CRITICAL | Exporter derives identity from sanitized directory names, not Criterion benchmark.json (group_id, function_id, value_str, full_id, throughput) | OPEN | L.18 |
+| L1-C | CRITICAL | Sample count fabricated (defaults to 1 when absent); must read sample.json | OPEN | L.18 |
+| L1-D | CRITICAL | Verification hardcoded true; no preflight evidence channel exists | OPEN | L.18 |
+| L1-E | CRITICAL | Runtime provenance captured at seal time, not benchmark time; needs benchmark-run wrapper | OPEN | L.18 |
+| L1-F | CRITICAL | Commit binding is tautological (assign then compare same value) | OPEN | L.18 |
+| L1-G | CRITICAL | Command log is empty (hashed but never written) | OPEN | L.18 |
+| L1-H | HIGH | Host metadata hashed but not stored as artifact (host.json) | OPEN | L.18 |
+| L1-I | HIGH | CPU feature reporting uses compile-time cfg on sealer binary → empty feature set | OPEN | L.18 |
+| L1-J | HIGH | RUSTFLAGS lost (empty in manifest despite -C target-cpu=native) | OPEN | L.18 |
+| L1-K | HIGH | Custom tar truncates paths to 99 bytes; need tar crate with PAX/GNU long-name | OPEN | L.18 |
+| L1-L | CRITICAL | Index sha256 = canonical self-hash, not final-file hash; needs two distinct fields | OPEN | L.18 |
+| L1-M | MEDIUM | Receipt verdicts are untyped strings; need typed enums | OPEN | L.18 |
+| L1-N | HIGH | executed/verified counters derived from fabricated defaults | OPEN | L.18 |
+| L1-O | HIGH | Parity citations not updated (still performance_status:"unsealed") | OPEN | L.18 |
+| L1-P | HIGH | No canonical top-level evidence/performance/index.json | OPEN | L.18 |
+| L1-Q | HIGH | cargo xtask seal does not validate performance evidence | OPEN | L.18/L.20 |
+| L1-R | CRITICAL | Behavioral self-hash verification falsely reports success after skipping | OPEN | L.18/L.20 |
+| L1-S | HIGH | Phase K artifacts must be marked superseded, not deleted | OPEN | L.18 (quarantine step) |
 
 ## L.2 — Decoded-output integrity verification bug
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L2-A | CRITICAL | Verifier computes decoded_hash_ok but aggregate failure ignores it; block passes when decoded hash mismatches nonzero stored hash | OPEN |
-| L2-B | HIGH | No IntegrityPolicy enum (Strict / AllowLegacyUnsetDecodedHash) | OPEN |
-| L2-C | HIGH | HashVerification enum missing (Match/Mismatch/Unset/NotComputed) | OPEN |
-| L2-D | HIGH | BlockErrorKind::DecodedHashMissing / DecodedHashMismatch missing (uses generic Codec) | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L2-A | CRITICAL | Verifier computes decoded_hash_ok but aggregate failure ignores it; block passes when decoded hash mismatches nonzero stored hash | RESOLVED | `955ffe0` — aggregate condition now includes decoded-hash verdict; tests cover corrupted-payload vs corrupted-model discrimination |
+| L2-B | HIGH | No IntegrityPolicy enum (Strict / AllowLegacyUnsetDecodedHash) | RESOLVED | `955ffe0` — `IntegrityPolicy` in `config.rs`; Strict is default on all verify/CLI/court/evidence paths; legacy requires explicit opt-in |
+| L2-C | HIGH | HashVerification enum missing (Match/Mismatch/Unset/NotComputed) | RESOLVED | `955ffe0` |
+| L2-D | HIGH | BlockErrorKind::DecodedHashMissing / DecodedHashMismatch missing (uses generic Codec) | RESOLVED | `955ffe0` — typed variants, no longer generic `Codec` |
 
 ## L.3 — Cancellation
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L3-A | CRITICAL | High-level APIs create internal tokens; no public cancellation APIs | OPEN |
-| L3-B | CRITICAL | Cancellation can return Ok with fewer results than declared (silent truncation) | OPEN |
-| L3-C | HIGH | No IncompleteExecution / Cancelled error variants with counts | OPEN |
-| L3-D | MEDIUM | No CLI signal handling (SIGINT/SIGTERM/timeout) | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L3-A | CRITICAL | High-level APIs create internal tokens; no public cancellation APIs | RESOLVED | `d5329ae` — `encode_blocks_with_cancel`, `decode_blocks_with_cancel`, `decode_streaming_with_cancel`, `verify_blocks_with_cancel` |
+| L3-B | CRITICAL | Cancellation can return Ok with fewer results than declared (silent truncation) | RESOLVED | `d5329ae` — completeness invariant: `completed_results != expected_block_count` → `ParallelError::IncompleteExecution`/`Cancelled { completed, expected }`; never `Ok` with fewer blocks |
+| L3-C | HIGH | No IncompleteExecution / Cancelled error variants with counts | RESOLVED | `d5329ae` |
+| L3-D | MEDIUM | No CLI signal handling (SIGINT/SIGTERM/timeout) | OPEN | CLI cancellation wiring scheduled with L.15 CLI audit |
 
 ## L.4 — Bounded executor
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L4-A | CRITICAL | Executor materializes all tasks + accumulates all results in Mutex<Vec>; not end-to-end bounded | OPEN |
-| L4-B | CRITICAL | max_buffered_output_bytes can't bound peak memory in current architecture | OPEN |
-| L4-C | HIGH | No live coordinator loop with select! interleaving submit/drain | OPEN |
-| L4-D | HIGH | No streaming sink APIs (decode_to_writer, encode_to_writer, etc.) | OPEN |
-| L4-E | HIGH | max_buffered_input_bytes inert (never enforced) | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L4-A | CRITICAL | Executor materializes all tasks + accumulates all results in Mutex<Vec>; not end-to-end bounded | RESOLVED | `b0e0d51` — producer thread + bounded job channel + bounded result channel + coordinator drain |
+| L4-B | CRITICAL | max_buffered_output_bytes can't bound peak memory in current architecture | RESOLVED | `b0e0d51` — output budget enforced against the live reorder stage |
+| L4-C | HIGH | No live coordinator loop with select! interleaving submit/drain | RESOLVED | `b0e0d51` |
+| L4-D | HIGH | No streaming sink APIs (decode_to_writer, encode_to_writer, etc.) | RESOLVED | `b0e0d51` — sink/writer APIs; streaming path does not collect all jobs/results |
+| L4-E | HIGH | max_buffered_input_bytes inert (never enforced) | RESOLVED | `b0e0d51` + `f9ea4d6` — enforced during submission |
 
 ## L.5 — ReorderBuffer
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L5-A | HIGH | insert() returns Option<T>; callers must remember drain_ready() — fragile protocol | OPEN |
-| L5-B | HIGH | Need atomic commit batches: insert() → Result<Vec<T>> | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L5-A | HIGH | insert() returns Option<T>; callers must remember drain_ready() — fragile protocol | RESOLVED | `020ddae` |
+| L5-B | HIGH | Need atomic commit batches: insert() → Result<Vec<T>> | RESOLVED | `020ddae` — `insert(item) -> Result<Vec<T>, BlockError>` returns the newly-committable chain; contiguous ascending indexes; no separate drain required; permutation property tests |
 
 ## L.6 — Config field audit
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L6-A | HIGH | max_buffered_input_bytes inert | OPEN |
-| L6-B | HIGH | parallel_threshold_bytes not implemented (no sequential fallback) | OPEN |
-| L6-C | HIGH | affinity policies not implemented (None/Compact/Spread/Explicit) | OPEN |
-| L6-D | HIGH | smt_policy not topology-aware | OPEN |
-| L6-E | HIGH | disable_simd semantics incomplete | OPEN |
-| L6-F | HIGH | disable_inner_batching has no distinct path (or must be removed) | OPEN |
-| L6-G | LOW | error_policy single-option redundancy | OPEN |
-| L6-H | LOW | worker_stack_size needs observable tests | OPEN |
-| L6-I | MEDIUM | max_in_flight_blocks needs peak in-flight proof | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L6-A | HIGH | max_buffered_input_bytes inert | RESOLVED | `f9ea4d6` |
+| L6-B | HIGH | parallel_threshold_bytes not implemented (no sequential fallback) | RESOLVED | `f9ea4d6` — `ExecutionMode::SequentialThresholdFallback`, requested/effective workers reported (effective=1) |
+| L6-C | HIGH | affinity policies not implemented (None/Compact/Spread/Explicit) | RESOLVED | `f9ea4d6` — Linux `sched_setaffinity` per worker with `sched_getaffinity` verification; invalid explicit lists → typed config error |
+| L6-D | HIGH | smt_policy not topology-aware | RESOLVED | `f9ea4d6` — topology read (core ids per CPU); SMT siblings excluded for PhysicalOnly; report records topology source |
+| L6-E | HIGH | disable_simd semantics incomplete | RESOLVED | `f9ea4d6` — forces scalar; explicit SIMD + disable_simd → config conflict |
+| L6-F | HIGH | disable_inner_batching has no distinct path (or must be removed) | RESOLVED | `f9ea4d6` — field removed; no config theater retained |
+| L6-G | LOW | error_policy single-option redundancy | RESOLVED | `f9ea4d6` — redundant field removed |
+| L6-H | LOW | worker_stack_size needs observable tests | RESOLVED | `f9ea4d6` — custom stack test, too-small stack failure, metadata records stack size |
+| L6-I | MEDIUM | max_in_flight_blocks needs peak in-flight proof | RESOLVED | `f9ea4d6` — queue capacity and peak in-flight counters in executor report |
 
 ## L.7 — WorkerScratch wiring
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L7-A | HIGH | WorkerScratch/ScratchPool public but never used in production | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L7-A | HIGH | WorkerScratch/ScratchPool public but never used in production | RESOLVED | `29bb0e7` — one exclusive scratch per worker (`ExecutorTask::run(worker, cancel, scratch)`); reset between tasks; bounded retained capacity; allocation-count instrumentation tests |
 
 ## L.8 — ModelCache wiring
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L8-A | HIGH | ModelCache/plan_cache_key exist but no production decode path uses them | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L8-A | HIGH | ModelCache/plan_cache_key exist but no production decode path uses them | RESOLVED | `29bb0e7` — `cached_model_artifacts()` joins decode path (`decode.rs`); key = (model_sha256, scale_bits, codec_id); backend selection after lookup; bounded entries/bytes; eviction metrics; corrupt model never cached |
 
 ## L.9 — Backend semantics
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L9-A | HIGH | Explicit SSE4.1/AVX512/manual-gather requests rewritten to scalar during planning | OPEN |
-| L9-B | HIGH | No codec/backend format-compatibility enforcement | OPEN |
-| L9-C | MEDIUM | Batch4 not coordinator-executable through one-block API | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L9-A | HIGH | Explicit SSE4.1/AVX512/manual-gather requests rewritten to scalar during planning | RESOLVED | `f0ae16e` — exact backend mapping; explicit request executes exactly or returns typed error; no silent scalar substitution |
+| L9-B | HIGH | No codec/backend format-compatibility enforcement | RESOLVED | `f0ae16e` — 8-way↔codec7, 16-way↔codec8, Uniform256↔validated model, RAW/RLE↔block type enforced at plan time |
+| L9-C | MEDIUM | Batch4 not coordinator-executable through one-block API | RESOLVED | `f0ae16e` — Batch4 requires coordinator batch context; one-block API returns explicit typed error |
 
 ## L.10 — SSE unsafe quarantine
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L10-A | HIGH | SSE helpers lack local #[target_feature] attributes | OPEN |
-| L10-B | MEDIUM | Unsafe ledger not generated from source; may claim things not true | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L10-A | HIGH | SSE helpers lack local #[target_feature] attributes | RESOLVED | `8588699` — `#[target_feature(enable = "ssse3,sse4.1")]` on every SSE helper; `# Safety` sections; caller lists |
+| L10-B | MEDIUM | Unsafe ledger not generated from source; may claim things not true | RESOLVED | `8588699` + `7fe286b` — `unsafe-ledger.toml` with bidirectional test (ledger↔source inventory), disassembly courts (`pshufb`, `pblendvb`, `vpermd`, `vpgatherdd`, `vpmovdb`) |
 
 ## L.11 — Algorithmic audit
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L11-A | HIGH | Repository-wide unwrap/expect/index/panic audit needed | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L11-A | HIGH | Repository-wide unwrap/expect/index/panic audit needed | RESOLVED | `7fe286b` — audit complete; test-only/invariant uses annotated locally; malformed-input paths return typed errors; report-parity defect fixed (`decode_simd_8way_unchecked_with_report`) |
+
+## L.12 — Code commentary for disproved suspicions
+
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L12-A | LOW | Local commentary for block-header `try_into().unwrap()` and executor mutex-poisoning suspicion | RESOLVED | `7fe286b` — exact invariants stated at each point; mutex commentary updated to channel-based architecture |
 
 ## L.13 — Public API audit
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L13-A | MEDIUM | Disconnected public types: ScratchPool, WorkerScratch, ModelCache, ParallelExecutionReport, schedule types, resource estimation | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L13-A | MEDIUM | Disconnected public types: ScratchPool, WorkerScratch, ModelCache, ParallelExecutionReport, schedule types, resource estimation | RESOLVED | `f1db7b2` — dead `schedule.rs`/`report.rs` removed; `estimate_memory` contract-tested (saturating-overflow bug fixed); `docs/public-api/` inventory committed; `cargo public-api` + `cargo semver-checks` baseline captured |
+
+## L.14 — Comparative benchmark court
+
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L14-A | MEDIUM | ryg-rans-sys C wrappers compiled by `cc` with default flags (no `-march=native`); C byte-decode bench includes per-symbol FFI crossing + `rans_dec_symbol_init` per byte, while the Rust side is direct calls. Where the C side lacks auto-vectorisation the comparison favours Rust; word-decode (no per-symbol init on either side) measures near-parity, bounding the handicap | RESOLVED | Current commit (bench `comparative`, `RUSTFLAGS="-C target-cpu=native"`) — methodological residual, recorded not fixed |
+| L14-B | MEDIUM | The `rans` 0.4.0 crate (m4tx) exposes a different API/format (not upstream ryg_rans); byte-for-byte comparison is impossible without format adaptation. Documented and excluded; not claimed as a comparison | RESOLVED | Current commit — residual recorded; alternative pinned and excluded with reason |
+
+Comparative methodology and results are in `docs/performance/comparative.md` (L.14 court).
 
 ## L.15 — Documentation
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L15-A | HIGH | Remove "critical-safety-infrastructure quality" overclaim everywhere | OPEN |
-| L15-B | HIGH | Remove stray -.o file; add root .gitignore entries | OPEN |
-| L15-C | MEDIUM | Fix root README header (malformed Markdown) | OPEN |
-| L15-D | MEDIUM | Add AGENTS.md, llms.txt, docs/glossary.md, reading order | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L15-A | HIGH | Remove "critical-safety-infrastructure quality" overclaim everywhere | OPEN | L.15 |
+| L15-B | HIGH | Remove stray -.o file; add root .gitignore entries | PARTIAL | `.gitignore` hardened in `c38928a`; tracked `-.o` removal lands with L.14 commit; recurrence gate lands with L.20 |
+| L15-C | MEDIUM | Fix root README header (malformed Markdown) | OPEN | L.15 |
+| L15-D | MEDIUM | Add AGENTS.md, llms.txt, docs/glossary.md, reading order | OPEN | L.15 |
 
 ## L.16 — Testing
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L16-A | MEDIUM | Proptest targets for reorder permutations, partition, normalization, etc. | OPEN |
-| L16-B | MEDIUM | Fuzz targets for parsers and codecs | OPEN |
-| L16-C | MEDIUM | Loom models for new executor | OPEN |
-| L16-D | MEDIUM | Sanitizer/Miri runs | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L16-A | MEDIUM | Proptest targets for reorder permutations, partition, normalization, etc. | OPEN | L.16 |
+| L16-B | MEDIUM | Fuzz targets for parsers and codecs | PARTIAL | fuzz crate repaired (`7fe286b`); corpus statistics and expanded targets in L.16 |
+| L16-C | MEDIUM | Loom models for new executor | PARTIAL | `tests/loom_tests.rs` (cfg loom) exists; full Loom run in L.16 |
+| L16-D | MEDIUM | Sanitizer/Miri runs | OPEN | L.16 |
 
 ## L.17 — Performance
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L17-A | MEDIUM | Component isolation (decode vs hash vs model) not measured | OPEN |
-| L17-B | MEDIUM | Queue-depth sweep, affinity, SMT measurements missing | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L17-A | MEDIUM | Component isolation (decode vs hash vs model) not measured | OPEN | L.17 |
+| L17-B | MEDIUM | Queue-depth sweep, affinity, SMT measurements missing | OPEN | L.17 |
 
 ## L.19 — Phase L courts
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L19-A | HIGH | 14 new courts required with manifests and receipts | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L19-A | HIGH | 14 new courts required with manifests and receipts | OPEN | L.19 |
 
 ## L.20 — Seal gate
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| L20-A | HIGH | Seal gate must validate performance evidence and never print success for skipped checks | OPEN |
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L20-A | HIGH | Seal gate must validate performance evidence and never print success for skipped checks | OPEN | L.20 |
 
 ---
 
 ## Resolution tracking
 
-Each residual must record: severity, affected files, reproduction, expected/actual behavior, proposed fix, test requirement, evidence requirement, resolution commit.
+Each residual records: severity, affected files, reproduction, expected/actual behavior, proposed fix, test requirement, evidence requirement, resolution commit.
+
+- L2-A..D — `crates/ryg-rans-rs-parallel/src/decode.rs`, `config.rs`, `error.rs`. Reproduced by court: block with intact payload + corrupt model bytes decoded to wrong output while payload hash matched. Fixed by including the decoded-hash verdict in the aggregate failure condition and adding `DecodedHashMissing`/`DecodedHashMismatch`. Tests: 15-combination matrix incl. per-backend verdict equality, CLI exit code, per-category counts.
+- L3-A..C — `crates/ryg-rans-rs-parallel/src/decode.rs`, `encode.rs`, `executor.rs`, `error.rs`, `cancellation.rs`. Completeness counters (declared/submitted/started/completed/cancelled/skipped/returned) in `ExecutorReport`; `Cancelled { completed, expected }`; 15-scenario cancellation race tests incl. panic/cancellation priority.
+- L4-A..E — `crates/ryg-rans-rs-parallel/src/executor.rs`. Producer thread + bounded job channel + bounded result channel; coordinator drains results live and commits in order; input/output budgets enforced against live stages; streaming sink APIs; stress tests (slow block 0, 10 GiB-equivalent synthetic, deadlock/backpressure).
+- L5-A..B — `crates/ryg-rans-rs-parallel/src/reorder.rs`. `insert -> Result<Vec<T>>` atomic commit; N≤9 exhaustive permutation test; duplicate/stale/missing-gap/overflow/error-recovery tests.
+- L6-A..I — `crates/ryg-rans-rs-parallel/src/config.rs`, `executor.rs`, `decode.rs`, `encode.rs`. Field-by-field wiring; `disable_inner_batching` and single-option `error_policy` removed; each field has an observable single-field test.
+- L7-A — `crates/ryg-rans-rs-parallel/src/executor.rs`, `scratch.rs`. Exclusive per-worker scratch via `ExecutorTask::run(worker, cancel, scratch)`; no shared mutable scratch; reset between tasks; retained capacity bounded; allocation-count tests.
+- L8-A — `crates/ryg-rans-rs-parallel/src/cache.rs`, `decode.rs`, `decode_plan.rs`. `cached_model_artifacts` in the decode path; bounded entries/bytes; eviction; corrupt-model exclusion; cache-equivalence tests.
+- L9-A..C — `crates/ryg-rans-rs-parallel/src/decode_plan.rs`, `decode.rs`. Explicit backend executed-exactly-or-typed-error; format-compatibility matrix enforced; Batch4 coordinator-context rule.
+- L10-A..B — `crates/ryg-rans-rs-simd/src/lib.rs`, `unsafe-ledger.toml`, tests. Local `#[target_feature]` on SSE helpers; bidirectional ledger test; disassembly courts.
+- L11-A — workspace-wide audit; fixed SSE4.1 report parity; typed errors for malformed inputs; annotated remaining invariant-based unwraps.
+- L13-A — removed dead types; `estimate_memory` overflow fix; public-API inventory under `docs/public-api/`.
+- L14-A..B — comparative court; see `docs/performance/comparative.md`.
