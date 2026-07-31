@@ -41,6 +41,13 @@ safety = "4-lane renorm via signed-compare bias; words copied to scratch before 
 callers = ["simd_decode_inner"]
 
 [[unsafe_functions]]
+name = "decode_simd_8way_unchecked_with_report"
+file = "lib.rs"
+target_features = ["ssse3", "sse4.1"]
+safety = "Full 8-way SSE4.1 decode returning (output, words_consumed, 8 final states) for cross-backend report parity; compressed must have >= 16 u16 words; tables must have 4096 entries; truncation returns Err"
+callers = ["backends::decode_interleaved8_sse41_checked"]
+
+[[unsafe_functions]]
 name = "decode_simd_8way_unchecked"
 file = "lib.rs"
 target_features = ["ssse3", "sse4.1"]

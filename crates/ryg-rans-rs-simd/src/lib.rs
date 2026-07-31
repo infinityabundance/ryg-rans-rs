@@ -408,7 +408,7 @@ pub fn decode_simd_8way(
     {
         // SAFETY: compile-time target_feature gate ensures SSE4.1 availability.
         // `simd_decode_inner` is a safe fn; no unsafe block is needed here.
-        simd_decode_inner(compressed, tables, expected_len)
+        simd_decode_inner(compressed, tables, expected_len).map(|(out, _wc, _fs)| out)
     }
     #[cfg(not(target_feature = "sse4.1"))]
     {
@@ -430,15 +430,43 @@ pub unsafe fn decode_simd_8way_unchecked(
     if compressed.len() < 16 {
         return Err("compressed too short for SIMD init");
     }
+    simd_decode_inner(compressed, tables, expected_len).map(|(out, _wc, _fs)| out)
+}
+
+/// SSE4.1 SIMD 8-way decode with full report (words consumed + final states).
+///
+/// # Purpose
+///
+/// The parallel crate's exact-backend contract requires every executable
+/// backend to report `words_consumed` and `final_states` so cross-backend
+/// parity can be proven.  This variant surfaces the report that
+/// [`decode_simd_8way_unchecked`] discards (Phase L.11 report-parity fix).
+///
+/// # Safety
+///
+/// Same contract as [`decode_simd_8way_unchecked`].
+#[target_feature(enable = "ssse3,sse4.1")]
+pub unsafe fn decode_simd_8way_unchecked_with_report(
+    compressed: &[u16],
+    tables: &RansWordTables,
+    expected_len: usize,
+) -> Result<(Vec<u8>, usize, [u32; 8]), &'static str> {
+    if compressed.len() < 16 {
+        return Err("compressed too short for SIMD init");
+    }
     simd_decode_inner(compressed, tables, expected_len)
 }
 
 /// SSE4.1 SIMD inner decode (called from the #[target_feature]-gated wrapper).
+///
+/// Returns `(output, words_consumed, final_states)` where `words_consumed`
+/// is the total u16 words read (16 initial + renormalisation) and
+/// `final_states` are the 8 lane states (4 from each 4-lane state).
 fn simd_decode_inner(
     compressed: &[u16],
     tables: &RansWordTables,
     expected_len: usize,
-) -> Result<Vec<u8>, &'static str> {
+) -> Result<(alloc::vec::Vec<u8>, usize, [u32; 8]), &'static str> {
     let mut reader = compressed;
 
     let mut rans0 = unsafe { rans_simd_dec_init(&mut reader).ok_or("SIMD init0 failed")? };
@@ -489,7 +517,19 @@ fn simd_decode_inner(
         }
     }
 
-    Ok(output)
+    // ---- Collect report: words consumed + 8 final states ----
+    let words_consumed = compressed.len() - reader.len();
+    let mut final_states = [0u32; 8];
+    unsafe {
+        let mut l0: [u32; 4] = [0; 4];
+        let mut l1: [u32; 4] = [0; 4];
+        _mm_storeu_si128(l0.as_mut_ptr() as *mut __m128i, rans0.0);
+        _mm_storeu_si128(l1.as_mut_ptr() as *mut __m128i, rans1.0);
+        final_states[0..4].copy_from_slice(&l0);
+        final_states[4..8].copy_from_slice(&l1);
+    }
+
+    Ok((output, words_consumed, final_states))
 }
 
 // ---------------------------------------------------------------------------

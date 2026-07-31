@@ -42,8 +42,25 @@ fuzz_target!(|data: &[u8]| {
         cum[i + 1] = cum[i] + freqs[i];
     }
 
-    // Build word rANS tables
-    let (slots, slot2sym) = build_word_tables(&freqs, &cum, scale_bits);
+    // Build word rANS tables using the core crate's own types (the core
+    // decoder's `rans_word_dec_sym` takes `ryg_rans_rs_core::RansWordTables`;
+    // the SIMD crate's structurally identical type is distinct).
+    let mut slots = vec![RansWordSlot { freq: 0, bias: 0 }; 4096];
+    let mut slot2sym = vec![0u8; 4096];
+    for s in 0..256usize {
+        let f = freqs[s] as usize;
+        let start = cum[s] as usize;
+        for i in 0..f {
+            let slot = start + i;
+            if slot < slots.len() {
+                slots[slot] = RansWordSlot {
+                    freq: f as u16,
+                    bias: i as u16,
+                };
+                slot2sym[slot] = s as u8;
+            }
+        }
+    }
     let tables = RansWordTables {
         slots: &slots,
         slot2sym: &slot2sym,

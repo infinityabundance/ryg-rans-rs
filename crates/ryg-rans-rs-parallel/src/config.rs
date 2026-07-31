@@ -168,6 +168,7 @@ impl Default for ParallelConfig {
     fn default() -> Self {
         Self {
             threads: ThreadCount::AvailableParallelism,
+            // 16 is a nonzero constant — the unwrap is provably infallible.
             max_in_flight_blocks: NonZeroUsize::new(16).unwrap(),
             max_buffered_input_bytes: 256 * 1024 * 1024, // 256 MiB
             max_buffered_output_bytes: 512 * 1024 * 1024, // 512 MiB

@@ -951,17 +951,20 @@ pub fn decode_interleaved8_sse41_checked(
         return Err(DecodeError::UnsupportedBackend);
     }
     // SAFETY: runtime detection above guarantees SSSE3 + SSE4.1 are
-    // available; `decode_simd_8way_unchecked` carries its own
-    // `#[target_feature(enable = "ssse3,sse4.1")]` attributes.
-    let output = unsafe { crate::decode_simd_8way_unchecked(compressed, tables, expected_len) }
-        .map_err(|_| DecodeError::InputTooShort)?;
+    // available; `decode_simd_8way_unchecked_with_report` carries its own
+    // `#[target_feature(enable = "ssse3,sse4.1")]` attributes.  The report
+    // variant surfaces words_consumed + 8 final states so the parallel
+    // crate can prove cross-backend report parity (Phase L.11).
+    let (output, words_consumed, final_states8) =
+        unsafe { crate::decode_simd_8way_unchecked_with_report(compressed, tables, expected_len) }
+            .map_err(|_| DecodeError::InputTooShort)?;
+    let mut final_states = [0u32; 16];
+    final_states[0..8].copy_from_slice(&final_states8);
     Ok(DecodeResult {
         output,
-        // The SSE4.1 kernel does not surface a report; zeros mean "not
-        // available", mirroring the convention used elsewhere in this crate.
         report: DecodeReport {
-            words_consumed: 0,
-            final_states: [0u32; 16],
+            words_consumed,
+            final_states,
         },
         backend: DecodeBackend::Sse41Interleaved8,
     })

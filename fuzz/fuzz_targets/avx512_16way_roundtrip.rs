@@ -6,6 +6,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
 use ryg_rans_rs_simd::avx512::decode_interleaved16_avx512_kernel;
 use ryg_rans_rs_simd::packed_table::{
     decode_interleaved16_scalar, encode_interleaved16, PackedWordTable,
@@ -17,10 +18,17 @@ fuzz_target!(|data: &[u8]| {
         return;
     }
 
-    if !cfg!(all(target_feature = "avx512f", target_feature = "avx512bw")) {
-        return;
+    // The kernel is compile-time gated on avx512bw (the module-level cfg in
+    // avx512.rs); without the feature this target is a no-op, mirroring the
+    // crate's portable-build behavior.
+    #[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+    {
+        fuzz_avx512_16way(data);
     }
+});
 
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+fn fuzz_avx512_16way(data: &[u8]) {
     let scale_bits = RANS_WORD_SCALE_BITS as u32;
     let total = 1u32 << scale_bits;
     let used_syms = (data[0] as usize % 256).max(1);
@@ -83,4 +91,4 @@ fuzz_target!(|data: &[u8]| {
             }
         }
     }
-});
+}

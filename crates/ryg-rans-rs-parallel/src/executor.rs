@@ -357,6 +357,14 @@ where
 
     // Spawn workers
     let mut handles = Vec::with_capacity(effective_workers);
+    // Shared slot for a runtime affinity-application failure.  A failed
+    // sched_setaffinity (e.g. CPU offline, cgroup restriction) is a typed
+    // Config error, not a panic: the worker records the message, cancels,
+    // and exits; the coordinator surfaces it before any cancellation/
+    // completeness accounting.  The lock is held only for this tiny store,
+    // and worker task code never touches this mutex, so it cannot be
+    // poisoned by a task panic (Phase L.12 note).
+    let affinity_error: Arc<std::sync::Mutex<Option<String>>> = Arc::default();
     for i in 0..effective_workers {
         let rx = job_receiver.clone();
         let tx = result_sender.clone();
@@ -365,6 +373,7 @@ where
         let completed = completed.clone();
         let cancelled_tasks = cancelled_tasks.clone();
         let affinity = affinity.clone();
+        let affinity_error = affinity_error.clone();
 
         let mut builder = std::thread::Builder::new();
         builder = builder.name(format!("ryg-parallel-{}", i));
@@ -375,8 +384,13 @@ where
         let handle = builder
             .spawn(move || {
                 // Apply the configured affinity before any task executes.
-                crate::affinity::apply_worker_affinity(&affinity, i, effective_workers)
-                    .expect("affinity application failed");
+                if let Err(e) =
+                    crate::affinity::apply_worker_affinity(&affinity, i, effective_workers)
+                {
+                    *affinity_error.lock().expect("affinity error slot") = Some(e.to_string());
+                    cancel.cancel();
+                    return;
+                }
                 // Worker-exclusive scratch: created once, reused across
                 // tasks (reset between tasks), no shared mutable state.
                 let mut scratch = WorkerScratch::new(4096, 64 * 1024 * 1024);
@@ -481,6 +495,14 @@ where
             block_index: None,
             worker_index: *wi,
         });
+    }
+
+    // A runtime affinity-application failure is a typed Config error with
+    // the highest priority: the run could not start as configured.  Check it
+    // before panic/cancellation accounting so it is never masked by a
+    // short-result Cancelled error.
+    if let Some(msg) = affinity_error.lock().expect("affinity error slot").take() {
+        return Err(ParallelError::Config(msg));
     }
 
     let was_cancelled = cancel.is_cancelled();

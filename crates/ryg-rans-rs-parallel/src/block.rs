@@ -124,6 +124,13 @@ pub fn parse_block_header(
     }
 
     // block_index (u64 LE)
+    //
+    // Invariant (Phase L.12): `data.len() >= BLOCK_HEADER_SIZE` was verified
+    // at the top of this function before any slicing, and `BLOCK_HEADER_SIZE`
+    // is a constant 104 >= 16.  Every sliced range below (`[8..16]`,
+    // `[24..28]`, `[28..32]`, `[32..36]`) is therefore fixed-width and in
+    // bounds, so `try_into()` cannot fail after that guard.  No untrusted
+    // input can reach these conversions with a short slice.
     let bi = u64::from_le_bytes(data[8..16].try_into().unwrap());
     if bi != expected_index {
         return Err(format!("expected block {}, got {}", expected_index, bi));
@@ -177,6 +184,10 @@ pub fn parse_block_header(
     }
 
     // Length fields (u32 LE)
+    //
+    // Invariant (Phase L.12): same fixed-width in-bounds guarantee as the
+    // block_index read above — `data.len() >= BLOCK_HEADER_SIZE` was checked
+    // before any slicing.
     let ul = u32::from_le_bytes(data[24..28].try_into().unwrap());
     let pl = u32::from_le_bytes(data[28..32].try_into().unwrap());
     let ml = u32::from_le_bytes(data[32..36].try_into().unwrap());

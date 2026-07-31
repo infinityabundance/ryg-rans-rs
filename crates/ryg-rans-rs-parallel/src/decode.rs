@@ -1759,6 +1759,13 @@ impl ParallelDecoder {
             config.worker_stack_size,
             external_cancel,
             move |result: Result<DecodedBlockResult, BlockError>| {
+                // Mutex-poisoning note (Phase L.12): these locks are held only
+                // by this coordinator closure (the calling thread).  Worker
+                // task execution happens inside `catch_unwind` and never
+                // touches these mutexes, so a task panic cannot poison them.
+                // A panic in the user's own `sink` callback propagates to the
+                // caller of `decode_with_sink` directly — the lock poisoning
+                // is then moot because the same frame is already unwinding.
                 let mut reorder = reorder_rc.lock().unwrap();
                 let mut et = et_rc.lock().unwrap();
                 let mut sink = sink_rc.lock().unwrap();
@@ -2408,6 +2415,167 @@ mod tests {
             assert_eq!(dec.plan_backend, b);
             assert_eq!(dec.output, data, "{b:?} output must match");
             assert!(dec.words_consumed > 0, "{b:?} must report words consumed");
+        }
+    }
+
+    // -------------------------------------------------------------------
+    // Phase L.11 — adversarial malformed-input and differential tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn test_truncation_at_every_byte_never_panics() {
+        // For every truncation position of a valid block, decode must return
+        // a typed Err (or Ok only for the untruncated block) — never panic,
+        // never over-read, never silently produce partial output.
+        for codec in [7u16, 8u16] {
+            let data = nonuniform_data();
+            let (block, _) = encode_with_codec(&data, codec);
+            for cut in 0..block.len() {
+                let truncated = block[..cut].to_vec();
+                let r = decode_single_block(
+                    &DecodeBlockJob {
+                        block_index: 0,
+                        block_data: truncated,
+                    },
+                    &ParallelConfig::default(),
+                );
+                assert!(
+                    r.is_err(),
+                    "codec {codec}: truncated block of {} bytes (cut {cut}) must be rejected",
+                    block.len()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_header_field_mutations_never_panic() {
+        // Flip every header byte of a valid block; decode must always return
+        // a typed error (never panic) — even when the mutation makes
+        // scale_bits/state_count/codec_id inconsistent.
+        for codec in [7u16, 8u16] {
+            let data = nonuniform_data();
+            let (block, _) = encode_with_codec(&data, codec);
+            for byte_idx in 0..crate::block::BLOCK_HEADER_SIZE {
+                let mut mutated = block.clone();
+                mutated[byte_idx] ^= 0xFF;
+                let r = decode_single_block(
+                    &DecodeBlockJob {
+                        block_index: 0,
+                        block_data: mutated,
+                    },
+                    &ParallelConfig::default(),
+                );
+                assert!(
+                    r.is_err(),
+                    "codec {codec}: mutated header byte {byte_idx} must be rejected"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_model_corruption_never_panics_and_never_passes() {
+        // Corrupt model frequencies in-place (keeping the payload hash
+        // intact).  The decoded output hash must catch this: decode either
+        // fails with DecodedHashMismatch (Strict) or produces different
+        // output — it must never silently pass with the wrong bytes.
+        let data = nonuniform_data();
+        let (block, _) = encode_with_codec(&data, 8);
+        for model_byte in 0..16 {
+            let mut mutated = block.clone();
+            // Flip a byte inside the 1024-byte model region (header is 104
+            // bytes).  Flipping may break the frequency-sum invariant (Model
+            // error) or produce a valid-but-wrong model (DecodedHashMismatch).
+            mutated[104 + model_byte * 7] ^= 0x01;
+            let r = decode_single_block(
+                &DecodeBlockJob {
+                    block_index: 0,
+                    block_data: mutated,
+                },
+                &ParallelConfig::default(),
+            );
+            match r {
+                Err(_) => {} // typed rejection is the expected outcome
+                Ok(dec) => {
+                    assert_ne!(
+                        dec.output, data,
+                        "model corruption at byte {model_byte} must not decode to the original data"
+                    );
+                    panic!(
+                        "model corruption at byte {model_byte} decoded without an error; the decoded-hash check must catch this"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_randomized_cross_backend_differential() {
+        // Randomized inputs of many lengths, decoded by every executable
+        // backend for each codec: all backends must agree byte-for-byte and
+        // on the report fields, and the result must equal the original.
+        // Phase L.11 scalar/SIMD parity requirement.
+        let mut seed = 0x5EED_2026u64;
+        let mut rng = || {
+            seed = seed
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            (seed >> 33) as u32
+        };
+        for trial in 0..40 {
+            let len = 1 + (rng() % 6000) as usize;
+            let data: Vec<u8> = (0..len).map(|_| (rng() & 0xFF) as u8).collect();
+            // Occasionally use skewed data (few distinct symbols).
+            let data: Vec<u8> = if trial % 3 == 0 {
+                data.iter().map(|b| b % 5).collect()
+            } else {
+                data
+            };
+            for codec in [7u16, 8u16] {
+                let (block, _) = encode_with_codec(&data, codec);
+                let family = if codec == 7 {
+                    BACKENDS_8WAY
+                } else {
+                    BACKENDS_16WAY
+                };
+                let mut reference: Option<(Vec<u8>, usize, Vec<u32>)> = None;
+                for &b in family {
+                    match decode_explicit(&block, b) {
+                        Ok(dec) => {
+                            assert_eq!(
+                                dec.output, data,
+                                "trial {trial} codec {codec} {b:?}: output"
+                            );
+                            match &reference {
+                                None => {
+                                    reference =
+                                        Some((dec.output, dec.words_consumed, dec.final_states))
+                                }
+                                Some((_, wc, fs)) => {
+                                    assert_eq!(
+                                        dec.words_consumed, *wc,
+                                        "trial {trial} codec {codec} {b:?}: words"
+                                    );
+                                    assert_eq!(
+                                        dec.final_states, *fs,
+                                        "trial {trial} codec {codec} {b:?}: states"
+                                    );
+                                }
+                            }
+                        }
+                        Err(BlockError {
+                            kind: BlockErrorKind::BackendUnavailable,
+                            ..
+                        }) => {}
+                        Err(other) => panic!(
+                            "trial {trial} codec {codec} {b:?}: unexpected error {:?}",
+                            other
+                        ),
+                    }
+                }
+                assert!(reference.is_some(), "trial {trial}: no backend executed");
+            }
         }
     }
 }

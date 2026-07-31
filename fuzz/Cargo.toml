@@ -4,6 +4,8 @@ version = "0.0.0"
 publish = false
 edition = "2024"
 
+[workspace]
+
 [package.metadata]
 cargo-fuzz = true
 
@@ -12,9 +14,14 @@ libfuzzer-sys = "0.4"
 
 [dependencies.ryg-rans-rs-core]
 path = "../crates/ryg-rans-rs-core"
+features = ["alloc"]
 
 [dependencies.ryg-rans-rs-simd]
 path = "../crates/ryg-rans-rs-simd"
+features = ["std"]
+
+[dependencies.ryg-rans-rs-parallel]
+path = "../crates/ryg-rans-rs-parallel"
 
 [[bin]]
 name = "byte_rans_roundtrip"
