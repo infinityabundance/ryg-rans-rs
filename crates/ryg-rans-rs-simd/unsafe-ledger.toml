@@ -1,0 +1,314 @@
+# ryg-rans-rs-simd unsafe-function ledger
+#
+# This ledger is the machine-readable inventory of every `unsafe fn` in the
+# crate.  It is verified against the source by the `ledger_matches_source`
+# test in `src/lib.rs` (Phase L.10: "the ledger must not claim all unsafe
+# functions are feature-gated unless source inspection proves that
+# statement").
+#
+# Semantics of `target_features`:
+#   - A non-empty list must equal the exact `#[target_feature(enable = "...")]`
+#     attribute immediately above the function declaration in the source.
+#   - `"baseline"` means the function carries no attribute and its body only
+#     uses baseline-ISA intrinsics (documented in its # Safety section).
+#   - `"delegates"` means the function carries no attribute: it performs no
+#     vector instruction itself and calls into an explicitly-gated kernel;
+#     its caller contract is documented in its # Safety section.
+#   - `"test-only"` marks functions that exist only under `#[cfg(test)]`.
+#
+# The `safety` field is a short summary; the authoritative contract is the
+# `# Safety` section in the source doc comment.
+
+[[unsafe_functions]]
+name = "rans_simd_dec_init"
+file = "lib.rs"
+target_features = ["sse2"]
+safety = "Unaligned SSE2 16-byte load of 8 u16 initial states; length-checked (None on truncation); baseline x86_64"
+callers = ["simd_decode_inner"]
+
+[[unsafe_functions]]
+name = "rans_simd_dec_sym_unchecked"
+file = "lib.rs"
+target_features = ["sse4.1"]
+safety = "4-lane symbol decode + state advance; slot indices masked to 4095; tables must have 4096 entries"
+callers = ["simd_decode_inner"]
+
+[[unsafe_functions]]
+name = "rans_simd_dec_renorm_unchecked"
+file = "lib.rs"
+target_features = ["ssse3", "sse4.1"]
+safety = "4-lane renorm via signed-compare bias; words copied to scratch before load (no over-read); length-checked (None on truncation); aligned SHUFFLE_MASKS static"
+callers = ["simd_decode_inner"]
+
+[[unsafe_functions]]
+name = "decode_simd_8way_unchecked"
+file = "lib.rs"
+target_features = ["ssse3", "sse4.1"]
+safety = "Full 8-way SSE4.1 decode; compressed must have >= 16 u16 words; tables must have 4096 entries; truncation returns Err"
+callers = ["backends::decode_interleaved8_sse41_checked", "oracle::rust_word_simd_decode"]
+
+[[unsafe_functions]]
+name = "renorm8_avx2"
+file = "avx2_renorm.rs"
+target_features = ["avx2"]
+safety = "AVX2 8-lane renorm using permute table; input words must cover the lane mask; perm table from build_avx2_renorm_table"
+callers = ["avx2::decode_interleaved8_avx2_manual_gather", "avx2::decode_interleaved8_avx2_hardware_gather", "avx2::decode_interleaved16_avx2_2x8", "avx2::decode_batch4_interleaved16_avx2"]
+
+[[unsafe_functions]]
+name = "store_symbols_8way"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "Private helper; packs 8 u32 symbols to 8 bytes via two-step narrow; output must be writable for 8 bytes"
+callers = ["avx2::decode_interleaved8_avx2_manual_gather_into", "avx2::decode_interleaved8_avx2_hardware_gather_into"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_avx2_manual_gather_into"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "AVX2 manual-gather 8-way decode into preallocated output; output.len() must equal symbol count; compressed >= 16 words; tables 4096 entries"
+callers = ["backends::decode_interleaved8_avx2_manual_gather_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_avx2_manual_gather"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "AVX2 manual-gather 8-way decode (allocating); same invariants as the _into variant"
+callers = ["backends::decode_interleaved8_avx2_manual_gather_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_avx2_hardware_gather_into"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "AVX2 hardware-gather (VPGATHERDD) 8-way decode into preallocated output; same invariants as manual-gather"
+callers = ["backends::decode_interleaved8_avx2_hardware_gather_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_avx2_hardware_gather"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "AVX2 hardware-gather 8-way decode (allocating); same invariants as the _into variant"
+callers = ["backends::decode_interleaved8_avx2_hardware_gather_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_avx2_2x8_into"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "AVX2 2x8-on-16-way decode into preallocated output; output.len() must equal symbol count; compressed >= 32 words"
+callers = ["backends::decode_interleaved16_avx2_2x8_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_avx2_2x8"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "AVX2 2x8-on-16-way decode (allocating); same invariants as the _into variant"
+callers = ["backends::decode_interleaved16_avx2_2x8_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_uniform256_avx2_into"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "AVX2 Uniform256 table-free decode into preallocated output; caller must validate the model is Uniform256; output.len() == symbol count"
+callers = ["backends::decode_interleaved16_uniform256_avx2_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_uniform256_avx2"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "AVX2 Uniform256 table-free decode (allocating); caller must validate the model is Uniform256"
+callers = ["backends::decode_interleaved16_uniform256_avx2_checked"]
+
+[[unsafe_functions]]
+name = "decode_batch4_interleaved16_avx2"
+file = "avx2.rs"
+target_features = ["avx2"]
+safety = "AVX2 batched decode of four independent 16-way streams; each job output pre-sized; no aliasing between job inputs/outputs"
+callers = ["backends::decode_batch4_interleaved16_avx2_checked"]
+
+[[unsafe_functions]]
+name = "renorm8_avx512vl"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512vl", "avx512bw"]
+safety = "AVX-512VL 8-lane renorm; input words must cover the lane mask; module gated on target_feature=avx512bw"
+callers = ["avx512::decode_interleaved8_avx512vl_kernel"]
+
+[[unsafe_functions]]
+name = "renorm16_avx512"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512bw"]
+safety = "AVX-512 16-lane renorm; input words must cover the 16-bit lane mask"
+callers = ["avx512::decode_interleaved16_avx512_kernel"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_avx512vl_kernel"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512vl", "avx512bw"]
+safety = "AVX-512VL 8-way interleaved kernel; compressed >= 16 words; tables 4096 entries; truncation returns Err"
+callers = ["backends::decode_interleaved8_avx512vl", "malformed_input_tests"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_avx512vl_into"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512vl", "avx512bw"]
+safety = "AVX-512VL 8-way decode into preallocated output; output.len() == symbol count; output must not alias compressed"
+callers = ["backends::decode_interleaved8_avx512vl_into"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_avx512_kernel"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512bw"]
+safety = "AVX-512 16-way interleaved kernel; compressed >= 32 words; tables 4096 entries; truncation returns Err"
+callers = ["backends::decode_interleaved16_avx512", "malformed_input_tests"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_avx512_into"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512bw"]
+safety = "AVX-512 16-way decode into preallocated output; output.len() == symbol count; output must not alias compressed"
+callers = ["backends::decode_interleaved16_avx512_into"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_manual_gather_into"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512vl", "avx512bw"]
+safety = "AVX-512VL manual-gather 8-way into preallocated output; output.len() == symbol count"
+callers = ["backends::decode_interleaved8_manual_gather_into"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_manual_gather_kernel"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512vl", "avx512bw"]
+safety = "AVX-512VL manual-gather 8-way kernel (allocating); compressed >= 16 words; tables 4096 entries"
+callers = ["backends::decode_interleaved8_manual_gather"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_manual_gather_into"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512bw"]
+safety = "AVX-512 manual-gather 16-way into preallocated output; output.len() == symbol count"
+callers = ["backends::decode_interleaved16_manual_gather_into"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_manual_gather_kernel"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512bw"]
+safety = "AVX-512 manual-gather 16-way kernel (allocating); compressed >= 32 words; tables 4096 entries"
+callers = ["backends::decode_interleaved16_manual_gather"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_2x8_kernel"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512vl", "avx512bw"]
+safety = "AVX-512VL 2x8-on-16-way kernel (allocating); compressed >= 32 words; tables 4096 entries"
+callers = ["backends::decode_interleaved16_2x8"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_2x8_into"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512vl", "avx512bw"]
+safety = "AVX-512VL 2x8-on-16-way into preallocated output; output.len() == symbol count"
+callers = ["backends::decode_interleaved16_2x8_into"]
+
+[[unsafe_functions]]
+name = "decode_batch_interleaved16_avx512"
+file = "avx512.rs"
+target_features = ["avx512f", "avx512bw"]
+safety = "Batched decode of up to 4 independent 16-way streams; each job output pre-sized; no input/output aliasing; truncation returns Err"
+callers = ["backends::decode_batch4_interleaved16_avx2_checked (avx512 path)"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_avx512vl_into"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Safe-from-API wrapper marked unsafe because the kernel body is compile-time gated on avx512bw; returns UnsupportedBackend when not compiled; caller must ensure runtime AVX512F+VL+BW"
+callers = ["parallel crate execute_decode_plan (via _checked wrapper)"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_manual_gather"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Wrapper over avx512::decode_interleaved8_manual_gather_kernel; caller must ensure runtime AVX512F+VL+BW"
+callers = ["backends::decode_interleaved8_avx512vl_manual_gather_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_manual_gather_into"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Wrapper over avx512::decode_interleaved8_manual_gather_into; caller must ensure runtime AVX512F+VL+BW"
+callers = ["backends::decode_interleaved8_avx512vl_manual_gather_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_manual_gather"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Wrapper over avx512::decode_interleaved16_manual_gather_kernel; caller must ensure runtime AVX512F+BW"
+callers = ["backends::decode_interleaved16_avx512_manual_gather_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_manual_gather_into"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Wrapper over avx512::decode_interleaved16_manual_gather_into; caller must ensure runtime AVX512F+BW"
+callers = ["backends::decode_interleaved16_avx512_manual_gather_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_2x8"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Wrapper over avx512::decode_interleaved16_2x8_kernel; caller must ensure runtime AVX512F+VL+BW"
+callers = ["backends::decode_interleaved16_avx512vl_2x8_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_2x8_into"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Wrapper over avx512::decode_interleaved16_2x8_into; caller must ensure runtime AVX512F+VL+BW"
+callers = ["backends::decode_interleaved16_avx512vl_2x8_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved8_avx512vl"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Explicit AVX-512VL 8-way; caller must ensure runtime AVX512F+VL+BW; returns UnsupportedBackend when not compiled"
+callers = ["backends::decode_interleaved8_avx512vl_checked", "oracle phase_g courts"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_avx512_into"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Explicit AVX-512 16-way into preallocated output; caller must ensure runtime AVX512F+BW; output.len() == symbol count"
+callers = ["backends::decode_interleaved16_avx512_checked"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_avx512"
+file = "backends.rs"
+target_features = ["delegates"]
+safety = "Explicit AVX-512 16-way; caller must ensure runtime AVX512F+BW; returns UnsupportedBackend when not compiled"
+callers = ["backends::decode_interleaved16_avx512_checked", "oracle phase_g courts"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_uniform256_avx512"
+file = "model_kernels.rs"
+target_features = ["avx512f", "avx512bw"]
+safety = "Uniform256 table-free AVX-512 16-way; caller must verify the model is Uniform256 (scale 12); compressed >= 32 words"
+callers = ["optimization_tests"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_uniform256_avx512_into"
+file = "model_kernels.rs"
+target_features = ["avx512f", "avx512bw"]
+safety = "Uniform256 table-free AVX-512 16-way into preallocated output; caller must verify the model is Uniform256; output.len() == symbol count"
+callers = ["optimization_tests"]
+
+[[unsafe_functions]]
+name = "decode_interleaved16_dominant_sketch"
+file = "model_kernels.rs"
+target_features = ["avx512f", "avx512bw"]
+safety = "INTENTIONALLY UNIMPLEMENTED placeholder — always returns Err; do not use in production"
+callers = ["none (documented placeholder)"]
+
+[[unsafe_functions]]
+name = "scalar_decode_unchecked"
+file = "avx2_tests.rs"
+target_features = ["test-only"]
+safety = "Test helper inside avx2_tests (cfg(test)); mirrors scalar decode inside unsafe blocks for poison-memory tests"
+callers = ["avx2_tests"]

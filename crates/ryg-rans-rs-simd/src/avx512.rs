@@ -1451,6 +1451,22 @@ pub unsafe fn decode_interleaved16_2x8_into(
 //
 // All streams must use the same codec and scale_bits.  Each job's output
 // must be sized to its expected decoded length.
+//
+// # Safety
+//
+// - **CPU feature invariant**: requires AVX512F + AVX512BW, enforced locally
+//   by the `#[target_feature]` attribute (Phase L.10: no reliance on the
+//   caller's target-feature context).
+// - **Bounds invariant**: every `DecodeJob`'s `output` slice must be sized
+//   exactly to its expected decoded length; the kernel writes only the
+//   symbols it decodes per stream.  Compressed streams must have at least
+//   32 u16 words for the 16 initial states plus renorm words; truncation is
+//   rejected with `Err` (malformed-input behavior).
+// - **Aliasing invariant**: each job's input and output must not overlap.
+// - **Callers**: the SIMD crate's `decode_batch_interleaved16_avx512_checked`
+//   wrapper (runtime feature-checked), and the AVX2 batch4 wrapper family in
+//   `backends.rs`.
+#[target_feature(enable = "avx512f,avx512bw")]
 pub unsafe fn decode_batch_interleaved16_avx512(
     jobs: &mut [DecodeJob<'_>],
 ) -> Result<(), &'static str> {

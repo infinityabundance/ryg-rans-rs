@@ -12,3 +12,7 @@ std = []
 
 [dependencies]
 ryg-rans-rs-core = { version = "0.1.30", path = "../ryg-rans-rs-core" }
+
+[dev-dependencies]
+toml = "0.8"
+serde = { version = "1", features = ["derive"] }

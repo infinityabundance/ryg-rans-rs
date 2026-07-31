@@ -205,106 +205,190 @@ static NUM_WORDS: [u8; 16] = [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4];
 
 /// Initialize a SIMD decoder: loads 4 × 32-bit states from 8 × u16 words.
 ///
+/// # Purpose
+///
+/// Reads the 8 compressed u16 words that initialise a 4-lane SSE decoder
+/// and advances the reader past them.
+///
 /// # Safety
 ///
-/// - `reader` must have at least 8 u16 elements remaining.
-/// - Caller must ensure SSE4.1 + SSSE3 are available at runtime.
+/// - **CPU feature invariant**: only baseline x86_64 SSE2 is required — the
+///   body uses a single unaligned 16-byte load (`_mm_loadu_si128`).  It does
+///   **not** require SSSE3 or SSE4.1; the attribute documents the exact
+///   minimum.  (Earlier docs claimed SSE4.1 — incorrect, fixed in Phase L.10.)
+/// - **Bounds invariant**: `reader` must have at least 8 u16 elements
+///   remaining.  The function checks this and returns `None` instead of
+///   over-reading (malformed-input behavior).
+/// - **Pointer provenance**: `reader.as_ptr()` is a valid `*const u16` with
+///   `len` elements; the 16-byte load starting there is in-bounds because of
+///   the length check.  The read is re-interpreted as `__m128i`, which is
+///   the documented intrinsic pattern for loading u16 pairs.
+/// - **Alignment invariant**: none required — the load is unaligned.
+/// - **Callers**: `simd_decode_inner` (via `decode_simd_8way_unchecked` and
+///   `decode_simd_8way`).
+/// - **Proof**: `decode_simd_8way` parity test against `decode_8way_scalar`
+///   in `lib.rs` tests; court `RYG_RANS.L.SSE41.UNSAFE_QUARANTINE`.
 #[inline]
+#[target_feature(enable = "sse2")]
 pub unsafe fn rans_simd_dec_init(reader: &mut &[u16]) -> Option<RansSimdDec> {
-    unsafe {
-        if reader.len() < 8 {
-            return None;
-        }
-        let simd = _mm_loadu_si128(reader.as_ptr() as *const __m128i);
-        *reader = &reader[8..];
-        Some(RansSimdDec(simd))
+    if reader.len() < 8 {
+        return None;
     }
+    // SAFETY: `reader.as_ptr()` is a valid `*const u16` with >= 8 elements
+    // (length-checked above); the unaligned 16-byte load is in bounds.
+    let simd = unsafe { _mm_loadu_si128(reader.as_ptr() as *const __m128i) };
+    *reader = &reader[8..];
+    Some(RansSimdDec(simd))
 }
 
 /// Decode 4 symbols in parallel using the alias tables.
 ///
+/// # Purpose
+///
+/// Core 4-lane step of the SSE4.1 8-way decoder: computes the 4 slot
+/// indices, gathers the packed (freq, bias) entries and symbols from the
+/// table, and advances all 4 rANS states.  Returns the 4 symbols packed
+/// into one u32.
+///
+/// # Why this is locally feature-gated
+///
+/// The function uses SSE4.1 intrinsics (`_mm_extract_epi32`,
+/// `_mm_insert_epi32`, `_mm_mullo_epi32`).  It carries its own
+/// `#[target_feature(enable = "sse4.1")]` so it does not depend on the
+/// caller's target-feature context (Phase L.10 quarantine).  SSSE3 is not
+/// needed here — the minimum correct set is SSE4.1 only.
+///
 /// # Safety
 ///
-/// - Requires SSE4.1 + SSSE3 target features.
-/// - `tables` must have at least `RANS_WORD_M` entries.
+/// - **CPU feature invariant**: SSE4.1 must be available at runtime (checked
+///   by the `_checked` wrapper / `decode_simd_8way` compile-time gate).
+/// - **Bounds invariant**: `tables.slots` and `tables.slot2sym` must have at
+///   least `RANS_WORD_M` (4096) entries.  Every slot index is masked to
+///   `x & 4095` before indexing, so no out-of-bounds access is possible.
+/// - **Pointer provenance**: table slices are ordinary Rust slices; the
+///   gather is scalar (`tables.slots[i]`), not a vector gather, so no raw
+///   pointer arithmetic is performed.
+/// - **Alignment invariant**: none beyond slice element alignment (the
+///   intrinsics operate on registers only).
+/// - **Malformed input**: a table shorter than 4096 entries is a
+///   programming error (construction is validated by
+///   `PackedWordTable::from_freqs` / `build_word_tables`), never reachable
+///   from untrusted input through the public API.
+/// - **Callers**: `simd_decode_inner`.
+/// - **Proof**: parity test vs `decode_8way_scalar`; court
+///   `RYG_RANS.L.SSE41.UNSAFE_QUARANTINE`.
 #[inline]
+#[target_feature(enable = "sse4.1")]
 pub unsafe fn rans_simd_dec_sym_unchecked(state: &mut RansSimdDec, tables: &RansWordTables) -> u32 {
-    unsafe {
-        let x = state.0;
+    let x = state.0;
 
-        let slots = _mm_and_si128(x, _mm_set1_epi32((RANS_WORD_M - 1) as i32));
-        let i0 = _mm_cvtsi128_si32(slots) as usize;
-        let i1 = _mm_extract_epi32(slots, 1) as usize;
-        let i2 = _mm_extract_epi32(slots, 2) as usize;
-        let i3 = _mm_extract_epi32(slots, 3) as usize;
+    let slots = _mm_and_si128(x, _mm_set1_epi32((RANS_WORD_M - 1) as i32));
+    let i0 = _mm_cvtsi128_si32(slots) as usize;
+    let i1 = _mm_extract_epi32(slots, 1) as usize;
+    let i2 = _mm_extract_epi32(slots, 2) as usize;
+    let i3 = _mm_extract_epi32(slots, 3) as usize;
 
-        let s = (tables.slot2sym[i0] as u32)
-            | ((tables.slot2sym[i1] as u32) << 8)
-            | ((tables.slot2sym[i2] as u32) << 16)
-            | ((tables.slot2sym[i3] as u32) << 24);
+    let s = (tables.slot2sym[i0] as u32)
+        | ((tables.slot2sym[i1] as u32) << 8)
+        | ((tables.slot2sym[i2] as u32) << 16)
+        | ((tables.slot2sym[i3] as u32) << 24);
 
-        let fb0 = tables.slots[i0].pack();
-        let fb1 = tables.slots[i1].pack();
-        let fb2 = tables.slots[i2].pack();
-        let fb3 = tables.slots[i3].pack();
+    let fb0 = tables.slots[i0].pack();
+    let fb1 = tables.slots[i1].pack();
+    let fb2 = tables.slots[i2].pack();
+    let fb3 = tables.slots[i3].pack();
 
-        let freq_bias_lo = _mm_cvtsi32_si128(fb0 as i32);
-        let freq_bias_lo = _mm_insert_epi32(freq_bias_lo, fb1 as i32, 1);
-        let freq_bias_hi = _mm_cvtsi32_si128(fb2 as i32);
-        let freq_bias_hi = _mm_insert_epi32(freq_bias_hi, fb3 as i32, 1);
-        let freq_bias = _mm_unpacklo_epi64(freq_bias_lo, freq_bias_hi);
+    let freq_bias_lo = _mm_cvtsi32_si128(fb0 as i32);
+    let freq_bias_lo = _mm_insert_epi32(freq_bias_lo, fb1 as i32, 1);
+    let freq_bias_hi = _mm_cvtsi32_si128(fb2 as i32);
+    let freq_bias_hi = _mm_insert_epi32(freq_bias_hi, fb3 as i32, 1);
+    let freq_bias = _mm_unpacklo_epi64(freq_bias_lo, freq_bias_hi);
 
-        let xscaled = _mm_srli_epi32(x, RANS_WORD_SCALE_BITS as i32);
-        let freq = _mm_and_si128(freq_bias, _mm_set1_epi32(0xffff));
-        let bias = _mm_srli_epi32(freq_bias, 16);
-        state.0 = _mm_add_epi32(_mm_mullo_epi32(xscaled, freq), bias);
+    let xscaled = _mm_srli_epi32(x, RANS_WORD_SCALE_BITS as i32);
+    let freq = _mm_and_si128(freq_bias, _mm_set1_epi32(0xffff));
+    let bias = _mm_srli_epi32(freq_bias, 16);
+    state.0 = _mm_add_epi32(_mm_mullo_epi32(xscaled, freq), bias);
 
-        s
-    }
+    s
 }
 
 /// Renormalize 4 SIMD lanes using scratch buffer to avoid over-read.
 ///
+/// # Purpose
+///
+/// Implements the rANS renormalisation (shift a lane by 16 bits and OR in
+/// the next compressed u16) for the lanes flagged by the unsigned-less-than
+/// comparison.  The words are first copied into a fixed 4-word scratch
+/// buffer so the variable-count load never over-reads the stream.
+///
+/// # Why signed-compare bias
+///
+/// SSE has no unsigned 32-bit compare before AVX-512.  XORing each state
+/// with `i32::MIN` maps the unsigned domain onto the signed domain
+/// order-preservingly, so the SSE2 signed `_mm_cmpgt_epi32` implements
+/// `state < RANS_WORD_L` exactly.
+///
+/// # Why the shuffle masks are aligned
+///
+/// `_mm_load_si128` is an **aligned** load (`movdqa`); `SHUFFLE_MASKS` is a
+/// `#[repr(align(16))]` static so the load address is always 16-byte
+/// aligned (alignment invariant).
+///
 /// # Safety
 ///
-/// - Requires SSE4.1 + SSSE3 + SSE2 target features.
-/// - `reader` must have at least `words_needed` elements (checked dynamically).
+/// - **CPU feature invariant**: requires SSSE3 (`_mm_shuffle_epi8`) and
+///   SSE4.1 (`_mm_blendv_epi8`); enforced locally by the attribute.
+/// - **Bounds invariant**: `reader` must have at least `words_needed` u16
+///   elements; the function checks `reader.len() < words_needed` and
+///   returns `None` (malformed-input behavior, no over-read).
+/// - **Pointer provenance**: `reader.as_ptr()` is used only through the
+///   length-checked `copy_from_slice` into a stack scratch; the aligned
+///   load reads `SHUFFLE_MASKS` (a `'static`), never caller memory.
+/// - **Alignment invariant**: `SHUFFLE_MASKS` is `#[repr(align(16))]`; the
+///   scratch is a `[u16; 4]` stack array, loaded with the unaligned
+///   `_mm_loadl_epi64`.
+/// - **Callers**: `simd_decode_inner`.
+/// - **Proof**: `mask_tests.rs` exhaustive 4-bit mask tests; court
+///   `RYG_RANS.L.SSE41.UNSAFE_QUARANTINE`.
 #[inline]
+#[target_feature(enable = "ssse3,sse4.1")]
 pub unsafe fn rans_simd_dec_renorm_unchecked(
     state: &mut RansSimdDec,
     reader: &mut &[u16],
 ) -> Option<()> {
-    unsafe {
-        let x = state.0;
+    let x = state.0;
 
-        let x_biased = _mm_xor_si128(x, _mm_set1_epi32(i32::MIN));
-        let threshold = _mm_set1_epi32((RANS_WORD_L as i32).wrapping_add(i32::MIN));
-        let greater = _mm_cmpgt_epi32(threshold, x_biased);
-        let mask = _mm_movemask_ps(_mm_castsi128_ps(greater)) as usize;
-        let words_needed = NUM_WORDS[mask] as usize;
+    let x_biased = _mm_xor_si128(x, _mm_set1_epi32(i32::MIN));
+    let threshold = _mm_set1_epi32((RANS_WORD_L as i32).wrapping_add(i32::MIN));
+    let greater = _mm_cmpgt_epi32(threshold, x_biased);
+    let mask = _mm_movemask_ps(_mm_castsi128_ps(greater)) as usize;
+    let words_needed = NUM_WORDS[mask] as usize;
 
-        if words_needed == 0 {
-            return Some(());
-        }
-        if reader.len() < words_needed {
-            return None;
-        }
-
-        // Copy only needed words into a scratch buffer to avoid over-read
-        let mut scratch = [0u16; 4];
-        scratch[..words_needed].copy_from_slice(&reader[..words_needed]);
-
-        let memvals = _mm_loadl_epi64(scratch.as_ptr().cast());
-        let xshifted = _mm_slli_epi32(x, 16);
-
-        let shufbase = &SHUFFLE_MASKS.0[mask * 16] as *const i8 as *const __m128i;
-        let shufmask = _mm_load_si128(shufbase); // aligned load on repr(align(16)) static
-        let newx = _mm_or_si128(xshifted, _mm_shuffle_epi8(memvals, shufmask));
-        state.0 = _mm_blendv_epi8(x, newx, greater);
-
-        *reader = &reader[words_needed..];
-        Some(())
+    if words_needed == 0 {
+        return Some(());
     }
+    if reader.len() < words_needed {
+        return None;
+    }
+
+    // Copy only needed words into a scratch buffer to avoid over-read
+    let mut scratch = [0u16; 4];
+    scratch[..words_needed].copy_from_slice(&reader[..words_needed]);
+
+    // SAFETY: `scratch` is a 4-element in-bounds stack array; the 8-byte
+    // load is unaligned and reads only the words copied above.
+    let memvals = unsafe { _mm_loadl_epi64(scratch.as_ptr().cast()) };
+    let xshifted = _mm_slli_epi32(x, 16);
+
+    // SAFETY: `SHUFFLE_MASKS` is a `#[repr(align(16))]` static, so the
+    // aligned 16-byte load is always in-bounds and aligned.
+    let shufbase = &SHUFFLE_MASKS.0[mask * 16] as *const i8 as *const __m128i;
+    let shufmask = unsafe { _mm_load_si128(shufbase) };
+    let newx = _mm_or_si128(xshifted, _mm_shuffle_epi8(memvals, shufmask));
+    state.0 = _mm_blendv_epi8(x, newx, greater);
+
+    *reader = &reader[words_needed..];
+    Some(())
 }
 
 // ---------------------------------------------------------------------------
