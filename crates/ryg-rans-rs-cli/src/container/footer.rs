@@ -2,7 +2,6 @@
 
 use crate::container::FOOTER_SIZE;
 use crate::error::{AppError, FormatError, IntegrityError};
-use sha2::{Digest, Sha256};
 
 /// Container footer — 104 bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]

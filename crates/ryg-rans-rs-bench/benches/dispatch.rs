@@ -3,7 +3,7 @@
 //! Tier 8 benchmarks measuring the cost of runtime CPU detection,
 //! decode-plan construction, model classification, and safe wrapper dispatch.
 
-use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use std::time::Duration;
 
 use ryg_rans_rs_bench::common::corpus::{Corpus, ModelProfile};

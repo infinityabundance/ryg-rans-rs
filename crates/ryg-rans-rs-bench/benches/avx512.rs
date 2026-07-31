@@ -4,10 +4,8 @@
 //! Every backend is verified against scalar before timing.
 
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
-use std::vec::Vec;
 
 use ryg_rans_rs_bench::common::corpus::{Corpus, ModelProfile};
-use ryg_rans_rs_bench::common::verification;
 
 fn avx512vl_available() -> bool {
     ryg_rans_rs_simd::backends::avx512vl_available_checked()
@@ -130,7 +128,7 @@ fn bench_avx512_16way(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_avx512vl_2x8(c: &mut Criterion) {
+fn bench_avx512vl_2x8(_c: &mut Criterion) {
     if !avx512vl_available() {
         eprintln!("UNSUPPORTED: avx512vl-2x8-on16");
         return;
@@ -140,7 +138,7 @@ fn bench_avx512vl_2x8(c: &mut Criterion) {
     let encoded = corpus.encode_16way();
 
     // Scalar reference
-    let (ref_out, ref_report) = ryg_rans_rs_simd::packed_table::decode_interleaved16_scalar(
+    let (ref_out, _ref_report) = ryg_rans_rs_simd::packed_table::decode_interleaved16_scalar(
         &encoded,
         &table,
         corpus.data.len(),
@@ -169,6 +167,9 @@ fn bench_avx512vl_2x8(c: &mut Criterion) {
     // Verify AVX512VL 2x8 (only if compiled with avx512bw)
     #[cfg(target_feature = "avx512bw")]
     {
+        // The criterion handle is only used in this cfg-gated section; bind
+        // it here so the default build has no unused-parameter warning.
+        let c = _c;
         unsafe {
             let mut verify_out = vec![0u8; corpus.data.len()];
             let report = ryg_rans_rs_simd::avx512::decode_interleaved16_2x8_into(
@@ -184,7 +185,7 @@ fn bench_avx512vl_2x8(c: &mut Criterion) {
         let mut group = c.benchmark_group("avx512/avx512vl-2x8-on16/into/SKEWED_255_1/1MiB");
         group.throughput(Throughput::Bytes(corpus.data.len() as u64));
         group.bench_function("avx512vl-2x8", |b| {
-            let mut output = vec![0u8; corpus.data.len()];
+            let output = vec![0u8; corpus.data.len()];
             b.iter_batched(
                 || output.clone(),
                 |mut out| unsafe {

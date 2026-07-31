@@ -530,7 +530,7 @@ fn walk_dir(
             if path.to_string_lossy().contains("/change/") {
                 continue;
             }
-            let mut record = parse_estimate_file(&path, root, metadata, runtime_features)?;
+            let record = parse_estimate_file(&path, root, metadata, runtime_features)?;
 
             // Validate and push if valid
             if let Some(ref rec) = record {
@@ -976,7 +976,7 @@ mod tests {
 
     #[test]
     fn test_sort_deterministic() {
-        use std::collections::BTreeMap;
+        
 
         let make_rec = |id: &str, median: f64| BenchRecord {
             benchmark_id: id.to_string(),

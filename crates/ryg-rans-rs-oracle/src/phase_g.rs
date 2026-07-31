@@ -7,10 +7,8 @@
 //! These courts generate the behavioral evidence receipts for the
 //! 16 new AVX512 surfaces (8 for AVX512VL8, 8 for AVX512.INTERLEAVED16).
 
-use ryg_rans_rs_casefile as casefile;
 use ryg_rans_rs_simd::backends::{
-    DecodeBackend, DecodeResult, decode_interleaved8_avx512vl, decode_interleaved8_scalar,
-    decode_interleaved16_avx512, decode_interleaved16_scalar,
+    DecodeBackend, decode_interleaved8_avx512vl, decode_interleaved16_avx512,
 };
 use ryg_rans_rs_simd::packed_table::{
     PackedWordTable, decode_8way_packed_scalar, decode_interleaved16_scalar as scalar16_ref,
@@ -19,7 +17,6 @@ use ryg_rans_rs_simd::packed_table::{
 use ryg_rans_rs_simd::{RANS_WORD_SCALE_BITS, encode_8way_for_test};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
 
 use crate::ModelProfile;
 
@@ -255,7 +252,7 @@ pub fn run_avx512vl8_court(
         let (c_comp_hex, c_comp, c_enc_ok) =
             match c_encode(oracle_path, c_enc_op, scale_bits, &freq_csv, &input_hex) {
                 Ok((hex, bytes)) => (hex, bytes, true),
-                Err(e) => (String::new(), Vec::new(), false),
+                Err(_e) => (String::new(), Vec::new(), false),
             };
 
         // C self-decode
@@ -656,22 +653,29 @@ pub fn run_avx512_16_court(
         };
 
         // Rust 2x8 self-decode (optimization backend verification)
-        let mut twx8_self_decode = false;
-        let mut twx8_scalar_agree = false;
+        // The `mut` bindings are only needed when the kernel is compiled in;
+        // under a portable build they are constants, so the mutability is
+        // cfg-split to avoid an unused-mut warning.
+        #[cfg(target_feature = "avx512bw")]
+        let (mut twx8_self_decode, mut twx8_scalar_agree) = (false, false);
+        #[cfg(not(target_feature = "avx512bw"))]
+        let (twx8_self_decode, twx8_scalar_agree) = (false, false);
         if avx512_avail {
-            unsafe {
-                #[cfg(any(target_feature = "avx512bw", feature = "std"))]
-                if let Ok(result) = ryg_rans_rs_simd::avx512::decode_interleaved16_2x8_kernel(
+            #[cfg(target_feature = "avx512bw")]
+            // SAFETY: `avx512_avail` (runtime AVX512F+VL+BW) was verified above;
+            // the kernel body is compiled because `target_feature = avx512bw`.
+            if let Ok(result) = unsafe {
+                ryg_rans_rs_simd::avx512::decode_interleaved16_2x8_kernel(
                     &rust_words,
                     &packed,
                     input.len(),
-                ) {
-                    twx8_self_decode = result.0 == input;
-                    twx8_scalar_agree = scalar_result
-                        .as_ref()
-                        .map(|(d, _)| d == &result.0)
-                        .unwrap_or(false);
-                }
+                )
+            } {
+                twx8_self_decode = result.0 == input;
+                twx8_scalar_agree = scalar_result
+                    .as_ref()
+                    .map(|(d, _)| d == &result.0)
+                    .unwrap_or(false);
             }
         }
 

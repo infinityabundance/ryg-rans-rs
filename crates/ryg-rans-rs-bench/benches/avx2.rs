@@ -10,9 +10,7 @@
 //! Every backend is verified against its scalar reference before timing.
 
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
-use ryg_rans_rs_simd::avx2::Avx2DecodeJob;
-use ryg_rans_rs_simd::avx2_renorm::{Avx2RenormPermutations, build_avx2_renorm_table};
-use std::vec::Vec;
+use ryg_rans_rs_simd::avx2_renorm::build_avx2_renorm_table;
 
 use ryg_rans_rs_bench::common::corpus::{Corpus, ModelProfile};
 use ryg_rans_rs_bench::common::verification;
@@ -82,7 +80,7 @@ fn bench_avx2_2x8(c: &mut Criterion) {
             group.throughput(Throughput::Bytes(corpus.data.len() as u64));
 
             group.bench_function("iter", |b| {
-                let mut output = vec![0u8; corpus.data.len()];
+                let output = vec![0u8; corpus.data.len()];
                 b.iter_batched(
                     || output.clone(),
                     |mut out| unsafe {
@@ -145,7 +143,7 @@ fn bench_avx2_uniform256(c: &mut Criterion) {
     let mut group = c.benchmark_group("avx2/avx2-uniform256-tablefree-16way/into/UNIFORM256/1MiB");
     group.throughput(Throughput::Bytes(corpus.data.len() as u64));
     group.bench_function("avx2-uniform256", |b| {
-        let mut output = vec![0u8; corpus.data.len()];
+        let output = vec![0u8; corpus.data.len()];
         b.iter_batched(
             || output.clone(),
             |mut out| unsafe {
@@ -216,7 +214,7 @@ fn bench_avx2_manual_gather(c: &mut Criterion) {
     let mut group = c.benchmark_group("avx2/avx2-manual-gather-8way/into/SKEWED_255_1/64KiB");
     group.throughput(Throughput::Bytes(corpus.data.len() as u64));
     group.bench_function("avx2-manual-gather", |b| {
-        let mut output = vec![0u8; corpus.data.len()];
+        let output = vec![0u8; corpus.data.len()];
         b.iter_batched(
             || output.clone(),
             |mut out| unsafe {
@@ -286,7 +284,7 @@ fn bench_avx2_hardware_gather(c: &mut Criterion) {
     let mut group = c.benchmark_group("avx2/avx2-hardware-gather-8way/into/SKEWED_255_1/64KiB");
     group.throughput(Throughput::Bytes(corpus.data.len() as u64));
     group.bench_function("avx2-hw-gather", |b| {
-        let mut output = vec![0u8; corpus.data.len()];
+        let output = vec![0u8; corpus.data.len()];
         b.iter_batched(
             || output.clone(),
             |mut out| unsafe {

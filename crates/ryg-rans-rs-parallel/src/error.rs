@@ -173,16 +173,29 @@ pub struct BlockError {
 ///    A corrupted payload should be reported before attempting decode.
 /// 4. `Model` — Frequency model validation failed.
 ///    An invalid model makes decode impossible.
-/// 5. `Codec` — Codec execution failed (encode or decode inner loop).
+/// 5. `BackendFormatMismatch` — The requested backend is incompatible with
+///    the block's format (e.g. an 8-way backend on a codec-8 16-way block,
+///    or a RAW/RLE backend on a RANS block).  Detected at planning time,
+///    before any execution.  Outranks `Codec` because the combination is
+///    structurally invalid, not merely a decode failure.
+/// 6. `BackendUnavailable` — The requested backend exists but cannot execute
+///    here: the CPU lacks the required instruction set at runtime, or the
+///    build was not compiled with the required target features, or an
+///    explicit SIMD request was combined with `disable_simd`.  Never
+///    silently substituted — the caller gets a typed error instead.
+/// 7. `BackendRequiresBatchContext` — The requested batch backend needs
+///    coordinator-level grouping of four compatible jobs.  The one-block
+///    API cannot execute it, so the plan is rejected at planning time.
+/// 8. `Codec` — Codec execution failed (encode or decode inner loop).
 ///    A genuine algorithmic failure.
-/// 6. `DecodedHashMissing` — Stored decoded hash is zero/unset under Strict.
+/// 9. `DecodedHashMissing` — Stored decoded hash is zero/unset under Strict.
 ///    The decode completed but the stored hash cannot verify it.
-/// 7. `DecodedHashMismatch` — Stored nonzero decoded hash does not match
+/// 10. `DecodedHashMismatch` — Stored nonzero decoded hash does not match
 ///    the recomputed hash.  The decode completed but produced wrong output
 ///    (e.g. model corruption that payload hashing cannot catch).
-/// 8. `WorkerPanic` — The worker thread panicked.  Lowest priority
+/// 11. `WorkerPanic` — The worker thread panicked.  Lowest priority
 ///    because the panic may be a consequence of a preceding error.
-/// 9. `OutputCommit` — Failed to commit output (reorder buffer).
+/// 12. `OutputCommit` — Failed to commit output (reorder buffer).
 ///    Usually a secondary consequence of another failure.
 ///
 /// # Determinism guarantee
@@ -201,6 +214,12 @@ pub enum BlockErrorKind {
     PayloadHash,
     /// Frequency model validation failure.
     Model,
+    /// Requested backend is incompatible with the block format.
+    BackendFormatMismatch,
+    /// Requested backend cannot execute on this CPU or in this build.
+    BackendUnavailable,
+    /// Requested batch backend requires coordinator-level batch context.
+    BackendRequiresBatchContext,
     /// Codec execution failure (encode or decode).
     Codec,
     /// Stored decoded hash is zero/unset — cannot verify under Strict policy.

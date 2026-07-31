@@ -29,31 +29,6 @@ fn uniform256_table() -> PackedWordTable {
     PackedWordTable::from_freqs(&freqs, &cum, 12).expect("uniform256 table")
 }
 
-/// Build a skewed frequency model for testing general 16-way decode.
-fn skewed_table() -> PackedWordTable {
-    let mut freqs = [0u32; 256];
-    let mut remaining = 4096u32;
-    for i in 0usize..10 {
-        let f = remaining / (10 - i as u32);
-        freqs[i] = f;
-        remaining -= f;
-    }
-    for i in 10usize..256 {
-        if remaining > 0 {
-            freqs[i] = 1;
-            remaining -= 1;
-        }
-    }
-    if remaining > 0 {
-        freqs[255] += remaining;
-    }
-    let mut cum = [0u32; 257];
-    for i in 0..256 {
-        cum[i + 1] = cum[i] + freqs[i];
-    }
-    PackedWordTable::from_freqs(&freqs, &cum, 12).expect("skewed table")
-}
-
 /// Encode data with the canonical 16-way encoder.
 fn encode_16way(data: &[u8], freqs: &[u32], cum: &[u32]) -> Vec<u16> {
     use crate::packed_table::encode_interleaved16;

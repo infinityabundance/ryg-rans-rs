@@ -11,7 +11,6 @@ pub use ryg_rans_rs_core::{DecodeError, EncodeError, ModelError};
 
 use std::fmt;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 // ---------------------------------------------------------------------------
 // AppError — top-level error enum

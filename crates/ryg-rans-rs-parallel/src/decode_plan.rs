@@ -3,47 +3,84 @@
 //! A worker receives a prevalidated immutable plan.  It must not repeat
 //! expensive model classification inside the hot loop.
 //!
-//! Supported inner execution plans: RawCopy, RleFill, Scalar8, Scalar16,
-//! Avx512Vl2x8, Avx512Batch4, Uniform256TableFree16.
+//! ## Exact-backend doctrine (Phase L.9)
 //!
-//! ## Backend selection logic
+//! An **explicit** backend request is never rewritten to a different backend
+//! during planning.  Every explicit request either produces a real plan for
+//! the requested backend, or a typed [`BlockError`] explaining why it cannot
+//! (`BackendFormatMismatch`, `BackendUnavailable`,
+//! `BackendRequiresBatchContext`).  There is no silent scalar substitution.
 //!
-//! 1. **Uniform256 model**: all 256 normalised frequencies equal 16 when
-//!    scale_bits = 12 and total = 4096.  This enables the table-free
-//!    sixteen-way kernel where `output = slot / 16` and
-//!    `next_state = 16 * (x >> 12) + (slot & 15)`.
+//! Format compatibility is validated **before** execution:
 //!
-//! 2. **Skewed model (AVX-512)**: if `codec_id == 8` and AVX-512VL is
-//!    available, the 2×8 kernel may be selected for general skewed models.
+//! ```text
+//! 8-way backend   ↔ codec 7  (canonical 8-way stream)
+//! 16-way backend  ↔ codec 8  (canonical 16-way stream)
+//! Uniform256      ↔ validated Uniform256 model (all freqs == 16, scale 12)
+//! Batch backend   ↔ coordinator batch context (NOT available via one-block API)
+//! RAW backend     ↔ RAW block kind
+//! RLE backend     ↔ RLE block kind
+//! ```
 //!
-//! 3. **General model**: use scalar 16-way as the portable fallback.
-//!    This is the safest, most tested path.
+//! Invalid combinations return a typed error at planning time.  The planner
+//! is the single source of truth for these checks — the executor never
+//! re-derives them.
 //!
-//! 4. **8-way**: for `codec_id == 7`, use scalar 8-way.
+//! ## Backend selection logic (non-explicit policies)
 //!
-//! The planner must be created from validated block metadata.  No expensive
-//! model classification happens inside the hot decode loop.
+//! 1. **Portable / ScalarPreferred / Auto**: conservative scalar dispatch.
+//!    `Scalar8` for codec 7, `Scalar16` for codec 8.  No runtime SIMD
+//!    selection until multi-machine benchmarks establish crossover points.
+//!
+//! 2. **ModelAware**: as `Auto`, but a validated Uniform256 model (all 256
+//!    normalised frequencies equal 16 at scale_bits = 12) selects the real
+//!    table-free scalar kernel `Uniform256TableFree16`, where
+//!    `symbol = slot >> 4` and `next_state = 16 * (x >> 12) + (slot & 15)`.
+//!    This is a distinct, executable plan — not a rename of `Scalar16`.
+//!
+//! 3. **Explicit(backend)**: exact request, validated for format
+//!    compatibility, never rewritten.  Execution capability (CPU features,
+//!    compiled target features) is checked at execution time and reported as
+//!    `BackendUnavailable` if absent.
+//!
+//! ## `disable_simd` semantics
+//!
+//! `disable_simd` forces scalar plans for every non-explicit policy and makes
+//! an explicit SIMD request a typed config conflict (`BackendUnavailable`).
+//! `Uniform256TableFree16` is scalar arithmetic (no vector instructions) and
+//! is therefore not treated as SIMD by this control.
 
+use crate::block::{
+    BLOCK_KIND_RAW, BLOCK_KIND_RLE, CODEC_WORD_INTERLEAVED8, CODEC_WORD_INTERLEAVED16,
+};
 use crate::cache::ModelCacheKey;
 use crate::config::BackendId;
+use crate::error::{BlockError, BlockErrorKind};
 
 /// A validated, immutable decode plan for one block.
-#[derive(Clone)]
+///
+/// The plan records **intent** — which backend was selected.  The executor
+/// reports what actually ran separately (see `ExecutedDecode`).
+#[derive(Clone, Debug)]
 pub enum DecodePlan {
-    /// Raw copy — no decoding needed.
-    RawCopy,
-    /// RLE fill — repeat a single symbol.
-    RleFill { symbol: u8, count: usize },
     /// Scalar 8-way Word rANS (codec_id = 7).
     Scalar8 { scale_bits: u8 },
     /// Scalar 16-way Word rANS (codec_id = 8).
     Scalar16 { scale_bits: u8, is_uniform256: bool },
-    /// Table-free 16-way uniform decode (slot/16 arithmetic).
+    /// Table-free 16-way uniform decode (slot/16 arithmetic, scalar).
     Uniform256TableFree16 { scale_bits: u8 },
+    /// SSE4.1 interleaved 8-way decode.
+    Sse41Interleaved8 { scale_bits: u8 },
+    /// AVX-512VL (256-bit) interleaved 8-way decode.
+    Avx512VlInterleaved8 { scale_bits: u8 },
+    /// AVX-512 (512-bit) interleaved 16-way decode.
+    Avx512Interleaved16 { scale_bits: u8 },
+    /// AVX-512VL manual-gather 8-way decode.
+    Avx512VlManualGather8 { scale_bits: u8 },
+    /// AVX-512 manual-gather 16-way decode.
+    Avx512ManualGather16 { scale_bits: u8 },
     /// AVX-512VL 2×8-on-16-way decode.
     Avx512Vl2x8 { scale_bits: u8 },
-    /// AVX-512 batch-4 decode.
-    Avx512Batch4 { scale_bits: u8 },
     /// AVX2 manual-gather 8-way decode.
     Avx2ManualGather8 { scale_bits: u8 },
     /// AVX2 hardware-gather 8-way decode.
@@ -52,27 +89,77 @@ pub enum DecodePlan {
     Avx2TwoBy8On16 { scale_bits: u8 },
     /// AVX2 Uniform256 table-free 16-way decode.
     Avx2Uniform256TableFree16 { scale_bits: u8 },
-    /// AVX2 batch-four 16-way decode.
-    Avx2Batch4On16 { scale_bits: u8 },
 }
 
 impl DecodePlan {
+    /// The `BackendId` this plan *intends* to execute.
+    ///
+    /// This is the selected-plan identity.  It may differ from the executed
+    /// identity only when execution failed; on success they are equal
+    /// (Phase L.9 forbids silent backend substitution).
     pub fn backend_id(&self) -> BackendId {
         match self {
-            Self::RawCopy => BackendId::RawCopy,
-            Self::RleFill { .. } => BackendId::RleFill,
             Self::Scalar8 { .. } => BackendId::Scalar8,
             Self::Scalar16 { .. } => BackendId::Scalar16,
             Self::Uniform256TableFree16 { .. } => BackendId::Uniform256TableFree16,
+            Self::Sse41Interleaved8 { .. } => BackendId::Sse41Interleaved8,
+            Self::Avx512VlInterleaved8 { .. } => BackendId::Avx512VlInterleaved8,
+            Self::Avx512Interleaved16 { .. } => BackendId::Avx512Interleaved16,
+            Self::Avx512VlManualGather8 { .. } => BackendId::Avx512VlManualGather8,
+            Self::Avx512ManualGather16 { .. } => BackendId::Avx512ManualGather16,
             Self::Avx512Vl2x8 { .. } => BackendId::Avx512Vl2x8,
-            Self::Avx512Batch4 { .. } => BackendId::Avx512Batch4,
             Self::Avx2ManualGather8 { .. } => BackendId::Avx2ManualGather8,
             Self::Avx2HardwareGather8 { .. } => BackendId::Avx2HardwareGather8,
             Self::Avx2TwoBy8On16 { .. } => BackendId::Avx2TwoBy8On16,
             Self::Avx2Uniform256TableFree16 { .. } => BackendId::Avx2Uniform256TableFree16,
-            Self::Avx2Batch4On16 { .. } => BackendId::Avx2Batch4On16,
         }
     }
+}
+
+/// Whether a backend operates on the 8-way (codec 7) or 16-way (codec 8)
+/// stream format.  `None` for backends that are not RANS-width bound
+/// (RAW, RLE, batch).
+fn backend_width(backend: BackendId) -> Option<BackendWidth> {
+    Some(match backend {
+        BackendId::Scalar8
+        | BackendId::Sse41Interleaved8
+        | BackendId::Avx512VlInterleaved8
+        | BackendId::Avx512VlManualGather8
+        | BackendId::Avx2ManualGather8
+        | BackendId::Avx2HardwareGather8 => BackendWidth::Eight,
+        BackendId::Scalar16
+        | BackendId::Avx512Interleaved16
+        | BackendId::Avx512ManualGather16
+        | BackendId::Avx512Vl2x8
+        | BackendId::Uniform256TableFree16
+        | BackendId::Avx2TwoBy8On16
+        | BackendId::Avx2Uniform256TableFree16 => BackendWidth::Sixteen,
+        BackendId::RawCopy
+        | BackendId::RleFill
+        | BackendId::Avx512Batch4
+        | BackendId::Avx2Batch4On16 => return None,
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BackendWidth {
+    Eight,
+    Sixteen,
+}
+
+/// True if the backend executes SIMD (vector) instructions.
+///
+/// `Uniform256TableFree16` is scalar arithmetic — `symbol = slot >> 4` — and
+/// therefore is not SIMD for the purposes of the `disable_simd` control.
+fn is_simd_backend(backend: BackendId) -> bool {
+    !matches!(
+        backend,
+        BackendId::Scalar8
+            | BackendId::Scalar16
+            | BackendId::RawCopy
+            | BackendId::RleFill
+            | BackendId::Uniform256TableFree16
+    )
 }
 
 /// Check whether a frequency model represents the uniform-256 distribution.
@@ -96,152 +183,202 @@ fn is_uniform256_model(model_data: &[u8], scale_bits: u8) -> bool {
     true
 }
 
-/// Create a decode plan from block metadata and runtime capabilities.
+/// Validate format compatibility between a requested backend and a block.
 ///
-/// This function inspects the actual model frequencies and CPU feature flags
-/// to select the best available backend.  The plan is deterministic given
-/// fixed inputs — it depends only on the model data, codec ID, and policy.
+/// Phase L.9 compatibility matrix:
+///
+/// ```text
+/// 8-way backend   ↔ codec 7
+/// 16-way backend  ↔ codec 8
+/// Uniform256      ↔ validated Uniform256 model
+/// Batch backend   ↔ coordinator batch context (rejected for one-block API)
+/// RAW backend     ↔ RAW block kind
+/// RLE backend     ↔ RLE block kind
+/// ```
+///
+/// Any violation returns a typed `BlockError`; no plan is produced.
+fn validate_backend_format(
+    backend: BackendId,
+    codec_id: u16,
+    block_kind: u8,
+    uniform256: bool,
+    bi: u64,
+) -> Result<(), BlockError> {
+    let mismatch = || BlockError {
+        block_index: bi,
+        kind: BlockErrorKind::BackendFormatMismatch,
+    };
+    match backend {
+        BackendId::RawCopy => {
+            return if block_kind == BLOCK_KIND_RAW {
+                Ok(())
+            } else {
+                Err(mismatch())
+            };
+        }
+        BackendId::RleFill => {
+            return if block_kind == BLOCK_KIND_RLE {
+                Ok(())
+            } else {
+                Err(mismatch())
+            };
+        }
+        // Batch backends need coordinator-level grouping of four compatible
+        // jobs.  The one-block plan API cannot execute them; reject at
+        // planning time so no unexecutable plan is ever selected.
+        BackendId::Avx512Batch4 | BackendId::Avx2Batch4On16 => {
+            return Err(BlockError {
+                block_index: bi,
+                kind: BlockErrorKind::BackendRequiresBatchContext,
+            });
+        }
+        _ => {}
+    }
+    let expected = match backend_width(backend) {
+        Some(BackendWidth::Eight) => CODEC_WORD_INTERLEAVED8,
+        Some(BackendWidth::Sixteen) => CODEC_WORD_INTERLEAVED16,
+        None => return Err(mismatch()),
+    };
+    if codec_id != expected {
+        return Err(mismatch());
+    }
+    // Uniform256 backends additionally require a validated Uniform256 model.
+    if matches!(
+        backend,
+        BackendId::Uniform256TableFree16 | BackendId::Avx2Uniform256TableFree16
+    ) && !uniform256
+    {
+        return Err(mismatch());
+    }
+    Ok(())
+}
+
+/// Create a decode plan from block metadata.
+///
+/// The planner is **capability-agnostic**: it does not inspect runtime CPU
+/// features or compile-time target features.  Non-explicit policies select
+/// scalar plans only (portable on every host); explicit policies produce the
+/// requested plan or a typed error.  Whether a requested SIMD backend can
+/// actually execute is checked at execution time (`execute_decode_plan`),
+/// which reports `BackendUnavailable` when the CPU or build cannot run it.
+///
+/// # Errors
+///
+/// Returns a typed [`BlockError`] at planning time for:
+///
+/// * `BackendFormatMismatch` — explicit backend incompatible with the block
+///   format (width vs codec, Uniform256 model requirement, RAW/RLE kind).
+/// * `BackendUnavailable` — explicit SIMD request combined with
+///   `disable_simd`.
+/// * `BackendRequiresBatchContext` — explicit batch backend via the one-block
+///   plan API.
+///
+/// The plan is deterministic given fixed inputs — it depends only on the
+/// model data, codec ID, block kind, and policy.
 pub fn create_decode_plan(
     codec_id: u16,
     scale_bits: u8,
     model_data: &[u8],
     backend_policy: crate::config::BackendPolicy,
-    cpu_has_avx512: bool,
-    cpu_has_avx512vl: bool,
-    cpu_has_avx2: bool,
     disable_simd: bool,
-) -> DecodePlan {
+    block_kind: u8,
+    bi: u64,
+) -> Result<DecodePlan, BlockError> {
     // Determine if the model is uniform256
     let uniform256 = is_uniform256_model(model_data, scale_bits);
 
-    // disable_simd: a diagnostic safety control.  It forces scalar
-    // selection for every auto/manual policy and makes an explicit SIMD
-    // request a config conflict (returned by the caller as a typed error
-    // before any execution).  Scalar kernels are always safe.
-    if disable_simd {
-        match backend_policy {
-            // Explicit SIMD + disable_simd is a config conflict; signal it
-            // by returning a scalar plan.  The caller validates and rejects
-            // the combination before execution (see execute_decode_plan).
-            crate::config::BackendPolicy::Explicit(b) => match b {
-                crate::config::BackendId::Scalar8 => DecodePlan::Scalar8 { scale_bits },
-                crate::config::BackendId::Scalar16
-                | crate::config::BackendId::Sse41Interleaved8 => DecodePlan::Scalar16 {
+    match backend_policy {
+        crate::config::BackendPolicy::Explicit(backend) => {
+            // `disable_simd` with an explicit SIMD backend is a config
+            // conflict — a typed error, never a silent scalar substitution.
+            if disable_simd && is_simd_backend(backend) {
+                return Err(BlockError {
+                    block_index: bi,
+                    kind: BlockErrorKind::BackendUnavailable,
+                });
+            }
+            // Format compatibility is validated here, before any execution.
+            // `validate_backend_format` rejects RawCopy/RleFill (block-kind
+            // mismatch) and batch backends (no coordinator context), so the
+            // match below is total over the remaining RANS backends.
+            validate_backend_format(backend, codec_id, block_kind, uniform256, bi)?;
+            Ok(match backend {
+                BackendId::Scalar8 => DecodePlan::Scalar8 { scale_bits },
+                BackendId::Scalar16 => DecodePlan::Scalar16 {
                     scale_bits,
                     is_uniform256: uniform256,
                 },
-                _ => {
-                    // Any other explicit backend is SIMD — the caller must
-                    // reject; we return Scalar16 as a defensive fallback.
-                    DecodePlan::Scalar16 {
+                BackendId::Sse41Interleaved8 => DecodePlan::Sse41Interleaved8 { scale_bits },
+                BackendId::Avx512VlInterleaved8 => DecodePlan::Avx512VlInterleaved8 { scale_bits },
+                BackendId::Avx512Interleaved16 => DecodePlan::Avx512Interleaved16 { scale_bits },
+                BackendId::Avx512VlManualGather8 => {
+                    DecodePlan::Avx512VlManualGather8 { scale_bits }
+                }
+                BackendId::Avx512ManualGather16 => DecodePlan::Avx512ManualGather16 { scale_bits },
+                BackendId::Uniform256TableFree16 => {
+                    DecodePlan::Uniform256TableFree16 { scale_bits }
+                }
+                BackendId::Avx512Vl2x8 => DecodePlan::Avx512Vl2x8 { scale_bits },
+                BackendId::Avx2ManualGather8 => DecodePlan::Avx2ManualGather8 { scale_bits },
+                BackendId::Avx2HardwareGather8 => DecodePlan::Avx2HardwareGather8 { scale_bits },
+                BackendId::Avx2TwoBy8On16 => DecodePlan::Avx2TwoBy8On16 { scale_bits },
+                BackendId::Avx2Uniform256TableFree16 => {
+                    DecodePlan::Avx2Uniform256TableFree16 { scale_bits }
+                }
+                // Rejected by validate_backend_format above; defensive arms
+                // that return the same typed errors instead of any plan.
+                BackendId::RawCopy | BackendId::RleFill => {
+                    return Err(BlockError {
+                        block_index: bi,
+                        kind: BlockErrorKind::BackendFormatMismatch,
+                    });
+                }
+                BackendId::Avx512Batch4 | BackendId::Avx2Batch4On16 => {
+                    return Err(BlockError {
+                        block_index: bi,
+                        kind: BlockErrorKind::BackendRequiresBatchContext,
+                    });
+                }
+            })
+        }
+        _ => {
+            // Non-explicit policies never select SIMD.  `disable_simd` forces
+            // plain scalar (never the table-free kernel, which is scalar but
+            // belongs to the "uniform" family this control excludes for
+            // maximal conservatism).
+            if disable_simd {
+                return Ok(match codec_id {
+                    CODEC_WORD_INTERLEAVED8 => DecodePlan::Scalar8 { scale_bits },
+                    _ => DecodePlan::Scalar16 {
                         scale_bits,
                         is_uniform256: uniform256,
+                    },
+                });
+            }
+            if matches!(backend_policy, crate::config::BackendPolicy::ModelAware) {
+                // ModelAware is distinct from Auto: a validated Uniform256
+                // model selects the real table-free scalar kernel.
+                Ok(match codec_id {
+                    CODEC_WORD_INTERLEAVED8 => DecodePlan::Scalar8 { scale_bits },
+                    CODEC_WORD_INTERLEAVED16 if uniform256 => {
+                        DecodePlan::Uniform256TableFree16 { scale_bits }
                     }
-                }
-            },
-            _ => match codec_id {
-                7 => DecodePlan::Scalar8 { scale_bits },
-                _ => DecodePlan::Scalar16 {
-                    scale_bits,
-                    is_uniform256: uniform256,
-                },
-            },
-        }
-    } else {
-        create_decode_plan_inner(
-            codec_id,
-            scale_bits,
-            model_data,
-            backend_policy,
-            cpu_has_avx512,
-            cpu_has_avx512vl,
-            cpu_has_avx2,
-            uniform256,
-        )
-    }
-}
-
-fn create_decode_plan_inner(
-    codec_id: u16,
-    scale_bits: u8,
-    model_data: &[u8],
-    backend_policy: crate::config::BackendPolicy,
-    cpu_has_avx512: bool,
-    cpu_has_avx512vl: bool,
-    cpu_has_avx2: bool,
-    uniform256: bool,
-) -> DecodePlan {
-    match backend_policy {
-        crate::config::BackendPolicy::Portable => {
-            // Only portable scalar kernels
-            match codec_id {
-                7 => DecodePlan::Scalar8 { scale_bits },
-                8 if uniform256 => DecodePlan::Scalar16 {
-                    scale_bits,
-                    is_uniform256: uniform256,
-                },
-                _ => DecodePlan::Scalar16 {
-                    scale_bits,
-                    is_uniform256: uniform256,
-                },
+                    _ => DecodePlan::Scalar16 {
+                        scale_bits,
+                        is_uniform256: uniform256,
+                    },
+                })
+            } else {
+                // Portable / ScalarPreferred / Auto: conservative scalar.
+                Ok(match codec_id {
+                    CODEC_WORD_INTERLEAVED8 => DecodePlan::Scalar8 { scale_bits },
+                    _ => DecodePlan::Scalar16 {
+                        scale_bits,
+                        is_uniform256: uniform256,
+                    },
+                })
             }
         }
-        crate::config::BackendPolicy::ScalarPreferred => match codec_id {
-            7 => DecodePlan::Scalar8 { scale_bits },
-            _ => DecodePlan::Scalar16 {
-                scale_bits,
-                is_uniform256: uniform256,
-            },
-        },
-        crate::config::BackendPolicy::Auto | crate::config::BackendPolicy::ModelAware => {
-            // Conservative dispatch: scalar-first until multi-machine benchmarking
-            // establishes architecture-specific crossover points.
-            // Explicit AVX2 selection is available via `Explicit(Avx2TwoBy8On16)` etc.
-            match codec_id {
-                7 => DecodePlan::Scalar8 { scale_bits },
-                8 if uniform256 => DecodePlan::Scalar16 {
-                    scale_bits,
-                    is_uniform256: true,
-                },
-                _ => DecodePlan::Scalar16 {
-                    scale_bits,
-                    is_uniform256: false,
-                },
-            }
-        }
-        crate::config::BackendPolicy::Explicit(backend) => match backend {
-            BackendId::RawCopy => DecodePlan::RawCopy,
-            BackendId::RleFill => DecodePlan::RleFill {
-                symbol: 0,
-                count: 0,
-            },
-            BackendId::Scalar8 => DecodePlan::Scalar8 { scale_bits },
-            BackendId::Scalar16 => DecodePlan::Scalar16 {
-                scale_bits,
-                is_uniform256: uniform256,
-            },
-            BackendId::Sse41Interleaved8 => DecodePlan::Scalar8 { scale_bits },
-            BackendId::Avx512VlInterleaved8 => DecodePlan::Scalar8 { scale_bits },
-            BackendId::Avx512Interleaved16 => DecodePlan::Scalar16 {
-                scale_bits,
-                is_uniform256: uniform256,
-            },
-            BackendId::Avx512VlManualGather8 => DecodePlan::Scalar8 { scale_bits },
-            BackendId::Avx512ManualGather16 => DecodePlan::Scalar16 {
-                scale_bits,
-                is_uniform256: uniform256,
-            },
-            BackendId::Uniform256TableFree16 => DecodePlan::Uniform256TableFree16 { scale_bits },
-            BackendId::Avx512Vl2x8 => DecodePlan::Avx512Vl2x8 { scale_bits },
-            BackendId::Avx512Batch4 => DecodePlan::Avx512Batch4 { scale_bits },
-            BackendId::Avx2ManualGather8 => DecodePlan::Avx2ManualGather8 { scale_bits },
-            BackendId::Avx2HardwareGather8 => DecodePlan::Avx2HardwareGather8 { scale_bits },
-            BackendId::Avx2TwoBy8On16 => DecodePlan::Avx2TwoBy8On16 { scale_bits },
-            BackendId::Avx2Uniform256TableFree16 => {
-                DecodePlan::Avx2Uniform256TableFree16 { scale_bits }
-            }
-            BackendId::Avx2Batch4On16 => DecodePlan::Avx2Batch4On16 { scale_bits },
-        },
     }
 }
 
@@ -258,6 +395,7 @@ pub fn plan_cache_key(codec_id: u16, scale_bits: u8, model_data: &[u8]) -> Model
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::BackendPolicy;
 
     fn uniform256_model_data() -> Vec<u8> {
         let mut data = Vec::with_capacity(1024);
@@ -290,6 +428,16 @@ mod tests {
         data
     }
 
+    fn plan(
+        codec: u16,
+        scale: u8,
+        model: &[u8],
+        policy: BackendPolicy,
+        disable_simd: bool,
+    ) -> Result<DecodePlan, BlockError> {
+        create_decode_plan(codec, scale, model, policy, disable_simd, 0, 7)
+    }
+
     #[test]
     fn test_uniform256_detection() {
         let data = uniform256_model_data();
@@ -307,156 +455,208 @@ mod tests {
     #[test]
     fn test_portable_plan() {
         let uniform = uniform256_model_data();
-        let plan = create_decode_plan(
-            8,
-            12,
-            &uniform,
-            crate::config::BackendPolicy::Portable,
-            false,
-            false,
-            false,
-            false,
-        );
-        assert!(matches!(plan, DecodePlan::Scalar16 { .. }));
+        let p = plan(8, 12, &uniform, BackendPolicy::Portable, false).unwrap();
+        assert!(matches!(p, DecodePlan::Scalar16 { .. }));
     }
 
     #[test]
-    fn test_model_aware_uniform256() {
+    fn test_model_aware_selects_table_free_for_uniform256() {
         let uniform = uniform256_model_data();
-        // Auto dispatch is conservative: always scalar until benchmarks exist.
-        let plan = create_decode_plan(
-            8,
-            12,
-            &uniform,
-            crate::config::BackendPolicy::Auto,
-            false,
-            false,
-            true,
-            false,
-        );
+        // ModelAware must select the real table-free kernel for a validated
+        // Uniform256 model — this is the documented distinction from Auto.
+        let p = plan(8, 12, &uniform, BackendPolicy::ModelAware, false).unwrap();
+        assert!(matches!(p, DecodePlan::Uniform256TableFree16 { .. }));
+
+        // Auto stays conservative: plain Scalar16.
+        let p2 = plan(8, 12, &uniform, BackendPolicy::Auto, false).unwrap();
         assert!(matches!(
-            plan,
+            p2,
             DecodePlan::Scalar16 {
                 is_uniform256: true,
                 ..
             }
         ));
 
-        // Explicit policy still selects the requested backend.
-        let plan2 = create_decode_plan(
-            8,
-            12,
-            &uniform,
-            crate::config::BackendPolicy::Explicit(BackendId::Avx2Uniform256TableFree16),
-            false,
-            false,
-            true,
-            false,
-        );
-        assert!(matches!(
-            plan2,
-            DecodePlan::Avx2Uniform256TableFree16 { .. }
-        ));
+        // ModelAware with a skewed model falls back to Scalar16.
+        let skewed = skewed_model_data();
+        let p3 = plan(8, 12, &skewed, BackendPolicy::ModelAware, false).unwrap();
+        assert!(matches!(p3, DecodePlan::Scalar16 { .. }));
     }
 
     #[test]
-    fn test_scalar_auto() {
-        // Auto dispatch with AVX2 available still returns scalar (conservative).
+    fn test_explicit_avx2_plan_never_rewritten() {
         let skewed = skewed_model_data();
-        let plan = create_decode_plan(
+        // Explicit must produce the requested plan, not a scalar rewrite.
+        let p = plan(
             8,
             12,
             &skewed,
-            crate::config::BackendPolicy::Auto,
+            BackendPolicy::Explicit(BackendId::Avx2TwoBy8On16),
             false,
-            false,
-            true,
-            false,
-        );
-        assert!(matches!(
-            plan,
-            DecodePlan::Scalar16 {
-                is_uniform256: false,
-                ..
-            }
-        ));
+        )
+        .unwrap();
+        assert!(matches!(p, DecodePlan::Avx2TwoBy8On16 { .. }));
+    }
 
-        let plan2 = create_decode_plan(
+    #[test]
+    fn test_explicit_simd_backends_map_to_real_plans() {
+        // Every explicit SIMD backend must produce a plan of its own identity
+        // (Phase L.9: never rewritten to scalar during planning).
+        let skewed = skewed_model_data();
+        let cases = [
+            (BackendId::Sse41Interleaved8, 7u16),
+            (BackendId::Avx512VlInterleaved8, 7),
+            (BackendId::Avx512Interleaved16, 8),
+            (BackendId::Avx512VlManualGather8, 7),
+            (BackendId::Avx512ManualGather16, 8),
+            (BackendId::Avx512Vl2x8, 8),
+            (BackendId::Avx2ManualGather8, 7),
+            (BackendId::Avx2HardwareGather8, 7),
+            (BackendId::Avx2TwoBy8On16, 8),
+        ];
+        for (backend, codec) in cases {
+            let p = plan(codec, 12, &skewed, BackendPolicy::Explicit(backend), false).unwrap();
+            assert_eq!(
+                p.backend_id(),
+                backend,
+                "explicit {backend:?} must plan to itself"
+            );
+        }
+    }
+
+    #[test]
+    fn test_format_mismatch_rejected() {
+        let skewed = skewed_model_data();
+        // 8-way backend on a codec-8 (16-way) block → typed mismatch.
+        let e = plan(
+            8,
+            12,
+            &skewed,
+            BackendPolicy::Explicit(BackendId::Scalar8),
+            false,
+        )
+        .unwrap_err();
+        assert_eq!(e.kind, BlockErrorKind::BackendFormatMismatch);
+        // 16-way backend on a codec-7 (8-way) block → typed mismatch.
+        let e = plan(
             7,
             12,
             &skewed,
-            crate::config::BackendPolicy::Auto,
+            BackendPolicy::Explicit(BackendId::Scalar16),
             false,
-            false,
-            true,
-            false,
-        );
-        assert!(matches!(plan2, DecodePlan::Scalar8 { .. }));
+        )
+        .unwrap_err();
+        assert_eq!(e.kind, BlockErrorKind::BackendFormatMismatch);
     }
 
     #[test]
-    fn test_explicit_avx2_plan() {
-        // Explicit policy must select the requested backend.
+    fn test_uniform256_backend_requires_uniform_model() {
         let skewed = skewed_model_data();
-        let plan = create_decode_plan(
+        let e = plan(
             8,
             12,
             &skewed,
-            crate::config::BackendPolicy::Explicit(BackendId::Avx2TwoBy8On16),
+            BackendPolicy::Explicit(BackendId::Uniform256TableFree16),
             false,
+        )
+        .unwrap_err();
+        assert_eq!(e.kind, BlockErrorKind::BackendFormatMismatch);
+
+        let uniform = uniform256_model_data();
+        let p = plan(
+            8,
+            12,
+            &uniform,
+            BackendPolicy::Explicit(BackendId::Uniform256TableFree16),
             false,
+        )
+        .unwrap();
+        assert!(matches!(p, DecodePlan::Uniform256TableFree16 { .. }));
+    }
+
+    #[test]
+    fn test_batch_backend_rejected_at_plan_time() {
+        // Batch backends need coordinator context; the one-block planner must
+        // reject them with a typed error rather than selecting an
+        // unexecutable plan.
+        let skewed = skewed_model_data();
+        for backend in [BackendId::Avx512Batch4, BackendId::Avx2Batch4On16] {
+            let e = plan(8, 12, &skewed, BackendPolicy::Explicit(backend), false).unwrap_err();
+            assert_eq!(e.kind, BlockErrorKind::BackendRequiresBatchContext);
+        }
+    }
+
+    #[test]
+    fn test_raw_rle_backends_require_matching_block_kind() {
+        // RAW ↔ RAW block, RLE ↔ RLE block.  The parallel crate only parses
+        // RANS blocks (kind 0), so both requests are format mismatches.
+        let skewed = skewed_model_data();
+        let e = plan(
+            7,
+            12,
+            &skewed,
+            BackendPolicy::Explicit(BackendId::RawCopy),
+            false,
+        )
+        .unwrap_err();
+        assert_eq!(e.kind, BlockErrorKind::BackendFormatMismatch);
+        let e = plan(
+            8,
+            12,
+            &skewed,
+            BackendPolicy::Explicit(BackendId::RleFill),
+            false,
+        )
+        .unwrap_err();
+        assert_eq!(e.kind, BlockErrorKind::BackendFormatMismatch);
+    }
+
+    #[test]
+    fn test_disable_simd_conflict_is_typed() {
+        let uniform = uniform256_model_data();
+        // Explicit SIMD + disable_simd → typed conflict, never scalar.
+        let e = plan(
+            8,
+            12,
+            &uniform,
+            BackendPolicy::Explicit(BackendId::Avx2TwoBy8On16),
             true,
-            false,
-        );
-        assert!(matches!(plan, DecodePlan::Avx2TwoBy8On16 { .. }));
+        )
+        .unwrap_err();
+        assert_eq!(e.kind, BlockErrorKind::BackendUnavailable);
+
+        // disable_simd with non-explicit policy → plain scalar.
+        let p = plan(8, 12, &uniform, BackendPolicy::ModelAware, true).unwrap();
+        assert!(matches!(p, DecodePlan::Scalar16 { .. }));
+
+        // Explicit scalar + disable_simd → allowed.
+        let p = plan(
+            8,
+            12,
+            &uniform,
+            BackendPolicy::Explicit(BackendId::Scalar16),
+            true,
+        )
+        .unwrap();
+        assert!(matches!(p, DecodePlan::Scalar16 { .. }));
+
+        // Explicit Uniform256TableFree16 is scalar arithmetic — allowed
+        // under disable_simd when the model validates.
+        let p = plan(
+            8,
+            12,
+            &uniform,
+            BackendPolicy::Explicit(BackendId::Uniform256TableFree16),
+            true,
+        )
+        .unwrap();
+        assert!(matches!(p, DecodePlan::Uniform256TableFree16 { .. }));
     }
 
     #[test]
     fn test_scalar8_plan() {
         let uniform = uniform256_model_data();
-        let plan = create_decode_plan(
-            7,
-            12,
-            &uniform,
-            crate::config::BackendPolicy::Portable,
-            false,
-            false,
-            false,
-            false,
-        );
-        assert!(matches!(plan, DecodePlan::Scalar8 { .. }));
-    }
-
-    #[test]
-    fn test_explicit_backend() {
-        let uniform = uniform256_model_data();
-        let plan = create_decode_plan(
-            8,
-            12,
-            &uniform,
-            crate::config::BackendPolicy::Explicit(BackendId::Scalar16),
-            false,
-            false,
-            false,
-            false,
-        );
-        assert!(matches!(plan, DecodePlan::Scalar16 { .. }));
-    }
-
-    #[test]
-    fn test_disable_simd_forces_scalar() {
-        let uniform = uniform256_model_data();
-        // Explicit SIMD request + disable_simd must fall back to scalar.
-        let plan = create_decode_plan(
-            8,
-            12,
-            &uniform,
-            crate::config::BackendPolicy::Explicit(BackendId::Avx2TwoBy8On16),
-            false,
-            false,
-            true,
-            true,
-        );
-        assert!(matches!(plan, DecodePlan::Scalar16 { .. }));
+        let p = plan(7, 12, &uniform, BackendPolicy::Portable, false).unwrap();
+        assert!(matches!(p, DecodePlan::Scalar8 { .. }));
     }
 }

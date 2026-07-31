@@ -26,6 +26,10 @@ use crate::config::AffinityPolicy;
 use crate::error::ParallelError;
 
 /// Online logical CPU count (Linux).  Falls back to 1 on other platforms.
+///
+/// Only used by the `affinity` feature path (and unit tests); gated so the
+/// default build has no dead code.
+#[cfg(any(test, all(target_os = "linux", feature = "affinity")))]
 fn online_cpus() -> usize {
     #[cfg(target_os = "linux")]
     {
@@ -40,6 +44,7 @@ fn online_cpus() -> usize {
 }
 
 /// Compute the target CPU index for worker `worker_index` under `policy`.
+#[cfg(any(test, all(target_os = "linux", feature = "affinity")))]
 fn target_cpu(
     policy: &AffinityPolicy,
     worker_index: usize,
@@ -139,6 +144,7 @@ pub fn apply_worker_affinity(
     }
     #[cfg(not(all(target_os = "linux", feature = "affinity")))]
     {
+        let _ = (worker_index, total_workers);
         match policy {
             AffinityPolicy::None => Ok(()),
             _ => Err(ParallelError::Config(

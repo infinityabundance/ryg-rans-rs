@@ -7,10 +7,7 @@
 //! No test silently accepts both success and failure.
 
 use crate::avx512::{decode_interleaved8_avx512vl_kernel, decode_interleaved16_avx512_kernel};
-use crate::packed_table::{
-    PackedWordTable, decode_8way_packed_scalar_with_report, decode_interleaved16_scalar,
-    encode_interleaved16,
-};
+use crate::packed_table::{PackedWordTable, decode_interleaved16_scalar, encode_interleaved16};
 use alloc::vec::Vec;
 
 fn uniform_model() -> (Vec<u32>, Vec<u32>, PackedWordTable) {

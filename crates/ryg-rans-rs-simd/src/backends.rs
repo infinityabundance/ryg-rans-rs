@@ -71,6 +71,13 @@
 //! 4. Wrap the result in a `DecodeResult` with the correct `DecodeBackend` label.
 //! 5. If AVX2 is not available, return `Err(DecodeError::UnsupportedBackend)`.
 //!
+//! The SSE4.1 and AVX-512 `_checked` wrappers follow the identical pattern:
+//! runtime feature detection first, then the `unsafe` kernel, then
+//! `Err(UnsupportedBackend)` when the CPU cannot execute the instructions.
+//! These wrappers make the exact-backend semantics expressible from safe
+//! code: a caller that receives `Err(UnsupportedBackend)` knows the kernel
+//! was **not** executed — there is no silent substitution.
+//!
 //! | Wrapper | Inner kernel | Backend variant |
 //! |---------|-------------|-----------------|
 //! | `decode_interleaved8_avx2_manual_gather_checked` | `decode_interleaved8_avx2_manual_gather` | `Avx2ManualGather8` |
@@ -78,6 +85,12 @@
 //! | `decode_interleaved16_avx2_2x8_checked` | `decode_interleaved16_avx2_2x8` | `Avx2TwoBy8On16` |
 //! | `decode_interleaved16_uniform256_avx2_checked` | `decode_interleaved16_uniform256_avx2` | `Avx2Uniform256TableFree16` |
 //! | `decode_batch4_interleaved16_avx2_checked` | `decode_batch4_interleaved16_avx2` | `Avx2Batch4On16` |
+//! | `decode_interleaved8_sse41_checked` | `decode_simd_8way_unchecked` | `Sse41Interleaved8` |
+//! | `decode_interleaved8_avx512vl_checked` | `decode_interleaved8_avx512vl` | `Avx512VlInterleaved8` |
+//! | `decode_interleaved16_avx512_checked` | `decode_interleaved16_avx512` | `Avx512Interleaved16` |
+//! | `decode_interleaved8_avx512vl_manual_gather_checked` | `decode_interleaved8_manual_gather` | `Avx512VlManualGather8` |
+//! | `decode_interleaved16_avx512_manual_gather_checked` | `decode_interleaved16_manual_gather` | `Avx512ManualGather16` |
+//! | `decode_interleaved16_avx512vl_2x8_checked` | `decode_interleaved16_2x8` | `Avx512Vl2x8On16` |
 //!
 //! ## DecodeResult and DecodeReport
 //!
@@ -430,35 +443,47 @@ pub fn decode_interleaved8_scalar(
 ///
 /// Caller must ensure AVX512F + AVX512VL + AVX512BW are available at runtime.
 /// `output.len()` must equal the number of symbols to decode.
+///
+/// The kernel body is compile-time gated on `target_feature = "avx512bw"`:
+/// in builds without it, this returns `UnsupportedBackend` and the inputs
+/// are acknowledged (not silently ignored).
 pub unsafe fn decode_interleaved8_avx512vl_into(
     compressed: &[u16],
     table: &PackedWordTable,
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: this is an `unsafe fn`; the caller guarantees AVX512F +
+        // AVX512VL + AVX512BW at runtime (see fn docs).
+        unsafe {
             let report =
                 crate::avx512::decode_interleaved8_avx512vl_into(compressed, table, output)
                     .map_err(|_| DecodeError::InputTooShort)?;
             Ok(report)
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, output);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
 /// Decode 8-way using manual gather (scalar loads + vector arithmetic).
+///
+/// # Safety
+///
+/// Caller must ensure AVX512F + AVX512VL + AVX512BW are available at runtime.
 pub unsafe fn decode_interleaved8_manual_gather(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: caller guarantees AVX512F + VL + BW at runtime.
+        unsafe {
             let (output, report) = crate::avx512::decode_interleaved8_manual_gather_kernel(
                 compressed,
                 table,
@@ -471,41 +496,53 @@ pub unsafe fn decode_interleaved8_manual_gather(
                 backend: DecodeBackend::Avx512VlManualGather8,
             })
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, expected_len);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
 /// Decode 8-way using manual gather into a preallocated buffer.
+///
+/// # Safety
+///
+/// Caller must ensure AVX512F + AVX512VL + AVX512BW are available at runtime.
 pub unsafe fn decode_interleaved8_manual_gather_into(
     compressed: &[u16],
     table: &PackedWordTable,
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: caller guarantees AVX512F + VL + BW at runtime.
+        unsafe {
             crate::avx512::decode_interleaved8_manual_gather_into(compressed, table, output)
                 .map_err(|_| DecodeError::InputTooShort)
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, output);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
 /// Decode 16-way using manual gather (scalar loads + vector arithmetic).
+///
+/// # Safety
+///
+/// Caller must ensure AVX512F + AVX512BW are available at runtime.
 pub unsafe fn decode_interleaved16_manual_gather(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: caller guarantees AVX512F + BW at runtime.
+        unsafe {
             let (output, report) = crate::avx512::decode_interleaved16_manual_gather_kernel(
                 compressed,
                 table,
@@ -518,41 +555,53 @@ pub unsafe fn decode_interleaved16_manual_gather(
                 backend: DecodeBackend::Avx512ManualGather16,
             })
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, expected_len);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
 /// Decode 16-way using manual gather into a preallocated buffer.
+///
+/// # Safety
+///
+/// Caller must ensure AVX512F + AVX512BW are available at runtime.
 pub unsafe fn decode_interleaved16_manual_gather_into(
     compressed: &[u16],
     table: &PackedWordTable,
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: caller guarantees AVX512F + BW at runtime.
+        unsafe {
             crate::avx512::decode_interleaved16_manual_gather_into(compressed, table, output)
                 .map_err(|_| DecodeError::InputTooShort)
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, output);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
 /// Decode 16-way format using two independent 256-bit gather chains (2x8).
+///
+/// # Safety
+///
+/// Caller must ensure AVX512F + AVX512VL + AVX512BW are available at runtime.
 pub unsafe fn decode_interleaved16_2x8(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: caller guarantees AVX512F + VL + BW at runtime.
+        unsafe {
             let (output, report) =
                 crate::avx512::decode_interleaved16_2x8_kernel(compressed, table, expected_len)
                     .map_err(|_| DecodeError::InputTooShort)?;
@@ -562,29 +611,36 @@ pub unsafe fn decode_interleaved16_2x8(
                 backend: DecodeBackend::Avx512Vl2x8On16,
             })
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, expected_len);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
 /// Decode 16-way 2x8 into a preallocated buffer.
+///
+/// # Safety
+///
+/// Caller must ensure AVX512F + AVX512VL + AVX512BW are available at runtime.
 pub unsafe fn decode_interleaved16_2x8_into(
     compressed: &[u16],
     table: &PackedWordTable,
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: caller guarantees AVX512F + VL + BW at runtime.
+        unsafe {
             crate::avx512::decode_interleaved16_2x8_into(compressed, table, output)
                 .map_err(|_| DecodeError::InputTooShort)
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, output);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
@@ -594,27 +650,32 @@ pub unsafe fn decode_interleaved16_2x8_into(
 ///
 /// Caller must ensure AVX512F + AVX512VL + AVX512BW are available at runtime.
 /// No CPU feature detection is performed — the kernel is called directly.
+///
+/// The kernel body is compile-time gated on `target_feature = "avx512bw"`;
+/// in builds without it this returns `UnsupportedBackend`.
 pub unsafe fn decode_interleaved8_avx512vl(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: caller guarantees AVX512F + VL + BW at runtime.
+        unsafe {
             let (output, report) =
                 crate::avx512::decode_interleaved8_avx512vl_kernel(compressed, table, expected_len)
                     .map_err(|_| DecodeError::InputTooShort)?;
-            return Ok(DecodeResult {
+            Ok(DecodeResult {
                 output,
                 report,
                 backend: DecodeBackend::Avx512VlInterleaved8,
-            });
+            })
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, expected_len);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
@@ -670,22 +731,28 @@ pub fn decode_interleaved16_scalar(
 ///
 /// Caller must ensure AVX512F + AVX512BW are available at runtime.
 /// `output.len()` must equal the number of symbols to decode.
+///
+/// The kernel body is compile-time gated on `target_feature = "avx512bw"`;
+/// in builds without it this returns `UnsupportedBackend`.
 pub unsafe fn decode_interleaved16_avx512_into(
     compressed: &[u16],
     table: &PackedWordTable,
     output: &mut [u8],
 ) -> Result<DecodeReport, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: this is an `unsafe fn`; the caller guarantees AVX512F +
+        // AVX512BW at runtime (see fn docs).
+        unsafe {
             let report = crate::avx512::decode_interleaved16_avx512_into(compressed, table, output)
                 .map_err(|_| DecodeError::InputTooShort)?;
             Ok(report)
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, output);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
@@ -694,27 +761,32 @@ pub unsafe fn decode_interleaved16_avx512_into(
 /// # Safety
 ///
 /// Caller must ensure AVX512F + AVX512BW are available at runtime.
+///
+/// The kernel body is compile-time gated on `target_feature = "avx512bw"`;
+/// in builds without it this returns `UnsupportedBackend`.
 pub unsafe fn decode_interleaved16_avx512(
     compressed: &[u16],
     table: &PackedWordTable,
     expected_len: usize,
 ) -> Result<DecodeResult, DecodeError> {
-    unsafe {
-        #[cfg(target_feature = "avx512bw")]
-        {
+    #[cfg(target_feature = "avx512bw")]
+    {
+        // SAFETY: caller guarantees AVX512F + BW at runtime.
+        unsafe {
             let (output, report) =
                 crate::avx512::decode_interleaved16_avx512_kernel(compressed, table, expected_len)
                     .map_err(|_| DecodeError::InputTooShort)?;
-            return Ok(DecodeResult {
+            Ok(DecodeResult {
                 output,
                 report,
                 backend: DecodeBackend::Avx512Interleaved16,
-            });
+            })
         }
-        #[cfg(not(target_feature = "avx512bw"))]
-        {
-            Err(DecodeError::UnsupportedBackend)
-        }
+    }
+    #[cfg(not(target_feature = "avx512bw"))]
+    {
+        let _ = (compressed, table, expected_len);
+        Err(DecodeError::UnsupportedBackend)
     }
 }
 
@@ -858,6 +930,137 @@ pub fn decode_batch4_interleaved16_avx2_checked(
             .collect();
         Ok(results)
     }
+}
+
+/// Safe wrapper for SSE4.1 8-way decode (SSSE3 + SSE4.1).
+///
+/// Checks runtime support before executing.  The kernel is the classic
+/// `decode_simd_8way_unchecked` (4-lane × 2-state SSE4.1 pipeline) operating
+/// on `RansWordTables`.  If the CPU lacks SSSE3 or SSE4.1 at runtime,
+/// returns `UnsupportedBackend` — the kernel is never executed.
+///
+/// This wrapper exists so the exact-backend contract can be expressed from
+/// safe code: `Ok` implies `Sse41Interleaved8` actually executed;
+/// `Err(UnsupportedBackend)` means it did not.
+pub fn decode_interleaved8_sse41_checked(
+    compressed: &[u16],
+    tables: &crate::RansWordTables<'_>,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !sse41_with_ssse3_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    // SAFETY: runtime detection above guarantees SSSE3 + SSE4.1 are
+    // available; `decode_simd_8way_unchecked` carries its own
+    // `#[target_feature(enable = "ssse3,sse4.1")]` attributes.
+    let output = unsafe { crate::decode_simd_8way_unchecked(compressed, tables, expected_len) }
+        .map_err(|_| DecodeError::InputTooShort)?;
+    Ok(DecodeResult {
+        output,
+        // The SSE4.1 kernel does not surface a report; zeros mean "not
+        // available", mirroring the convention used elsewhere in this crate.
+        report: DecodeReport {
+            words_consumed: 0,
+            final_states: [0u32; 16],
+        },
+        backend: DecodeBackend::Sse41Interleaved8,
+    })
+}
+
+/// Check whether SSSE3 + SSE4.1 are available at runtime (or at compile
+/// time in no_std builds).
+fn sse41_with_ssse3_available() -> bool {
+    #[cfg(feature = "std")]
+    {
+        std::is_x86_feature_detected!("ssse3") && std::is_x86_feature_detected!("sse4.1")
+    }
+    #[cfg(not(feature = "std"))]
+    {
+        cfg!(all(target_feature = "ssse3", target_feature = "sse4.1"))
+    }
+}
+
+/// Safe wrapper for AVX-512VL interleaved 8-way decode.
+///
+/// Runtime-checks AVX512F + AVX512VL + AVX512BW before executing.  If the
+/// CPU lacks the features, or the build was not compiled with
+/// `-C target-feature=+avx512f,+avx512vl,+avx512bw` (the kernel body is
+/// compile-time gated), returns `Err(UnsupportedBackend)`.  No fallback:
+/// `Ok` means `Avx512VlInterleaved8` actually executed.
+pub fn decode_interleaved8_avx512vl_checked(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !avx512vl_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    // SAFETY: runtime detection above guarantees AVX512F + VL + BW.
+    unsafe { decode_interleaved8_avx512vl(compressed, table, expected_len) }
+}
+
+/// Safe wrapper for AVX-512 interleaved 16-way decode.
+///
+/// Runtime-checks AVX512F + AVX512BW.  See
+/// [`decode_interleaved8_avx512vl_checked`] for the exact-backend contract.
+pub fn decode_interleaved16_avx512_checked(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !avx512_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    // SAFETY: runtime detection above guarantees AVX512F + BW.
+    unsafe { decode_interleaved16_avx512(compressed, table, expected_len) }
+}
+
+/// Safe wrapper for AVX-512VL manual-gather 8-way decode.
+///
+/// Runtime-checks AVX512F + AVX512VL + AVX512BW.  See
+/// [`decode_interleaved8_avx512vl_checked`] for the exact-backend contract.
+pub fn decode_interleaved8_avx512vl_manual_gather_checked(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !avx512vl_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    // SAFETY: runtime detection above guarantees AVX512F + VL + BW.
+    unsafe { decode_interleaved8_manual_gather(compressed, table, expected_len) }
+}
+
+/// Safe wrapper for AVX-512 manual-gather 16-way decode.
+///
+/// Runtime-checks AVX512F + AVX512BW.  See
+/// [`decode_interleaved8_avx512vl_checked`] for the exact-backend contract.
+pub fn decode_interleaved16_avx512_manual_gather_checked(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !avx512_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    // SAFETY: runtime detection above guarantees AVX512F + BW.
+    unsafe { decode_interleaved16_manual_gather(compressed, table, expected_len) }
+}
+
+/// Safe wrapper for AVX-512VL 2×8-on-16-way decode.
+///
+/// Runtime-checks AVX512F + AVX512VL + AVX512BW.  See
+/// [`decode_interleaved8_avx512vl_checked`] for the exact-backend contract.
+pub fn decode_interleaved16_avx512vl_2x8_checked(
+    compressed: &[u16],
+    table: &PackedWordTable,
+    expected_len: usize,
+) -> Result<DecodeResult, DecodeError> {
+    if !avx512vl_available() {
+        return Err(DecodeError::UnsupportedBackend);
+    }
+    // SAFETY: runtime detection above guarantees AVX512F + VL + BW.
+    unsafe { decode_interleaved16_2x8(compressed, table, expected_len) }
 }
 
 // ---------------------------------------------------------------------------

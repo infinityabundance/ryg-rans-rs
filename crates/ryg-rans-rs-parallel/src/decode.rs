@@ -59,48 +59,41 @@
 //! - **Debugging**: if a decode mismatch occurs, knowing the real backend
 //!   narrows the search to one kernel instead of a chain of fallbacks.
 //!
-//! ## Fallback policies
+//! ## Backend policies and exact-backend semantics
 //!
-//! The `BackendPolicy` enum controls what happens when a SIMD backend cannot
-//! execute on the current hardware:
+//! The `BackendPolicy` enum controls which backend the planner selects:
 //!
-//! - **`Explicit(backend)`**:  no fallback.  If the named backend is unavailable,
-//!   return `BlockErrorKind::Codec`.  Use this when the caller requires a
-//!   specific instruction set (e.g. for deterministic cross-machine testing).
+//! - **`Explicit(backend)`**: exact request.  The planner produces a plan for
+//!   exactly that backend or a typed error (`BackendFormatMismatch`,
+//!   `BackendUnavailable`, `BackendRequiresBatchContext`).  There is **no
+//!   fallback** — if the CPU or build cannot run the kernel, execution fails
+//!   with `BackendUnavailable`, never a silent scalar substitution.
 //!
-//! - **`Auto`**:  fall back to the equivalent scalar backend of the same
-//!   interleaving width (16-way → `Scalar16`, 8-way → `Scalar8`).  The
-//!   `ExecutedDecode.backend` is set to the fallback scalar ID, not the plan.
-//!   This is the default and recommended policy.
+//! - **`Portable` / `ScalarPreferred` / `Auto`**: conservative scalar-only
+//!   planning (Scalar8/Scalar16).  No SIMD is ever selected automatically.
 //!
-//! - **`ModelAware`**:  same fallback behaviour as `Auto`, but the plan-selection
-//!   phase also considers model complexity (e.g. uniform models can use
-//!   table-free backends).  Once the plan is selected, fallback from SIMD to
-//!   scalar follows the same rules as `Auto`.
+//! - **`ModelAware`**: as `Auto`, but a validated Uniform256 model selects
+//!   the real table-free scalar kernel (`Uniform256TableFree16`).
+//!
+//! Because non-explicit policies never produce SIMD plans, `Auto` and
+//! `ModelAware` have no fallback path either: the plan always executes as
+//! planned.
 //!
 //! ## Report fields: why `words_consumed` and `final_states` are preserved
-//!    even in fallback branches
 //!
-//! Even when a SIMD backend falls back to scalar, the fallback implementations
-//! (`scalar16_fallback`, `scalar8_fallback`) compute and return accurate report
-//! fields.  This is critical for two reasons:
+//! The decode kernels report `words_consumed` (exact u16 words read from the
+//! compressed stream) and `final_states` (final rANS state per lane).  These
+//! are used for two purposes:
 //!
-//! 1. **Stream integrity**: `words_consumed` tells the caller exactly how many
-//!    u16 words were consumed from the compressed stream.  This enables the
-//!    caller to detect mismatches between the declared `payload_length` and the
-//!    actual words consumed — a common symptom of decoder bugs or corrupted
-//!    input.
+//! 1. **Stream integrity**: `words_consumed` lets the caller detect mismatches
+//!    between the declared `payload_length` and actual consumption.
 //!
-//! 2. **State continuity**: `final_states` (final rANS state per lane) allows
-//!    the caller to reconstruct the internal state of the decoder after the
-//!    block.  This is essential for multi-block streams where the state might
-//!    carry over, and for diagnostic tools that need to verify decoder fidelity
-//!    independent of the output bytes.
+//! 2. **State continuity**: `final_states` lets diagnostic tools verify decoder
+//!    fidelity independent of the output bytes.
 //!
-//! Some fallback paths (especially batch-plan fallbacks) return `0` for
-//! `words_consumed` and an empty `final_states` because those implementations
-//! do not yet surface the report through their API.  This is a known gap — the
-//! fallback still produces correct output, but diagnostic precision is reduced.
+//! Backends that do not surface a report use the `0`/empty convention meaning
+//! "not available" (output correctness is unaffected).  See the backend-arm
+//! table on `execute_decode_plan` for which kernels report.
 //!
 //! ## Bounded executor, cancellation token, and reorder buffer interaction
 //!
@@ -131,7 +124,7 @@
 
 use crate::block::{BLOCK_HEADER_SIZE, parse_block_header};
 use crate::cancellation::CancellationToken;
-use crate::config::{BackendId, BackendPolicy, ParallelConfig};
+use crate::config::{BackendId, ParallelConfig};
 use crate::decode_plan::{DecodePlan, create_decode_plan};
 use crate::error::{BlockError, BlockErrorKind, ParallelError};
 use crate::executor::{ExecutorReport, ExecutorTask, run_tasks, run_tasks_with_sink};
@@ -149,6 +142,26 @@ impl BufferSized for DecodedBlockResult {
     fn buffer_size(&self) -> u64 {
         self.output.len() as u64 + 64
     }
+}
+
+/// SHA-256 of the concatenated decoded output in ascending `block_index`
+/// order.
+///
+/// This is the canonical stream-level integrity digest for a decoded block
+/// sequence: deterministic and independent of worker scheduling order.  It
+/// is the honest implementation of the stream hash documented on
+/// `decode_streaming_with_cancel` (previously the hasher was instantiated
+/// but never fed — a Phase L.13 inert-code defect).
+fn stream_hash_of(blocks: &[DecodedBlockResult]) -> [u8; 32] {
+    use sha2::Digest;
+    let mut hasher = sha2::Sha256::new();
+    for b in blocks {
+        hasher.update(&b.output);
+    }
+    let digest = hasher.finalize();
+    let mut out = [0u8; 32];
+    out.copy_from_slice(&digest);
+    out
 }
 
 /// A single decode task dispatched to the bounded executor.
@@ -273,7 +286,7 @@ pub fn decode_single_block(
     let bi = job.block_index;
 
     // ----- Step 1: Parse and validate header -----
-    let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    let (header, _model_offset) = parse_block_header(data, bi).map_err(|_| BlockError {
         block_index: bi,
         kind: BlockErrorKind::Format,
     })?;
@@ -393,51 +406,24 @@ pub fn decode_single_block(
     }
 
     // ----- Step 6: Build decode plan and decode -----
-    let codec_id = header.codec_id;
+    //
+    // The planner is capability-agnostic (Phase L.9): it validates format
+    // compatibility and produces either the exact requested plan or a typed
+    // error.  Execution-capability checks (runtime CPU features, compiled
+    // target features) happen inside `execute_decode_plan`, which reports
+    // `BackendUnavailable` rather than silently substituting a backend.
     let backend_policy = config.backend_policy;
-    let (_avx512, _avx512vl, _avx2) = cpu_feature_detection();
-
-    // disable_simd with an explicit SIMD backend is a config conflict.
-    // Reject it as a typed error before any execution rather than silently
-    // substituting scalar.
-    if config.disable_simd {
-        if let crate::config::BackendPolicy::Explicit(b) = backend_policy {
-            let is_simd = !matches!(
-                b,
-                crate::config::BackendId::Scalar8
-                    | crate::config::BackendId::Scalar16
-                    | crate::config::BackendId::RawCopy
-                    | crate::config::BackendId::RleFill
-            );
-            if is_simd {
-                return Err(BlockError {
-                    block_index: bi,
-                    kind: BlockErrorKind::Codec,
-                });
-            }
-        }
-    }
-
     let plan = create_decode_plan(
-        codec_id,
+        header.codec_id,
         header.scale_bits,
         model_data,
         backend_policy,
-        _avx512,
-        _avx512vl,
-        _avx2,
         config.disable_simd,
-    );
-
-    let executed = execute_decode_plan(
-        &plan,
-        payload,
-        &freqs,
-        ul,
-        header.scale_bits,
+        header.block_kind,
         bi,
-        backend_policy,
     )?;
+
+    let executed = execute_decode_plan(&plan, payload, &freqs, ul, header.scale_bits, bi)?;
 
     // ----- Step 7: Verify decoded hash -----
     let computed_decoded_hash = crate::encode::sha256(&executed.output);
@@ -478,6 +464,7 @@ pub fn decode_single_block(
         block_index: bi,
         output: executed.output,
         backend: executed.backend, // Use the REAL executed backend, not the plan
+        plan_backend: executed.plan_backend,
         payload_verified: true,
         output_verified,
         output_hash: computed_decoded_hash,
@@ -490,46 +477,35 @@ pub fn decode_single_block(
 /// The result of executing a decode plan — the ground truth, not the plan.
 ///
 /// This struct records what **actually** happened during decode, as distinct
-/// from what the `DecodePlan` *intended* to happen.  The distinction matters
-/// because fallback can silently downgrade a SIMD plan to scalar execution.
+/// from what the `DecodePlan` *intended* to happen.  Phase L.9 forbids
+/// silent backend substitution, so on success `backend` equals
+/// `plan_backend`; on failure no `ExecutedDecode` is produced at all.
 ///
 /// ## Fields
 ///
 /// * `output` — the decoded bytes (may be empty for zero-length blocks).
 ///
 /// * `backend` — the `BackendId` of the kernel that actually ran.  This is
-///   the **executed** backend, not the planned one.  After fallback it will
-///   be `Scalar16` or `Scalar8` even if the plan was `Avx2ManualGather8`.
+///   the **executed** backend.  Under Phase L.9 exact-backend semantics it
+///   always equals `plan_backend` on success.
+///
+/// * `plan_backend` — the `BackendId` the `DecodePlan` selected.  Kept so
+///   every execution result carries both the selected plan identity and the
+///   actual executed identity (they are equal by construction; the pair is
+///   evidence, not a fallback mechanism).
 ///
 /// * `words_consumed` — how many u16 compressed words were consumed from the
-///   payload.  Zero means "unknown" (some fallback paths don't surface this).
+///   payload.  Zero means "unknown" (some backends don't surface this).
 ///   Non-zero values enable the caller to verify that the declared payload
 ///   length matches actual consumption.
 ///
 /// * `final_states` — the final rANS state values per lane after decoding the
 ///   last symbol of the block.  Empty means "unknown".  When populated, these
 ///   allow downstream tools to verify decoder state continuity across blocks.
-///
-/// ## Why report fields are preserved in fallback branches
-///
-/// Even when a SIMD backend falls back to scalar, the fallback implementations
-/// (`scalar16_fallback`, `scalar8_fallback`) attempt to compute and return
-/// accurate `words_consumed` and `final_states`.  This is critical for:
-///
-/// - **Stream integrity**: detecting mismatches between declared payload length
-///   and actual word consumption.
-/// - **Diagnostic tooling**: tools that verify decoder correctness independently
-///   of the output bytes (e.g. by re-running the decoder and comparing states).
-/// - **Multi-block streams**: final states enable state carry-over between blocks
-///   (future feature) and cross-block consistency checks.
-///
-/// Some fallback paths — notably batch-plan fallbacks — return zero/empty for
-/// these fields because the underlying scalar wrappers don't surface reports yet.
-/// This is a known limitation: output correctness is preserved, but diagnostic
-/// fidelity is reduced.
 pub struct ExecutedDecode {
     pub output: Vec<u8>,
     pub backend: BackendId,
+    pub plan_backend: BackendId,
     /// Words consumed from the compressed stream (0 if unknown).
     pub words_consumed: usize,
     /// Final rANS states after decode (empty if unknown).
@@ -539,19 +515,15 @@ pub struct ExecutedDecode {
 impl ExecutedDecode {
     /// Create an `ExecutedDecode` with output and backend only.
     ///
-    /// This constructor sets `words_consumed` to 0 and `final_states` to an
-    /// empty vec — it is used by fallback paths that do not surface the SIMD
-    /// report API (e.g. batch-plan scalar fallbacks, non-SIMD pure-scalar
-    /// decode functions).  The consumer should treat 0/empty as "report not
-    /// available" rather than "zero words consumed" or "no final states".
-    ///
-    /// Fallback paths that **do** surface reports (`scalar16_fallback`,
-    /// `scalar8_fallback`) construct `ExecutedDecode` directly with struct
-    /// literal syntax to preserve those diagnostic fields.
+    /// Sets `words_consumed` to 0 and `final_states` to an empty vec — the
+    /// "report not available" convention used by backends that do not surface
+    /// the SIMD report API (e.g. pure-scalar decode functions).  Output
+    /// correctness is unaffected.
     pub fn new(output: Vec<u8>, backend: BackendId) -> Self {
         Self {
             output,
             backend,
+            plan_backend: backend,
             words_consumed: 0,
             final_states: Vec::new(),
         }
@@ -561,118 +533,25 @@ impl ExecutedDecode {
 impl ExecutedDecode {
     /// Create from the SIMD crate's `DecodeResult`, preserving all report fields.
     ///
-    /// This constructor is the primary conversion path for successful SIMD decode
-    /// results.  It maps the SIMD crate's `DecodeBackend` enum to the parallel
-    /// crate's `BackendId` via [`map_backend`] and copies the report fields
-    /// (`words_consumed`, `final_states`) directly from the result.
+    /// This constructor is the primary conversion path for successful SIMD
+    /// decode results.  It maps the SIMD crate's `DecodeBackend` enum to the
+    /// parallel crate's `BackendId` via [`map_backend`] and copies the report
+    /// fields (`words_consumed`, `final_states`) directly from the result.
     ///
-    /// Using this constructor ensures that the `ExecutedDecode` always reflects
-    /// the **real** executing backend, even when the `DecodePlan` had a different
-    /// intent.  The SIMD crate's `DecodeBackend` is the one true source of truth
-    /// for what ran.
+    /// `plan_backend` is set to the same value as the executed `backend`: the
+    /// SIMD crate reports what actually ran, and Phase L.9 forbids a
+    /// divergence between plan and execution on success.
     #[cfg(feature = "simd")]
     fn from_simd(result: ryg_rans_rs_simd::backends::DecodeResult) -> Self {
+        let backend = map_backend(result.backend);
         Self {
             output: result.output,
-            backend: map_backend(result.backend),
+            backend,
+            plan_backend: backend,
             words_consumed: result.report.words_consumed,
             final_states: result.report.final_states.to_vec(),
         }
     }
-}
-
-/// Fallback from a 16-way SIMD backend to scalar 16-way decode.
-///
-/// Called when a SIMD backend (e.g. `Avx2TwoBy8On16`) signals
-/// `UnsupportedBackend` at runtime and the policy is non-explicit.
-/// This function uses the SIMD crate's `decode_interleaved16_scalar`,
-/// which implements the same interleaved-16 algorithm without vector
-/// instructions.
-///
-/// ## Report fidelity
-///
-/// Unlike the simple fallback paths for batch plans, this function
-/// preserves **all** report fields from the scalar decode:
-///
-/// - `words_consumed`: the exact number of u16 words consumed from
-///   the compressed stream during the scalar decode.
-/// - `final_states`: the 16 final rANS state values, one per lane.
-///
-/// This is possible because `decode_interleaved16_scalar` returns a
-/// full `DecodeReport` alongside the output.  The `ExecutedDecode` is
-/// constructed with struct literal syntax to capture both fields.
-///
-/// ## Backend identity
-///
-/// The `backend` field is always set to `BackendId::Scalar16` — the
-/// truth, not the plan.  The caller (e.g. `decode_single_block`) uses
-/// `executed.backend` in the `DecodedBlockResult`, so any downstream
-/// consumer sees that scalar was actually used.
-#[cfg(feature = "simd")]
-fn scalar16_fallback(
-    words: &[u16],
-    table: &ryg_rans_rs_simd::packed_table::PackedWordTable,
-    expected_len: usize,
-    bi: u64,
-) -> Result<ExecutedDecode, BlockError> {
-    let (out, report) =
-        ryg_rans_rs_simd::packed_table::decode_interleaved16_scalar(words, table, expected_len)
-            .map_err(|_| BlockError {
-                block_index: bi,
-                kind: BlockErrorKind::Codec,
-            })?;
-    Ok(ExecutedDecode {
-        output: out,
-        backend: BackendId::Scalar16,
-        words_consumed: report.words_consumed,
-        final_states: report.final_states.to_vec(),
-    })
-}
-
-/// Fallback from an 8-way SIMD backend to scalar 8-way decode.
-///
-/// Called when a SIMD backend (e.g. `Avx2ManualGather8`, `Avx2HardwareGather8`)
-/// signals `UnsupportedBackend` at runtime and the policy is non-explicit.
-/// This function uses the SIMD crate's `decode_8way_packed_scalar_with_report`,
-/// which implements the interleaved-8 algorithm without vector instructions.
-///
-/// ## Report fields
-///
-/// The `DecodeReport8` returned by the SIMD crate contains `[u32; 8]` final
-/// states — one per 8-way lane.  We pad this to a `[u32; 16]` vec (the format
-/// expected by `ExecutedDecode`) by copying the first 8 states and leaving
-/// the remaining 8 as zero.  This padding is harmless: the 8-way decode only
-/// uses lanes 0–7; lanes 8–15 are never accessed.
-///
-/// ## Backend identity
-///
-/// Set to `BackendId::Scalar8` — the truthful executed backend.
-#[cfg(feature = "simd")]
-fn scalar8_fallback(
-    words: &[u16],
-    table: &ryg_rans_rs_simd::packed_table::PackedWordTable,
-    expected_len: usize,
-    bi: u64,
-) -> Result<ExecutedDecode, BlockError> {
-    let (out, r8) = ryg_rans_rs_simd::packed_table::decode_8way_packed_scalar_with_report(
-        words,
-        table,
-        expected_len,
-    )
-    .map_err(|_| BlockError {
-        block_index: bi,
-        kind: BlockErrorKind::Codec,
-    })?;
-    let mut final_states = vec![0u32; 16];
-    for i in 0..8 {
-        final_states[i] = r8.final_states[i];
-    }
-    Ok(ExecutedDecode {
-        output: out,
-        backend: BackendId::Scalar8,
-        words_consumed: r8.words_consumed,
-        final_states,
-    })
 }
 
 /// Map a SIMD crate `DecodeBackend` to the parallel crate's `BackendId`.
@@ -749,90 +628,60 @@ fn build_cum_freqs(freqs: &[u32]) -> Vec<u32> {
     cum
 }
 
-/// Execute a decode plan using the actual selected backend (SIMD-enabled path).
+/// Execute a decode plan — exact-backend dispatch (SIMD-enabled build).
 ///
-/// This is the main decode-dispatch function when the `simd` feature is enabled.
-/// Each arm of the `match` on `DecodePlan` implements or dispatches to the
-/// corresponding decode kernel.  The function returns the **executed** backend
-/// identity, not the plan — this distinction is critical for observability.
+/// This is the main decode-dispatch function when the `simd` feature is
+/// enabled.  Each arm of the `match` on `DecodePlan` executes the kernel for
+/// that plan, or returns a typed error.
+///
+/// # Phase L.9 exact-backend semantics
+///
+/// This function never substitutes a different backend for the planned one.
+/// There is no fallback path: an explicit request either executes exactly or
+/// fails with a typed error.
+///
+/// * `BackendUnavailable` — the kernel cannot run on this CPU (runtime
+///   feature detection failed) or in this build (the kernel body is
+///   compile-time gated by `target_feature`).  The SIMD crate's `_checked`
+///   wrappers report `UnsupportedBackend` for both cases, mapped here to
+///   `BackendUnavailable`.
+/// * `Codec` — the kernel executed but the stream or table was malformed
+///   (truncation, state invariant violation, invalid table).
 ///
 /// ## Before dispatch: payload → u16 words
 ///
-/// The compressed payload is a byte-aligned stream of u16 words in little-endian
-/// format.  We convert it to `Vec<u16>` upfront.  Every decode kernel (SIMD and
-/// scalar) operates on this word slice.  The conversion uses `chunks_exact(2)`,
-/// which panics if the payload length is odd — but this is guaranteed not to
-/// happen because the block format pads to an even byte count.
+/// The compressed payload is a byte-aligned stream of u16 words in
+/// little-endian format.  We convert it to `Vec<u16>` upfront.  Every decode
+/// kernel (SIMD and scalar) operates on this word slice.  The conversion
+/// uses `chunks_exact(2)`, which panics if the payload length is odd — but
+/// this is guaranteed not to happen because the block format pads to an even
+/// byte count (enforced by the strict block parser).
 ///
-/// ## Role of each backend arm
+/// ## Backend arms
 ///
-/// ### `RawCopy`
-/// No compression: the payload bytes are the output directly (up to
-/// `expected_len`).  Used for codec ID 1 (stored) or blocks where the model
-/// indicates every symbol maps to itself.  Always succeeds.
+/// | Plan | Kernel | Report |
+/// |------|--------|--------|
+/// | `Scalar16` | `decode_interleaved16_scalar` | full |
+/// | `Scalar8` | `decode_8way_packed_scalar_with_report` | full (8 states padded to 16) |
+/// | `Uniform256TableFree16` | local scalar table-free kernel | full |
+/// | `Sse41Interleaved8` | SIMD crate `decode_simd_8way_unchecked` via `_sse41_checked` | none (0/empty) |
+/// | `Avx512VlInterleaved8` | `decode_interleaved8_avx512vl_checked` | full |
+/// | `Avx512Interleaved16` | `decode_interleaved16_avx512_checked` | full |
+/// | `Avx512VlManualGather8` | `decode_interleaved8_avx512vl_manual_gather_checked` | full |
+/// | `Avx512ManualGather16` | `decode_interleaved16_avx512_manual_gather_checked` | full |
+/// | `Avx512Vl2x8` | `decode_interleaved16_avx512vl_2x8_checked` | full |
+/// | `Avx2ManualGather8` | `decode_interleaved8_avx2_manual_gather_checked` | full |
+/// | `Avx2HardwareGather8` | `decode_interleaved8_avx2_hardware_gather_checked` | full |
+/// | `Avx2TwoBy8On16` | `decode_interleaved16_avx2_2x8_checked` | full |
+/// | `Avx2Uniform256TableFree16` | `decode_interleaved16_uniform256_avx2_checked` | full |
 ///
-/// ### `RleFill`
-/// Run-length encoding: the plan specifies a single symbol and count.  The
-/// output is a vector filled with that symbol.  Used for highly compressible
-/// blocks where every byte is identical.  No compressed words are consumed.
+/// "Report" = `words_consumed` + `final_states`.  The SSE4.1 kernel does not
+/// surface a report; its `ExecutedDecode` uses the 0/empty convention
+/// meaning "not available" (output correctness is unaffected).
 ///
-/// ### `Scalar16` / `Uniform256TableFree16`
-/// 16-way interleaved rANS using the SIMD crate's scalar implementation
-/// (`decode_interleaved16_scalar`).  Returns full report fields.  This is the
-/// baseline 16-way path — all other 16-way SIMD kernels should produce
-/// bit-identical output.
-///
-/// ### `Scalar8`
-/// 8-way interleaved rANS using `decode_8way_packed_scalar_with_report`.
-/// Returns `[u32; 8]` final states padded to 16.  Baseline 8-way path.
-///
-/// ### `Avx2ManualGather8`
-/// AVX2 8-way decode using `_mm256_i32gather_epi32` (manual gather).  Falls
-/// back to scalar 8-way on `UnsupportedBackend` under non-explicit policy.
-///
-/// ### `Avx2HardwareGather8`
-/// AVX2 8-way decode using hardware gather instructions.  Same fallback
-/// semantics as `Avx2ManualGather8`.
-///
-/// ### `Avx2TwoBy8On16`
-/// AVX2 16-way decode using two 8-way kernels interleaved.  Falls back to
-/// `scalar16_fallback` (which preserves full report fields).
-///
-/// ### `Avx2Uniform256TableFree16`
-/// AVX2 16-way decode for uniform-256 models (table-free path using direct
-/// arithmetic instead of a slot→symbol table).  Falls back to
-/// `decode_interleaved16_scalar` (note: report fields are NOT preserved;
-/// `words_consumed = 0`, empty `final_states`).
-///
-/// ### `Avx512Vl2x8`
-/// AVX-512VL 16-way decode.  Currently returns `UnsupportedBackend` because
-/// the public SIMD wrapper does not yet exist.  Under non-explicit policy,
-/// falls back to scalar 16-way (no report fields preserved).
-///
-/// ### Batch plans (`Avx512Batch4`, `Avx2Batch4On16`)
-/// Batch-4 decode requires coordinator-level grouping of compatible jobs and
-/// cannot be executed through this per-block decode path.  Always falls back
-/// to scalar 16-way under non-explicit policy (no report fields preserved).
-///
-/// ## Fallback logic in detail
-///
-/// Every SIMD arm follows the same pattern:
-///
-/// ```text
-/// match simd_kernel(words, table, expected_len) {
-///     Ok(result) => Ok(ExecutedDecode::from_simd(result)),
-///     Err(UnsupportedBackend) => {
-///         if policy is Explicit { return Codec error; }
-///         fallback_kernel(words, table, expected_len, bi)
-///     }
-///     Err(_) => Codec error,  // real decode failure, not just unsupported
-/// }
-/// ```
-///
-/// The `UnsupportedBackend` error is distinguished from other errors at the
-/// SIMD wrapper level — it means "this instruction set is not available on the
-/// current CPU", not "the data is corrupted".  Other errors (e.g. state
-/// underflow) are real decode failures and are always fatal.
+/// Every successful result records the executed backend via
+/// `ExecutedDecode::from_simd`, which maps the SIMD crate's own backend
+/// enum — the ground truth of what ran.
 #[cfg(feature = "simd")]
 fn execute_decode_plan(
     plan: &DecodePlan,
@@ -841,7 +690,6 @@ fn execute_decode_plan(
     expected_len: usize,
     _scale_bits: u8,
     bi: u64,
-    policy: BackendPolicy,
 ) -> Result<ExecutedDecode, BlockError> {
     use ryg_rans_rs_simd::backends::DecodeError;
     use ryg_rans_rs_simd::packed_table::{PackedWordTable, decode_interleaved16_scalar};
@@ -851,13 +699,27 @@ fn execute_decode_plan(
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .collect();
 
+    /// Map a SIMD crate `DecodeError` to a `BlockErrorKind`.
+    ///
+    /// `UnsupportedBackend` means the kernel was **not** executed (CPU or
+    /// build lacks the capability) → `BackendUnavailable`.  Every other
+    /// error means the kernel ran and the stream/table was malformed →
+    /// `Codec`.
+    fn map_decode_err(e: DecodeError, bi: u64) -> BlockError {
+        let kind = match e {
+            DecodeError::UnsupportedBackend => BlockErrorKind::BackendUnavailable,
+            _ => BlockErrorKind::Codec,
+        };
+        BlockError {
+            block_index: bi,
+            kind,
+        }
+    }
+
     /// Build a packed word table from frequencies (inner helper).
     ///
-    /// This closure is defined inline within `execute_decode_plan` for the
-    /// SIMD-enabled path because it captures nothing from the outer scope —
-    /// it could be a free function, but living here keeps it close to its
-    /// only call site.  It converts raw frequencies to a `PackedWordTable`
-    /// via `build_cum_freqs` + `PackedWordTable::from_freqs`.
+    /// Converts raw frequencies to a `PackedWordTable` via
+    /// `build_cum_freqs` + `PackedWordTable::from_freqs`.
     ///
     /// # Errors
     ///
@@ -872,21 +734,8 @@ fn execute_decode_plan(
     }
 
     match plan {
-        DecodePlan::RawCopy => {
-            let o = payload[..expected_len.min(payload.len())].to_vec();
-            Ok(ExecutedDecode::new(o, BackendId::RawCopy))
-        }
-        DecodePlan::RleFill { symbol, count } => {
-            let len = expected_len.min(*count);
-            Ok(ExecutedDecode {
-                output: vec![*symbol; len],
-                backend: BackendId::RleFill,
-                words_consumed: 0,
-                final_states: Vec::new(),
-            })
-        }
         // ---- Scalar 16-way ----
-        DecodePlan::Scalar16 { .. } | DecodePlan::Uniform256TableFree16 { .. } => {
+        DecodePlan::Scalar16 { .. } => {
             let table = build_table(freqs, _scale_bits as u32, bi)?;
             let (out, report) =
                 decode_interleaved16_scalar(&words, &table, expected_len).map_err(|_| {
@@ -898,6 +747,7 @@ fn execute_decode_plan(
             Ok(ExecutedDecode {
                 output: out,
                 backend: BackendId::Scalar16,
+                plan_backend: BackendId::Scalar16,
                 words_consumed: report.words_consumed,
                 final_states: report.final_states.to_vec(),
             })
@@ -914,7 +764,8 @@ fn execute_decode_plan(
                 block_index: bi,
                 kind: BlockErrorKind::Codec,
             })?;
-            // DecodeReport8 has [u32; 8] final_states — pad to 16 for ExecutedDecode
+            // DecodeReport8 has [u32; 8] final_states — pad to 16 for
+            // ExecutedDecode.  Lanes 8–15 are unused by 8-way decode.
             let mut final_states = vec![0u32; 16];
             for i in 0..8 {
                 final_states[i] = r8.final_states[i];
@@ -922,229 +773,147 @@ fn execute_decode_plan(
             Ok(ExecutedDecode {
                 output: out,
                 backend: BackendId::Scalar8,
+                plan_backend: BackendId::Scalar8,
                 words_consumed: r8.words_consumed,
                 final_states,
             })
         }
+        // ---- Uniform256 table-free (scalar arithmetic, no table) ----
+        DecodePlan::Uniform256TableFree16 { .. } => {
+            decode_16way_uniform256_scalar(&words, expected_len, bi)
+        }
+        // ---- SSE4.1 8-way ----
+        DecodePlan::Sse41Interleaved8 { .. } => {
+            // The SSE4.1 kernel operates on `RansWordTables` (slot +
+            // slot→sym slices); build them from the validated freqs.
+            let cum = build_cum_freqs(freqs);
+            let (slots, slot2sym) = ryg_rans_rs_simd::build_word_tables(freqs, &cum, 12);
+            let tables = ryg_rans_rs_simd::RansWordTables {
+                slots: &slots,
+                slot2sym: &slot2sym,
+            };
+            ryg_rans_rs_simd::backends::decode_interleaved8_sse41_checked(
+                &words,
+                &tables,
+                expected_len,
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
+        }
         // ---- AVX2 manual-gather 8-way ----
         DecodePlan::Avx2ManualGather8 { .. } => {
             let table = build_table(freqs, _scale_bits as u32, bi)?;
-            match ryg_rans_rs_simd::backends::decode_interleaved8_avx2_manual_gather_checked(
+            ryg_rans_rs_simd::backends::decode_interleaved8_avx2_manual_gather_checked(
                 &words,
                 &table,
                 expected_len,
-            ) {
-                Ok(result) => Ok(ExecutedDecode::from_simd(result)),
-                Err(ryg_rans_rs_simd::backends::DecodeError::UnsupportedBackend) => {
-                    if matches!(policy, BackendPolicy::Explicit(_)) {
-                        return Err(BlockError {
-                            block_index: bi,
-                            kind: BlockErrorKind::Codec,
-                        });
-                    }
-                    let result = ryg_rans_rs_simd::backends::decode_interleaved8_scalar(
-                        &words,
-                        &table,
-                        expected_len,
-                    )
-                    .map_err(|_| BlockError {
-                        block_index: bi,
-                        kind: BlockErrorKind::Codec,
-                    })?;
-                    Ok(ExecutedDecode::new(result.output, BackendId::Scalar8))
-                }
-                Err(_) => Err(BlockError {
-                    block_index: bi,
-                    kind: BlockErrorKind::Codec,
-                }),
-            }
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
         }
         // ---- AVX2 hardware-gather 8-way ----
         DecodePlan::Avx2HardwareGather8 { .. } => {
             let table = build_table(freqs, _scale_bits as u32, bi)?;
-            match ryg_rans_rs_simd::backends::decode_interleaved8_avx2_hardware_gather_checked(
+            ryg_rans_rs_simd::backends::decode_interleaved8_avx2_hardware_gather_checked(
                 &words,
                 &table,
                 expected_len,
-            ) {
-                Ok(result) => Ok(ExecutedDecode::from_simd(result)),
-                Err(ryg_rans_rs_simd::backends::DecodeError::UnsupportedBackend) => {
-                    if matches!(policy, BackendPolicy::Explicit(_)) {
-                        return Err(BlockError {
-                            block_index: bi,
-                            kind: BlockErrorKind::Codec,
-                        });
-                    }
-                    let result = ryg_rans_rs_simd::backends::decode_interleaved8_scalar(
-                        &words,
-                        &table,
-                        expected_len,
-                    )
-                    .map_err(|_| BlockError {
-                        block_index: bi,
-                        kind: BlockErrorKind::Codec,
-                    })?;
-                    Ok(ExecutedDecode::new(result.output, BackendId::Scalar8))
-                }
-                Err(_) => Err(BlockError {
-                    block_index: bi,
-                    kind: BlockErrorKind::Codec,
-                }),
-            }
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
         }
-        // ---- Batch plans (not supported per-block) ----
         // ---- AVX2 2x8 on 16-way ----
         DecodePlan::Avx2TwoBy8On16 { .. } => {
             let table = build_table(freqs, _scale_bits as u32, bi)?;
-            match ryg_rans_rs_simd::backends::decode_interleaved16_avx2_2x8_checked(
+            ryg_rans_rs_simd::backends::decode_interleaved16_avx2_2x8_checked(
                 &words,
                 &table,
                 expected_len,
-            ) {
-                Ok(result) => Ok(ExecutedDecode::from_simd(result)),
-                Err(ryg_rans_rs_simd::backends::DecodeError::UnsupportedBackend) => {
-                    if matches!(policy, BackendPolicy::Explicit(_)) {
-                        return Err(BlockError {
-                            block_index: bi,
-                            kind: BlockErrorKind::Codec,
-                        });
-                    }
-                    scalar16_fallback(&words, &table, expected_len, bi)
-                }
-                Err(_) => Err(BlockError {
-                    block_index: bi,
-                    kind: BlockErrorKind::Codec,
-                }),
-            }
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
         }
         // ---- AVX2 Uniform256 table-free ----
         DecodePlan::Avx2Uniform256TableFree16 { .. } => {
-            match ryg_rans_rs_simd::backends::decode_interleaved16_uniform256_avx2_checked(
+            ryg_rans_rs_simd::backends::decode_interleaved16_uniform256_avx2_checked(
                 &words,
                 expected_len,
-            ) {
-                Ok(result) => Ok(ExecutedDecode::from_simd(result)),
-                Err(ryg_rans_rs_simd::backends::DecodeError::UnsupportedBackend) => {
-                    if matches!(policy, BackendPolicy::Explicit(_)) {
-                        return Err(BlockError {
-                            block_index: bi,
-                            kind: BlockErrorKind::Codec,
-                        });
-                    }
-                    let table = build_table(freqs, _scale_bits as u32, bi)?;
-                    let (out, _) = decode_interleaved16_scalar(&words, &table, expected_len)
-                        .map_err(|_| BlockError {
-                            block_index: bi,
-                            kind: BlockErrorKind::Codec,
-                        })?;
-                    Ok(ExecutedDecode {
-                        output: out,
-                        backend: BackendId::Scalar16,
-                        words_consumed: 0,
-                        final_states: Vec::new(),
-                    })
-                }
-                Err(_) => Err(BlockError {
-                    block_index: bi,
-                    kind: BlockErrorKind::Codec,
-                }),
-            }
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
+        }
+        // ---- AVX-512VL interleaved 8-way ----
+        DecodePlan::Avx512VlInterleaved8 { .. } => {
+            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl_checked(
+                &words,
+                &table,
+                expected_len,
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
+        }
+        // ---- AVX-512 interleaved 16-way ----
+        DecodePlan::Avx512Interleaved16 { .. } => {
+            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            ryg_rans_rs_simd::backends::decode_interleaved16_avx512_checked(
+                &words,
+                &table,
+                expected_len,
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
+        }
+        // ---- AVX-512VL manual-gather 8-way ----
+        DecodePlan::Avx512VlManualGather8 { .. } => {
+            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl_manual_gather_checked(
+                &words,
+                &table,
+                expected_len,
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
+        }
+        // ---- AVX-512 manual-gather 16-way ----
+        DecodePlan::Avx512ManualGather16 { .. } => {
+            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            ryg_rans_rs_simd::backends::decode_interleaved16_avx512_manual_gather_checked(
+                &words,
+                &table,
+                expected_len,
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
         }
         // ---- AVX-512VL 2x8 on 16-way ----
-        //
-        // IMPORTANT: This was previously calling the AVX2 wrapper, which violated
-        // exact-backend semantics.  Until the real public AVX512VL 2x8 wrapper
-        // exists, we return UnsupportedBackend.  Under explicit policy this is
-        // a hard error.  Under non-explicit policy we fall back to scalar.
         DecodePlan::Avx512Vl2x8 { .. } => {
-            if matches!(policy, BackendPolicy::Explicit(_)) {
-                return Err(BlockError {
-                    block_index: bi,
-                    kind: BlockErrorKind::Codec,
-                });
-            }
             let table = build_table(freqs, _scale_bits as u32, bi)?;
-            let (out, _) =
-                decode_interleaved16_scalar(&words, &table, expected_len).map_err(|_| {
-                    BlockError {
-                        block_index: bi,
-                        kind: BlockErrorKind::Codec,
-                    }
-                })?;
-            Ok(ExecutedDecode {
-                output: out,
-                backend: BackendId::Scalar16,
-                words_consumed: 0,
-                final_states: Vec::new(),
-            })
-        }
-        // ---- Batch plans (not supported per-block) ----
-        //
-        // Batch4 requires coordinator-level grouping of compatible jobs.
-        // It cannot be executed through this per-block decode path.
-        // Return UnsupportedBackend.  Under explicit policy this is a hard
-        // error.  Under non-explicit policy we fall back to scalar.
-        DecodePlan::Avx512Batch4 { .. } | DecodePlan::Avx2Batch4On16 { .. } => {
-            if matches!(policy, BackendPolicy::Explicit(_)) {
-                return Err(BlockError {
-                    block_index: bi,
-                    kind: BlockErrorKind::Codec,
-                });
-            }
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
-            let (out, _) =
-                decode_interleaved16_scalar(&words, &table, expected_len).map_err(|_| {
-                    BlockError {
-                        block_index: bi,
-                        kind: BlockErrorKind::Codec,
-                    }
-                })?;
-            Ok(ExecutedDecode {
-                output: out,
-                backend: BackendId::Scalar16,
-                words_consumed: 0,
-                final_states: Vec::new(),
-            })
+            ryg_rans_rs_simd::backends::decode_interleaved16_avx512vl_2x8_checked(
+                &words,
+                &table,
+                expected_len,
+            )
+            .map(ExecutedDecode::from_simd)
+            .map_err(|e| map_decode_err(e, bi))
         }
     }
 }
 
 /// Execute a decode plan using pure scalar backends (SIMD feature disabled).
 ///
-/// This is the fallback dispatch when the `simd` feature is not compiled in.
-/// No SIMD intrinsics are available — every decode path uses plain Rust
-/// arithmetic.  The function is structurally similar to the SIMD-enabled
-/// version but simpler: there are only five plan types to handle.
-///
-/// ## Plan dispatch
-///
-/// - `RawCopy` and `RleFill`: handled exactly as in the SIMD path — they
-///   don't need vector instructions.
-/// - `Scalar16` / `Uniform256TableFree16`: dispatched to
-///   `decode_16way_pure_scalar`, which implements the interleaved-16 rANS
-///   algorithm from scratch without any SIMD dependency.
-/// - `Scalar8`: dispatched to `decode_8way_pure_scalar`, the pure-scalar
-///   interleaved-8 implementation.
-/// - All SIMD-only plans (`Avx2ManualGather8`, `Avx512Vl2x8`, `Avx2Batch4On16`,
-///   etc.): checked against the fallback policy via `require_fallback`.  If
-///   the policy is `Explicit(_)`, returns `BlockErrorKind::Codec` — the caller
-///   explicitly requested a backend that isn't available.  Otherwise, falls
-///   back to `decode_16way_pure_scalar`.
+/// No SIMD intrinsics are available in this build.  Scalar and
+/// Uniform256-table-free plans execute their real kernels; every SIMD-only
+/// plan returns `BackendUnavailable` — a typed error, never a silent
+/// substitution (Phase L.9).  SIMD-only plans can only be produced by an
+/// explicit policy, so a typed error is the only honest outcome in a build
+/// that cannot run them.
 ///
 /// ## Report fields
 ///
-/// All paths in this function use `ExecutedDecode::new`, which sets
-/// `words_consumed = 0` and `final_states = Vec::new()`.  The pure-scalar
-/// implementations do not surface the SIMD report API, so diagnostic fields
-/// are unavailable.  Output correctness is preserved.
-///
-/// ## Why duplicate the dispatch logic?
-///
-/// Having two `execute_decode_plan` functions (one `#[cfg(feature = "simd")]`,
-/// one `#[cfg(not(feature = "simd"))]`) avoids conditional-compilation clutter
-/// inside the function body.  Each version is clean, focused, and compiled
-/// only when needed.  The trade-off is maintenance — both must be kept in
-/// sync when new plan types are added.
+/// The pure-scalar kernels do not surface the SIMD report API, so
+/// `words_consumed = 0` and `final_states = Vec::new()` (the "not
+/// available" convention).  Output correctness is unaffected.
 #[cfg(not(feature = "simd"))]
 fn execute_decode_plan(
     plan: &DecodePlan,
@@ -1153,63 +922,37 @@ fn execute_decode_plan(
     expected_len: usize,
     _scale_bits: u8,
     bi: u64,
-    policy: BackendPolicy,
 ) -> Result<ExecutedDecode, BlockError> {
     let words: Vec<u16> = payload
         .chunks_exact(2)
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .collect();
 
-    /// Check whether fallback is allowed under the current backend policy.
-    ///
-    /// Under `BackendPolicy::Explicit(_)`, the caller has explicitly opted
-    /// into a specific backend.  If that backend is unavailable (i.e. the
-    /// plan requires SIMD but SIMD is not compiled in), this returns an
-    /// error.  Under any other policy, fallback to scalar is permitted.
-    ///
-    /// # Errors
-    ///
-    /// Returns `BlockErrorKind::Codec` under explicit policy when the
-    /// requested backend is not available.
-    fn require_fallback(policy: &BackendPolicy) -> Result<(), BlockError> {
-        if matches!(policy, BackendPolicy::Explicit(_)) {
-            return Err(BlockError {
-                block_index: 0,
-                kind: BlockErrorKind::Codec,
-            });
-        }
-        Ok(())
-    }
-
     match plan {
-        DecodePlan::RawCopy => {
-            let o = payload[..expected_len.min(payload.len())].to_vec();
-            Ok(ExecutedDecode::new(o, BackendId::RawCopy))
-        }
-        DecodePlan::RleFill { symbol, count } => {
-            let len = expected_len.min(*count);
-            Ok(ExecutedDecode::new(vec![*symbol; len], BackendId::RleFill))
-        }
-        DecodePlan::Scalar16 { .. } | DecodePlan::Uniform256TableFree16 { .. } => {
+        DecodePlan::Scalar16 { .. } => {
             let (out, _) = decode_16way_pure_scalar(&words, freqs, expected_len, bi)?;
             Ok(ExecutedDecode::new(out, BackendId::Scalar16))
+        }
+        DecodePlan::Uniform256TableFree16 { .. } => {
+            decode_16way_uniform256_scalar(&words, expected_len, bi)
         }
         DecodePlan::Scalar8 { .. } => {
             let (out, _) = decode_8way_pure_scalar(&words, freqs, expected_len, bi)?;
             Ok(ExecutedDecode::new(out, BackendId::Scalar8))
         }
-        // SIMD-only plans: fail under explicit, fall back under non-explicit
-        DecodePlan::Avx512Vl2x8 { .. }
-        | DecodePlan::Avx512Batch4 { .. }
+        DecodePlan::Sse41Interleaved8 { .. }
+        | DecodePlan::Avx512VlInterleaved8 { .. }
+        | DecodePlan::Avx512Interleaved16 { .. }
+        | DecodePlan::Avx512VlManualGather8 { .. }
+        | DecodePlan::Avx512ManualGather16 { .. }
+        | DecodePlan::Avx512Vl2x8 { .. }
         | DecodePlan::Avx2ManualGather8 { .. }
         | DecodePlan::Avx2HardwareGather8 { .. }
         | DecodePlan::Avx2TwoBy8On16 { .. }
-        | DecodePlan::Avx2Uniform256TableFree16 { .. }
-        | DecodePlan::Avx2Batch4On16 { .. } => {
-            require_fallback(&policy)?;
-            let (out, _) = decode_16way_pure_scalar(&words, freqs, expected_len, bi)?;
-            Ok(ExecutedDecode::new(out, BackendId::Scalar16))
-        }
+        | DecodePlan::Avx2Uniform256TableFree16 { .. } => Err(BlockError {
+            block_index: bi,
+            kind: BlockErrorKind::BackendUnavailable,
+        }),
     }
 }
 
@@ -1218,8 +961,6 @@ fn execute_decode_plan(
 /// This is the fallback when the SIMD crate is not available.  It implements
 /// the exact same interleaved-16 algorithm as `decode_interleaved16_scalar` in
 /// the SIMD crate, but with plain Rust arithmetic — no vector instructions.
-///
-/// ## Algorithm
 ///
 /// 1. **Initialise 16 states** from the first 32 u16 words (2 words per state,
 ///    little-endian, forming a 32-bit state each).  Word index `rp` starts at 32.
@@ -1259,6 +1000,7 @@ fn execute_decode_plan(
 /// Returns `(Vec<u8>, ())` — the unit tuple indicates "no report available".
 /// Callers that need `words_consumed` and `final_states` should use the SIMD
 /// crate's scalar functions via `scalar16_fallback` or `scalar8_fallback`.
+#[cfg(not(feature = "simd"))]
 fn decode_16way_pure_scalar(
     words: &[u16],
     freqs: &[u32],
@@ -1326,13 +1068,94 @@ fn decode_16way_pure_scalar(
     Ok((out, ()))
 }
 
+/// Scalar Uniform256 table-free 16-way decode.
+///
+/// # Why this kernel exists
+///
+/// For a validated Uniform256 model (scale_bits = 12, every normalised
+/// frequency exactly 16, total 4096), the rANS decode collapses to two
+/// arithmetic identities — no slot→symbol table is needed at all:
+///
+/// ```text
+/// slot        = x & 0xFFF            (M = 4096)
+/// symbol      = slot >> 4            (each symbol owns 16 consecutive slots)
+/// next_state  = 16 * (x >> 12) + (slot & 15)
+///             = freq * (x >> scale) + slot - cum[symbol]
+/// ```
+///
+/// `freq = 16`, `cum[symbol] = 16 * symbol`, so the general formula reduces
+/// exactly to the shift/mask form above.  This kernel is pure scalar
+/// arithmetic — no vector instructions — so it is permitted under
+/// `disable_simd` and available in builds without the `simd` feature.
+///
+/// # Report fields
+///
+/// `words_consumed` is the final u16 reader position (32 initial state words
+/// plus renormalisation reads); `final_states` are the 16 lane states — the
+/// same conventions as the packed-table scalar path.
+fn decode_16way_uniform256_scalar(
+    words: &[u16],
+    expected_len: usize,
+    bi: u64,
+) -> Result<ExecutedDecode, BlockError> {
+    if expected_len == 0 {
+        return Ok(ExecutedDecode {
+            output: Vec::new(),
+            backend: BackendId::Uniform256TableFree16,
+            plan_backend: BackendId::Uniform256TableFree16,
+            words_consumed: 0,
+            final_states: Vec::new(),
+        });
+    }
+    if words.len() < 32 {
+        return Err(BlockError {
+            block_index: bi,
+            kind: BlockErrorKind::Format,
+        });
+    }
+
+    let mut states = [0u32; 16];
+    for i in 0..16 {
+        states[i] = words[i * 2] as u32 | (words[i * 2 + 1] as u32) << 16;
+    }
+    let mut rp = 32usize;
+    let mut out = vec![0u8; expected_len];
+
+    for i in 0..expected_len {
+        let lane = i & 15;
+        let x = states[lane];
+        let slot = (x & 0xFFF) as u32;
+        out[i] = (slot >> 4) as u8;
+        let nx = ((x >> 12) << 4) | (slot & 15);
+        states[lane] = nx;
+
+        if nx < 65536 {
+            // RANS_WORD_L = 1 << 16
+            if rp >= words.len() {
+                return Err(BlockError {
+                    block_index: bi,
+                    kind: BlockErrorKind::Format,
+                });
+            }
+            states[lane] = (nx << 16) | words[rp] as u32;
+            rp += 1;
+        }
+    }
+
+    Ok(ExecutedDecode {
+        output: out,
+        backend: BackendId::Uniform256TableFree16,
+        plan_backend: BackendId::Uniform256TableFree16,
+        words_consumed: rp,
+        final_states: states.to_vec(),
+    })
+}
+
 /// Pure scalar 8-way Word rANS decode using a flat frequency array.
 ///
 /// This is the 8-way variant of `decode_16way_pure_scalar`.  It uses 8
 /// interleaved lanes instead of 16, requiring only 16 initial u16 words
 /// (8 states × 2 words each).
-///
-/// ## Minimum payload check
 ///
 /// Requires at least `16` u16 words.  Returns `BlockErrorKind::Format`
 /// otherwise.  See [`decode_16way_pure_scalar`] for detailed rationale.
@@ -1346,6 +1169,7 @@ fn decode_16way_pure_scalar(
 ///
 /// The state renormalisation, symbol lookup, and output production are
 /// otherwise byte-identical to the 16-way path.
+#[cfg(not(feature = "simd"))]
 fn decode_8way_pure_scalar(
     words: &[u16],
     freqs: &[u32],
@@ -1430,6 +1254,7 @@ fn decode_8way_pure_scalar(
 ///
 /// SIMD backends use precomputed slot→symbol lookup tables instead of this
 /// linear scan.  This function exists only for the pure-scalar fallback paths.
+#[cfg(not(feature = "simd"))]
 fn find_symbol_from_freqs(freqs: &[u32], slot: usize) -> u8 {
     let mut accum = 0u32;
     for s in 0..256u32 {
@@ -1439,105 +1264,6 @@ fn find_symbol_from_freqs(freqs: &[u32], slot: usize) -> u8 {
         }
     }
     255u8
-}
-
-/// Decode 8-way using the SIMD crate's packed-table scalar path.
-///
-/// This function builds a full `RansWordTables` (slot and slot→sym tables)
-/// from raw frequencies and runs the SIMD crate's `decode_8way_scalar`.
-///
-/// It exists as a bridge between the frequency-model-based decode path
-/// and the SIMD crate's table-based API.  Some callers may not have a
-/// pre-built `PackedWordTable` and need to decode from raw frequencies
-/// directly.
-///
-/// ## When is this used?
-///
-/// This function is currently only referenced in the SIMD feature gate's
-/// static dispatch path.  It is **not** a fallback — for that, see
-/// `scalar8_fallback`.  Instead, it's a convenience wrapper for callers
-/// who have raw frequencies but want to use the SIMD crate's optimised
-/// scalar decode (which uses packed-table lookups internally).
-///
-/// ## Report fields
-///
-/// Returns `(Vec<u8>, ())` — no report surfaced.  If the caller needs
-/// `words_consumed` and `final_states`, they should use
-/// `scalar8_fallback` instead, which calls the `_with_report` variant.
-#[cfg(feature = "simd")]
-fn decode_8way_from_freqs(
-    words: &[u16],
-    freqs: &[u32],
-    expected_len: usize,
-    bi: u64,
-) -> Result<(Vec<u8>, ()), BlockError> {
-    use ryg_rans_rs_simd::RansWordTables;
-    use ryg_rans_rs_simd::build_word_tables;
-    use ryg_rans_rs_simd::decode_8way_scalar;
-
-    let cum = build_cum_freqs(freqs);
-    let (slots, slot2sym) = build_word_tables(freqs, &cum, 12);
-    let tables = RansWordTables {
-        slots: &slots,
-        slot2sym: &slot2sym,
-    };
-
-    let output = decode_8way_scalar(words, &tables, expected_len).map_err(|_| BlockError {
-        block_index: bi,
-        kind: BlockErrorKind::Codec,
-    })?;
-
-    Ok((output, ()))
-}
-
-/// Detect CPU features at runtime (AVX-512F+BW, AVX-512VL, AVX2).
-///
-/// Returns a tuple `(avx512, avx512vl, avx2)` indicating which instruction
-/// set extensions are available on the current CPU.  On non-x86_64 targets
-/// (e.g. ARM, RISC-V), all three return `false`.
-///
-/// ## Why these three feature flags?
-///
-/// - **AVX-512F + AVX-512BW** (`avx512`): required for 512-bit-wide decode
-///   kernels (`Avx512Interleaved16`, `Avx512ManualGather16`, `Avx512Batch4`).
-///   Both the foundation (F) and byte/word (BW) extensions are needed because
-///   the decode kernels operate on 16-bit words.
-///
-/// - **AVX-512VL** (`avx512vl`): required for 128/256-bit AVX-512 operations
-///   (`Avx512VlInterleaved8`, `Avx512VlManualGather8`, `Avx512Vl2x8`).  VL
-///   allows AVX-512 instructions to operate on XMM/YMM registers, which is
-///   essential for 8-way interleaved kernels that don't need the full 512-bit
-///   width.
-///
-/// - **AVX2** (`avx2`): required for all AVX2 decode kernels
-///   (`Avx2ManualGather8`, `Avx2HardwareGather8`, `Avx2TwoBy8On16`, etc.).
-///
-/// ## Caching
-///
-/// Feature detection is called once per `decode_single_block` invocation.
-/// This is intentionally not cached: the function is cheap (a few CPUID
-/// queries) and caching would require thread-local or atomic statics.
-/// If profiling shows this to be a bottleneck, a `OnceLock` cache could
-/// be added.
-///
-/// ## Non-x86_64 path
-///
-/// On non-x86 architectures, all features are reported as unavailable.
-/// The plan-selection logic will fall back to scalar or platform-native
-/// SIMD (e.g. NEON) once those backends are implemented.
-fn cpu_feature_detection() -> (bool, bool, bool) {
-    #[cfg(target_arch = "x86_64")]
-    {
-        let avx512 =
-            std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512bw");
-        let avx512vl = std::is_x86_feature_detected!("avx512vl");
-        let avx2 = std::is_x86_feature_detected!("avx2");
-        (avx512, avx512vl, avx2)
-    }
-    #[cfg(not(target_arch = "x86_64"))]
-    {
-        (false, false, false)
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1635,6 +1361,7 @@ impl ParallelDecoder {
         if jobs.is_empty() {
             return Ok(OrderedDecodedBlocks {
                 blocks: Vec::new(),
+                stream_hash: crate::encode::sha256(&[]),
                 execution: crate::job::ExecutionMetadata {
                     requested_workers: 0,
                     effective_workers: 0,
@@ -1692,10 +1419,12 @@ impl ParallelDecoder {
                 return Err(ParallelError::DecodeFailed(Box::new(c.clone())));
             }
             ordered.sort_by_key(|b| b.block_index);
+            let stream_hash = stream_hash_of(&ordered);
             let completed_blocks = ordered.len();
             let cancelled = report.cancelled;
             return Ok(OrderedDecodedBlocks {
                 blocks: ordered,
+                stream_hash,
                 execution: crate::job::ExecutionMetadata {
                     requested_workers: 1,
                     effective_workers: 1,
@@ -1740,8 +1469,6 @@ impl ParallelDecoder {
         );
         let mut ordered = Vec::with_capacity(bc);
         let mut et = crate::error::CanonicalErrorTracker::new();
-        use sha2::Digest;
-        let mut stream_hasher = sha2::Sha256::new();
 
         for r in report.results {
             match r {
@@ -1762,10 +1489,12 @@ impl ParallelDecoder {
         }
 
         ordered.sort_by_key(|b| b.block_index);
+        let stream_hash = stream_hash_of(&ordered);
         let completed_blocks = ordered.len();
         let cancelled = report.cancelled;
         Ok(OrderedDecodedBlocks {
             blocks: ordered,
+            stream_hash,
             execution: crate::job::ExecutionMetadata {
                 requested_workers: wc,
                 effective_workers,
@@ -1814,9 +1543,9 @@ impl ParallelDecoder {
     /// decoded.  This ensures the stream hash is deterministic and
     /// independent of thread scheduling.
     ///
-    /// The stream hash is computed but **not yet stored** in the returned
-    /// `OrderedDecodedBlocks`.  A future API may expose it as an additional
-    /// field.
+    /// The stream hash is computed over the concatenated decoded output in
+    /// ascending block-index order and stored as `OrderedDecodedBlocks::stream_hash`.
+    /// It is deterministic and independent of worker scheduling.
     ///
     /// ## Cancellation
     ///
@@ -1845,6 +1574,7 @@ impl ParallelDecoder {
         if jobs.is_empty() {
             return Ok(OrderedDecodedBlocks {
                 blocks: Vec::new(),
+                stream_hash: crate::encode::sha256(&[]),
                 execution: crate::job::ExecutionMetadata {
                     requested_workers: 0,
                     effective_workers: 0,
@@ -1929,10 +1659,17 @@ impl ParallelDecoder {
         }
 
         ordered.sort_by_key(|b| b.block_index);
+        // The stream hash was fed from the reorder drain in canonical
+        // ascending order; finalise it now and store it so the documented
+        // stream-level digest is real, not just computed-and-discarded.
+        let digest = sha2::Digest::finalize(stream_hasher);
+        let mut stream_hash = [0u8; 32];
+        stream_hash.copy_from_slice(&digest);
         let completed_blocks = ordered.len();
         let cancelled = report.cancelled;
         Ok(OrderedDecodedBlocks {
             blocks: ordered,
+            stream_hash,
             execution: crate::job::ExecutionMetadata {
                 requested_workers: wc,
                 effective_workers,
@@ -2057,7 +1794,7 @@ impl ParallelDecoder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::CodecPolicy;
+    use crate::config::{BackendPolicy, CodecPolicy};
     use crate::encode::{ParallelEncoder, encode_single_block};
     use crate::job::EncodeBlockJob;
 
@@ -2422,5 +2159,255 @@ mod tests {
             full1.extend_from_slice(&b.output);
         }
         assert_eq!(full1, data, "1-thread decode must match original");
+    }
+
+    // -------------------------------------------------------------------
+    // Phase L.9 — exact backend semantics
+    // -------------------------------------------------------------------
+
+    /// Encode `data` with an explicit codec and return (block, codec_id).
+    fn encode_with_codec(data: &[u8], codec_id: u16) -> (Vec<u8>, u16) {
+        let j = EncodeBlockJob::new(
+            0,
+            data.to_vec(),
+            CodecPolicy::Explicit(codec_id),
+            crate::config::ModelPolicy::PerBlock,
+            12,
+        );
+        let e = encode_single_block(j).expect("encode");
+        (e.block, codec_id)
+    }
+
+    /// Decode `block` under `Explicit(backend)`; returns Ok(result) or a
+    /// typed error.
+    fn decode_explicit(block: &[u8], backend: BackendId) -> Result<DecodedBlockResult, BlockError> {
+        let cfg = ParallelConfig {
+            backend_policy: BackendPolicy::Explicit(backend),
+            ..Default::default()
+        };
+        decode_single_block(
+            &DecodeBlockJob {
+                block_index: 0,
+                block_data: block.to_vec(),
+            },
+            &cfg,
+        )
+    }
+
+    /// The 8-way (codec 7) backend family.
+    const BACKENDS_8WAY: &[BackendId] = &[
+        BackendId::Scalar8,
+        BackendId::Sse41Interleaved8,
+        BackendId::Avx512VlInterleaved8,
+        BackendId::Avx512VlManualGather8,
+        BackendId::Avx2ManualGather8,
+        BackendId::Avx2HardwareGather8,
+    ];
+
+    /// The 16-way (codec 8) backend family.
+    const BACKENDS_16WAY: &[BackendId] = &[
+        BackendId::Scalar16,
+        BackendId::Avx512Interleaved16,
+        BackendId::Avx512ManualGather16,
+        BackendId::Avx512Vl2x8,
+        BackendId::Avx2TwoBy8On16,
+    ];
+
+    #[test]
+    fn test_explicit_backend_executes_exactly_or_typed_error() {
+        // Phase L.9: an explicit backend request either executes exactly
+        // (backend == plan_backend == requested, byte-identical output) or
+        // returns `BackendUnavailable` — never a different backend.
+        let data = nonuniform_data();
+        for (codec, family) in [(7u16, BACKENDS_8WAY), (8u16, BACKENDS_16WAY)] {
+            let (block, _) = encode_with_codec(&data, codec);
+            for &b in family {
+                match decode_explicit(&block, b) {
+                    Ok(dec) => {
+                        assert_eq!(
+                            dec.backend, b,
+                            "codec {codec}: executed backend must equal requested {b:?}"
+                        );
+                        assert_eq!(
+                            dec.plan_backend, b,
+                            "codec {codec}: plan backend must equal requested {b:?}"
+                        );
+                        assert_eq!(dec.output, data, "codec {codec} {b:?}: output must match");
+                    }
+                    Err(BlockError {
+                        kind: BlockErrorKind::BackendUnavailable,
+                        ..
+                    }) => {
+                        // Honest typed refusal: this CPU/build cannot run the
+                        // kernel.  Never a silent scalar substitution.
+                    }
+                    Err(other) => panic!("codec {codec} {b:?}: unexpected error {:?}", other),
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_uniform256_tablefree_executes_and_parities_with_scalar() {
+        // ModelAware must select the real table-free kernel for a validated
+        // Uniform256 model, and its output/report must be byte-identical to
+        // the packed-scalar 16-way decode (cross-backend parity).
+        let data = uniform256();
+        let (block, _) = encode_with_codec(&data, 8);
+
+        let cfg = ParallelConfig {
+            backend_policy: BackendPolicy::ModelAware,
+            ..Default::default()
+        };
+        let tf = decode_single_block(
+            &DecodeBlockJob {
+                block_index: 0,
+                block_data: block.clone(),
+            },
+            &cfg,
+        )
+        .expect("ModelAware decode of uniform256 must succeed");
+        assert_eq!(tf.backend, BackendId::Uniform256TableFree16);
+        assert_eq!(tf.plan_backend, BackendId::Uniform256TableFree16);
+        assert_eq!(tf.output, data);
+        assert!(tf.words_consumed > 0, "table-free kernel must report words");
+        assert_eq!(tf.final_states.len(), 16);
+
+        // Explicit Uniform256TableFree16 — the same kernel, directly.
+        let tf2 = decode_explicit(&block, BackendId::Uniform256TableFree16)
+            .expect("explicit table-free must succeed");
+        assert_eq!(tf2.output, data);
+        assert_eq!(tf2.words_consumed, tf.words_consumed);
+        assert_eq!(tf2.final_states, tf.final_states);
+
+        // Parity with the packed-scalar 16-way decoder.
+        let sc = decode_explicit(&block, BackendId::Scalar16).expect("scalar16");
+        assert_eq!(sc.output, tf.output);
+        assert_eq!(sc.words_consumed, tf.words_consumed);
+        assert_eq!(sc.final_states, tf.final_states);
+    }
+
+    #[test]
+    fn test_backend_reports_agree_across_executable_backends() {
+        // Every executable backend for a given block must produce identical
+        // output AND identical words_consumed/final_states — the report is
+        // a property of the stream, not the kernel.
+        let data = nonuniform_data();
+        let (block, codec) = encode_with_codec(&data, 8);
+        let family = BACKENDS_16WAY;
+        let mut reference: Option<DecodedBlockResult> = None;
+        for &b in family {
+            match decode_explicit(&block, b) {
+                Ok(dec) => match &reference {
+                    None => reference = Some(dec),
+                    Some(ref_) => {
+                        assert_eq!(dec.output, ref_.output, "{b:?} output");
+                        assert_eq!(
+                            dec.words_consumed, ref_.words_consumed,
+                            "{b:?} words_consumed"
+                        );
+                        assert_eq!(dec.final_states, ref_.final_states, "{b:?} final_states");
+                    }
+                },
+                Err(BlockError {
+                    kind: BlockErrorKind::BackendUnavailable,
+                    ..
+                }) => {}
+                Err(other) => panic!("codec {codec} {b:?}: unexpected error {:?}", other),
+            }
+        }
+        assert!(
+            reference.is_some(),
+            "at least one 16-way backend must execute on this host"
+        );
+    }
+
+    #[test]
+    fn test_format_mismatch_rejected_at_decode() {
+        // Width mismatch (8-way backend on a codec-8 block) must be a typed
+        // BackendFormatMismatch, not a silent scalar execution.
+        let data = nonuniform_data();
+        let (block8, _) = encode_with_codec(&data, 8);
+        for b in BACKENDS_8WAY {
+            let e = decode_explicit(&block8, *b).expect_err("must be rejected");
+            assert_eq!(
+                e.kind,
+                BlockErrorKind::BackendFormatMismatch,
+                "{b:?} on codec 8 must be a format mismatch"
+            );
+        }
+        let (block7, _) = encode_with_codec(&data, 7);
+        for b in BACKENDS_16WAY {
+            let e = decode_explicit(&block7, *b).expect_err("must be rejected");
+            assert_eq!(
+                e.kind,
+                BlockErrorKind::BackendFormatMismatch,
+                "{b:?} on codec 7 must be a format mismatch"
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch_and_raw_rle_backends_rejected_at_decode() {
+        // Batch backends need coordinator context; RAW/RLE backends need
+        // matching block kinds.  Both must be typed errors at planning time.
+        let data = nonuniform_data();
+        let (block, _) = encode_with_codec(&data, 8);
+        for b in [BackendId::Avx512Batch4, BackendId::Avx2Batch4On16] {
+            let e = decode_explicit(&block, b).expect_err("batch must be rejected");
+            assert_eq!(e.kind, BlockErrorKind::BackendRequiresBatchContext);
+        }
+        for b in [BackendId::RawCopy, BackendId::RleFill] {
+            let e = decode_explicit(&block, b).expect_err("raw/rle must be rejected");
+            assert_eq!(e.kind, BlockErrorKind::BackendFormatMismatch);
+        }
+    }
+
+    #[test]
+    fn test_disable_simd_conflict_is_typed_at_decode() {
+        let data = nonuniform_data();
+        let (block, _) = encode_with_codec(&data, 8);
+        let cfg = ParallelConfig {
+            backend_policy: BackendPolicy::Explicit(BackendId::Avx2TwoBy8On16),
+            disable_simd: true,
+            ..Default::default()
+        };
+        let e = decode_single_block(
+            &DecodeBlockJob {
+                block_index: 0,
+                block_data: block,
+            },
+            &cfg,
+        )
+        .expect_err("disable_simd + explicit SIMD must be a typed conflict");
+        assert_eq!(e.kind, BlockErrorKind::BackendUnavailable);
+    }
+
+    /// Prove that the AVX-512 kernels **execute** (backend identity in the
+    /// result) when the build has `avx512bw` compiled in and the host CPU
+    /// supports it — the Phase L "kernel compiled AND kernel executed"
+    /// distinction.  In portable builds this test does not exist at all;
+    /// the portable equivalents assert `BackendUnavailable` instead.
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512bw"))]
+    #[test]
+    fn test_avx512_kernels_execute_on_native_build() {
+        let data = nonuniform_data();
+        let (block16, _) = encode_with_codec(&data, 8);
+        let (block8, _) = encode_with_codec(&data, 7);
+
+        for (b, block) in [
+            (BackendId::Avx512Interleaved16, &block16),
+            (BackendId::Avx512ManualGather16, &block16),
+            (BackendId::Avx512Vl2x8, &block16),
+            (BackendId::Avx512VlInterleaved8, &block8),
+            (BackendId::Avx512VlManualGather8, &block8),
+        ] {
+            let dec = decode_explicit(block, b)
+                .unwrap_or_else(|e| panic!("{b:?} must execute on a native AVX-512 build: {e:?}"));
+            assert_eq!(dec.backend, b, "executed backend must be {b:?}");
+            assert_eq!(dec.plan_backend, b);
+            assert_eq!(dec.output, data, "{b:?} output must match");
+            assert!(dec.words_consumed > 0, "{b:?} must report words consumed");
+        }
     }
 }

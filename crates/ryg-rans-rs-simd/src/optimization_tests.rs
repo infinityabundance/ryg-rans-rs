@@ -234,7 +234,7 @@ fn into_mg8_writes_output() {
             let (expected, _) =
                 decode_interleaved8_manual_gather_kernel(&cp, &pk, i.len()).unwrap();
             let mut poisoned = vec![0xFFu8; sz];
-            let report = decode_interleaved8_manual_gather_into(&cp, &pk, &mut poisoned).unwrap();
+            let _report = decode_interleaved8_manual_gather_into(&cp, &pk, &mut poisoned).unwrap();
             assert_eq!(poisoned, expected, "into_mg8 content sz={}", sz);
             assert_eq!(poisoned, i, "into_mg8 correct sz={}", sz);
         }
@@ -254,7 +254,7 @@ fn into_mg16_writes_output() {
         let (expected, _) = decode_interleaved16_scalar(&cp, &pk, i.len()).unwrap();
         unsafe {
             let mut poisoned = vec![0xFFu8; sz];
-            let report = decode_interleaved16_manual_gather_into(&cp, &pk, &mut poisoned).unwrap();
+            let _report = decode_interleaved16_manual_gather_into(&cp, &pk, &mut poisoned).unwrap();
             assert_eq!(poisoned, expected, "into_mg16 content sz={}", sz);
         }
     }
@@ -277,7 +277,7 @@ fn into_2x8_writes_output() {
         let (expected, _) = decode_interleaved16_scalar(&cp, &pk, i.len()).unwrap();
         unsafe {
             let mut poisoned = vec![0xFFu8; sz];
-            let report = decode_interleaved16_2x8_into(&cp, &pk, &mut poisoned).unwrap();
+            let _report = decode_interleaved16_2x8_into(&cp, &pk, &mut poisoned).unwrap();
             assert_eq!(poisoned, expected, "into_2x8 content sz={}", sz);
         }
     }
@@ -296,7 +296,7 @@ fn into_tf16_writes_output() {
         let (expected, _) = decode_interleaved16_scalar(&cp, &pk, i.len()).unwrap();
         unsafe {
             let mut poisoned = vec![0xFFu8; sz];
-            let report = decode_interleaved16_uniform256_avx512_into(&cp, &mut poisoned).unwrap();
+            let _report = decode_interleaved16_uniform256_avx512_into(&cp, &mut poisoned).unwrap();
             assert_eq!(poisoned, expected, "into_tf16 content sz={}", sz);
         }
     }

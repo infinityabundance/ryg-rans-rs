@@ -18,7 +18,6 @@ pub mod limits;
 
 use clap::{Arg, Command};
 use error::AppError;
-use error::{FormatError, InternalInvariantError, IoError};
 use std::io::{Read, Write};
 
 /// Top-level CLI entry point.  Returns the exit code.
@@ -512,7 +511,7 @@ fn build_cli() -> Command {
 
 /// Generate shell completions.
 fn completions(shell: &str, app: &mut Command, buf: &mut dyn Write) -> Result<(), error::AppError> {
-    use clap_complete::{Generator, generate};
+    use clap_complete::generate;
     match shell {
         "bash" => generate(clap_complete::shells::Bash, app, "ryg-rans", buf),
         "fish" => generate(clap_complete::shells::Fish, app, "ryg-rans", buf),

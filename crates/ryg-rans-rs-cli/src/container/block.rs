@@ -4,7 +4,7 @@ use crate::container::codec;
 use crate::container::{
     BLOCK_HEADER_SIZE, BLOCK_KIND_RANS, BLOCK_KIND_RAW, BLOCK_KIND_RLE, BLOCK_TAG,
 };
-use crate::error::{AppError, FormatError, IntegrityError};
+use crate::error::{AppError, FormatError};
 use sha2::{Digest, Sha256};
 
 /// A decoded block record.

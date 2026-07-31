@@ -1,6 +1,5 @@
 //! # Container writer — serialize RYGRANS containers
 
-use crate::container::MAGIC;
 use crate::container::block::Block;
 use crate::container::footer::FileFooter;
 use crate::container::header::FileHeader;

@@ -226,6 +226,13 @@ pub struct DecodedBlockResult {
     pub output: Vec<u8>,
     /// Which backend performed the decode.
     pub backend: BackendId,
+    /// Which backend the decode plan selected.
+    ///
+    /// Phase L.9 exact-backend semantics guarantee `plan_backend == backend`
+    /// on success (no silent substitution).  Both are carried so downstream
+    /// evidence records the selected-plan identity as well as the executed
+    /// identity.
+    pub plan_backend: BackendId,
     /// Whether the compressed payload hash was verified against the container.
     ///
     /// `true` if the payload integrity check passed or was skipped.
@@ -359,6 +366,10 @@ pub struct OrderedEncodedBlocks {
 pub struct OrderedDecodedBlocks {
     /// Blocks in ascending `block_index` order.
     pub blocks: Vec<DecodedBlockResult>,
+    /// SHA-256 of the concatenated decoded output of all blocks in
+    /// ascending `block_index` order — a canonical stream-level integrity
+    /// digest, independent of worker scheduling order.
+    pub stream_hash: [u8; 32],
     /// Execution metadata for this operation.
     pub execution: ExecutionMetadata,
 }

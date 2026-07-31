@@ -48,6 +48,19 @@ impl BenchMetadata {
             .map(|o| !o.stdout.is_empty())
             .unwrap_or(false);
 
+        // Compiled target features.  `mut` is only exercised in native builds
+        // (each push is cfg-gated); `cfg_attr` keeps the default build free
+        // of an unused-mut warning while preserving the native build.
+        #[cfg_attr(
+            not(any(
+                target_feature = "avx2",
+                target_feature = "avx512f",
+                target_feature = "avx512bw",
+                target_feature = "avx512vl",
+                target_feature = "sse4.1",
+            )),
+            allow(unused_mut)
+        )]
         let mut features = Vec::new();
         #[cfg(target_feature = "avx2")]
         features.push("avx2".to_string());

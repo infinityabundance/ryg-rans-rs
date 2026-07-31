@@ -131,13 +131,16 @@ fn test_8way_exhaustive_simd_renorm() {
                     mask, report.words_consumed, words_needed
                 );
 
-                // 3. Active lanes must receive their ascending-order renorm words.
-                //    And inactive lanes must remain unchanged.
+                // 3. Active lanes must receive their ascending-order renorm
+                //    words: active lane k gets renorm_words[k] (in ascending
+                //    lane order).  Inactive lanes must remain unchanged.
                 let mut rp = 0usize;
                 for lane in 0..8 {
                     if (mask >> lane) & 1 != 0 {
-                        // Active lane: state should be (old_state << 16) | renorm_word.
-                        let expected_state = ((RANS_WORD_L - 1) << 16) | (0x0100 + lane as u32);
+                        // Active lane: state should be
+                        // (old_state << 16) | renorm_words[rp] where rp is the
+                        // ascending index of this active lane.
+                        let expected_state = ((RANS_WORD_L - 1) << 16) | renorm_words[rp] as u32;
                         assert_eq!(
                             report.states[lane], expected_state,
                             "8-way mask {:08b}: lane {} active: expected 0x{:08x}, got 0x{:08x}",

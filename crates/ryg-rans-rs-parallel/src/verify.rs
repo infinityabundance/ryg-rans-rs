@@ -74,7 +74,7 @@ use crate::block::parse_block_header;
 use crate::cancellation::CancellationToken;
 use crate::config::ParallelConfig;
 use crate::error::{BlockError, BlockErrorKind, ParallelError};
-use crate::executor::{ExecutorReport, ExecutorTask, run_tasks};
+use crate::executor::{ExecutorReport, ExecutorTask};
 use crate::job::VerifyBlockJob;
 use crate::reorder::{BufferSized, HasBlockIndex};
 use std::vec::Vec;
@@ -272,7 +272,7 @@ fn verify_single_block(
     let bi = job.block_index;
 
     // Parse header with checked arithmetic
-    let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    let (header, _model_offset) = parse_block_header(data, bi).map_err(|_e| BlockError {
         block_index: bi,
         kind: BlockErrorKind::Format,
     })?;
@@ -911,7 +911,7 @@ mod tests {
         // Case 15: report counts Match/Mismatch/Unset/NotComputed separately.
         // Block 0: clean. Block 1: legacy unset. Block 2: decode failure (truncated).
         let d = uniform256();
-        let mut b0 = encode_block(d.clone());
+        let b0 = encode_block(d.clone());
         let mut b1 = encode_block(d.clone());
         b1[72..104].fill(0);
         let mut b2 = encode_block(d.clone());

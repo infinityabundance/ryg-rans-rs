@@ -63,7 +63,7 @@
 use crate::cancellation::CancellationToken;
 use crate::config::{BackendId, CodecPolicy, ModelPolicy, ParallelConfig};
 use crate::error::{BlockError, BlockErrorKind, ParallelError};
-use crate::executor::{ExecutorReport, ExecutorTask, run_tasks};
+use crate::executor::{ExecutorReport, ExecutorTask};
 use crate::job::{EncodeBlockJob, EncodedBlockResult, OrderedEncodedBlocks};
 use crate::plan::FixedBlockPlan;
 use crate::reorder::{BufferSized, HasBlockIndex, ReorderBuffer};
@@ -182,29 +182,62 @@ pub fn encode_single_block(job: EncodeBlockJob) -> Result<EncodedBlockResult, Bl
             encode_word_interleaved16(data, &freqs, &cum_freqs, scale_bits)?
         }
         CODEC_WORD_INTERLEAVED8 => {
-            // Fall back to word interleaved 8-way via core encoding
-            let mut buf = Vec::with_capacity(data.len() * 2 + 32);
+            // Manual 8-way encode using a backward writer, mirroring the
+            // 16-way convention exactly (state 0 first, each state as
+            // (lo, hi) u16).  The previous implementation appended states
+            // 7→0 forward and then reversed the whole buffer, which swapped
+            // the two words of every state — the strict decoder read
+            // `states[i] = words[2i] | words[2i+1] << 16` and produced
+            // corrupt output or a Codec error.  Phase L.9 fix.
+            let capacity = data
+                .len()
+                .checked_mul(2)
+                .and_then(|c| c.checked_add(64))
+                .unwrap_or(usize::MAX);
+            let mut buf = vec![0u16; capacity];
+            let mut writer = capacity; // backward writer
             let mut states = [ryg_rans_rs_core::RANS_WORD_L as u32; 8];
-            // Simplified 8-way encode — one symbol per state round-robin
-            for (i, &sym) in data.iter().enumerate() {
+
+            for i in (0..data.len()).rev() {
                 let lane = i & 7;
-                let s = sym as usize;
+                let s = data[i] as usize;
                 let f = freqs[s];
                 let st = cum_freqs[s];
-                let x_max = ((ryg_rans_rs_core::RANS_WORD_L >> scale_bits) << 16) * f;
-                if states[lane] >= x_max {
-                    buf.push((states[lane] & 0xffff) as u16);
+                if f == 0 {
+                    return Err(BlockError {
+                        block_index: job.block_index,
+                        kind: BlockErrorKind::Model,
+                    });
+                }
+                let threshold = ((ryg_rans_rs_core::RANS_WORD_L >> scale_bits) << 16) * f;
+                if states[lane] >= threshold {
+                    if writer == 0 {
+                        return Err(BlockError {
+                            block_index: job.block_index,
+                            kind: BlockErrorKind::ResourceLimit,
+                        });
+                    }
+                    writer -= 1;
+                    buf[writer] = (states[lane] & 0xffff) as u16;
                     states[lane] >>= 16;
                 }
                 states[lane] = ((states[lane] / f) << scale_bits) + (states[lane] % f) + st;
             }
-            // Flush states
+
+            // Flush states in reverse lane order (7 down to 0); state 0 ends
+            // up at the lowest address = the start of the forward stream.
             for idx in (0..8).rev() {
-                buf.push((states[idx] & 0xffff) as u16);
-                buf.push(((states[idx] >> 16) & 0xffff) as u16);
+                if writer < 2 {
+                    return Err(BlockError {
+                        block_index: job.block_index,
+                        kind: BlockErrorKind::ResourceLimit,
+                    });
+                }
+                writer -= 2;
+                buf[writer] = (states[idx] & 0xffff) as u16;
+                buf[writer + 1] = ((states[idx] >> 16) & 0xffff) as u16;
             }
-            buf.reverse();
-            buf
+            buf[writer..].to_vec()
         }
         _ => {
             return Err(BlockError {
@@ -672,7 +705,14 @@ fn build_block_record(
     freqs: &[u32],
     decoded_hash: [u8; 32],
 ) -> Vec<u8> {
-    let state_count: u8 = 16;
+    // The strict block parser (block.rs) enforces that state_count matches
+    // codec_id: 8 states for codec 7 (8-way), 16 for codec 8 (16-way).
+    // Hardcoding 16 here produced structurally invalid codec-7 blocks that
+    // the decoder rejected with a Format error — a Phase L.9 defect.
+    let state_count: u8 = match codec_id {
+        CODEC_WORD_INTERLEAVED8 => 8,
+        _ => 16,
+    };
     // Serialise 256 frequency values as u32 LE (1024 bytes total)
     let mut model_data = Vec::with_capacity(1024);
     for &f in freqs.iter().take(256) {

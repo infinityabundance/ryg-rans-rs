@@ -97,7 +97,6 @@ use crate::error::ParallelError;
 use crate::scratch::WorkerScratch;
 use std::fmt;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// Thread index for identifying workers.  Internal use only.

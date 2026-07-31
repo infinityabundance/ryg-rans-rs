@@ -21,10 +21,9 @@
 
 use ryg_rans_rs_simd::{
     RANS_WORD_SCALE_BITS,
-    backends::DecodeBackend,
     encode_8way_for_test,
     packed_table::{
-        self, PackedWordTable, decode_8way_packed_scalar, decode_8way_packed_scalar_with_report,
+        PackedWordTable, decode_8way_packed_scalar, decode_8way_packed_scalar_with_report,
         decode_interleaved16_scalar, encode_interleaved16,
     },
 };
@@ -301,10 +300,10 @@ fn main() {
                         continue;
                     }
                 };
-            let scalar16_ok = scalar16_output == input;
+            let _scalar16_ok = scalar16_output == input;
 
             // Full verification: compare output, words_consumed, AND all 16 final states.
-            let n_iter = (100_000_000u64 / size.max(1) as u64).max(20).min(500_000);
+            let _n_iter = (100_000_000u64 / size.max(1) as u64).max(20).min(500_000);
 
             // Scalar 8-way reference for 8-way backend verification
             let (scalar8_output, scalar8_report) =
@@ -485,7 +484,7 @@ fn main() {
             };
 
             // Verify Uniform256 table-free kernel
-            #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+            #[cfg(target_feature = "avx512bw")]
             let uniform_tf_ok = if avx512_avail && profile.name == "UNIFORM256" {
                 match unsafe {
                     ryg_rans_rs_simd::model_kernels::decode_interleaved16_uniform256_avx512(
@@ -507,8 +506,8 @@ fn main() {
             } else {
                 false
             };
-            #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
-            let uniform_tf_ok = false;
+            #[cfg(not(target_feature = "avx512bw"))]
+            let _uniform_tf_ok = false;
 
             // ---- Backend 1: Scalar 8-way (legacy slot table) ----
             let (ns, _) = measure(
@@ -808,7 +807,7 @@ fn main() {
 
             // ---- Backend 10: Uniform256 table-free (16-way) ----
             // This kernel avoids table lookups entirely — only valid for uniform256 models.
-            #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+            #[cfg(target_feature = "avx512bw")]
             if uniform_tf_ok {
                 let (ns, _) = measure(
                     || unsafe {

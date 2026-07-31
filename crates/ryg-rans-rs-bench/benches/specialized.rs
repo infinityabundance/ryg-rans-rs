@@ -12,10 +12,6 @@ fn avx2_available() -> bool {
     ryg_rans_rs_simd::backends::avx2_available_checked()
 }
 
-fn avx512_available() -> bool {
-    ryg_rans_rs_simd::backends::avx512_available_checked()
-}
-
 fn bench_uniform256_scalar(c: &mut Criterion) {
     let corpus = Corpus::generate(ModelProfile::Uniform256, 1048576, 42);
     let table = corpus.packed_table();
@@ -25,7 +21,7 @@ fn bench_uniform256_scalar(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(1048576));
 
     // Preflight: verify using the allocating API
-    let (ref_out, ref_report) =
+    let (ref_out, _ref_report) =
         ryg_rans_rs_simd::packed_table::decode_interleaved16_scalar(&encoded, &table, 1048576)
             .expect("scalar decode preflight");
     assert_eq!(
@@ -34,7 +30,7 @@ fn bench_uniform256_scalar(c: &mut Criterion) {
     );
 
     group.bench_function("scalar-16way-uniform256-into", |b| {
-        let mut output = vec![0u8; 1048576];
+        let output = vec![0u8; 1048576];
         b.iter_batched(
             || output.clone(),
             |mut out| {
@@ -91,7 +87,7 @@ fn bench_uniform256_avx2(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(1048576));
 
     group.bench_function("avx2-tablefree-uniform256", |b| {
-        let mut output = vec![0u8; 1048576];
+        let output = vec![0u8; 1048576];
         b.iter_batched(
             || output.clone(),
             |mut out| unsafe {

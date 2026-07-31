@@ -139,7 +139,7 @@ fn bench_batch_avx2_2x8_batch4_aggregate(c: &mut Criterion) {
     // Preflight: verify Batch4 against scalar reference for ALL 4 streams
     // including output, words consumed, and final states.
     for j in 0..4 {
-        let (ref_out, ref_report) = ryg_rans_rs_simd::packed_table::decode_interleaved16_scalar(
+        let (ref_out, _ref_report) = ryg_rans_rs_simd::packed_table::decode_interleaved16_scalar(
             &encoded[j],
             &tables[j],
             corpora[j].data.len(),

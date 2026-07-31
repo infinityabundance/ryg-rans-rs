@@ -7,8 +7,7 @@ pub mod phase_g;
 pub mod phase_i;
 
 use ryg_rans_rs_simd::{
-    RansWordTables as SimdTables, build_word_tables, decode_8way_scalar, decode_simd_8way,
-    decode_simd_8way_unchecked,
+    RansWordTables as SimdTables, build_word_tables, decode_8way_scalar, decode_simd_8way_unchecked,
 };
 use std::process::Command;
 
@@ -863,7 +862,6 @@ pub fn run_court_with_profile(
     for case_idx in 0..num_cases {
         let input = profile.generate_input(seed, case_idx, scale_bits);
         let input_hex = hex::encode(&input);
-        let case_seed = seed.wrapping_add(case_idx as u64);
 
         // C encode
         let c_enc_out = Command::new(oracle_path)
@@ -1165,6 +1163,11 @@ pub fn run_court_with_profile(
 
 // ---- Legacy court entry points (kept for backward compat) ----
 
+/// Legacy court entry point, kept for backward compatibility.
+///
+/// The case count is determined by the profile (`ModelProfile::num_cases`);
+/// the `num_cases` argument is retained for call-site compatibility and
+/// acknowledged (not silently dropped) — see `run_court_with_profile`.
 pub fn run_byte_court(
     oracle_path: &str,
     scale_bits: u32,
@@ -1172,6 +1175,7 @@ pub fn run_byte_court(
     num_cases: usize,
     path: CourtPath,
 ) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
+    let _ = num_cases;
     run_court_with_profile(
         oracle_path,
         scale_bits,
@@ -1182,6 +1186,11 @@ pub fn run_byte_court(
     )
 }
 
+/// Legacy court entry point, kept for backward compatibility.
+///
+/// The case count is determined by the profile (`ModelProfile::num_cases`);
+/// the `num_cases` argument is retained for call-site compatibility and
+/// acknowledged (not silently dropped) — see `run_court_with_profile`.
 pub fn run_r64_court(
     oracle_path: &str,
     scale_bits: u32,
@@ -1189,6 +1198,7 @@ pub fn run_r64_court(
     num_cases: usize,
     path: CourtPath,
 ) -> Result<(Receipt, CaseManifest, Vec<u8>), String> {
+    let _ = num_cases;
     run_court_with_profile(
         oracle_path,
         scale_bits,
@@ -1203,23 +1213,12 @@ pub fn run_r64_court(
 
 macro_rules! use_core {
     () => {
-        use ryg_rans_rs_core::{
-            ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
-            BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
-            ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
-            RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
-            SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
-            rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
-            rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
-            rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
-            rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
-            rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
-            rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
-            rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
-            rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
-            rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
-            rans64_enc_put_symbol,
-        };
+        // Glob import inside function scope: every court function uses a
+        // different subset of the core crate's low-level API.  Explicit lists
+        // here produced unused-import warnings for every function that used
+        // fewer symbols; a function-scoped glob avoids both the warnings and
+        // any namespace pollution at module scope.
+        use ryg_rans_rs_core::*;
     };
 }
 
@@ -1400,9 +1399,9 @@ fn rust_byte_interleaved_encode(
     let mut state1 = RansByteState::new();
 
     // Closure to encode one symbol via the selected path
-    let mut enc_one = |state: &mut RansByteState,
-                       writer: &mut BackwardByteWriter,
-                       sym: usize|
+    let enc_one = |state: &mut RansByteState,
+                   writer: &mut BackwardByteWriter,
+                   sym: usize|
      -> Result<(), String> {
         match path {
             CourtPath::Division => {
@@ -1541,9 +1540,9 @@ fn rust_r64_interleaved_encode(
     let mut state0 = Rans64State::new();
     let mut state1 = Rans64State::new();
 
-    let mut enc_one = |state: &mut Rans64State,
-                       writer: &mut BackwardWord32Writer,
-                       sym: usize|
+    let enc_one = |state: &mut Rans64State,
+                   writer: &mut BackwardWord32Writer,
+                   sym: usize|
      -> Result<(), String> {
         match path {
             CourtPath::Division => {
@@ -2642,7 +2641,6 @@ pub fn run_simd_court(
                         input.len(),
                     );
                     match simd_dec {
-                        Ok((s, _backend)) => s == input && dec == s,
                         Ok((s, _backend)) => s == input && dec == s,
                         Err(_) => false,
                     }

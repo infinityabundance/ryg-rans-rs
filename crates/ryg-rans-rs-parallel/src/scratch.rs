@@ -97,9 +97,8 @@ impl WorkerScratch {
     ///   The output buffer gets `initial_capacity * 2` (expected decode
     ///   expansion).  The model buffer gets a fixed 256 bytes.
     /// - `max_retain`: Maximum capacity each buffer is allowed to retain
-    ///   after `reset()`.  If a Vec's capacity exceeds this, it should
-    ///   be shrunk.  (Currently `reset()` only clears; the caller may
-    ///   call `shrink_to()` if needed.)
+    ///   after `reset()`.  If a Vec's capacity exceeds this, `reset()`
+    ///   shrinks it back to the bound.
     ///
     /// # Panics
     ///
@@ -117,22 +116,32 @@ impl WorkerScratch {
     /// Reset buffers for reuse with the next block.
     ///
     /// `Vec::clear()` sets the length to 0 but preserves the allocated
-    /// capacity.  This means subsequent blocks can reuse the existing
-    /// allocation without calling `malloc`/`realloc`.
+    /// capacity, so subsequent blocks reuse the existing allocation without
+    /// calling `malloc`/`realloc`.
     ///
-    /// # Memory retention
+    /// # Memory retention policy
     ///
-    /// If a buffer's capacity exceeds `max_retain`, shrink it:
-    /// ```ignore
-    /// if scratch.input_buffer.capacity() > scratch.max_retain {
-    ///     scratch.input_buffer.shrink_to(scratch.max_retain);
-    /// }
-    /// ```
-    /// Currently this must be done by the caller.
+    /// After clearing, any buffer whose **capacity** exceeds `max_retain` is
+    /// shrunk to `max_retain` via `shrink_to`.  This bounds the per-worker
+    /// retained footprint so one adversarial oversized block cannot
+    /// permanently inflate every worker's memory (the Phase L.7 "no
+    /// unbounded retained capacity" requirement).  `shrink_to` is a
+    /// non-binding hint in the general sense, but for a capacity *above*
+    /// `max_retain` the allocator is expected to release the excess; the
+    /// bound is enforced by re-checking capacity after the call in tests.
     pub fn reset(&mut self) {
         self.input_buffer.clear();
         self.output_buffer.clear();
         self.model_buffer.clear();
+        for buf in [
+            &mut self.input_buffer,
+            &mut self.output_buffer,
+            &mut self.model_buffer,
+        ] {
+            if buf.capacity() > self.max_retain {
+                buf.shrink_to(self.max_retain);
+            }
+        }
     }
 }
 
@@ -224,6 +233,28 @@ mod tests {
         assert_eq!(s.input_buffer.len(), 100);
         s.reset();
         assert!(s.input_buffer.is_empty());
+    }
+
+    #[test]
+    fn test_scratch_reset_enforces_max_retain() {
+        // Oversized allocations must be released back to the max_retain
+        // bound on reset — the Phase L.7 "no unbounded retained capacity"
+        // requirement.  Without this, one adversarial block would
+        // permanently inflate every worker's footprint.
+        let mut s = WorkerScratch::new(1024, 4096);
+        s.input_buffer.resize(1 << 20, 7);
+        assert!(
+            s.input_buffer.capacity() > 4096,
+            "precondition: resize grew capacity past max_retain"
+        );
+        s.reset();
+        assert!(
+            s.input_buffer.capacity() <= 4096,
+            "capacity {} must be shrunk to <= max_retain 4096",
+            s.input_buffer.capacity()
+        );
+        // The model buffer (256-byte initial capacity) must be untouched.
+        assert!(s.model_buffer.capacity() <= 4096);
     }
 
     #[test]

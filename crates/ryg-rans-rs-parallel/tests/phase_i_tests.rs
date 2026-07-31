@@ -16,16 +16,6 @@ use ryg_rans_rs_parallel::{
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 
-fn uniform256() -> Vec<u8> {
-    let mut d = Vec::with_capacity(4096);
-    for s in 0u8..=255 {
-        for _ in 0..16 {
-            d.push(s);
-        }
-    }
-    d
-}
-
 fn nonuniform_data() -> Vec<u8> {
     let mut d = Vec::with_capacity(4096);
     for i in 0..4096 {
@@ -372,7 +362,10 @@ fn test_decode_determinism_1_4_8_16_threads() {
     assert_eq!(full_1t, data, "1-thread decode must match original");
 
     // Every other thread count must produce identical results
-    for &tc in &[4usize, 8, 16] {
+    for &tc in THREAD_COUNTS {
+        if tc == 1 {
+            continue; // already verified above
+        }
         let cfg = ParallelConfig {
             threads: ThreadCount::Exact(NonZeroUsize::new(tc).unwrap()),
             max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),

@@ -786,7 +786,10 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
         init_array[i] = compressed[i * 2] as u32 | (compressed[i * 2 + 1] as u32) << 16;
     }
     // Load into __m512i register.
-    let mut state = _mm512_loadu_si512(init_array.as_ptr() as *const __m512i);
+    // SAFETY: this is a `#[target_feature] unsafe fn`; the caller guarantees
+    // AVX512F + AVX512BW at runtime and `init_array` is a 64-byte-aligned
+    // (by type) in-bounds local.
+    let mut state = unsafe { _mm512_loadu_si512(init_array.as_ptr() as *const __m512i) };
 
     let mut reader_pos = 32usize;
     let n = expected_len;
@@ -802,7 +805,9 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
     for i in (0..even16).step_by(16) {
         // ---- Gather phase: load 16 packed table entries ----
         let indices = _mm512_and_si512(state, mask_v);
-        let gathered = _mm512_i32gather_epi32(indices, table_ptr, 4);
+        // SAFETY: caller guarantees AVX512F + BW; `table_ptr` points to 4096
+        // in-bounds packed entries and every lane index is masked to [0, 4095].
+        let gathered = unsafe { _mm512_i32gather_epi32(indices, table_ptr, 4) };
 
         // Unpack: freq = gathered & 0xfff, bias = (gathered >> 12) & 0xfff,
         // symbol = gathered >> 24.
@@ -814,8 +819,11 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
         // VPMOVDB (_mm512_cvtepi32_epi8) truncates 16 packed i32 lanes to
         // 16 packed bytes in one operation.  One narrow + one 16-byte store
         // replaces the temporary buffer and scalar copy loop.
+        // SAFETY: caller guarantees AVX512F + BW.
         let symbol_bytes = _mm512_cvtepi32_epi8(symbols_v);
-        _mm_storeu_si128(output.as_mut_ptr().add(i) as *mut __m128i, symbol_bytes);
+        // SAFETY: `output` has `n` bytes and `i + 16 <= even16 <= n`, so the
+        // 16-byte store stays in bounds.
+        unsafe { _mm_storeu_si128(output.as_mut_ptr().add(i) as *mut __m128i, symbol_bytes) };
 
         // ---- State update ----
         let xscaled = _mm512_srli_epi32(state, SCALE16);
@@ -836,8 +844,10 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
             // 64-byte load per active lane.  With 3 active lanes that was 3 × 64 = 192
             // bytes moved per decode group.  This version does exactly one spill and
             // one reload regardless of mask weight.
-            let mut lanes: [u32; 16] = core::mem::zeroed();
-            _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, new_state);
+            // SAFETY: caller guarantees AVX512F + BW; `lanes` is an in-bounds
+            // 64-byte stack array.
+            let mut lanes: [u32; 16] = unsafe { core::mem::zeroed() };
+            unsafe { _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, new_state) };
             let mut rp = reader_pos;
             for lane in 0..16 {
                 if (renorm_mask >> lane) & 1 != 0 {
@@ -846,7 +856,8 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
                     lanes[lane] = (lanes[lane] << 16) | w;
                 }
             }
-            state = _mm512_loadu_si512(lanes.as_ptr() as *const __m512i);
+            // SAFETY: as above.
+            state = unsafe { _mm512_loadu_si512(lanes.as_ptr() as *const __m512i) };
             reader_pos = rp;
         } else {
             state = new_state;
@@ -856,8 +867,9 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
     // ---- Tail: scalar fallback for remaining symbols ----
     for i in even16..n {
         let lane = i & 15;
-        let mut lanes: [u32; 16] = core::mem::zeroed();
-        _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, state);
+        // SAFETY: caller guarantees AVX512F + BW; `lanes` is in-bounds.
+        let mut lanes: [u32; 16] = unsafe { core::mem::zeroed() };
+        unsafe { _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, state) };
         let x = lanes[lane];
         let slot = x as usize & (RANS_WORD_M - 1);
         let entry = (*table.get(slot)).0;
@@ -873,12 +885,14 @@ pub unsafe fn decode_interleaved16_avx512_kernel(
             lanes[lane] = (new_x << 16) | compressed[reader_pos] as u32;
             reader_pos += 1;
         }
-        state = _mm512_loadu_si512(lanes.as_ptr() as *const __m512i);
+        // SAFETY: as above.
+        state = unsafe { _mm512_loadu_si512(lanes.as_ptr() as *const __m512i) };
     }
 
     // Collect final states
     let mut final_states = [0u32; 16];
-    _mm512_storeu_si512(final_states.as_mut_ptr() as *mut __m512i, state);
+    // SAFETY: caller guarantees AVX512F + BW; `final_states` is in-bounds.
+    unsafe { _mm512_storeu_si512(final_states.as_mut_ptr() as *mut __m512i, state) };
 
     let report = DecodeReport {
         words_consumed: reader_pos,
@@ -1728,7 +1742,7 @@ mod tests {
     #[test]
     fn test_avx512_16way_truncated_rejected() {
         // Verify that truncated streams are correctly rejected.
-        let (freqs, cum, packed) = uniform_model();
+        let (_freqs, _cum, packed) = uniform_model();
         if !cfg!(all(target_feature = "avx512f", target_feature = "avx512bw")) {
             return;
         }

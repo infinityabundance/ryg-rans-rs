@@ -323,7 +323,8 @@ pub fn decode_simd_8way(
     #[cfg(target_feature = "sse4.1")]
     {
         // SAFETY: compile-time target_feature gate ensures SSE4.1 availability.
-        unsafe { simd_decode_inner(compressed, tables, expected_len) }
+        // `simd_decode_inner` is a safe fn; no unsafe block is needed here.
+        simd_decode_inner(compressed, tables, expected_len)
     }
     #[cfg(not(target_feature = "sse4.1"))]
     {

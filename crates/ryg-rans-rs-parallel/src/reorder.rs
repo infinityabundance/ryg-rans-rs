@@ -483,7 +483,7 @@ mod tests {
 
     #[test]
     fn test_empty_buffer() {
-        let mut buf: ReorderBuffer<TestResult> = ReorderBuffer::new(16, 65536);
+        let buf: ReorderBuffer<TestResult> = ReorderBuffer::new(16, 65536);
         assert!(buf.is_complete());
         assert_eq!(buf.buffered_count(), 0);
     }
