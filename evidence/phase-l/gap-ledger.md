@@ -154,6 +154,7 @@ Comparative methodology and results are in `docs/performance/comparative.md` (L.
 | L15-B | HIGH | Remove stray -.o file; add root .gitignore entries | PARTIAL | `.gitignore` hardened in `c38928a`; tracked `-.o` removal lands with L.14 commit; recurrence gate lands with L.20 |
 | L15-C | MEDIUM | Fix root README header (malformed Markdown) | OPEN | L.15 |
 | L15-D | MEDIUM | Add AGENTS.md, llms.txt, docs/glossary.md, reading order | OPEN | L.15 |
+| L15-E | HIGH | CLI subcommands were scaffolding ("not yet implemented") while READMEs claimed "Production-grade"/"deeply implemented — not a scaffold" | RESOLVED | Current commit — encode (byte-single, byte-interleaved2, r64-single, word-single + RLE/RAW fallback), decode (strict integrity), inspect, verify, model build/inspect/validate/compare, trace (byte-single), compare arithmetic/backends/files, and bench are all wired and integration-tested |
 
 ## L.16 — Testing
 

@@ -38,6 +38,8 @@ pub enum AppError {
     ResourceLimit(ResourceLimitError),
     /// Requested backend not available.
     Backend(BackendError),
+    /// Unsupported codec or format version (stable exit code 6).
+    Unsupported(UnsupportedError),
     /// Comparison mismatch.
     Comparison(ComparisonError),
     /// External oracle failure.
@@ -56,6 +58,7 @@ impl fmt::Display for AppError {
             AppError::Integrity(e) => write!(f, "integrity error: {}", e),
             AppError::ResourceLimit(e) => write!(f, "resource limit: {}", e),
             AppError::Backend(e) => write!(f, "backend error: {}", e),
+            AppError::Unsupported(e) => write!(f, "unsupported: {}", e),
             AppError::Comparison(e) => write!(f, "comparison error: {}", e),
             AppError::ExternalOracle(e) => write!(f, "oracle error: {}", e),
             AppError::InternalInvariant(e) => write!(f, "internal error: {}", e),
@@ -73,6 +76,7 @@ impl std::error::Error for AppError {
             AppError::Integrity(e) => Some(e),
             AppError::ResourceLimit(e) => Some(e),
             AppError::Backend(e) => Some(e),
+            AppError::Unsupported(e) => Some(e),
             AppError::Comparison(e) => Some(e),
             AppError::ExternalOracle(e) => Some(e),
             AppError::InternalInvariant(e) => Some(e),
@@ -91,6 +95,7 @@ impl AppError {
             AppError::Integrity(_) => "integrity_failure",
             AppError::ResourceLimit(_) => "resource_limit",
             AppError::Backend(_) => "backend_unavailable",
+            AppError::Unsupported(_) => "unsupported",
             AppError::Comparison(_) => "comparison_mismatch",
             AppError::ExternalOracle(_) => "oracle_error",
             AppError::InternalInvariant(_) => "internal_invariant",
@@ -107,6 +112,7 @@ impl AppError {
             AppError::Integrity(_) => 5,
             AppError::ResourceLimit(_) => 7,
             AppError::Backend(_) => 9,
+            AppError::Unsupported(_) => 6,
             AppError::Comparison(_) => 8,
             AppError::ExternalOracle(_) => 3,
             AppError::InternalInvariant(_) => 10,
@@ -234,6 +240,19 @@ impl fmt::Display for BackendError {
 }
 
 impl std::error::Error for BackendError {}
+
+#[derive(Debug, Clone)]
+pub struct UnsupportedError {
+    pub detail: String,
+}
+
+impl fmt::Display for UnsupportedError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.detail)
+    }
+}
+
+impl std::error::Error for UnsupportedError {}
 
 #[derive(Debug, Clone)]
 pub struct ComparisonError {

@@ -11,27 +11,34 @@
 
 #![forbid(unsafe_code)]
 
-pub mod container;
-pub mod error;
-pub mod exit;
-pub mod limits;
-
 use clap::{Arg, Command};
 use error::AppError;
 use std::io::{Read, Write};
 
-/// Top-level CLI entry point.  Returns the exit code.
+pub mod container;
+pub mod error;
+pub mod exit;
+pub mod limits;
+pub mod ops;
+
+/// Run the CLI with the given arguments.
+///
+/// Returns the stable exit code (0 on success, 2–10 per the documented
+/// table).  The stdio streams are bound inside the operations (the binary
+/// passes real stdio); integration tests exercise the compiled binary via
+/// `CARGO_BIN_EXE_ryg-rans` so exit codes and stream behaviour are tested
+/// end-to-end.
 pub fn run(
     args: impl IntoIterator<Item = std::ffi::OsString>,
     _stdin: &mut dyn Read,
     _stdout: &mut dyn Write,
-    _stderr: &mut dyn Write,
+    stderr: &mut dyn Write,
 ) -> i32 {
     match cli_entry(args) {
         Ok(()) => exit::codes::SUCCESS,
         Err(e) => {
             let code = exit::error_to_exit_code(&e);
-            let _ = writeln!(_stderr, "error: {}", e);
+            let _ = writeln!(stderr, "error: {}", e);
             code
         }
     }
@@ -50,83 +57,14 @@ where
     })?;
 
     match matches.subcommand() {
-        Some(("encode", _m)) => Err(error::AppError::InternalInvariant(
-            error::InternalInvariantError {
-                detail: "encode not yet implemented".into(),
-            },
-        )),
-        Some(("decode", _m)) => Err(error::AppError::InternalInvariant(
-            error::InternalInvariantError {
-                detail: "decode not yet implemented".into(),
-            },
-        )),
-        Some(("inspect", _m)) => Err(error::AppError::InternalInvariant(
-            error::InternalInvariantError {
-                detail: "inspect not yet implemented".into(),
-            },
-        )),
-        Some(("verify", _m)) => Err(error::AppError::InternalInvariant(
-            error::InternalInvariantError {
-                detail: "verify not yet implemented".into(),
-            },
-        )),
-        Some(("model", model_matches)) => {
-            match model_matches.subcommand() {
-                Some(("build", _mm)) => Err(error::AppError::InternalInvariant(
-                    error::InternalInvariantError {
-                        detail: "model build not yet implemented".into(),
-                    },
-                )),
-                Some(("inspect", _mm)) => Err(error::AppError::InternalInvariant(
-                    error::InternalInvariantError {
-                        detail: "model inspect not yet implemented".into(),
-                    },
-                )),
-                Some(("validate", _mm)) => Err(error::AppError::InternalInvariant(
-                    error::InternalInvariantError {
-                        detail: "model validate not yet implemented".into(),
-                    },
-                )),
-                Some(("compare", _mm)) => Err(error::AppError::InternalInvariant(
-                    error::InternalInvariantError {
-                        detail: "model compare not yet implemented".into(),
-                    },
-                )),
-                _ => {
-                    // Print model help
-                    let _ = print_help();
-                    Ok(())
-                }
-            }
-        }
-        Some(("trace", _m)) => Err(error::AppError::InternalInvariant(
-            error::InternalInvariantError {
-                detail: "trace not yet implemented".into(),
-            },
-        )),
-        Some(("compare", cmp_matches)) => match cmp_matches.subcommand() {
-            Some(("arithmetic", _mm)) => Err(error::AppError::InternalInvariant(
-                error::InternalInvariantError {
-                    detail: "compare arithmetic not yet implemented".into(),
-                },
-            )),
-            Some(("backends", _mm)) => Err(error::AppError::InternalInvariant(
-                error::InternalInvariantError {
-                    detail: "compare backends not yet implemented".into(),
-                },
-            )),
-            Some(("files", _mm)) => Err(error::AppError::InternalInvariant(
-                error::InternalInvariantError {
-                    detail: "compare files not yet implemented".into(),
-                },
-            )),
-            _ => Ok(()),
-        },
-        Some(("bench", _m)) => Err(error::AppError::InternalInvariant(
-            error::InternalInvariantError {
-                detail: "bench not yet implemented".into(),
-            },
-        )),
+        Some(("encode", m)) => ops::encode::run(m),
+        Some(("decode", m)) => ops::decode::run(m),
+        Some(("inspect", m)) => ops::inspect::run(m),
+        Some(("verify", m)) => ops::verify::run(m),
+        Some(("model", m)) => ops::model::run(m),
+        Some(("trace", m)) => ops::trace::run(m),
+        Some(("compare", m)) => ops::compare::run(m),
+        Some(("bench", m)) => ops::bench::run(m),
         Some(("capabilities", _m)) => print_capabilities(),
         Some(("completions", m)) => {
             let shell = m
@@ -415,9 +353,67 @@ fn build_cli() -> Command {
                                 .default_value("json"),
                         ),
                 )
-                .subcommand(Command::new("inspect").about("Display model contents"))
-                .subcommand(Command::new("validate").about("Validate a model file"))
-                .subcommand(Command::new("compare").about("Compare two models")),
+                .subcommand(
+                    Command::new("inspect")
+                        .about("Display model contents")
+                        .arg(
+                            Arg::new("input")
+                                .short('i')
+                                .long("input")
+                                .value_name("PATH")
+                                .help("Model file path")
+                                .default_value("-"),
+                        )
+                        .arg(
+                            Arg::new("scale-bits")
+                                .long("scale-bits")
+                                .value_name("N")
+                                .help("Scale bits")
+                                .default_value("12"),
+                        ),
+                )
+                .subcommand(
+                    Command::new("validate")
+                        .about("Validate a model file")
+                        .arg(
+                            Arg::new("input")
+                                .short('i')
+                                .long("input")
+                                .value_name("PATH")
+                                .help("Model file path")
+                                .default_value("-"),
+                        )
+                        .arg(
+                            Arg::new("scale-bits")
+                                .long("scale-bits")
+                                .value_name("N")
+                                .help("Scale bits")
+                                .default_value("12"),
+                        ),
+                )
+                .subcommand(
+                    Command::new("compare")
+                        .about("Compare two models")
+                        .arg(
+                            Arg::new("a")
+                                .long("a")
+                                .value_name("PATH")
+                                .help("First model file"),
+                        )
+                        .arg(
+                            Arg::new("b")
+                                .long("b")
+                                .value_name("PATH")
+                                .help("Second model file"),
+                        )
+                        .arg(
+                            Arg::new("scale-bits")
+                                .long("scale-bits")
+                                .value_name("N")
+                                .help("Scale bits")
+                                .default_value("12"),
+                        ),
+                ),
         )
         .subcommand(
             Command::new("trace")
@@ -456,10 +452,52 @@ fn build_cli() -> Command {
             Command::new("compare")
                 .about("Compare arithmetic paths, backends, files, or oracle")
                 .subcommand(
-                    Command::new("arithmetic").about("Compare division vs reciprocal encoding"),
+                    Command::new("arithmetic")
+                        .about("Compare division vs reciprocal encoding")
+                        .arg(
+                            Arg::new("input")
+                                .short('i')
+                                .long("input")
+                                .value_name("PATH")
+                                .help("Input file path")
+                                .default_value("-"),
+                        )
+                        .arg(
+                            Arg::new("scale-bits")
+                                .long("scale-bits")
+                                .value_name("N")
+                                .help("Scale bits")
+                                .default_value("12"),
+                        ),
                 )
-                .subcommand(Command::new("backends").about("Compare decode backends"))
-                .subcommand(Command::new("files").about("Compare two .rygr containers")),
+                .subcommand(
+                    Command::new("backends")
+                        .about("Compare decode backends")
+                        .arg(
+                            Arg::new("input")
+                                .short('i')
+                                .long("input")
+                                .value_name("PATH")
+                                .help("Input .rygr file path (codec 7)")
+                                .default_value("-"),
+                        ),
+                )
+                .subcommand(
+                    Command::new("files")
+                        .about("Compare two .rygr containers")
+                        .arg(
+                            Arg::new("a")
+                                .long("a")
+                                .value_name("PATH")
+                                .help("First container file"),
+                        )
+                        .arg(
+                            Arg::new("b")
+                                .long("b")
+                                .value_name("PATH")
+                                .help("Second container file"),
+                        ),
+                ),
         )
         .subcommand(
             Command::new("bench")
@@ -468,7 +506,7 @@ fn build_cli() -> Command {
                     Arg::new("codec")
                         .long("codec")
                         .value_name("CODEC")
-                        .help("Codec to benchmark")
+                        .help("Codec to benchmark (byte-single, byte-interleaved2, r64-single, word-single)")
                         .default_value("byte-interleaved2"),
                 )
                 .arg(

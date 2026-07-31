@@ -65,11 +65,23 @@ impl<W: Write> ContainerWriter<W> {
         self.total_uncompressed = self
             .total_uncompressed
             .checked_add(block.uncompressed_length as u64)
-            .unwrap();
+            .ok_or_else(|| {
+                AppError::Format(crate::error::FormatError {
+                    detail: "total uncompressed overflow".into(),
+                    block_index: Some(block.block_index),
+                    offset: None,
+                })
+            })?;
         self.total_payload = self
             .total_payload
             .checked_add(block.payload.len() as u64)
-            .unwrap();
+            .ok_or_else(|| {
+                AppError::Format(crate::error::FormatError {
+                    detail: "total payload overflow".into(),
+                    block_index: Some(block.block_index),
+                    offset: None,
+                })
+            })?;
         Ok(())
     }
 

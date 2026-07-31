@@ -32,6 +32,13 @@ impl FrequencyModel {
     ///
     /// This is fully deterministic — no floating point, no platform dependency.
     pub fn build(histogram: &[u64; 256], scale_bits: u8) -> Result<Self, AppError> {
+        if scale_bits == 0 || scale_bits > 31 {
+            return Err(AppError::Format(FormatError {
+                detail: format!("scale_bits must be in 1..=31, got {}", scale_bits),
+                block_index: None,
+                offset: None,
+            }));
+        }
         let target_total = 1u64 << scale_bits;
 
         // Count total observed symbols
@@ -90,34 +97,67 @@ impl FrequencyModel {
             }
         }
 
-        // If above target (due to minimum-1 enforcement), remove units
+        // If above target (due to minimum-1 enforcement), remove units.
+        //
+        // Phase-3 invariants:
+        // * `excess` is decremented per removal — the loop removes exactly
+        //   `excess` units total, cycling candidates if needed (a single
+        //   dominant symbol may need many removals).
+        // * Removal priority: smallest remainder first (symbols closest to
+        //   their fair share), then largest frequency, then smallest symbol
+        //   — a fully deterministic rule.
+        // * If `excess` exceeds the total removable units (every active
+        //   symbol at 1), the model is unrepresentable at this scale (fewer
+        //   than `active` tokens available) and we return a typed error
+        //   instead of looping forever.
         if current_sum > target_total {
-            let excess = (current_sum - target_total) as usize;
+            let mut excess = current_sum - target_total;
+            let removable: u64 = frequencies.iter().map(|&f| f.saturating_sub(1)).sum();
+            if excess > removable {
+                return Err(AppError::Format(FormatError {
+                    detail: format!(
+                        "model unrepresentable: {} active symbols need at least {} tokens but scale_bits={} provides {}",
+                        active_count, active_count, scale_bits, target_total
+                    ),
+                    block_index: None,
+                    offset: None,
+                }));
+            }
 
-            // Collect symbols eligible for reduction (frequency > 1)
-            let mut candidates: Vec<(u64, usize)> = (0..256)
+            let mut candidates: Vec<(u64, u64, usize)> = (0..256)
                 .filter(|&sym| frequencies[sym] > 1)
-                .map(|sym| (remainders[sym], sym))
+                .map(|sym| (remainders[sym], frequencies[sym], sym))
                 .collect();
-            // Sort by remainder ascending, then by frequency descending, then by symbol descending
             candidates.sort_by(|a, b| {
                 a.0.cmp(&b.0) // remainder ascending
                     .then_with(|| b.1.cmp(&a.1)) // frequency descending
-                    .then_with(|| b.1.cmp(&a.1)) // symbol descending
+                    .then_with(|| a.2.cmp(&b.2)) // symbol ascending
             });
 
-            for (_, sym) in candidates.iter() {
+            for (_, _, sym) in candidates.iter().cycle() {
                 if excess == 0 {
                     break;
                 }
-                if frequencies[*sym] > 1 {
-                    frequencies[*sym] -= 1;
-                }
+                debug_assert!(frequencies[*sym] > 1);
+                frequencies[*sym] -= 1;
+                excess -= 1;
             }
         }
 
-        // Ensure exact match
-        debug_assert_eq!(frequencies.iter().sum::<u64>(), target_total);
+        // The sum must now be exact.  A runtime check (not a debug_assert)
+        // so a normalisation bug can never ship a wrong-sum model in
+        // release builds.
+        let final_sum: u64 = frequencies.iter().sum();
+        if final_sum != target_total {
+            return Err(AppError::Format(FormatError {
+                detail: format!(
+                    "normalisation invariant violated: sum {} != target {}",
+                    final_sum, target_total
+                ),
+                block_index: None,
+                offset: None,
+            }));
+        }
 
         // Convert to u32 (safe: target_total <= u32::MAX for scale_bits <= 31)
         let freq_u32: Vec<u32> = frequencies.iter().map(|&f| f as u32).collect();
@@ -127,7 +167,13 @@ impl FrequencyModel {
         let mut acc = 0u32;
         cum.push(0);
         for &f in freq_u32.iter() {
-            acc = acc.checked_add(f).unwrap();
+            acc = acc.checked_add(f).ok_or_else(|| {
+                AppError::Format(FormatError {
+                    detail: "cumulative frequency overflow".into(),
+                    block_index: None,
+                    offset: None,
+                })
+            })?;
             cum.push(acc);
         }
 
@@ -157,6 +203,13 @@ impl FrequencyModel {
 
     /// Parse from canonical binary format.
     pub fn from_bytes(bytes: &[u8], scale_bits: u8) -> Result<Self, AppError> {
+        if scale_bits == 0 || scale_bits > 31 {
+            return Err(AppError::Format(FormatError {
+                detail: format!("scale_bits must be in 1..=31, got {}", scale_bits),
+                block_index: None,
+                offset: None,
+            }));
+        }
         if bytes.len() < 2 {
             return Err(AppError::Format(FormatError {
                 detail: "model too short".into(),
@@ -234,7 +287,13 @@ impl FrequencyModel {
         let mut acc = 0u32;
         cum.push(0);
         for &f in frequencies.iter() {
-            acc = acc.checked_add(f).unwrap();
+            acc = acc.checked_add(f).ok_or_else(|| {
+                AppError::Format(FormatError {
+                    detail: "cumulative frequency overflow".into(),
+                    block_index: None,
+                    offset: None,
+                })
+            })?;
             cum.push(acc);
         }
 
@@ -273,7 +332,9 @@ impl FrequencyModel {
         let mut acc = 0u32;
         cum.push(0);
         for &f in frequencies.iter() {
-            acc = acc.checked_add(f).unwrap();
+            acc = acc
+                .checked_add(f)
+                .expect("uniform model cumulative fits u32");
             cum.push(acc);
         }
 

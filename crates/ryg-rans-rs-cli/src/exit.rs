@@ -50,6 +50,7 @@ pub fn error_to_exit_code(error: &crate::error::AppError) -> i32 {
         crate::error::AppError::Integrity(_) => codes::INTEGRITY_ERROR,
         crate::error::AppError::ResourceLimit(_) => codes::RESOURCE_LIMIT,
         crate::error::AppError::Backend(_) => codes::BACKEND_UNAVAILABLE,
+        crate::error::AppError::Unsupported(_) => codes::UNSUPPORTED,
         crate::error::AppError::Comparison(_) => codes::COMPARISON_MISMATCH,
         crate::error::AppError::ExternalOracle(_) => codes::IO_ERROR,
         crate::error::AppError::InternalInvariant(_) => codes::INTERNAL_ERROR,
