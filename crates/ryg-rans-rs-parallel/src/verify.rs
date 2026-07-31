@@ -426,6 +426,20 @@ impl ParallelVerifier {
         blocks: impl IntoIterator<Item = VerifyBlockJob>,
         config: &ParallelConfig,
     ) -> Result<ParallelVerificationReport, ParallelError> {
+        Self::verify_blocks_with_cancel(blocks, config, None)
+    }
+
+    /// Verify all blocks in parallel with an optional external cancellation token.
+    ///
+    /// Same semantics as [`Self::verify_blocks`] but accepts a caller-owned
+    /// [`CancellationToken`].  If cancellation is observed before all blocks
+    /// complete, returns [`ParallelError::Cancelled`] with completion counts.
+    /// Never returns `Ok` with fewer blocks verified than declared.
+    pub fn verify_blocks_with_cancel(
+        blocks: impl IntoIterator<Item = VerifyBlockJob>,
+        config: &ParallelConfig,
+        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
+    ) -> Result<ParallelVerificationReport, ParallelError> {
         let jobs: Vec<VerifyBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {
             return Ok(ParallelVerificationReport {
@@ -457,7 +471,7 @@ impl ParallelVerifier {
             worker_count,
             queue_capacity,
             config.worker_stack_size,
-            None,
+            external_cancel,
         )?;
 
         let mut results = Vec::with_capacity(block_count);

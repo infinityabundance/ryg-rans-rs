@@ -739,9 +739,26 @@ impl ParallelEncoder {
     /// Encode blocks in parallel using the given configuration.
     ///
     /// Returns blocks in ascending block-index order, ready for container serialisation.
+    ///
+    /// This convenience API creates an internal cancellation token and delegates to
+    /// [`Self::encode_blocks_with_cancel`].
     pub fn encode_blocks(
         blocks: impl IntoIterator<Item = EncodeBlockJob>,
         config: &ParallelConfig,
+    ) -> Result<OrderedEncodedBlocks, ParallelError> {
+        Self::encode_blocks_with_cancel(blocks, config, None)
+    }
+
+    /// Encode blocks in parallel with an optional external cancellation token.
+    ///
+    /// When `external_cancel` is provided, workers check it cooperatively and
+    /// the operation returns [`ParallelError::Cancelled`] with completion counts
+    /// if cancellation is observed before all blocks complete.  The operation
+    /// never returns `Ok` with fewer results than declared blocks.
+    pub fn encode_blocks_with_cancel(
+        blocks: impl IntoIterator<Item = EncodeBlockJob>,
+        config: &ParallelConfig,
+        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
     ) -> Result<OrderedEncodedBlocks, ParallelError> {
         let jobs: Vec<EncodeBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {
@@ -752,6 +769,9 @@ impl ParallelEncoder {
                     effective_workers: 0,
                     queue_capacity: 0,
                     block_count: 0,
+                    declared_blocks: 0,
+                    completed_blocks: 0,
+                    cancelled: false,
                 },
             });
         }
@@ -763,13 +783,13 @@ impl ParallelEncoder {
         // Convert jobs to tasks
         let tasks: Vec<EncodeTask> = jobs.into_iter().map(|job| EncodeTask { job }).collect();
 
-        // Run tasks in parallel
+        // Run tasks in parallel with the external cancellation token.
         let report: ExecutorReport<Result<EncodedBlockResult, BlockError>> = run_tasks(
             tasks,
             worker_count,
             queue_capacity,
             config.worker_stack_size,
-            None,
+            external_cancel,
         )?;
 
         // Collect results through reorder buffer
@@ -811,6 +831,8 @@ impl ParallelEncoder {
 
         // Sort by block index to ensure ordering
         ordered_blocks.sort_by_key(|b| b.block_index);
+        let completed_blocks = ordered_blocks.len();
+        let cancelled = report.cancelled;
 
         Ok(OrderedEncodedBlocks {
             blocks: ordered_blocks,
@@ -819,6 +841,9 @@ impl ParallelEncoder {
                 effective_workers: report.effective_workers,
                 queue_capacity,
                 block_count,
+                declared_blocks: block_count,
+                completed_blocks,
+                cancelled,
             },
         })
     }

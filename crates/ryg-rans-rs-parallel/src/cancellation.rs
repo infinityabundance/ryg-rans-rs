@@ -145,7 +145,14 @@ impl CancellationToken {
     /// ```
     pub fn check(&self) -> Result<(), crate::ParallelError> {
         if self.is_cancelled() {
-            Err(crate::ParallelError::Cancelled)
+            // The check() API is used at cooperative yield points where the
+            // completion counts are not yet known.  Callers that need exact
+            // counts use the high-level `_with_cancel` APIs, which report
+            // Cancelled { completed, expected } from the executor report.
+            Err(crate::ParallelError::Cancelled {
+                completed: 0,
+                expected: 0,
+            })
         } else {
             Ok(())
         }

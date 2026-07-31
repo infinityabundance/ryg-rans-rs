@@ -163,6 +163,23 @@ pub struct ExecutorReport<R> {
     /// Use this in benchmark evidence to prove the intended thread
     /// count was actually executed.
     pub effective_workers: usize,
+    /// Total number of tasks declared by the caller.
+    pub declared_tasks: usize,
+    /// Number of tasks actually submitted to the bounded queue.
+    /// May be less than `declared_tasks` when cancellation interrupts
+    /// submission.
+    pub submitted_tasks: usize,
+    /// Number of tasks that began execution on a worker.
+    pub started_tasks: usize,
+    /// Number of tasks that produced a result (completed).
+    pub completed_tasks: usize,
+    /// Number of tasks skipped because cancellation was observed
+    /// before execution began.
+    pub cancelled_tasks: usize,
+    /// Number of results returned in `results`.
+    pub returned_results: usize,
+    /// Whether the run was cancelled (external token or panic-triggered).
+    pub cancelled: bool,
 }
 
 /// Run a set of tasks on a bounded executor and collect results.
@@ -256,6 +273,13 @@ where
             results: Vec::new(),
             worker_panics: 0,
             effective_workers: 0,
+            declared_tasks: 0,
+            submitted_tasks: 0,
+            started_tasks: 0,
+            completed_tasks: 0,
+            cancelled_tasks: 0,
+            returned_results: 0,
+            cancelled: false,
         });
     }
 
@@ -267,20 +291,17 @@ where
     let cancel = external_cancel.unwrap_or_else(|| Arc::new(CancellationToken::new()));
 
     // Shared result collector (protected by a mutex).
-    // We use a mutex rather than a bounded channel to avoid deadlocks:
-    // the coordinator submits tasks through the bounded job channel, and
-    // workers write results to the shared mutex.  The job channel provides
-    // end-to-end boundedness because at most `effective_queue` tasks can
-    // be in-flight at any time.
     let collector = Arc::new(Mutex::new(Vec::<
         Result<R, (WorkerIndex, String, Option<u64>)>,
     >::with_capacity(total_tasks)));
 
-    // Bounded job channel — this is the primary boundedness mechanism.
-    // At most `effective_queue` tasks can be queued at once.
+    // Bounded job channel.
     let (job_sender, job_receiver) = crossbeam_channel::bounded::<Option<T>>(effective_queue);
 
+    // Per-worker atomic counters.
+    let started = Arc::new(AtomicUsize::new(0));
     let completed = Arc::new(AtomicUsize::new(0));
+    let cancelled_tasks = Arc::new(AtomicUsize::new(0));
 
     // Spawn workers
     let mut handles = Vec::with_capacity(effective_workers);
@@ -288,7 +309,9 @@ where
         let rx = job_receiver.clone();
         let cancel = cancel.clone();
         let collector = collector.clone();
+        let started = started.clone();
         let completed = completed.clone();
+        let cancelled_tasks = cancelled_tasks.clone();
 
         let mut builder = std::thread::Builder::new();
         builder = builder.name(format!("ryg-parallel-{}", i));
@@ -300,6 +323,7 @@ where
             .spawn(move || {
                 for task_opt in rx {
                     if cancel.is_cancelled() {
+                        cancelled_tasks.fetch_add(1, Ordering::Relaxed);
                         continue;
                     }
 
@@ -309,6 +333,7 @@ where
                     };
 
                     let block_index_for_panic = task_block_index(&task);
+                    started.fetch_add(1, Ordering::Relaxed);
 
                     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                         task.run(i, &cancel)
@@ -326,6 +351,7 @@ where
                             } else {
                                 "unknown panic".to_string()
                             };
+                            completed.fetch_add(1, Ordering::Relaxed);
                             let mut col = collector.lock().unwrap();
                             col.push(Err((i, msg, block_index_for_panic)));
                             cancel.cancel();
@@ -340,7 +366,7 @@ where
     drop(job_receiver); // workers hold their own clones
 
     // Submit all tasks through the bounded channel.
-    // If cancellation is active, we stop submitting.
+    let mut submitted = 0usize;
     for task in tasks {
         if cancel.is_cancelled() {
             break;
@@ -348,15 +374,20 @@ where
         if job_sender.send(Some(task)).is_err() {
             break;
         }
+        submitted += 1;
     }
     // Signal shutdown by dropping the sender.
-    // Workers will receive None and break out of their receive loop.
     drop(job_sender);
 
-    // Join all workers — this blocks until every worker has finished.
+    // Join all workers.
     for handle in handles {
         let _ = handle.join();
     }
+
+    let was_cancelled = cancel.is_cancelled();
+    let started_count = started.load(Ordering::Relaxed);
+    let completed_count = completed.load(Ordering::Relaxed);
+    let cancelled_count = cancelled_tasks.load(Ordering::Relaxed);
 
     // Collect results from the shared mutex.
     let mut col = collector.lock().unwrap();
@@ -372,7 +403,6 @@ where
 
     // Check for panics first (highest priority)
     if !panic_errors.is_empty() {
-        // Find the lowest-index panic
         let lowest_panic = panic_errors
             .iter()
             .min_by_key(|(_, _, block_idx)| block_idx.unwrap_or(u64::MAX));
@@ -384,10 +414,36 @@ where
         }
     }
 
+    // Completeness invariant: cancellation must never return Ok with
+    // fewer results than declared.  If the run was cancelled, return a
+    // Cancelled error carrying the counts.  If it was not cancelled but
+    // results are short, that is silent truncation — an internal bug.
+    if was_cancelled && results.len() != total_tasks {
+        return Err(ParallelError::Cancelled {
+            completed: results.len(),
+            expected: total_tasks,
+        });
+    }
+    if !was_cancelled && results.len() != total_tasks {
+        return Err(ParallelError::IncompleteExecution {
+            completed: results.len(),
+            expected: total_tasks,
+        });
+    }
+
+    let returned_results = results.len();
+
     Ok(ExecutorReport {
         results,
         worker_panics: panic_errors.len(),
         effective_workers,
+        declared_tasks: total_tasks,
+        submitted_tasks: submitted,
+        started_tasks: started_count,
+        completed_tasks: completed_count,
+        cancelled_tasks: cancelled_count,
+        returned_results,
+        cancelled: was_cancelled,
     })
 }
 

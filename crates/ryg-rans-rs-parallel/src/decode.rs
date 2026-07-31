@@ -1574,6 +1574,20 @@ impl ParallelDecoder {
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
         config: &ParallelConfig,
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
+        Self::decode_blocks_with_cancel(blocks, config, None)
+    }
+
+    /// Decode all blocks in parallel with an optional external cancellation token.
+    ///
+    /// Same semantics as [`Self::decode_blocks`], but accepts a caller-owned
+    /// [`CancellationToken`].  If cancellation is observed before all blocks
+    /// complete, returns [`ParallelError::Cancelled`] with completion counts.
+    /// Never returns `Ok` with fewer blocks than declared.
+    pub fn decode_blocks_with_cancel(
+        blocks: impl IntoIterator<Item = DecodeBlockJob>,
+        config: &ParallelConfig,
+        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
+    ) -> Result<OrderedDecodedBlocks, ParallelError> {
         let jobs: Vec<DecodeBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {
             return Ok(OrderedDecodedBlocks {
@@ -1583,6 +1597,9 @@ impl ParallelDecoder {
                     effective_workers: 0,
                     queue_capacity: 0,
                     block_count: 0,
+                    declared_blocks: 0,
+                    completed_blocks: 0,
+                    cancelled: false,
                 },
             });
         }
@@ -1597,15 +1614,11 @@ impl ParallelDecoder {
             })
             .collect();
 
-        // Run tasks with exposed cancellation
-        let cancel = std::sync::Arc::new(CancellationToken::new());
-        let report: ExecutorReport<Result<DecodedBlockResult, BlockError>> = run_tasks(
-            tasks,
-            wc,
-            qc,
-            config.worker_stack_size,
-            Some(cancel.clone()),
-        )?;
+        // Run tasks with the caller-provided external cancellation token.
+        // If the caller supplied none, run_tasks creates its own internal
+        // token that is only cancelled on worker panic.
+        let report: ExecutorReport<Result<DecodedBlockResult, BlockError>> =
+            run_tasks(tasks, wc, qc, config.worker_stack_size, external_cancel)?;
 
         // Capture execution metadata BEFORE consuming report.results
         let effective_workers = report.effective_workers;
@@ -1639,6 +1652,8 @@ impl ParallelDecoder {
         }
 
         ordered.sort_by_key(|b| b.block_index);
+        let completed_blocks = ordered.len();
+        let cancelled = report.cancelled;
         Ok(OrderedDecodedBlocks {
             blocks: ordered,
             execution: crate::job::ExecutionMetadata {
@@ -1646,6 +1661,9 @@ impl ParallelDecoder {
                 effective_workers,
                 queue_capacity: qc,
                 block_count: bc,
+                declared_blocks: bc,
+                completed_blocks,
+                cancelled,
             },
         })
     }
@@ -1700,6 +1718,19 @@ impl ParallelDecoder {
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
         config: &ParallelConfig,
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
+        Self::decode_streaming_with_cancel(blocks, config, None)
+    }
+
+    /// Streaming decode with an optional external cancellation token.
+    ///
+    /// Same semantics as [`Self::decode_streaming`] but accepts a
+    /// caller-owned [`CancellationToken`].  Never returns `Ok` with fewer
+    /// blocks than declared.
+    pub fn decode_streaming_with_cancel(
+        blocks: impl IntoIterator<Item = DecodeBlockJob>,
+        config: &ParallelConfig,
+        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
+    ) -> Result<OrderedDecodedBlocks, ParallelError> {
         let jobs: Vec<DecodeBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {
             return Ok(OrderedDecodedBlocks {
@@ -1709,6 +1740,9 @@ impl ParallelDecoder {
                     effective_workers: 0,
                     queue_capacity: 0,
                     block_count: 0,
+                    declared_blocks: 0,
+                    completed_blocks: 0,
+                    cancelled: false,
                 },
             });
         }
@@ -1717,17 +1751,11 @@ impl ParallelDecoder {
         let wc = crate::resource::effective_worker_count(config, bc)?;
         let qc = config.max_in_flight_blocks.get().max(wc);
 
-        // Use a bounded channel to stream blocks to workers one at a time,
-        // rather than materializing all jobs upfront.  The executor's
-        // run_tasks already materializes into a Vec — for a true streaming
-        // pipeline we would need a different architecture.  For now, this
-        // is a faithful implementation that reads blocks sequentially and
-        // then decodes them in parallel (the parallel phase is bounded by
-        // the executor's queue capacity).
-        //
-        // A future version will implement a true streaming pipeline with
-        // a bounded producer thread that feeds blocks one at a time.
-        let cancel = std::sync::Arc::new(CancellationToken::new());
+        // NOTE: This currently materialises all jobs into a Vec before
+        // dispatch, so it is not a true streaming pipeline yet.  The live
+        // bounded executor redesign (Phase L.4) replaces this with a
+        // coordinator loop that feeds blocks one at a time through a
+        // bounded producer channel.
         let tasks: Vec<DecodeTask> = jobs
             .into_iter()
             .map(|j| DecodeTask {
@@ -1736,13 +1764,8 @@ impl ParallelDecoder {
             })
             .collect();
 
-        let report: ExecutorReport<Result<DecodedBlockResult, BlockError>> = run_tasks(
-            tasks,
-            wc,
-            qc,
-            config.worker_stack_size,
-            Some(cancel.clone()),
-        )?;
+        let report: ExecutorReport<Result<DecodedBlockResult, BlockError>> =
+            run_tasks(tasks, wc, qc, config.worker_stack_size, external_cancel)?;
 
         let effective_workers = report.effective_workers;
 
@@ -1790,6 +1813,8 @@ impl ParallelDecoder {
         }
 
         ordered.sort_by_key(|b| b.block_index);
+        let completed_blocks = ordered.len();
+        let cancelled = report.cancelled;
         Ok(OrderedDecodedBlocks {
             blocks: ordered,
             execution: crate::job::ExecutionMetadata {
@@ -1797,6 +1822,9 @@ impl ParallelDecoder {
                 effective_workers,
                 queue_capacity: qc,
                 block_count: bc,
+                declared_blocks: bc,
+                completed_blocks,
+                cancelled,
             },
         })
     }

@@ -300,8 +300,9 @@ pub struct VerifiedBlockResult {
 
 /// Execution metadata for a parallel operation run.
 ///
-/// Carries the actual worker count, queue capacity, and block count
-/// so benchmark evidence can prove exactly how many workers executed.
+/// Carries the actual worker count, queue capacity, block count, and
+/// completeness counters so benchmark evidence can prove exactly how
+/// many workers executed and that every declared block was accounted for.
 #[derive(Debug, Clone, Copy)]
 pub struct ExecutionMetadata {
     /// Number of worker threads requested by the caller.
@@ -312,6 +313,12 @@ pub struct ExecutionMetadata {
     pub queue_capacity: usize,
     /// Total number of blocks in this operation.
     pub block_count: usize,
+    /// Number of blocks declared by the caller.
+    pub declared_blocks: usize,
+    /// Number of blocks that completed successfully.
+    pub completed_blocks: usize,
+    /// Whether the run was cancelled.
+    pub cancelled: bool,
 }
 
 /// Ordered collection of encoded block results.

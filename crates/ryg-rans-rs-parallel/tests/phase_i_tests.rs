@@ -683,3 +683,254 @@ fn test_worker_count_clamped_to_block_count() {
     }
     assert_eq!(full, data, "decode after clamp must match original");
 }
+
+// ============================================================
+// Cancellation completeness — a pre-cancelled token must surface
+// Err(Cancelled) with the full declared count, never a short Ok
+// ============================================================
+
+#[test]
+fn test_cancellation_completeness_decode() {
+    let data = nonuniform_data();
+    let plan = FixedBlockPlan::new(data.len() as u64, 1024);
+    let block_count = plan.block_count();
+    assert_eq!(block_count, 4, "4096 bytes / 1024-byte blocks = 4 blocks");
+
+    let cfg = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(4).unwrap()),
+        ..Default::default()
+    };
+
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+    let enc = ParallelEncoder::encode_blocks(jobs, &cfg).expect("encode before cancel");
+    assert_eq!(enc.blocks.len(), block_count);
+
+    let dj: Vec<DecodeBlockJob> = enc
+        .blocks
+        .iter()
+        .map(|b| DecodeBlockJob {
+            block_index: b.block_index,
+            block_data: b.block.clone(),
+        })
+        .collect();
+
+    let cancel = Arc::new(CancellationToken::new());
+    cancel.cancel();
+    assert!(cancel.is_cancelled());
+
+    let result = ParallelDecoder::decode_blocks_with_cancel(dj, &cfg, Some(cancel));
+    match result {
+        Err(ParallelError::Cancelled { expected, .. }) => {
+            assert_eq!(expected, block_count, "must report all declared blocks");
+        }
+        other => panic!(
+            "pre-cancelled decode must return Err(Cancelled), never Ok with fewer blocks; got {:?}",
+            other
+        ),
+    }
+}
+
+#[test]
+fn test_cancellation_completeness_verify() {
+    let data = nonuniform_data();
+    let plan = FixedBlockPlan::new(data.len() as u64, 1024);
+    let block_count = plan.block_count();
+    assert_eq!(block_count, 4, "4096 bytes / 1024-byte blocks = 4 blocks");
+
+    let cfg = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(4).unwrap()),
+        ..Default::default()
+    };
+
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+    let enc = ParallelEncoder::encode_blocks(jobs, &cfg).expect("encode before cancel");
+    assert_eq!(enc.blocks.len(), block_count);
+
+    let vj: Vec<VerifyBlockJob> = enc
+        .blocks
+        .iter()
+        .map(|b| VerifyBlockJob {
+            block_index: b.block_index,
+            block_data: b.block.clone(),
+        })
+        .collect();
+
+    let cancel = Arc::new(CancellationToken::new());
+    cancel.cancel();
+    assert!(cancel.is_cancelled());
+
+    let result = ParallelVerifier::verify_blocks_with_cancel(vj, &cfg, Some(cancel));
+    match result {
+        Err(ParallelError::Cancelled { expected, .. }) => {
+            assert_eq!(expected, block_count, "must report all declared blocks");
+        }
+        other => panic!(
+            "pre-cancelled verify must return Err(Cancelled), never Ok with fewer blocks; got {:?}",
+            other
+        ),
+    }
+}
+
+#[test]
+fn test_cancellation_completeness_encode() {
+    let data = nonuniform_data();
+    let plan = FixedBlockPlan::new(data.len() as u64, 1024);
+    let block_count = plan.block_count();
+    assert_eq!(block_count, 4, "4096 bytes / 1024-byte blocks = 4 blocks");
+
+    let cfg = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(4).unwrap()),
+        ..Default::default()
+    };
+
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+
+    let cancel = Arc::new(CancellationToken::new());
+    cancel.cancel();
+    assert!(cancel.is_cancelled());
+
+    let result = ParallelEncoder::encode_blocks_with_cancel(jobs, &cfg, Some(cancel));
+    match result {
+        Err(ParallelError::Cancelled { expected, .. }) => {
+            assert_eq!(expected, block_count, "must report all declared blocks");
+        }
+        other => panic!(
+            "pre-cancelled encode must return Err(Cancelled), never Ok with fewer blocks; got {:?}",
+            other
+        ),
+    }
+}
+
+// ============================================================
+// Executor completeness counters — every declared task must
+// traverse submit → start → complete → return, and cancellation
+// must never yield a short Ok
+// ============================================================
+
+#[test]
+fn test_executor_completeness_counters() {
+    const N: usize = 8;
+
+    struct CountTask(u64);
+    impl ExecutorTask for CountTask {
+        type Output = u64;
+        fn run(self, _wi: usize, _cancel: &CancellationToken) -> u64 {
+            self.0
+        }
+    }
+
+    let tasks: Vec<CountTask> = (0..N as u64).map(CountTask).collect();
+    let report = run_tasks(tasks, 2, 4, None, None).expect("run_tasks without cancellation");
+
+    assert_eq!(report.declared_tasks, N);
+    assert_eq!(report.submitted_tasks, N);
+    assert_eq!(report.started_tasks, N);
+    assert_eq!(report.completed_tasks, N);
+    assert_eq!(report.returned_results, N);
+    assert!(
+        !report.cancelled,
+        "uncancelled run must report cancelled == false"
+    );
+    assert_eq!(report.results.len(), N);
+
+    // Every declared task must traverse the full lifecycle exactly once.
+    assert_eq!(
+        report.declared_tasks, report.submitted_tasks,
+        "submitted must equal declared"
+    );
+    assert_eq!(
+        report.submitted_tasks, report.started_tasks,
+        "started must equal submitted"
+    );
+    assert_eq!(
+        report.started_tasks, report.completed_tasks,
+        "completed must equal started"
+    );
+    assert_eq!(
+        report.completed_tasks, report.returned_results,
+        "returned must equal completed"
+    );
+}
+
+#[test]
+fn test_executor_cancelled_not_ok() {
+    const N: usize = 8;
+
+    struct CountTask(u64);
+    impl ExecutorTask for CountTask {
+        type Output = u64;
+        fn run(self, _wi: usize, _cancel: &CancellationToken) -> u64 {
+            self.0
+        }
+    }
+
+    let cancel = Arc::new(CancellationToken::new());
+    cancel.cancel();
+    assert!(cancel.is_cancelled());
+
+    let tasks: Vec<CountTask> = (0..N as u64).map(CountTask).collect();
+    let result = run_tasks(tasks, 2, 4, None, Some(cancel));
+
+    match result {
+        Err(ParallelError::Cancelled {
+            completed,
+            expected,
+        }) => {
+            assert_eq!(expected, N, "Cancelled must report the full declared count");
+            assert!(
+                completed <= expected,
+                "completed must never exceed expected"
+            );
+        }
+        Ok(report) => {
+            assert_eq!(
+                report.results.len(),
+                N,
+                "if cancellation is not observed, the run must still return ALL results"
+            );
+        }
+        other => panic!(
+            "pre-cancelled run must be Err(Cancelled) or Ok with all results; got {:?}",
+            other
+        ),
+    }
+}

@@ -95,7 +95,26 @@ pub enum ParallelError {
     ///
     /// Checked cooperatively at yield points.  In-flight workers may
     /// continue briefly but no new work is dispatched.
-    Cancelled,
+    ///
+    /// Carries the completion counts so callers can distinguish partial
+    /// progress from a fully completed result.
+    Cancelled {
+        /// Number of blocks that completed before cancellation.
+        completed: usize,
+        /// Total number of blocks declared.
+        expected: usize,
+    },
+    /// The operation returned fewer results than declared blocks.
+    ///
+    /// This indicates silent truncation — the executor finished without
+    /// an explicit cancellation or error but did not produce every
+    /// expected result.  This must never be returned as `Ok`.
+    IncompleteExecution {
+        /// Number of results actually produced.
+        completed: usize,
+        /// Number of blocks declared.
+        expected: usize,
+    },
     /// A resource limit would be exceeded.
     ///
     /// Examples: max buffered bytes exceeded, too many in-flight blocks.
@@ -220,7 +239,26 @@ impl fmt::Display for ParallelError {
                 )
             }
             Self::Config(msg) => write!(f, "config error: {}", msg),
-            Self::Cancelled => write!(f, "operation cancelled"),
+            Self::Cancelled {
+                completed,
+                expected,
+            } => {
+                write!(
+                    f,
+                    "operation cancelled after {} of {} blocks completed",
+                    completed, expected
+                )
+            }
+            Self::IncompleteExecution {
+                completed,
+                expected,
+            } => {
+                write!(
+                    f,
+                    "incomplete execution: {} of {} blocks produced results",
+                    completed, expected
+                )
+            }
             Self::ResourceLimit(msg) => write!(f, "resource limit: {}", msg),
             Self::Format(msg) => write!(f, "format error: {}", msg),
             Self::Io(msg) => write!(f, "i/o error: {}", msg),
