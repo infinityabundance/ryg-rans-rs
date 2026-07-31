@@ -34,8 +34,8 @@
 //!   sequential order from out-of-order completions.
 //! - **Error selection**: `CanonicalErrorTracker` uses `block_index` to
 //!   select the canonical error.
-//! - **Reporting**: `ParallelBlockReport` and `ParallelExecutionReport`
-//!   reference blocks by index.
+//! - **Reporting**: `ExecutorReport` and `ExecutionMetadata` reference
+//!   blocks by index.
 //!
 //! ## Data flow: EncodedBlockResult fields
 //!

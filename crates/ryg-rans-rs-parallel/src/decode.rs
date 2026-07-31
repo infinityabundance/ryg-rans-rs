@@ -1511,7 +1511,7 @@ impl ParallelDecoder {
     /// Streaming decode for non-seekable or incremental input.
     ///
     /// This method reads blocks from an iterator and dispatches them to the
-    /// bounded executor as they arrive.  Unlike [`decode_blocks`], which
+    /// bounded executor as they arrive.  Unlike [`ParallelDecoder::decode_blocks`], which
     /// materialises all jobs upfront, this method is designed for pipelines
     /// where blocks are produced incrementally (e.g. from a network stream
     /// or a file read-ahead buffer).

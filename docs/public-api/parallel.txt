@@ -1,0 +1,1914 @@
+pub mod ryg_rans_rs_parallel
+pub enum ryg_rans_rs_parallel::AffinityPolicy
+pub ryg_rans_rs_parallel::AffinityPolicy::Compact
+pub ryg_rans_rs_parallel::AffinityPolicy::Explicit(alloc::vec::Vec<usize>)
+pub ryg_rans_rs_parallel::AffinityPolicy::None
+pub ryg_rans_rs_parallel::AffinityPolicy::Spread
+impl core::clone::Clone for ryg_rans_rs_parallel::AffinityPolicy
+pub fn ryg_rans_rs_parallel::AffinityPolicy::clone(&self) -> ryg_rans_rs_parallel::AffinityPolicy
+impl core::cmp::Eq for ryg_rans_rs_parallel::AffinityPolicy
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::AffinityPolicy
+pub fn ryg_rans_rs_parallel::AffinityPolicy::eq(&self, &ryg_rans_rs_parallel::AffinityPolicy) -> bool
+impl core::fmt::Debug for ryg_rans_rs_parallel::AffinityPolicy
+pub fn ryg_rans_rs_parallel::AffinityPolicy::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::AffinityPolicy
+impl core::marker::Freeze for ryg_rans_rs_parallel::AffinityPolicy
+impl core::marker::Send for ryg_rans_rs_parallel::AffinityPolicy
+impl core::marker::Sync for ryg_rans_rs_parallel::AffinityPolicy
+impl core::marker::Unpin for ryg_rans_rs_parallel::AffinityPolicy
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::AffinityPolicy
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::AffinityPolicy
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::AffinityPolicy
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::AffinityPolicy where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::AffinityPolicy::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::AffinityPolicy where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::AffinityPolicy::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::AffinityPolicy::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::AffinityPolicy where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::AffinityPolicy::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::AffinityPolicy::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::AffinityPolicy where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::AffinityPolicy::Owned = T
+pub fn ryg_rans_rs_parallel::AffinityPolicy::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::AffinityPolicy::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::AffinityPolicy where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::AffinityPolicy::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::AffinityPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::AffinityPolicy::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::AffinityPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::AffinityPolicy::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::AffinityPolicy where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::AffinityPolicy::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::AffinityPolicy
+pub fn ryg_rans_rs_parallel::AffinityPolicy::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::AffinityPolicy
+pub type ryg_rans_rs_parallel::AffinityPolicy::Output = T
+pub enum ryg_rans_rs_parallel::BackendId
+pub ryg_rans_rs_parallel::BackendId::Avx2Batch4On16
+pub ryg_rans_rs_parallel::BackendId::Avx2HardwareGather8
+pub ryg_rans_rs_parallel::BackendId::Avx2ManualGather8
+pub ryg_rans_rs_parallel::BackendId::Avx2TwoBy8On16
+pub ryg_rans_rs_parallel::BackendId::Avx2Uniform256TableFree16
+pub ryg_rans_rs_parallel::BackendId::Avx512Batch4
+pub ryg_rans_rs_parallel::BackendId::Avx512Interleaved16
+pub ryg_rans_rs_parallel::BackendId::Avx512ManualGather16
+pub ryg_rans_rs_parallel::BackendId::Avx512Vl2x8
+pub ryg_rans_rs_parallel::BackendId::Avx512VlInterleaved8
+pub ryg_rans_rs_parallel::BackendId::Avx512VlManualGather8
+pub ryg_rans_rs_parallel::BackendId::RawCopy
+pub ryg_rans_rs_parallel::BackendId::RleFill
+pub ryg_rans_rs_parallel::BackendId::Scalar16
+pub ryg_rans_rs_parallel::BackendId::Scalar8
+pub ryg_rans_rs_parallel::BackendId::Sse41Interleaved8
+pub ryg_rans_rs_parallel::BackendId::Uniform256TableFree16
+impl ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::label(&self) -> &'static str
+impl core::clone::Clone for ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::clone(&self) -> ryg_rans_rs_parallel::BackendId
+impl core::cmp::Eq for ryg_rans_rs_parallel::BackendId
+impl core::cmp::Ord for ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::cmp(&self, &ryg_rans_rs_parallel::BackendId) -> core::cmp::Ordering
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::eq(&self, &ryg_rans_rs_parallel::BackendId) -> bool
+impl core::cmp::PartialOrd for ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::partial_cmp(&self, &ryg_rans_rs_parallel::BackendId) -> core::option::Option<core::cmp::Ordering>
+impl core::fmt::Debug for ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::hash::Hash for ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl core::marker::Copy for ryg_rans_rs_parallel::BackendId
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::BackendId
+impl serde_core::ser::Serialize for ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl<'de> serde_core::de::Deserialize<'de> for ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::deserialize<__D>(__D) -> core::result::Result<Self, <__D as serde_core::de::Deserializer>::Error> where __D: serde_core::de::Deserializer<'de>
+impl core::marker::Freeze for ryg_rans_rs_parallel::BackendId
+impl core::marker::Send for ryg_rans_rs_parallel::BackendId
+impl core::marker::Sync for ryg_rans_rs_parallel::BackendId
+impl core::marker::Unpin for ryg_rans_rs_parallel::BackendId
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::BackendId
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::BackendId
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::BackendId
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::BackendId where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::BackendId::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::BackendId where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::BackendId::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::BackendId::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::BackendId where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::BackendId::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::BackendId::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::BackendId where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::BackendId::Owned = T
+pub fn ryg_rans_rs_parallel::BackendId::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::BackendId::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::BackendId where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BackendId::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::BackendId where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BackendId::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::BackendId where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BackendId::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::BackendId where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::BackendId::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::BackendId::from(T) -> T
+impl<T> serde_core::de::DeserializeOwned for ryg_rans_rs_parallel::BackendId where T: for<'de> serde_core::de::Deserialize<'de>
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::BackendId
+pub type ryg_rans_rs_parallel::BackendId::Output = T
+pub enum ryg_rans_rs_parallel::BackendPolicy
+pub ryg_rans_rs_parallel::BackendPolicy::Auto
+pub ryg_rans_rs_parallel::BackendPolicy::Explicit(ryg_rans_rs_parallel::BackendId)
+pub ryg_rans_rs_parallel::BackendPolicy::ModelAware
+pub ryg_rans_rs_parallel::BackendPolicy::Portable
+pub ryg_rans_rs_parallel::BackendPolicy::ScalarPreferred
+impl core::clone::Clone for ryg_rans_rs_parallel::BackendPolicy
+pub fn ryg_rans_rs_parallel::BackendPolicy::clone(&self) -> ryg_rans_rs_parallel::BackendPolicy
+impl core::cmp::Eq for ryg_rans_rs_parallel::BackendPolicy
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::BackendPolicy
+pub fn ryg_rans_rs_parallel::BackendPolicy::eq(&self, &ryg_rans_rs_parallel::BackendPolicy) -> bool
+impl core::fmt::Debug for ryg_rans_rs_parallel::BackendPolicy
+pub fn ryg_rans_rs_parallel::BackendPolicy::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_parallel::BackendPolicy
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::BackendPolicy
+impl core::marker::Freeze for ryg_rans_rs_parallel::BackendPolicy
+impl core::marker::Send for ryg_rans_rs_parallel::BackendPolicy
+impl core::marker::Sync for ryg_rans_rs_parallel::BackendPolicy
+impl core::marker::Unpin for ryg_rans_rs_parallel::BackendPolicy
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::BackendPolicy
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::BackendPolicy
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::BackendPolicy
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::BackendPolicy where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::BackendPolicy::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::BackendPolicy where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::BackendPolicy::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::BackendPolicy::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::BackendPolicy where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::BackendPolicy::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::BackendPolicy::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::BackendPolicy where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::BackendPolicy::Owned = T
+pub fn ryg_rans_rs_parallel::BackendPolicy::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::BackendPolicy::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::BackendPolicy where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BackendPolicy::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::BackendPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BackendPolicy::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::BackendPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BackendPolicy::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::BackendPolicy where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::BackendPolicy::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::BackendPolicy
+pub fn ryg_rans_rs_parallel::BackendPolicy::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::BackendPolicy
+pub type ryg_rans_rs_parallel::BackendPolicy::Output = T
+pub enum ryg_rans_rs_parallel::BlockErrorKind
+pub ryg_rans_rs_parallel::BlockErrorKind::BackendFormatMismatch
+pub ryg_rans_rs_parallel::BlockErrorKind::BackendRequiresBatchContext
+pub ryg_rans_rs_parallel::BlockErrorKind::BackendUnavailable
+pub ryg_rans_rs_parallel::BlockErrorKind::Codec
+pub ryg_rans_rs_parallel::BlockErrorKind::DecodedHashMismatch
+pub ryg_rans_rs_parallel::BlockErrorKind::DecodedHashMissing
+pub ryg_rans_rs_parallel::BlockErrorKind::Format
+pub ryg_rans_rs_parallel::BlockErrorKind::Model
+pub ryg_rans_rs_parallel::BlockErrorKind::OutputCommit
+pub ryg_rans_rs_parallel::BlockErrorKind::PayloadHash
+pub ryg_rans_rs_parallel::BlockErrorKind::ResourceLimit
+pub ryg_rans_rs_parallel::BlockErrorKind::WorkerPanic
+impl core::clone::Clone for ryg_rans_rs_parallel::BlockErrorKind
+pub fn ryg_rans_rs_parallel::BlockErrorKind::clone(&self) -> ryg_rans_rs_parallel::BlockErrorKind
+impl core::cmp::Eq for ryg_rans_rs_parallel::BlockErrorKind
+impl core::cmp::Ord for ryg_rans_rs_parallel::BlockErrorKind
+pub fn ryg_rans_rs_parallel::BlockErrorKind::cmp(&self, &ryg_rans_rs_parallel::BlockErrorKind) -> core::cmp::Ordering
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::BlockErrorKind
+pub fn ryg_rans_rs_parallel::BlockErrorKind::eq(&self, &ryg_rans_rs_parallel::BlockErrorKind) -> bool
+impl core::cmp::PartialOrd for ryg_rans_rs_parallel::BlockErrorKind
+pub fn ryg_rans_rs_parallel::BlockErrorKind::partial_cmp(&self, &ryg_rans_rs_parallel::BlockErrorKind) -> core::option::Option<core::cmp::Ordering>
+impl core::fmt::Debug for ryg_rans_rs_parallel::BlockErrorKind
+pub fn ryg_rans_rs_parallel::BlockErrorKind::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::BlockErrorKind
+impl core::marker::Freeze for ryg_rans_rs_parallel::BlockErrorKind
+impl core::marker::Send for ryg_rans_rs_parallel::BlockErrorKind
+impl core::marker::Sync for ryg_rans_rs_parallel::BlockErrorKind
+impl core::marker::Unpin for ryg_rans_rs_parallel::BlockErrorKind
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::BlockErrorKind
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::BlockErrorKind
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::BlockErrorKind
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::BlockErrorKind where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::BlockErrorKind::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::BlockErrorKind where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::BlockErrorKind::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::BlockErrorKind::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::BlockErrorKind where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::BlockErrorKind::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::BlockErrorKind::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::BlockErrorKind where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::BlockErrorKind::Owned = T
+pub fn ryg_rans_rs_parallel::BlockErrorKind::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::BlockErrorKind::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::BlockErrorKind where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockErrorKind::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::BlockErrorKind where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockErrorKind::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::BlockErrorKind where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockErrorKind::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::BlockErrorKind where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::BlockErrorKind::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::BlockErrorKind
+pub fn ryg_rans_rs_parallel::BlockErrorKind::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::BlockErrorKind
+pub type ryg_rans_rs_parallel::BlockErrorKind::Output = T
+pub enum ryg_rans_rs_parallel::CodecPolicy
+pub ryg_rans_rs_parallel::CodecPolicy::Auto
+pub ryg_rans_rs_parallel::CodecPolicy::Explicit(u16)
+impl core::clone::Clone for ryg_rans_rs_parallel::CodecPolicy
+pub fn ryg_rans_rs_parallel::CodecPolicy::clone(&self) -> ryg_rans_rs_parallel::CodecPolicy
+impl core::cmp::Eq for ryg_rans_rs_parallel::CodecPolicy
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::CodecPolicy
+pub fn ryg_rans_rs_parallel::CodecPolicy::eq(&self, &ryg_rans_rs_parallel::CodecPolicy) -> bool
+impl core::fmt::Debug for ryg_rans_rs_parallel::CodecPolicy
+pub fn ryg_rans_rs_parallel::CodecPolicy::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_parallel::CodecPolicy
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::CodecPolicy
+impl core::marker::Freeze for ryg_rans_rs_parallel::CodecPolicy
+impl core::marker::Send for ryg_rans_rs_parallel::CodecPolicy
+impl core::marker::Sync for ryg_rans_rs_parallel::CodecPolicy
+impl core::marker::Unpin for ryg_rans_rs_parallel::CodecPolicy
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::CodecPolicy
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::CodecPolicy
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::CodecPolicy
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::CodecPolicy where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::CodecPolicy::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::CodecPolicy where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::CodecPolicy::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::CodecPolicy::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::CodecPolicy where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::CodecPolicy::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::CodecPolicy::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::CodecPolicy where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::CodecPolicy::Owned = T
+pub fn ryg_rans_rs_parallel::CodecPolicy::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::CodecPolicy::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::CodecPolicy where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::CodecPolicy::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::CodecPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::CodecPolicy::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::CodecPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::CodecPolicy::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::CodecPolicy where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::CodecPolicy::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::CodecPolicy
+pub fn ryg_rans_rs_parallel::CodecPolicy::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::CodecPolicy
+pub type ryg_rans_rs_parallel::CodecPolicy::Output = T
+pub enum ryg_rans_rs_parallel::DecodePlan
+pub enum ryg_rans_rs_parallel::DecodePlan
+pub ryg_rans_rs_parallel::DecodePlan::Avx2HardwareGather8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2HardwareGather8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2HardwareGather8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2HardwareGather8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2ManualGather8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2ManualGather8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2ManualGather8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2ManualGather8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2TwoBy8On16
+pub ryg_rans_rs_parallel::DecodePlan::Avx2TwoBy8On16
+pub ryg_rans_rs_parallel::DecodePlan::Avx2TwoBy8On16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2TwoBy8On16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2Uniform256TableFree16
+pub ryg_rans_rs_parallel::DecodePlan::Avx2Uniform256TableFree16
+pub ryg_rans_rs_parallel::DecodePlan::Avx2Uniform256TableFree16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx2Uniform256TableFree16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512Interleaved16
+pub ryg_rans_rs_parallel::DecodePlan::Avx512Interleaved16
+pub ryg_rans_rs_parallel::DecodePlan::Avx512Interleaved16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512Interleaved16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512ManualGather16
+pub ryg_rans_rs_parallel::DecodePlan::Avx512ManualGather16
+pub ryg_rans_rs_parallel::DecodePlan::Avx512ManualGather16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512ManualGather16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512Vl2x8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512Vl2x8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512Vl2x8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512Vl2x8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512VlInterleaved8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512VlInterleaved8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512VlInterleaved8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512VlInterleaved8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512VlManualGather8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512VlManualGather8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512VlManualGather8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Avx512VlManualGather8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Scalar16
+pub ryg_rans_rs_parallel::DecodePlan::Scalar16
+pub ryg_rans_rs_parallel::DecodePlan::Scalar16::is_uniform256: bool
+pub ryg_rans_rs_parallel::DecodePlan::Scalar16::is_uniform256: bool
+pub ryg_rans_rs_parallel::DecodePlan::Scalar16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Scalar16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Scalar8
+pub ryg_rans_rs_parallel::DecodePlan::Scalar8
+pub ryg_rans_rs_parallel::DecodePlan::Scalar8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Scalar8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Sse41Interleaved8
+pub ryg_rans_rs_parallel::DecodePlan::Sse41Interleaved8
+pub ryg_rans_rs_parallel::DecodePlan::Sse41Interleaved8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Sse41Interleaved8::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Uniform256TableFree16
+pub ryg_rans_rs_parallel::DecodePlan::Uniform256TableFree16
+pub ryg_rans_rs_parallel::DecodePlan::Uniform256TableFree16::scale_bits: u8
+pub ryg_rans_rs_parallel::DecodePlan::Uniform256TableFree16::scale_bits: u8
+impl ryg_rans_rs_parallel::DecodePlan
+impl ryg_rans_rs_parallel::DecodePlan
+pub fn ryg_rans_rs_parallel::DecodePlan::backend_id(&self) -> ryg_rans_rs_parallel::BackendId
+pub fn ryg_rans_rs_parallel::DecodePlan::backend_id(&self) -> ryg_rans_rs_parallel::BackendId
+impl core::clone::Clone for ryg_rans_rs_parallel::DecodePlan
+impl core::clone::Clone for ryg_rans_rs_parallel::DecodePlan
+pub fn ryg_rans_rs_parallel::DecodePlan::clone(&self) -> ryg_rans_rs_parallel::DecodePlan
+pub fn ryg_rans_rs_parallel::DecodePlan::clone(&self) -> ryg_rans_rs_parallel::DecodePlan
+impl core::fmt::Debug for ryg_rans_rs_parallel::DecodePlan
+impl core::fmt::Debug for ryg_rans_rs_parallel::DecodePlan
+pub fn ryg_rans_rs_parallel::DecodePlan::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub fn ryg_rans_rs_parallel::DecodePlan::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::DecodePlan
+impl core::marker::Freeze for ryg_rans_rs_parallel::DecodePlan
+impl core::marker::Send for ryg_rans_rs_parallel::DecodePlan
+impl core::marker::Send for ryg_rans_rs_parallel::DecodePlan
+impl core::marker::Sync for ryg_rans_rs_parallel::DecodePlan
+impl core::marker::Sync for ryg_rans_rs_parallel::DecodePlan
+impl core::marker::Unpin for ryg_rans_rs_parallel::DecodePlan
+impl core::marker::Unpin for ryg_rans_rs_parallel::DecodePlan
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::DecodePlan
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::DecodePlan
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::DecodePlan
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::DecodePlan
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::DecodePlan
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::DecodePlan
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::DecodePlan where U: core::convert::From<T>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::DecodePlan where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::DecodePlan::into(self) -> U
+pub fn ryg_rans_rs_parallel::DecodePlan::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::DecodePlan where U: core::convert::Into<T>
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::DecodePlan where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::DecodePlan::Error = core::convert::Infallible
+pub type ryg_rans_rs_parallel::DecodePlan::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::DecodePlan::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+pub fn ryg_rans_rs_parallel::DecodePlan::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::DecodePlan where U: core::convert::TryFrom<T>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::DecodePlan where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::DecodePlan::Error = <U as core::convert::TryFrom<T>>::Error
+pub type ryg_rans_rs_parallel::DecodePlan::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::DecodePlan::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+pub fn ryg_rans_rs_parallel::DecodePlan::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::DecodePlan where T: core::clone::Clone
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::DecodePlan where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::DecodePlan::Owned = T
+pub type ryg_rans_rs_parallel::DecodePlan::Owned = T
+pub fn ryg_rans_rs_parallel::DecodePlan::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::DecodePlan::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::DecodePlan::to_owned(&self) -> T
+pub fn ryg_rans_rs_parallel::DecodePlan::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::DecodePlan where T: 'static + ?core::marker::Sized
+impl<T> core::any::Any for ryg_rans_rs_parallel::DecodePlan where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::DecodePlan::type_id(&self) -> core::any::TypeId
+pub fn ryg_rans_rs_parallel::DecodePlan::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::DecodePlan where T: ?core::marker::Sized
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::DecodePlan where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::DecodePlan::borrow(&self) -> &T
+pub fn ryg_rans_rs_parallel::DecodePlan::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::DecodePlan where T: ?core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::DecodePlan where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::DecodePlan::borrow_mut(&mut self) -> &mut T
+pub fn ryg_rans_rs_parallel::DecodePlan::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::DecodePlan where T: core::clone::Clone
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::DecodePlan where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::DecodePlan::clone_to_uninit(&self, *mut u8)
+pub unsafe fn ryg_rans_rs_parallel::DecodePlan::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::DecodePlan
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::DecodePlan
+pub fn ryg_rans_rs_parallel::DecodePlan::from(T) -> T
+pub fn ryg_rans_rs_parallel::DecodePlan::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::DecodePlan
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::DecodePlan
+pub type ryg_rans_rs_parallel::DecodePlan::Output = T
+pub type ryg_rans_rs_parallel::DecodePlan::Output = T
+pub enum ryg_rans_rs_parallel::HashVerification
+pub ryg_rans_rs_parallel::HashVerification::Match
+pub ryg_rans_rs_parallel::HashVerification::Mismatch
+pub ryg_rans_rs_parallel::HashVerification::NotComputed
+pub ryg_rans_rs_parallel::HashVerification::Unset
+impl core::clone::Clone for ryg_rans_rs_parallel::HashVerification
+pub fn ryg_rans_rs_parallel::HashVerification::clone(&self) -> ryg_rans_rs_parallel::HashVerification
+impl core::cmp::Eq for ryg_rans_rs_parallel::HashVerification
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::HashVerification
+pub fn ryg_rans_rs_parallel::HashVerification::eq(&self, &ryg_rans_rs_parallel::HashVerification) -> bool
+impl core::fmt::Debug for ryg_rans_rs_parallel::HashVerification
+pub fn ryg_rans_rs_parallel::HashVerification::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_parallel::HashVerification
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::HashVerification
+impl core::marker::Freeze for ryg_rans_rs_parallel::HashVerification
+impl core::marker::Send for ryg_rans_rs_parallel::HashVerification
+impl core::marker::Sync for ryg_rans_rs_parallel::HashVerification
+impl core::marker::Unpin for ryg_rans_rs_parallel::HashVerification
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::HashVerification
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::HashVerification
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::HashVerification
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::HashVerification where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::HashVerification::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::HashVerification where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::HashVerification::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::HashVerification::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::HashVerification where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::HashVerification::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::HashVerification::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::HashVerification where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::HashVerification::Owned = T
+pub fn ryg_rans_rs_parallel::HashVerification::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::HashVerification::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::HashVerification where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::HashVerification::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::HashVerification where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::HashVerification::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::HashVerification where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::HashVerification::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::HashVerification where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::HashVerification::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::HashVerification
+pub fn ryg_rans_rs_parallel::HashVerification::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::HashVerification
+pub type ryg_rans_rs_parallel::HashVerification::Output = T
+pub enum ryg_rans_rs_parallel::IntegrityPolicy
+pub ryg_rans_rs_parallel::IntegrityPolicy::AllowLegacyUnsetDecodedHash
+pub ryg_rans_rs_parallel::IntegrityPolicy::Strict
+impl core::clone::Clone for ryg_rans_rs_parallel::IntegrityPolicy
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::clone(&self) -> ryg_rans_rs_parallel::IntegrityPolicy
+impl core::cmp::Eq for ryg_rans_rs_parallel::IntegrityPolicy
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::IntegrityPolicy
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::eq(&self, &ryg_rans_rs_parallel::IntegrityPolicy) -> bool
+impl core::default::Default for ryg_rans_rs_parallel::IntegrityPolicy
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::default() -> ryg_rans_rs_parallel::IntegrityPolicy
+impl core::fmt::Debug for ryg_rans_rs_parallel::IntegrityPolicy
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_parallel::IntegrityPolicy
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::IntegrityPolicy
+impl core::marker::Freeze for ryg_rans_rs_parallel::IntegrityPolicy
+impl core::marker::Send for ryg_rans_rs_parallel::IntegrityPolicy
+impl core::marker::Sync for ryg_rans_rs_parallel::IntegrityPolicy
+impl core::marker::Unpin for ryg_rans_rs_parallel::IntegrityPolicy
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::IntegrityPolicy
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::IntegrityPolicy
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::IntegrityPolicy
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::IntegrityPolicy where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::IntegrityPolicy where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::IntegrityPolicy::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::IntegrityPolicy where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::IntegrityPolicy::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::IntegrityPolicy where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::IntegrityPolicy::Owned = T
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::IntegrityPolicy where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::IntegrityPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::IntegrityPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::IntegrityPolicy where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::IntegrityPolicy::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::IntegrityPolicy
+pub fn ryg_rans_rs_parallel::IntegrityPolicy::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::IntegrityPolicy
+pub type ryg_rans_rs_parallel::IntegrityPolicy::Output = T
+pub enum ryg_rans_rs_parallel::ModelPolicy
+pub ryg_rans_rs_parallel::ModelPolicy::External
+pub ryg_rans_rs_parallel::ModelPolicy::Global
+pub ryg_rans_rs_parallel::ModelPolicy::PerBlock
+pub ryg_rans_rs_parallel::ModelPolicy::Uniform
+impl core::clone::Clone for ryg_rans_rs_parallel::ModelPolicy
+pub fn ryg_rans_rs_parallel::ModelPolicy::clone(&self) -> ryg_rans_rs_parallel::ModelPolicy
+impl core::cmp::Eq for ryg_rans_rs_parallel::ModelPolicy
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::ModelPolicy
+pub fn ryg_rans_rs_parallel::ModelPolicy::eq(&self, &ryg_rans_rs_parallel::ModelPolicy) -> bool
+impl core::fmt::Debug for ryg_rans_rs_parallel::ModelPolicy
+pub fn ryg_rans_rs_parallel::ModelPolicy::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_parallel::ModelPolicy
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::ModelPolicy
+impl core::marker::Freeze for ryg_rans_rs_parallel::ModelPolicy
+impl core::marker::Send for ryg_rans_rs_parallel::ModelPolicy
+impl core::marker::Sync for ryg_rans_rs_parallel::ModelPolicy
+impl core::marker::Unpin for ryg_rans_rs_parallel::ModelPolicy
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ModelPolicy
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ModelPolicy
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ModelPolicy
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ModelPolicy where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ModelPolicy::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ModelPolicy where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ModelPolicy::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ModelPolicy::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ModelPolicy where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ModelPolicy::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ModelPolicy::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::ModelPolicy where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::ModelPolicy::Owned = T
+pub fn ryg_rans_rs_parallel::ModelPolicy::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::ModelPolicy::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::ModelPolicy where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ModelPolicy::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ModelPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ModelPolicy::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ModelPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ModelPolicy::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::ModelPolicy where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::ModelPolicy::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ModelPolicy
+pub fn ryg_rans_rs_parallel::ModelPolicy::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ModelPolicy
+pub type ryg_rans_rs_parallel::ModelPolicy::Output = T
+pub enum ryg_rans_rs_parallel::ParallelError
+pub ryg_rans_rs_parallel::ParallelError::Cancelled
+pub ryg_rans_rs_parallel::ParallelError::Cancelled::completed: usize
+pub ryg_rans_rs_parallel::ParallelError::Cancelled::expected: usize
+pub ryg_rans_rs_parallel::ParallelError::Config(alloc::string::String)
+pub ryg_rans_rs_parallel::ParallelError::DecodeFailed(alloc::boxed::Box<ryg_rans_rs_parallel::BlockError>)
+pub ryg_rans_rs_parallel::ParallelError::EncodeFailed(alloc::boxed::Box<ryg_rans_rs_parallel::BlockError>)
+pub ryg_rans_rs_parallel::ParallelError::Format(alloc::string::String)
+pub ryg_rans_rs_parallel::ParallelError::IncompleteExecution
+pub ryg_rans_rs_parallel::ParallelError::IncompleteExecution::completed: usize
+pub ryg_rans_rs_parallel::ParallelError::IncompleteExecution::expected: usize
+pub ryg_rans_rs_parallel::ParallelError::Internal(alloc::string::String)
+pub ryg_rans_rs_parallel::ParallelError::Io(alloc::string::String)
+pub ryg_rans_rs_parallel::ParallelError::ResourceLimit(alloc::string::String)
+pub ryg_rans_rs_parallel::ParallelError::ThreadCreate(alloc::string::String)
+pub ryg_rans_rs_parallel::ParallelError::VerifyFailed(alloc::boxed::Box<ryg_rans_rs_parallel::BlockError>)
+pub ryg_rans_rs_parallel::ParallelError::WorkerPanic
+pub ryg_rans_rs_parallel::ParallelError::WorkerPanic::block_index: core::option::Option<u64>
+pub ryg_rans_rs_parallel::ParallelError::WorkerPanic::worker_index: usize
+impl core::clone::Clone for ryg_rans_rs_parallel::ParallelError
+pub fn ryg_rans_rs_parallel::ParallelError::clone(&self) -> ryg_rans_rs_parallel::ParallelError
+impl core::error::Error for ryg_rans_rs_parallel::ParallelError
+impl core::fmt::Debug for ryg_rans_rs_parallel::ParallelError
+pub fn ryg_rans_rs_parallel::ParallelError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_parallel::ParallelError
+pub fn ryg_rans_rs_parallel::ParallelError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::ParallelError
+impl core::marker::Send for ryg_rans_rs_parallel::ParallelError
+impl core::marker::Sync for ryg_rans_rs_parallel::ParallelError
+impl core::marker::Unpin for ryg_rans_rs_parallel::ParallelError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ParallelError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ParallelError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ParallelError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ParallelError where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ParallelError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ParallelError where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ParallelError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ParallelError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ParallelError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ParallelError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ParallelError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::ParallelError where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::ParallelError::Owned = T
+pub fn ryg_rans_rs_parallel::ParallelError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::ParallelError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_parallel::ParallelError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_parallel::ParallelError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ParallelError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ParallelError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::ParallelError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::ParallelError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ParallelError
+pub fn ryg_rans_rs_parallel::ParallelError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ParallelError
+pub type ryg_rans_rs_parallel::ParallelError::Output = T
+pub enum ryg_rans_rs_parallel::SmtPolicy
+pub ryg_rans_rs_parallel::SmtPolicy::Explicit
+pub ryg_rans_rs_parallel::SmtPolicy::PreferPhysicalEquivalent
+pub ryg_rans_rs_parallel::SmtPolicy::UseAllLogical
+impl core::clone::Clone for ryg_rans_rs_parallel::SmtPolicy
+pub fn ryg_rans_rs_parallel::SmtPolicy::clone(&self) -> ryg_rans_rs_parallel::SmtPolicy
+impl core::cmp::Eq for ryg_rans_rs_parallel::SmtPolicy
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::SmtPolicy
+pub fn ryg_rans_rs_parallel::SmtPolicy::eq(&self, &ryg_rans_rs_parallel::SmtPolicy) -> bool
+impl core::fmt::Debug for ryg_rans_rs_parallel::SmtPolicy
+pub fn ryg_rans_rs_parallel::SmtPolicy::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_parallel::SmtPolicy
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::SmtPolicy
+impl core::marker::Freeze for ryg_rans_rs_parallel::SmtPolicy
+impl core::marker::Send for ryg_rans_rs_parallel::SmtPolicy
+impl core::marker::Sync for ryg_rans_rs_parallel::SmtPolicy
+impl core::marker::Unpin for ryg_rans_rs_parallel::SmtPolicy
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::SmtPolicy
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::SmtPolicy
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::SmtPolicy
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::SmtPolicy where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::SmtPolicy::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::SmtPolicy where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::SmtPolicy::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::SmtPolicy::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::SmtPolicy where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::SmtPolicy::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::SmtPolicy::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::SmtPolicy where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::SmtPolicy::Owned = T
+pub fn ryg_rans_rs_parallel::SmtPolicy::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::SmtPolicy::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::SmtPolicy where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::SmtPolicy::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::SmtPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::SmtPolicy::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::SmtPolicy where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::SmtPolicy::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::SmtPolicy where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::SmtPolicy::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::SmtPolicy
+pub fn ryg_rans_rs_parallel::SmtPolicy::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::SmtPolicy
+pub type ryg_rans_rs_parallel::SmtPolicy::Output = T
+pub enum ryg_rans_rs_parallel::ThreadCount
+pub ryg_rans_rs_parallel::ThreadCount::AvailableParallelism
+pub ryg_rans_rs_parallel::ThreadCount::Exact(core::num::nonzero::NonZeroUsize)
+impl core::clone::Clone for ryg_rans_rs_parallel::ThreadCount
+pub fn ryg_rans_rs_parallel::ThreadCount::clone(&self) -> ryg_rans_rs_parallel::ThreadCount
+impl core::cmp::Eq for ryg_rans_rs_parallel::ThreadCount
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::ThreadCount
+pub fn ryg_rans_rs_parallel::ThreadCount::eq(&self, &ryg_rans_rs_parallel::ThreadCount) -> bool
+impl core::fmt::Debug for ryg_rans_rs_parallel::ThreadCount
+pub fn ryg_rans_rs_parallel::ThreadCount::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_parallel::ThreadCount
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::ThreadCount
+impl core::marker::Freeze for ryg_rans_rs_parallel::ThreadCount
+impl core::marker::Send for ryg_rans_rs_parallel::ThreadCount
+impl core::marker::Sync for ryg_rans_rs_parallel::ThreadCount
+impl core::marker::Unpin for ryg_rans_rs_parallel::ThreadCount
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ThreadCount
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ThreadCount
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ThreadCount
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ThreadCount where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ThreadCount::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ThreadCount where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ThreadCount::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ThreadCount::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ThreadCount where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ThreadCount::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ThreadCount::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::ThreadCount where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::ThreadCount::Owned = T
+pub fn ryg_rans_rs_parallel::ThreadCount::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::ThreadCount::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::ThreadCount where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ThreadCount::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ThreadCount where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ThreadCount::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ThreadCount where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ThreadCount::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::ThreadCount where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::ThreadCount::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ThreadCount
+pub fn ryg_rans_rs_parallel::ThreadCount::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ThreadCount
+pub type ryg_rans_rs_parallel::ThreadCount::Output = T
+pub struct ryg_rans_rs_parallel::BlockError
+pub ryg_rans_rs_parallel::BlockError::block_index: u64
+pub ryg_rans_rs_parallel::BlockError::kind: ryg_rans_rs_parallel::BlockErrorKind
+impl core::clone::Clone for ryg_rans_rs_parallel::BlockError
+pub fn ryg_rans_rs_parallel::BlockError::clone(&self) -> ryg_rans_rs_parallel::BlockError
+impl core::fmt::Debug for ryg_rans_rs_parallel::BlockError
+pub fn ryg_rans_rs_parallel::BlockError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::BlockError
+impl core::marker::Send for ryg_rans_rs_parallel::BlockError
+impl core::marker::Sync for ryg_rans_rs_parallel::BlockError
+impl core::marker::Unpin for ryg_rans_rs_parallel::BlockError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::BlockError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::BlockError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::BlockError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::BlockError where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::BlockError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::BlockError where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::BlockError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::BlockError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::BlockError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::BlockError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::BlockError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::BlockError where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::BlockError::Owned = T
+pub fn ryg_rans_rs_parallel::BlockError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::BlockError::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::BlockError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::BlockError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::BlockError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::BlockError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::BlockError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::BlockError
+pub fn ryg_rans_rs_parallel::BlockError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::BlockError
+pub type ryg_rans_rs_parallel::BlockError::Output = T
+pub struct ryg_rans_rs_parallel::BlockHeaderInfo
+pub ryg_rans_rs_parallel::BlockHeaderInfo::block_index: u64
+pub ryg_rans_rs_parallel::BlockHeaderInfo::block_kind: u8
+pub ryg_rans_rs_parallel::BlockHeaderInfo::codec_id: u16
+pub ryg_rans_rs_parallel::BlockHeaderInfo::decoded_sha256: [u8; 32]
+pub ryg_rans_rs_parallel::BlockHeaderInfo::model_length: u32
+pub ryg_rans_rs_parallel::BlockHeaderInfo::payload_length: u32
+pub ryg_rans_rs_parallel::BlockHeaderInfo::payload_sha256: [u8; 32]
+pub ryg_rans_rs_parallel::BlockHeaderInfo::scale_bits: u8
+pub ryg_rans_rs_parallel::BlockHeaderInfo::state_count: u8
+pub ryg_rans_rs_parallel::BlockHeaderInfo::uncompressed_length: u32
+impl core::clone::Clone for ryg_rans_rs_parallel::BlockHeaderInfo
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::clone(&self) -> ryg_rans_rs_parallel::BlockHeaderInfo
+impl core::fmt::Debug for ryg_rans_rs_parallel::BlockHeaderInfo
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::BlockHeaderInfo
+impl core::marker::Send for ryg_rans_rs_parallel::BlockHeaderInfo
+impl core::marker::Sync for ryg_rans_rs_parallel::BlockHeaderInfo
+impl core::marker::Unpin for ryg_rans_rs_parallel::BlockHeaderInfo
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::BlockHeaderInfo
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::BlockHeaderInfo
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::BlockHeaderInfo
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::BlockHeaderInfo where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::BlockHeaderInfo where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::BlockHeaderInfo::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::BlockHeaderInfo where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::BlockHeaderInfo::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::BlockHeaderInfo where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::BlockHeaderInfo::Owned = T
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::BlockHeaderInfo where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::BlockHeaderInfo where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::BlockHeaderInfo where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::BlockHeaderInfo where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::BlockHeaderInfo::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::BlockHeaderInfo
+pub fn ryg_rans_rs_parallel::BlockHeaderInfo::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::BlockHeaderInfo
+pub type ryg_rans_rs_parallel::BlockHeaderInfo::Output = T
+pub struct ryg_rans_rs_parallel::BlockRange
+pub ryg_rans_rs_parallel::BlockRange::block_index: u64
+pub ryg_rans_rs_parallel::BlockRange::input_offset: u64
+pub ryg_rans_rs_parallel::BlockRange::length: u64
+impl core::clone::Clone for ryg_rans_rs_parallel::BlockRange
+pub fn ryg_rans_rs_parallel::BlockRange::clone(&self) -> ryg_rans_rs_parallel::BlockRange
+impl core::cmp::Eq for ryg_rans_rs_parallel::BlockRange
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::BlockRange
+pub fn ryg_rans_rs_parallel::BlockRange::eq(&self, &ryg_rans_rs_parallel::BlockRange) -> bool
+impl core::fmt::Debug for ryg_rans_rs_parallel::BlockRange
+pub fn ryg_rans_rs_parallel::BlockRange::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_parallel::BlockRange
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::BlockRange
+impl core::marker::Freeze for ryg_rans_rs_parallel::BlockRange
+impl core::marker::Send for ryg_rans_rs_parallel::BlockRange
+impl core::marker::Sync for ryg_rans_rs_parallel::BlockRange
+impl core::marker::Unpin for ryg_rans_rs_parallel::BlockRange
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::BlockRange
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::BlockRange
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::BlockRange
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::BlockRange where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::BlockRange::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::BlockRange where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::BlockRange::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::BlockRange::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::BlockRange where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::BlockRange::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::BlockRange::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::BlockRange where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::BlockRange::Owned = T
+pub fn ryg_rans_rs_parallel::BlockRange::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::BlockRange::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::BlockRange where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockRange::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::BlockRange where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockRange::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::BlockRange where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockRange::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::BlockRange where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::BlockRange::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::BlockRange
+pub fn ryg_rans_rs_parallel::BlockRange::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::BlockRange
+pub type ryg_rans_rs_parallel::BlockRange::Output = T
+pub struct ryg_rans_rs_parallel::BlockVerificationResult
+pub ryg_rans_rs_parallel::BlockVerificationResult::backend: ryg_rans_rs_parallel::BackendId
+pub ryg_rans_rs_parallel::BlockVerificationResult::block_index: u64
+pub ryg_rans_rs_parallel::BlockVerificationResult::decode_success: bool
+pub ryg_rans_rs_parallel::BlockVerificationResult::decoded_hash_ok: bool
+pub ryg_rans_rs_parallel::BlockVerificationResult::decoded_hash_state: ryg_rans_rs_parallel::HashVerification
+pub ryg_rans_rs_parallel::BlockVerificationResult::payload_hash_ok: bool
+impl core::clone::Clone for ryg_rans_rs_parallel::BlockVerificationResult
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::clone(&self) -> ryg_rans_rs_parallel::BlockVerificationResult
+impl core::fmt::Debug for ryg_rans_rs_parallel::BlockVerificationResult
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl ryg_rans_rs_parallel::BufferSized for ryg_rans_rs_parallel::BlockVerificationResult
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::buffer_size(&self) -> u64
+impl ryg_rans_rs_parallel::HasBlockIndex for ryg_rans_rs_parallel::BlockVerificationResult
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::block_index(&self) -> u64
+impl core::marker::Freeze for ryg_rans_rs_parallel::BlockVerificationResult
+impl core::marker::Send for ryg_rans_rs_parallel::BlockVerificationResult
+impl core::marker::Sync for ryg_rans_rs_parallel::BlockVerificationResult
+impl core::marker::Unpin for ryg_rans_rs_parallel::BlockVerificationResult
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::BlockVerificationResult
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::BlockVerificationResult
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::BlockVerificationResult
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::BlockVerificationResult where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::BlockVerificationResult where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::BlockVerificationResult::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::BlockVerificationResult where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::BlockVerificationResult::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::BlockVerificationResult where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::BlockVerificationResult::Owned = T
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::BlockVerificationResult where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::BlockVerificationResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::BlockVerificationResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::BlockVerificationResult where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::BlockVerificationResult::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::BlockVerificationResult
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::BlockVerificationResult
+pub type ryg_rans_rs_parallel::BlockVerificationResult::Output = T
+pub struct ryg_rans_rs_parallel::CancellationToken
+impl ryg_rans_rs_parallel::CancellationToken
+pub fn ryg_rans_rs_parallel::CancellationToken::cancel(&self)
+pub fn ryg_rans_rs_parallel::CancellationToken::check(&self) -> core::result::Result<(), ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::CancellationToken::is_cancelled(&self) -> bool
+pub fn ryg_rans_rs_parallel::CancellationToken::new() -> Self
+impl core::default::Default for ryg_rans_rs_parallel::CancellationToken
+pub fn ryg_rans_rs_parallel::CancellationToken::default() -> Self
+impl core::fmt::Debug for ryg_rans_rs_parallel::CancellationToken
+pub fn ryg_rans_rs_parallel::CancellationToken::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl !core::marker::Freeze for ryg_rans_rs_parallel::CancellationToken
+impl core::marker::Send for ryg_rans_rs_parallel::CancellationToken
+impl core::marker::Sync for ryg_rans_rs_parallel::CancellationToken
+impl core::marker::Unpin for ryg_rans_rs_parallel::CancellationToken
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::CancellationToken
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::CancellationToken
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::CancellationToken
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::CancellationToken where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::CancellationToken::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::CancellationToken where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::CancellationToken::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::CancellationToken::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::CancellationToken where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::CancellationToken::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::CancellationToken::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::CancellationToken where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::CancellationToken::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::CancellationToken where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::CancellationToken::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::CancellationToken where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::CancellationToken::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::CancellationToken
+pub fn ryg_rans_rs_parallel::CancellationToken::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::CancellationToken
+pub type ryg_rans_rs_parallel::CancellationToken::Output = T
+pub struct ryg_rans_rs_parallel::CanonicalErrorTracker
+impl ryg_rans_rs_parallel::CanonicalErrorTracker
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::canonical_error(&self) -> core::option::Option<&ryg_rans_rs_parallel::BlockError>
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::lowest_failing_index(&self) -> core::option::Option<u64>
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::new() -> Self
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::record(&mut self, ryg_rans_rs_parallel::BlockError)
+impl core::default::Default for ryg_rans_rs_parallel::CanonicalErrorTracker
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::default() -> Self
+impl core::fmt::Debug for ryg_rans_rs_parallel::CanonicalErrorTracker
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::CanonicalErrorTracker
+impl core::marker::Send for ryg_rans_rs_parallel::CanonicalErrorTracker
+impl core::marker::Sync for ryg_rans_rs_parallel::CanonicalErrorTracker
+impl core::marker::Unpin for ryg_rans_rs_parallel::CanonicalErrorTracker
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::CanonicalErrorTracker
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::CanonicalErrorTracker
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::CanonicalErrorTracker
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::CanonicalErrorTracker where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::CanonicalErrorTracker where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::CanonicalErrorTracker::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::CanonicalErrorTracker where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::CanonicalErrorTracker::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::CanonicalErrorTracker where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::CanonicalErrorTracker where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::CanonicalErrorTracker where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::CanonicalErrorTracker
+pub fn ryg_rans_rs_parallel::CanonicalErrorTracker::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::CanonicalErrorTracker
+pub type ryg_rans_rs_parallel::CanonicalErrorTracker::Output = T
+pub struct ryg_rans_rs_parallel::DecodeBlockJob
+pub ryg_rans_rs_parallel::DecodeBlockJob::block_data: alloc::vec::Vec<u8>
+pub ryg_rans_rs_parallel::DecodeBlockJob::block_index: u64
+impl core::clone::Clone for ryg_rans_rs_parallel::DecodeBlockJob
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::clone(&self) -> ryg_rans_rs_parallel::DecodeBlockJob
+impl core::fmt::Debug for ryg_rans_rs_parallel::DecodeBlockJob
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::DecodeBlockJob
+impl core::marker::Send for ryg_rans_rs_parallel::DecodeBlockJob
+impl core::marker::Sync for ryg_rans_rs_parallel::DecodeBlockJob
+impl core::marker::Unpin for ryg_rans_rs_parallel::DecodeBlockJob
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::DecodeBlockJob
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::DecodeBlockJob
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::DecodeBlockJob
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::DecodeBlockJob where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::DecodeBlockJob where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::DecodeBlockJob::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::DecodeBlockJob where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::DecodeBlockJob::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::DecodeBlockJob where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::DecodeBlockJob::Owned = T
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::DecodeBlockJob where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::DecodeBlockJob where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::DecodeBlockJob where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::DecodeBlockJob where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::DecodeBlockJob::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::DecodeBlockJob
+pub fn ryg_rans_rs_parallel::DecodeBlockJob::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::DecodeBlockJob
+pub type ryg_rans_rs_parallel::DecodeBlockJob::Output = T
+pub struct ryg_rans_rs_parallel::DecodedBlockResult
+pub ryg_rans_rs_parallel::DecodedBlockResult::backend: ryg_rans_rs_parallel::BackendId
+pub ryg_rans_rs_parallel::DecodedBlockResult::block_index: u64
+pub ryg_rans_rs_parallel::DecodedBlockResult::elapsed_ns: core::option::Option<u64>
+pub ryg_rans_rs_parallel::DecodedBlockResult::final_states: alloc::vec::Vec<u32>
+pub ryg_rans_rs_parallel::DecodedBlockResult::output: alloc::vec::Vec<u8>
+pub ryg_rans_rs_parallel::DecodedBlockResult::output_hash: [u8; 32]
+pub ryg_rans_rs_parallel::DecodedBlockResult::output_verified: bool
+pub ryg_rans_rs_parallel::DecodedBlockResult::payload_verified: bool
+pub ryg_rans_rs_parallel::DecodedBlockResult::plan_backend: ryg_rans_rs_parallel::BackendId
+pub ryg_rans_rs_parallel::DecodedBlockResult::words_consumed: usize
+impl core::clone::Clone for ryg_rans_rs_parallel::DecodedBlockResult
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::clone(&self) -> ryg_rans_rs_parallel::DecodedBlockResult
+impl core::fmt::Debug for ryg_rans_rs_parallel::DecodedBlockResult
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl ryg_rans_rs_parallel::BufferSized for ryg_rans_rs_parallel::DecodedBlockResult
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::buffer_size(&self) -> u64
+impl ryg_rans_rs_parallel::HasBlockIndex for ryg_rans_rs_parallel::DecodedBlockResult
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::block_index(&self) -> u64
+impl core::marker::Freeze for ryg_rans_rs_parallel::DecodedBlockResult
+impl core::marker::Send for ryg_rans_rs_parallel::DecodedBlockResult
+impl core::marker::Sync for ryg_rans_rs_parallel::DecodedBlockResult
+impl core::marker::Unpin for ryg_rans_rs_parallel::DecodedBlockResult
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::DecodedBlockResult
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::DecodedBlockResult
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::DecodedBlockResult
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::DecodedBlockResult where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::DecodedBlockResult where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::DecodedBlockResult::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::DecodedBlockResult where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::DecodedBlockResult::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::DecodedBlockResult where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::DecodedBlockResult::Owned = T
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::DecodedBlockResult where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::DecodedBlockResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::DecodedBlockResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::DecodedBlockResult where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::DecodedBlockResult::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::DecodedBlockResult
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::DecodedBlockResult
+pub type ryg_rans_rs_parallel::DecodedBlockResult::Output = T
+pub struct ryg_rans_rs_parallel::EncodeBlockJob
+pub ryg_rans_rs_parallel::EncodeBlockJob::block_index: u64
+pub ryg_rans_rs_parallel::EncodeBlockJob::codec_policy: ryg_rans_rs_parallel::CodecPolicy
+pub ryg_rans_rs_parallel::EncodeBlockJob::data: alloc::vec::Vec<u8>
+pub ryg_rans_rs_parallel::EncodeBlockJob::input_offset: u64
+pub ryg_rans_rs_parallel::EncodeBlockJob::model_policy: ryg_rans_rs_parallel::ModelPolicy
+pub ryg_rans_rs_parallel::EncodeBlockJob::scale_bits: u8
+impl ryg_rans_rs_parallel::EncodeBlockJob
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::new(u64, alloc::vec::Vec<u8>, ryg_rans_rs_parallel::CodecPolicy, ryg_rans_rs_parallel::ModelPolicy, u8) -> Self
+impl core::clone::Clone for ryg_rans_rs_parallel::EncodeBlockJob
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::clone(&self) -> ryg_rans_rs_parallel::EncodeBlockJob
+impl core::fmt::Debug for ryg_rans_rs_parallel::EncodeBlockJob
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::EncodeBlockJob
+impl core::marker::Send for ryg_rans_rs_parallel::EncodeBlockJob
+impl core::marker::Sync for ryg_rans_rs_parallel::EncodeBlockJob
+impl core::marker::Unpin for ryg_rans_rs_parallel::EncodeBlockJob
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::EncodeBlockJob
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::EncodeBlockJob
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::EncodeBlockJob
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::EncodeBlockJob where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::EncodeBlockJob where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::EncodeBlockJob::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::EncodeBlockJob where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::EncodeBlockJob::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::EncodeBlockJob where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::EncodeBlockJob::Owned = T
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::EncodeBlockJob where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::EncodeBlockJob where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::EncodeBlockJob where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::EncodeBlockJob where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::EncodeBlockJob::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::EncodeBlockJob
+pub fn ryg_rans_rs_parallel::EncodeBlockJob::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::EncodeBlockJob
+pub type ryg_rans_rs_parallel::EncodeBlockJob::Output = T
+pub struct ryg_rans_rs_parallel::EncodedBlockResult
+pub ryg_rans_rs_parallel::EncodedBlockResult::backend: ryg_rans_rs_parallel::BackendId
+pub ryg_rans_rs_parallel::EncodedBlockResult::block: alloc::vec::Vec<u8>
+pub ryg_rans_rs_parallel::EncodedBlockResult::block_index: u64
+pub ryg_rans_rs_parallel::EncodedBlockResult::decoded_hash: [u8; 32]
+pub ryg_rans_rs_parallel::EncodedBlockResult::elapsed_ns: core::option::Option<u64>
+pub ryg_rans_rs_parallel::EncodedBlockResult::input_length: u32
+pub ryg_rans_rs_parallel::EncodedBlockResult::input_offset: u64
+pub ryg_rans_rs_parallel::EncodedBlockResult::model_hash: core::option::Option<[u8; 32]>
+pub ryg_rans_rs_parallel::EncodedBlockResult::payload_hash: [u8; 32]
+impl core::clone::Clone for ryg_rans_rs_parallel::EncodedBlockResult
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::clone(&self) -> ryg_rans_rs_parallel::EncodedBlockResult
+impl core::fmt::Debug for ryg_rans_rs_parallel::EncodedBlockResult
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl ryg_rans_rs_parallel::BufferSized for ryg_rans_rs_parallel::EncodedBlockResult
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::buffer_size(&self) -> u64
+impl ryg_rans_rs_parallel::HasBlockIndex for ryg_rans_rs_parallel::EncodedBlockResult
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::block_index(&self) -> u64
+impl core::marker::Freeze for ryg_rans_rs_parallel::EncodedBlockResult
+impl core::marker::Send for ryg_rans_rs_parallel::EncodedBlockResult
+impl core::marker::Sync for ryg_rans_rs_parallel::EncodedBlockResult
+impl core::marker::Unpin for ryg_rans_rs_parallel::EncodedBlockResult
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::EncodedBlockResult
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::EncodedBlockResult
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::EncodedBlockResult
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::EncodedBlockResult where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::EncodedBlockResult where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::EncodedBlockResult::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::EncodedBlockResult where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::EncodedBlockResult::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::EncodedBlockResult where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::EncodedBlockResult::Owned = T
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::EncodedBlockResult where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::EncodedBlockResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::EncodedBlockResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::EncodedBlockResult where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::EncodedBlockResult::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::EncodedBlockResult
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::EncodedBlockResult
+pub type ryg_rans_rs_parallel::EncodedBlockResult::Output = T
+pub struct ryg_rans_rs_parallel::ExecutedDecode
+pub ryg_rans_rs_parallel::ExecutedDecode::backend: ryg_rans_rs_parallel::BackendId
+pub ryg_rans_rs_parallel::ExecutedDecode::final_states: alloc::vec::Vec<u32>
+pub ryg_rans_rs_parallel::ExecutedDecode::output: alloc::vec::Vec<u8>
+pub ryg_rans_rs_parallel::ExecutedDecode::plan_backend: ryg_rans_rs_parallel::BackendId
+pub ryg_rans_rs_parallel::ExecutedDecode::words_consumed: usize
+impl ryg_rans_rs_parallel::ExecutedDecode
+pub fn ryg_rans_rs_parallel::ExecutedDecode::new(alloc::vec::Vec<u8>, ryg_rans_rs_parallel::BackendId) -> Self
+impl core::marker::Freeze for ryg_rans_rs_parallel::ExecutedDecode
+impl core::marker::Send for ryg_rans_rs_parallel::ExecutedDecode
+impl core::marker::Sync for ryg_rans_rs_parallel::ExecutedDecode
+impl core::marker::Unpin for ryg_rans_rs_parallel::ExecutedDecode
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ExecutedDecode
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ExecutedDecode
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ExecutedDecode
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ExecutedDecode where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ExecutedDecode::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ExecutedDecode where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ExecutedDecode::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ExecutedDecode::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ExecutedDecode where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ExecutedDecode::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ExecutedDecode::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::ExecutedDecode where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ExecutedDecode::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ExecutedDecode where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ExecutedDecode::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ExecutedDecode where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ExecutedDecode::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ExecutedDecode
+pub fn ryg_rans_rs_parallel::ExecutedDecode::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ExecutedDecode
+pub type ryg_rans_rs_parallel::ExecutedDecode::Output = T
+pub struct ryg_rans_rs_parallel::ExecutionMetadata
+pub ryg_rans_rs_parallel::ExecutionMetadata::block_count: usize
+pub ryg_rans_rs_parallel::ExecutionMetadata::cancelled: bool
+pub ryg_rans_rs_parallel::ExecutionMetadata::completed_blocks: usize
+pub ryg_rans_rs_parallel::ExecutionMetadata::declared_blocks: usize
+pub ryg_rans_rs_parallel::ExecutionMetadata::effective_workers: usize
+pub ryg_rans_rs_parallel::ExecutionMetadata::queue_capacity: usize
+pub ryg_rans_rs_parallel::ExecutionMetadata::requested_workers: usize
+impl core::clone::Clone for ryg_rans_rs_parallel::ExecutionMetadata
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::clone(&self) -> ryg_rans_rs_parallel::ExecutionMetadata
+impl core::fmt::Debug for ryg_rans_rs_parallel::ExecutionMetadata
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_parallel::ExecutionMetadata
+impl core::marker::Freeze for ryg_rans_rs_parallel::ExecutionMetadata
+impl core::marker::Send for ryg_rans_rs_parallel::ExecutionMetadata
+impl core::marker::Sync for ryg_rans_rs_parallel::ExecutionMetadata
+impl core::marker::Unpin for ryg_rans_rs_parallel::ExecutionMetadata
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ExecutionMetadata
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ExecutionMetadata
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ExecutionMetadata
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ExecutionMetadata where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ExecutionMetadata where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ExecutionMetadata::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ExecutionMetadata where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ExecutionMetadata::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::ExecutionMetadata where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::ExecutionMetadata::Owned = T
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::ExecutionMetadata where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ExecutionMetadata where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ExecutionMetadata where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::ExecutionMetadata where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::ExecutionMetadata::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ExecutionMetadata
+pub fn ryg_rans_rs_parallel::ExecutionMetadata::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ExecutionMetadata
+pub type ryg_rans_rs_parallel::ExecutionMetadata::Output = T
+pub struct ryg_rans_rs_parallel::ExecutorReport<R>
+pub ryg_rans_rs_parallel::ExecutorReport::cancelled: bool
+pub ryg_rans_rs_parallel::ExecutorReport::cancelled_tasks: usize
+pub ryg_rans_rs_parallel::ExecutorReport::completed_tasks: usize
+pub ryg_rans_rs_parallel::ExecutorReport::declared_tasks: usize
+pub ryg_rans_rs_parallel::ExecutorReport::effective_workers: usize
+pub ryg_rans_rs_parallel::ExecutorReport::results: alloc::vec::Vec<R>
+pub ryg_rans_rs_parallel::ExecutorReport::returned_results: usize
+pub ryg_rans_rs_parallel::ExecutorReport::started_tasks: usize
+pub ryg_rans_rs_parallel::ExecutorReport::submitted_tasks: usize
+pub ryg_rans_rs_parallel::ExecutorReport::worker_panics: usize
+impl<R> core::fmt::Debug for ryg_rans_rs_parallel::ExecutorReport<R>
+pub fn ryg_rans_rs_parallel::ExecutorReport<R>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<R> core::marker::Freeze for ryg_rans_rs_parallel::ExecutorReport<R>
+impl<R> core::marker::Send for ryg_rans_rs_parallel::ExecutorReport<R> where R: core::marker::Send
+impl<R> core::marker::Sync for ryg_rans_rs_parallel::ExecutorReport<R> where R: core::marker::Sync
+impl<R> core::marker::Unpin for ryg_rans_rs_parallel::ExecutorReport<R> where R: core::marker::Unpin
+impl<R> core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ExecutorReport<R>
+impl<R> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ExecutorReport<R> where R: core::panic::unwind_safe::RefUnwindSafe
+impl<R> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ExecutorReport<R> where R: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ExecutorReport<R> where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ExecutorReport<R>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ExecutorReport<R> where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ExecutorReport<R>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ExecutorReport<R>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ExecutorReport<R> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ExecutorReport<R>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ExecutorReport<R>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::ExecutorReport<R> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ExecutorReport<R>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ExecutorReport<R> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ExecutorReport<R>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ExecutorReport<R> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ExecutorReport<R>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ExecutorReport<R>
+pub fn ryg_rans_rs_parallel::ExecutorReport<R>::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ExecutorReport<R>
+pub type ryg_rans_rs_parallel::ExecutorReport<R>::Output = T
+pub struct ryg_rans_rs_parallel::FixedBlockPlan
+pub ryg_rans_rs_parallel::FixedBlockPlan::block_size: u64
+pub ryg_rans_rs_parallel::FixedBlockPlan::planner_version: u8
+pub ryg_rans_rs_parallel::FixedBlockPlan::ranges: alloc::vec::Vec<ryg_rans_rs_parallel::BlockRange>
+pub ryg_rans_rs_parallel::FixedBlockPlan::total_input_length: u64
+impl ryg_rans_rs_parallel::FixedBlockPlan
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::block_count(&self) -> usize
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::is_empty(&self) -> bool
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::new(u64, u64) -> Self
+impl core::clone::Clone for ryg_rans_rs_parallel::FixedBlockPlan
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::clone(&self) -> ryg_rans_rs_parallel::FixedBlockPlan
+impl core::fmt::Debug for ryg_rans_rs_parallel::FixedBlockPlan
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::FixedBlockPlan
+impl core::marker::Send for ryg_rans_rs_parallel::FixedBlockPlan
+impl core::marker::Sync for ryg_rans_rs_parallel::FixedBlockPlan
+impl core::marker::Unpin for ryg_rans_rs_parallel::FixedBlockPlan
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::FixedBlockPlan
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::FixedBlockPlan
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::FixedBlockPlan
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::FixedBlockPlan where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::FixedBlockPlan where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::FixedBlockPlan::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::FixedBlockPlan where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::FixedBlockPlan::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::FixedBlockPlan where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::FixedBlockPlan::Owned = T
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::FixedBlockPlan where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::FixedBlockPlan where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::FixedBlockPlan where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::FixedBlockPlan where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::FixedBlockPlan::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::FixedBlockPlan
+pub fn ryg_rans_rs_parallel::FixedBlockPlan::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::FixedBlockPlan
+pub type ryg_rans_rs_parallel::FixedBlockPlan::Output = T
+pub struct ryg_rans_rs_parallel::ModelCache<T>
+impl<T> ryg_rans_rs_parallel::ModelCache<T>
+pub fn ryg_rans_rs_parallel::ModelCache<T>::clear(&mut self)
+pub fn ryg_rans_rs_parallel::ModelCache<T>::get(&self, &ryg_rans_rs_parallel::ModelCacheKey) -> core::option::Option<&T>
+pub fn ryg_rans_rs_parallel::ModelCache<T>::insert(&mut self, ryg_rans_rs_parallel::ModelCacheKey, T, u64)
+pub fn ryg_rans_rs_parallel::ModelCache<T>::is_empty(&self) -> bool
+pub fn ryg_rans_rs_parallel::ModelCache<T>::len(&self) -> usize
+pub fn ryg_rans_rs_parallel::ModelCache<T>::new(usize, u64) -> Self
+impl<T: core::fmt::Debug> core::fmt::Debug for ryg_rans_rs_parallel::ModelCache<T>
+pub fn ryg_rans_rs_parallel::ModelCache<T>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T> core::marker::Freeze for ryg_rans_rs_parallel::ModelCache<T>
+impl<T> core::marker::Send for ryg_rans_rs_parallel::ModelCache<T> where T: core::marker::Send
+impl<T> core::marker::Sync for ryg_rans_rs_parallel::ModelCache<T> where T: core::marker::Sync
+impl<T> core::marker::Unpin for ryg_rans_rs_parallel::ModelCache<T> where T: core::marker::Unpin
+impl<T> core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ModelCache<T>
+impl<T> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ModelCache<T> where T: core::panic::unwind_safe::RefUnwindSafe
+impl<T> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ModelCache<T> where T: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ModelCache<T> where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ModelCache<T>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ModelCache<T> where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ModelCache<T>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ModelCache<T>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ModelCache<T> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ModelCache<T>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ModelCache<T>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::ModelCache<T> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ModelCache<T>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ModelCache<T> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ModelCache<T>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ModelCache<T> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ModelCache<T>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ModelCache<T>
+pub fn ryg_rans_rs_parallel::ModelCache<T>::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ModelCache<T>
+pub type ryg_rans_rs_parallel::ModelCache<T>::Output = T
+pub struct ryg_rans_rs_parallel::ModelCacheKey
+pub ryg_rans_rs_parallel::ModelCacheKey::codec_id: u16
+pub ryg_rans_rs_parallel::ModelCacheKey::model_sha256: [u8; 32]
+pub ryg_rans_rs_parallel::ModelCacheKey::scale_bits: u8
+impl core::clone::Clone for ryg_rans_rs_parallel::ModelCacheKey
+pub fn ryg_rans_rs_parallel::ModelCacheKey::clone(&self) -> ryg_rans_rs_parallel::ModelCacheKey
+impl core::cmp::Eq for ryg_rans_rs_parallel::ModelCacheKey
+impl core::cmp::PartialEq for ryg_rans_rs_parallel::ModelCacheKey
+pub fn ryg_rans_rs_parallel::ModelCacheKey::eq(&self, &ryg_rans_rs_parallel::ModelCacheKey) -> bool
+impl core::fmt::Debug for ryg_rans_rs_parallel::ModelCacheKey
+pub fn ryg_rans_rs_parallel::ModelCacheKey::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::hash::Hash for ryg_rans_rs_parallel::ModelCacheKey
+pub fn ryg_rans_rs_parallel::ModelCacheKey::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl core::marker::StructuralPartialEq for ryg_rans_rs_parallel::ModelCacheKey
+impl core::marker::Freeze for ryg_rans_rs_parallel::ModelCacheKey
+impl core::marker::Send for ryg_rans_rs_parallel::ModelCacheKey
+impl core::marker::Sync for ryg_rans_rs_parallel::ModelCacheKey
+impl core::marker::Unpin for ryg_rans_rs_parallel::ModelCacheKey
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ModelCacheKey
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ModelCacheKey
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ModelCacheKey
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ModelCacheKey where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ModelCacheKey::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ModelCacheKey where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ModelCacheKey::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ModelCacheKey::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ModelCacheKey where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ModelCacheKey::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ModelCacheKey::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::ModelCacheKey where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::ModelCacheKey::Owned = T
+pub fn ryg_rans_rs_parallel::ModelCacheKey::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::ModelCacheKey::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::ModelCacheKey where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ModelCacheKey::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ModelCacheKey where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ModelCacheKey::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ModelCacheKey where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ModelCacheKey::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::ModelCacheKey where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::ModelCacheKey::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ModelCacheKey
+pub fn ryg_rans_rs_parallel::ModelCacheKey::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ModelCacheKey
+pub type ryg_rans_rs_parallel::ModelCacheKey::Output = T
+pub struct ryg_rans_rs_parallel::OrderedDecodedBlocks
+pub ryg_rans_rs_parallel::OrderedDecodedBlocks::blocks: alloc::vec::Vec<ryg_rans_rs_parallel::DecodedBlockResult>
+pub ryg_rans_rs_parallel::OrderedDecodedBlocks::execution: ryg_rans_rs_parallel::ExecutionMetadata
+pub ryg_rans_rs_parallel::OrderedDecodedBlocks::stream_hash: [u8; 32]
+impl core::clone::Clone for ryg_rans_rs_parallel::OrderedDecodedBlocks
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::clone(&self) -> ryg_rans_rs_parallel::OrderedDecodedBlocks
+impl core::fmt::Debug for ryg_rans_rs_parallel::OrderedDecodedBlocks
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::OrderedDecodedBlocks
+impl core::marker::Send for ryg_rans_rs_parallel::OrderedDecodedBlocks
+impl core::marker::Sync for ryg_rans_rs_parallel::OrderedDecodedBlocks
+impl core::marker::Unpin for ryg_rans_rs_parallel::OrderedDecodedBlocks
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::OrderedDecodedBlocks
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::OrderedDecodedBlocks
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::OrderedDecodedBlocks
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::OrderedDecodedBlocks where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::OrderedDecodedBlocks where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::OrderedDecodedBlocks::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::OrderedDecodedBlocks where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::OrderedDecodedBlocks::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::OrderedDecodedBlocks where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::OrderedDecodedBlocks::Owned = T
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::OrderedDecodedBlocks where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::OrderedDecodedBlocks where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::OrderedDecodedBlocks where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::OrderedDecodedBlocks where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::OrderedDecodedBlocks::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::OrderedDecodedBlocks
+pub fn ryg_rans_rs_parallel::OrderedDecodedBlocks::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::OrderedDecodedBlocks
+pub type ryg_rans_rs_parallel::OrderedDecodedBlocks::Output = T
+pub struct ryg_rans_rs_parallel::OrderedEncodedBlocks
+pub ryg_rans_rs_parallel::OrderedEncodedBlocks::blocks: alloc::vec::Vec<ryg_rans_rs_parallel::EncodedBlockResult>
+pub ryg_rans_rs_parallel::OrderedEncodedBlocks::execution: ryg_rans_rs_parallel::ExecutionMetadata
+impl core::clone::Clone for ryg_rans_rs_parallel::OrderedEncodedBlocks
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::clone(&self) -> ryg_rans_rs_parallel::OrderedEncodedBlocks
+impl core::fmt::Debug for ryg_rans_rs_parallel::OrderedEncodedBlocks
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::OrderedEncodedBlocks
+impl core::marker::Send for ryg_rans_rs_parallel::OrderedEncodedBlocks
+impl core::marker::Sync for ryg_rans_rs_parallel::OrderedEncodedBlocks
+impl core::marker::Unpin for ryg_rans_rs_parallel::OrderedEncodedBlocks
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::OrderedEncodedBlocks
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::OrderedEncodedBlocks
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::OrderedEncodedBlocks
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::OrderedEncodedBlocks where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::OrderedEncodedBlocks where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::OrderedEncodedBlocks::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::OrderedEncodedBlocks where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::OrderedEncodedBlocks::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::OrderedEncodedBlocks where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::OrderedEncodedBlocks::Owned = T
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::OrderedEncodedBlocks where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::OrderedEncodedBlocks where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::OrderedEncodedBlocks where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::OrderedEncodedBlocks where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::OrderedEncodedBlocks::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::OrderedEncodedBlocks
+pub fn ryg_rans_rs_parallel::OrderedEncodedBlocks::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::OrderedEncodedBlocks
+pub type ryg_rans_rs_parallel::OrderedEncodedBlocks::Output = T
+pub struct ryg_rans_rs_parallel::ParallelConfig
+pub ryg_rans_rs_parallel::ParallelConfig::affinity: ryg_rans_rs_parallel::AffinityPolicy
+pub ryg_rans_rs_parallel::ParallelConfig::backend_policy: ryg_rans_rs_parallel::BackendPolicy
+pub ryg_rans_rs_parallel::ParallelConfig::disable_simd: bool
+pub ryg_rans_rs_parallel::ParallelConfig::integrity_policy: ryg_rans_rs_parallel::IntegrityPolicy
+pub ryg_rans_rs_parallel::ParallelConfig::max_buffered_input_bytes: u64
+pub ryg_rans_rs_parallel::ParallelConfig::max_buffered_output_bytes: u64
+pub ryg_rans_rs_parallel::ParallelConfig::max_in_flight_blocks: core::num::nonzero::NonZeroUsize
+pub ryg_rans_rs_parallel::ParallelConfig::parallel_threshold_bytes: u64
+pub ryg_rans_rs_parallel::ParallelConfig::smt_policy: ryg_rans_rs_parallel::SmtPolicy
+pub ryg_rans_rs_parallel::ParallelConfig::threads: ryg_rans_rs_parallel::ThreadCount
+pub ryg_rans_rs_parallel::ParallelConfig::worker_stack_size: core::option::Option<usize>
+impl ryg_rans_rs_parallel::ParallelConfig
+pub fn ryg_rans_rs_parallel::ParallelConfig::default_scale_bits(&self) -> u8
+impl core::clone::Clone for ryg_rans_rs_parallel::ParallelConfig
+pub fn ryg_rans_rs_parallel::ParallelConfig::clone(&self) -> ryg_rans_rs_parallel::ParallelConfig
+impl core::default::Default for ryg_rans_rs_parallel::ParallelConfig
+pub fn ryg_rans_rs_parallel::ParallelConfig::default() -> Self
+impl core::fmt::Debug for ryg_rans_rs_parallel::ParallelConfig
+pub fn ryg_rans_rs_parallel::ParallelConfig::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::ParallelConfig
+impl core::marker::Send for ryg_rans_rs_parallel::ParallelConfig
+impl core::marker::Sync for ryg_rans_rs_parallel::ParallelConfig
+impl core::marker::Unpin for ryg_rans_rs_parallel::ParallelConfig
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ParallelConfig
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ParallelConfig
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ParallelConfig
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ParallelConfig where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ParallelConfig::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ParallelConfig where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ParallelConfig::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ParallelConfig::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ParallelConfig where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ParallelConfig::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ParallelConfig::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::ParallelConfig where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::ParallelConfig::Owned = T
+pub fn ryg_rans_rs_parallel::ParallelConfig::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::ParallelConfig::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::ParallelConfig where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelConfig::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ParallelConfig where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelConfig::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ParallelConfig where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelConfig::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::ParallelConfig where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::ParallelConfig::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ParallelConfig
+pub fn ryg_rans_rs_parallel::ParallelConfig::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ParallelConfig
+pub type ryg_rans_rs_parallel::ParallelConfig::Output = T
+pub struct ryg_rans_rs_parallel::ParallelDecoder
+impl ryg_rans_rs_parallel::ParallelDecoder
+pub fn ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(impl core::iter::traits::collect::IntoIterator<Item = ryg_rans_rs_parallel::DecodeBlockJob>, &ryg_rans_rs_parallel::ParallelConfig) -> core::result::Result<ryg_rans_rs_parallel::OrderedDecodedBlocks, ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::ParallelDecoder::decode_blocks_with_cancel(impl core::iter::traits::collect::IntoIterator<Item = ryg_rans_rs_parallel::DecodeBlockJob>, &ryg_rans_rs_parallel::ParallelConfig, core::option::Option<alloc::sync::Arc<ryg_rans_rs_parallel::CancellationToken>>) -> core::result::Result<ryg_rans_rs_parallel::OrderedDecodedBlocks, ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::ParallelDecoder::decode_streaming(impl core::iter::traits::collect::IntoIterator<Item = ryg_rans_rs_parallel::DecodeBlockJob>, &ryg_rans_rs_parallel::ParallelConfig) -> core::result::Result<ryg_rans_rs_parallel::OrderedDecodedBlocks, ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::ParallelDecoder::decode_streaming_with_cancel(impl core::iter::traits::collect::IntoIterator<Item = ryg_rans_rs_parallel::DecodeBlockJob>, &ryg_rans_rs_parallel::ParallelConfig, core::option::Option<alloc::sync::Arc<ryg_rans_rs_parallel::CancellationToken>>) -> core::result::Result<ryg_rans_rs_parallel::OrderedDecodedBlocks, ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::ParallelDecoder::decode_with_sink<F>(impl core::iter::traits::collect::IntoIterator<Item = ryg_rans_rs_parallel::DecodeBlockJob>, &ryg_rans_rs_parallel::ParallelConfig, core::option::Option<alloc::sync::Arc<ryg_rans_rs_parallel::CancellationToken>>, F) -> core::result::Result<ryg_rans_rs_parallel::ExecutorReport<core::result::Result<ryg_rans_rs_parallel::DecodedBlockResult, ryg_rans_rs_parallel::BlockError>>, ryg_rans_rs_parallel::ParallelError> where F: core::ops::function::FnMut(ryg_rans_rs_parallel::DecodedBlockResult) + core::marker::Send + 'static
+impl core::marker::Freeze for ryg_rans_rs_parallel::ParallelDecoder
+impl core::marker::Send for ryg_rans_rs_parallel::ParallelDecoder
+impl core::marker::Sync for ryg_rans_rs_parallel::ParallelDecoder
+impl core::marker::Unpin for ryg_rans_rs_parallel::ParallelDecoder
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ParallelDecoder
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ParallelDecoder
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ParallelDecoder
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ParallelDecoder where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ParallelDecoder::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ParallelDecoder where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ParallelDecoder::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ParallelDecoder::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ParallelDecoder where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ParallelDecoder::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ParallelDecoder::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::ParallelDecoder where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelDecoder::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ParallelDecoder where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelDecoder::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ParallelDecoder where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelDecoder::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ParallelDecoder
+pub fn ryg_rans_rs_parallel::ParallelDecoder::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ParallelDecoder
+pub type ryg_rans_rs_parallel::ParallelDecoder::Output = T
+pub struct ryg_rans_rs_parallel::ParallelEncoder
+impl ryg_rans_rs_parallel::ParallelEncoder
+pub fn ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(impl core::iter::traits::collect::IntoIterator<Item = ryg_rans_rs_parallel::EncodeBlockJob>, &ryg_rans_rs_parallel::ParallelConfig) -> core::result::Result<ryg_rans_rs_parallel::OrderedEncodedBlocks, ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::ParallelEncoder::encode_blocks_with_cancel(impl core::iter::traits::collect::IntoIterator<Item = ryg_rans_rs_parallel::EncodeBlockJob>, &ryg_rans_rs_parallel::ParallelConfig, core::option::Option<alloc::sync::Arc<ryg_rans_rs_parallel::CancellationToken>>) -> core::result::Result<ryg_rans_rs_parallel::OrderedEncodedBlocks, ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::ParallelEncoder::encode_planned(&ryg_rans_rs_parallel::FixedBlockPlan, &[u8], &ryg_rans_rs_parallel::ParallelConfig) -> core::result::Result<ryg_rans_rs_parallel::OrderedEncodedBlocks, ryg_rans_rs_parallel::ParallelError>
+impl core::marker::Freeze for ryg_rans_rs_parallel::ParallelEncoder
+impl core::marker::Send for ryg_rans_rs_parallel::ParallelEncoder
+impl core::marker::Sync for ryg_rans_rs_parallel::ParallelEncoder
+impl core::marker::Unpin for ryg_rans_rs_parallel::ParallelEncoder
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ParallelEncoder
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ParallelEncoder
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ParallelEncoder
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ParallelEncoder where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ParallelEncoder::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ParallelEncoder where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ParallelEncoder::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ParallelEncoder::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ParallelEncoder where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ParallelEncoder::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ParallelEncoder::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::ParallelEncoder where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelEncoder::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ParallelEncoder where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelEncoder::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ParallelEncoder where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelEncoder::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ParallelEncoder
+pub fn ryg_rans_rs_parallel::ParallelEncoder::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ParallelEncoder
+pub type ryg_rans_rs_parallel::ParallelEncoder::Output = T
+pub struct ryg_rans_rs_parallel::ParallelMemoryEstimate
+pub ryg_rans_rs_parallel::ParallelMemoryEstimate::estimated_peak_bytes: u64
+pub ryg_rans_rs_parallel::ParallelMemoryEstimate::fixed_bytes: u64
+pub ryg_rans_rs_parallel::ParallelMemoryEstimate::in_flight_bytes: u64
+pub ryg_rans_rs_parallel::ParallelMemoryEstimate::per_worker_bytes: u64
+pub ryg_rans_rs_parallel::ParallelMemoryEstimate::reorder_bytes: u64
+impl core::clone::Clone for ryg_rans_rs_parallel::ParallelMemoryEstimate
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::clone(&self) -> ryg_rans_rs_parallel::ParallelMemoryEstimate
+impl core::fmt::Debug for ryg_rans_rs_parallel::ParallelMemoryEstimate
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::ParallelMemoryEstimate
+impl core::marker::Send for ryg_rans_rs_parallel::ParallelMemoryEstimate
+impl core::marker::Sync for ryg_rans_rs_parallel::ParallelMemoryEstimate
+impl core::marker::Unpin for ryg_rans_rs_parallel::ParallelMemoryEstimate
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ParallelMemoryEstimate
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ParallelMemoryEstimate
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ParallelMemoryEstimate
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ParallelMemoryEstimate where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ParallelMemoryEstimate where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ParallelMemoryEstimate::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ParallelMemoryEstimate where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ParallelMemoryEstimate::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::ParallelMemoryEstimate where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::ParallelMemoryEstimate::Owned = T
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::ParallelMemoryEstimate where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ParallelMemoryEstimate where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ParallelMemoryEstimate where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::ParallelMemoryEstimate where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::ParallelMemoryEstimate::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ParallelMemoryEstimate
+pub fn ryg_rans_rs_parallel::ParallelMemoryEstimate::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ParallelMemoryEstimate
+pub type ryg_rans_rs_parallel::ParallelMemoryEstimate::Output = T
+pub struct ryg_rans_rs_parallel::ParallelVerificationReport
+pub ryg_rans_rs_parallel::ParallelVerificationReport::block_results: alloc::vec::Vec<ryg_rans_rs_parallel::BlockVerificationResult>
+pub ryg_rans_rs_parallel::ParallelVerificationReport::blocks_failed: u64
+pub ryg_rans_rs_parallel::ParallelVerificationReport::blocks_verified: u64
+pub ryg_rans_rs_parallel::ParallelVerificationReport::decoded_hash_mismatch: u64
+pub ryg_rans_rs_parallel::ParallelVerificationReport::decoded_hash_not_computed: u64
+pub ryg_rans_rs_parallel::ParallelVerificationReport::decoded_hash_ok: u64
+pub ryg_rans_rs_parallel::ParallelVerificationReport::decoded_hash_unset: u64
+pub ryg_rans_rs_parallel::ParallelVerificationReport::error: core::option::Option<ryg_rans_rs_parallel::ParallelError>
+pub ryg_rans_rs_parallel::ParallelVerificationReport::output_matches: u64
+pub ryg_rans_rs_parallel::ParallelVerificationReport::payload_hash_ok: u64
+impl core::clone::Clone for ryg_rans_rs_parallel::ParallelVerificationReport
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::clone(&self) -> ryg_rans_rs_parallel::ParallelVerificationReport
+impl core::fmt::Debug for ryg_rans_rs_parallel::ParallelVerificationReport
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::ParallelVerificationReport
+impl core::marker::Send for ryg_rans_rs_parallel::ParallelVerificationReport
+impl core::marker::Sync for ryg_rans_rs_parallel::ParallelVerificationReport
+impl core::marker::Unpin for ryg_rans_rs_parallel::ParallelVerificationReport
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ParallelVerificationReport
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ParallelVerificationReport
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ParallelVerificationReport
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ParallelVerificationReport where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ParallelVerificationReport where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ParallelVerificationReport::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ParallelVerificationReport where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ParallelVerificationReport::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::ParallelVerificationReport where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::ParallelVerificationReport::Owned = T
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::ParallelVerificationReport where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ParallelVerificationReport where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ParallelVerificationReport where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::ParallelVerificationReport where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::ParallelVerificationReport::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ParallelVerificationReport
+pub fn ryg_rans_rs_parallel::ParallelVerificationReport::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ParallelVerificationReport
+pub type ryg_rans_rs_parallel::ParallelVerificationReport::Output = T
+pub struct ryg_rans_rs_parallel::ParallelVerifier
+impl ryg_rans_rs_parallel::ParallelVerifier
+pub fn ryg_rans_rs_parallel::ParallelVerifier::verify_blocks(impl core::iter::traits::collect::IntoIterator<Item = ryg_rans_rs_parallel::VerifyBlockJob>, &ryg_rans_rs_parallel::ParallelConfig) -> core::result::Result<ryg_rans_rs_parallel::ParallelVerificationReport, ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::ParallelVerifier::verify_blocks_with_cancel(impl core::iter::traits::collect::IntoIterator<Item = ryg_rans_rs_parallel::VerifyBlockJob>, &ryg_rans_rs_parallel::ParallelConfig, core::option::Option<alloc::sync::Arc<ryg_rans_rs_parallel::CancellationToken>>) -> core::result::Result<ryg_rans_rs_parallel::ParallelVerificationReport, ryg_rans_rs_parallel::ParallelError>
+impl core::marker::Freeze for ryg_rans_rs_parallel::ParallelVerifier
+impl core::marker::Send for ryg_rans_rs_parallel::ParallelVerifier
+impl core::marker::Sync for ryg_rans_rs_parallel::ParallelVerifier
+impl core::marker::Unpin for ryg_rans_rs_parallel::ParallelVerifier
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ParallelVerifier
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ParallelVerifier
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ParallelVerifier
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ParallelVerifier where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ParallelVerifier::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ParallelVerifier where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ParallelVerifier::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ParallelVerifier::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ParallelVerifier where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ParallelVerifier::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ParallelVerifier::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::ParallelVerifier where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelVerifier::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ParallelVerifier where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelVerifier::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ParallelVerifier where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ParallelVerifier::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ParallelVerifier
+pub fn ryg_rans_rs_parallel::ParallelVerifier::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ParallelVerifier
+pub type ryg_rans_rs_parallel::ParallelVerifier::Output = T
+pub struct ryg_rans_rs_parallel::ReorderBuffer<T>
+impl<T> ryg_rans_rs_parallel::ReorderBuffer<T> where T: ryg_rans_rs_parallel::HasBlockIndex + ryg_rans_rs_parallel::BufferSized
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::buffered_bytes(&self) -> u64
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::buffered_count(&self) -> usize
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::drain_ready(&mut self) -> alloc::vec::Vec<T>
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::insert(&mut self, T) -> core::result::Result<alloc::vec::Vec<T>, ryg_rans_rs_parallel::BlockError>
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::is_complete(&self) -> bool
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::new(usize, u64) -> Self
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::next_expected(&self) -> u64
+impl<T: core::fmt::Debug> core::fmt::Debug for ryg_rans_rs_parallel::ReorderBuffer<T>
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<T> core::marker::Freeze for ryg_rans_rs_parallel::ReorderBuffer<T>
+impl<T> core::marker::Send for ryg_rans_rs_parallel::ReorderBuffer<T> where T: core::marker::Send
+impl<T> core::marker::Sync for ryg_rans_rs_parallel::ReorderBuffer<T> where T: core::marker::Sync
+impl<T> core::marker::Unpin for ryg_rans_rs_parallel::ReorderBuffer<T>
+impl<T> core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ReorderBuffer<T>
+impl<T> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ReorderBuffer<T> where T: core::panic::unwind_safe::RefUnwindSafe
+impl<T> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ReorderBuffer<T> where T: core::panic::unwind_safe::RefUnwindSafe
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ReorderBuffer<T> where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ReorderBuffer<T> where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ReorderBuffer<T>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ReorderBuffer<T> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ReorderBuffer<T>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::ReorderBuffer<T> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ReorderBuffer<T> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ReorderBuffer<T> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ReorderBuffer<T>
+pub fn ryg_rans_rs_parallel::ReorderBuffer<T>::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ReorderBuffer<T>
+pub type ryg_rans_rs_parallel::ReorderBuffer<T>::Output = T
+pub struct ryg_rans_rs_parallel::ScratchPool
+impl ryg_rans_rs_parallel::ScratchPool
+pub fn ryg_rans_rs_parallel::ScratchPool::get(&mut self, usize) -> core::option::Option<&mut ryg_rans_rs_parallel::WorkerScratch>
+pub fn ryg_rans_rs_parallel::ScratchPool::is_empty(&self) -> bool
+pub fn ryg_rans_rs_parallel::ScratchPool::len(&self) -> usize
+pub fn ryg_rans_rs_parallel::ScratchPool::new(usize, usize, usize) -> Self
+pub fn ryg_rans_rs_parallel::ScratchPool::reset_all(&mut self)
+impl core::fmt::Debug for ryg_rans_rs_parallel::ScratchPool
+pub fn ryg_rans_rs_parallel::ScratchPool::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::ScratchPool
+impl core::marker::Send for ryg_rans_rs_parallel::ScratchPool
+impl core::marker::Sync for ryg_rans_rs_parallel::ScratchPool
+impl core::marker::Unpin for ryg_rans_rs_parallel::ScratchPool
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ScratchPool
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ScratchPool
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ScratchPool
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ScratchPool where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ScratchPool::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ScratchPool where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ScratchPool::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ScratchPool::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ScratchPool where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ScratchPool::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ScratchPool::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::ScratchPool where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ScratchPool::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ScratchPool where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ScratchPool::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ScratchPool where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ScratchPool::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ScratchPool
+pub fn ryg_rans_rs_parallel::ScratchPool::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ScratchPool
+pub type ryg_rans_rs_parallel::ScratchPool::Output = T
+pub struct ryg_rans_rs_parallel::ValidatedModelArtifacts
+pub ryg_rans_rs_parallel::ValidatedModelArtifacts::freqs: alloc::vec::Vec<u32>
+pub ryg_rans_rs_parallel::ValidatedModelArtifacts::uniform256: bool
+impl core::clone::Clone for ryg_rans_rs_parallel::ValidatedModelArtifacts
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::clone(&self) -> ryg_rans_rs_parallel::ValidatedModelArtifacts
+impl core::fmt::Debug for ryg_rans_rs_parallel::ValidatedModelArtifacts
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::ValidatedModelArtifacts
+impl core::marker::Send for ryg_rans_rs_parallel::ValidatedModelArtifacts
+impl core::marker::Sync for ryg_rans_rs_parallel::ValidatedModelArtifacts
+impl core::marker::Unpin for ryg_rans_rs_parallel::ValidatedModelArtifacts
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::ValidatedModelArtifacts
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::ValidatedModelArtifacts
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::ValidatedModelArtifacts
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::ValidatedModelArtifacts where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::ValidatedModelArtifacts where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::ValidatedModelArtifacts::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::ValidatedModelArtifacts where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::ValidatedModelArtifacts::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::ValidatedModelArtifacts where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::ValidatedModelArtifacts::Owned = T
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::ValidatedModelArtifacts where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::ValidatedModelArtifacts where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::ValidatedModelArtifacts where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::ValidatedModelArtifacts where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::ValidatedModelArtifacts::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::ValidatedModelArtifacts
+pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ValidatedModelArtifacts
+pub type ryg_rans_rs_parallel::ValidatedModelArtifacts::Output = T
+pub struct ryg_rans_rs_parallel::VerifiedBlockResult
+pub ryg_rans_rs_parallel::VerifiedBlockResult::backend: ryg_rans_rs_parallel::BackendId
+pub ryg_rans_rs_parallel::VerifiedBlockResult::block_index: u64
+pub ryg_rans_rs_parallel::VerifiedBlockResult::decoded_hash_ok: bool
+pub ryg_rans_rs_parallel::VerifiedBlockResult::output_matches: bool
+pub ryg_rans_rs_parallel::VerifiedBlockResult::payload_hash_ok: bool
+impl core::clone::Clone for ryg_rans_rs_parallel::VerifiedBlockResult
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::clone(&self) -> ryg_rans_rs_parallel::VerifiedBlockResult
+impl core::fmt::Debug for ryg_rans_rs_parallel::VerifiedBlockResult
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::VerifiedBlockResult
+impl core::marker::Send for ryg_rans_rs_parallel::VerifiedBlockResult
+impl core::marker::Sync for ryg_rans_rs_parallel::VerifiedBlockResult
+impl core::marker::Unpin for ryg_rans_rs_parallel::VerifiedBlockResult
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::VerifiedBlockResult
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::VerifiedBlockResult
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::VerifiedBlockResult
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::VerifiedBlockResult where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::VerifiedBlockResult where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::VerifiedBlockResult::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::VerifiedBlockResult where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::VerifiedBlockResult::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::VerifiedBlockResult where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::VerifiedBlockResult::Owned = T
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::VerifiedBlockResult where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::VerifiedBlockResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::VerifiedBlockResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::VerifiedBlockResult where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::VerifiedBlockResult::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::VerifiedBlockResult
+pub fn ryg_rans_rs_parallel::VerifiedBlockResult::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::VerifiedBlockResult
+pub type ryg_rans_rs_parallel::VerifiedBlockResult::Output = T
+pub struct ryg_rans_rs_parallel::VerifyBlockJob
+pub ryg_rans_rs_parallel::VerifyBlockJob::block_data: alloc::vec::Vec<u8>
+pub ryg_rans_rs_parallel::VerifyBlockJob::block_index: u64
+impl core::clone::Clone for ryg_rans_rs_parallel::VerifyBlockJob
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::clone(&self) -> ryg_rans_rs_parallel::VerifyBlockJob
+impl core::fmt::Debug for ryg_rans_rs_parallel::VerifyBlockJob
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::VerifyBlockJob
+impl core::marker::Send for ryg_rans_rs_parallel::VerifyBlockJob
+impl core::marker::Sync for ryg_rans_rs_parallel::VerifyBlockJob
+impl core::marker::Unpin for ryg_rans_rs_parallel::VerifyBlockJob
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::VerifyBlockJob
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::VerifyBlockJob
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::VerifyBlockJob
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::VerifyBlockJob where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::VerifyBlockJob where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::VerifyBlockJob::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::VerifyBlockJob where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::VerifyBlockJob::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_parallel::VerifyBlockJob where T: core::clone::Clone
+pub type ryg_rans_rs_parallel::VerifyBlockJob::Owned = T
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_parallel::VerifyBlockJob where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::VerifyBlockJob where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::VerifyBlockJob where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_parallel::VerifyBlockJob where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_parallel::VerifyBlockJob::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::VerifyBlockJob
+pub fn ryg_rans_rs_parallel::VerifyBlockJob::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::VerifyBlockJob
+pub type ryg_rans_rs_parallel::VerifyBlockJob::Output = T
+pub struct ryg_rans_rs_parallel::WorkerScratch
+pub ryg_rans_rs_parallel::WorkerScratch::input_buffer: alloc::vec::Vec<u8>
+pub ryg_rans_rs_parallel::WorkerScratch::model_buffer: alloc::vec::Vec<u8>
+pub ryg_rans_rs_parallel::WorkerScratch::output_buffer: alloc::vec::Vec<u8>
+impl ryg_rans_rs_parallel::WorkerScratch
+pub fn ryg_rans_rs_parallel::WorkerScratch::new(usize, usize) -> Self
+pub fn ryg_rans_rs_parallel::WorkerScratch::reset(&mut self)
+impl core::fmt::Debug for ryg_rans_rs_parallel::WorkerScratch
+pub fn ryg_rans_rs_parallel::WorkerScratch::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_parallel::WorkerScratch
+impl core::marker::Send for ryg_rans_rs_parallel::WorkerScratch
+impl core::marker::Sync for ryg_rans_rs_parallel::WorkerScratch
+impl core::marker::Unpin for ryg_rans_rs_parallel::WorkerScratch
+impl core::marker::UnsafeUnpin for ryg_rans_rs_parallel::WorkerScratch
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_parallel::WorkerScratch
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_parallel::WorkerScratch
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_parallel::WorkerScratch where U: core::convert::From<T>
+pub fn ryg_rans_rs_parallel::WorkerScratch::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_parallel::WorkerScratch where U: core::convert::Into<T>
+pub type ryg_rans_rs_parallel::WorkerScratch::Error = core::convert::Infallible
+pub fn ryg_rans_rs_parallel::WorkerScratch::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_parallel::WorkerScratch where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_parallel::WorkerScratch::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_parallel::WorkerScratch::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_parallel::WorkerScratch where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::WorkerScratch::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_parallel::WorkerScratch where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::WorkerScratch::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_parallel::WorkerScratch where T: ?core::marker::Sized
+pub fn ryg_rans_rs_parallel::WorkerScratch::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_parallel::WorkerScratch
+pub fn ryg_rans_rs_parallel::WorkerScratch::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::WorkerScratch
+pub type ryg_rans_rs_parallel::WorkerScratch::Output = T
+pub const ryg_rans_rs_parallel::BLOCK_HEADER_SIZE: usize
+pub const ryg_rans_rs_parallel::BLOCK_KIND_RANS: u8
+pub const ryg_rans_rs_parallel::BLOCK_KIND_RAW: u8
+pub const ryg_rans_rs_parallel::BLOCK_KIND_RLE: u8
+pub const ryg_rans_rs_parallel::BLOCK_TAG: &[u8; 4]
+pub const ryg_rans_rs_parallel::CODEC_WORD_INTERLEAVED16: u16
+pub const ryg_rans_rs_parallel::CODEC_WORD_INTERLEAVED8: u16
+pub const ryg_rans_rs_parallel::MODEL_ENCODING_RAW_FREQS: u8
+pub trait ryg_rans_rs_parallel::BufferSized
+pub fn ryg_rans_rs_parallel::BufferSized::buffer_size(&self) -> u64
+impl ryg_rans_rs_parallel::BufferSized for ryg_rans_rs_parallel::BlockVerificationResult
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::buffer_size(&self) -> u64
+impl ryg_rans_rs_parallel::BufferSized for ryg_rans_rs_parallel::DecodedBlockResult
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::buffer_size(&self) -> u64
+impl ryg_rans_rs_parallel::BufferSized for ryg_rans_rs_parallel::EncodedBlockResult
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::buffer_size(&self) -> u64
+impl ryg_rans_rs_parallel::BufferSized for u64
+pub fn u64::buffer_size(&self) -> u64
+pub trait ryg_rans_rs_parallel::ExecutorTask: core::marker::Send + 'static
+pub type ryg_rans_rs_parallel::ExecutorTask::Output: core::marker::Send + 'static
+pub fn ryg_rans_rs_parallel::ExecutorTask::block_index(&self) -> core::option::Option<u64>
+pub fn ryg_rans_rs_parallel::ExecutorTask::run(self, usize, &ryg_rans_rs_parallel::CancellationToken, &mut ryg_rans_rs_parallel::WorkerScratch) -> Self::Output
+pub trait ryg_rans_rs_parallel::HasBlockIndex
+pub fn ryg_rans_rs_parallel::HasBlockIndex::block_index(&self) -> u64
+impl ryg_rans_rs_parallel::HasBlockIndex for ryg_rans_rs_parallel::BlockVerificationResult
+pub fn ryg_rans_rs_parallel::BlockVerificationResult::block_index(&self) -> u64
+impl ryg_rans_rs_parallel::HasBlockIndex for ryg_rans_rs_parallel::DecodedBlockResult
+pub fn ryg_rans_rs_parallel::DecodedBlockResult::block_index(&self) -> u64
+impl ryg_rans_rs_parallel::HasBlockIndex for ryg_rans_rs_parallel::EncodedBlockResult
+pub fn ryg_rans_rs_parallel::EncodedBlockResult::block_index(&self) -> u64
+impl ryg_rans_rs_parallel::HasBlockIndex for u64
+pub fn u64::block_index(&self) -> u64
+pub fn ryg_rans_rs_parallel::apply_worker_affinity(&ryg_rans_rs_parallel::AffinityPolicy, usize, usize) -> core::result::Result<(), ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::build_header(u64, u8, u16, u8, u8, u8, u32, u32, u32, [u8; 32], [u8; 32]) -> alloc::vec::Vec<u8>
+pub fn ryg_rans_rs_parallel::build_model_bytes(&[u32]) -> alloc::vec::Vec<u8>
+pub fn ryg_rans_rs_parallel::cached_model_artifacts(u16, u8, &[u8], impl core::ops::function::FnOnce() -> core::option::Option<ryg_rans_rs_parallel::ValidatedModelArtifacts>) -> core::option::Option<ryg_rans_rs_parallel::ValidatedModelArtifacts>
+pub fn ryg_rans_rs_parallel::create_decode_plan(u16, u8, &[u8], ryg_rans_rs_parallel::BackendPolicy, bool, u8, u64) -> core::result::Result<ryg_rans_rs_parallel::DecodePlan, ryg_rans_rs_parallel::BlockError>
+pub fn ryg_rans_rs_parallel::create_decode_plan(u16, u8, &[u8], ryg_rans_rs_parallel::BackendPolicy, bool, u8, u64) -> core::result::Result<ryg_rans_rs_parallel::DecodePlan, ryg_rans_rs_parallel::BlockError>
+pub fn ryg_rans_rs_parallel::decode_single_block(&ryg_rans_rs_parallel::DecodeBlockJob, &ryg_rans_rs_parallel::ParallelConfig) -> core::result::Result<ryg_rans_rs_parallel::DecodedBlockResult, ryg_rans_rs_parallel::BlockError>
+pub fn ryg_rans_rs_parallel::effective_worker_count(&ryg_rans_rs_parallel::ParallelConfig, usize) -> core::result::Result<usize, ryg_rans_rs_parallel::ParallelError>
+pub fn ryg_rans_rs_parallel::encode_single_block(ryg_rans_rs_parallel::EncodeBlockJob) -> core::result::Result<ryg_rans_rs_parallel::EncodedBlockResult, ryg_rans_rs_parallel::BlockError>
+pub fn ryg_rans_rs_parallel::estimate_memory(&ryg_rans_rs_parallel::ParallelConfig, u64, usize) -> ryg_rans_rs_parallel::ParallelMemoryEstimate
+pub fn ryg_rans_rs_parallel::parse_block_header(&[u8], u64) -> core::result::Result<(ryg_rans_rs_parallel::BlockHeaderInfo, usize), alloc::string::String>
+pub fn ryg_rans_rs_parallel::plan_cache_key(u16, u8, &[u8]) -> ryg_rans_rs_parallel::ModelCacheKey
+pub fn ryg_rans_rs_parallel::plan_cache_key(u16, u8, &[u8]) -> ryg_rans_rs_parallel::ModelCacheKey
+pub fn ryg_rans_rs_parallel::run_tasks<T, R>(alloc::vec::Vec<T>, usize, usize, core::option::Option<usize>, core::option::Option<alloc::sync::Arc<ryg_rans_rs_parallel::CancellationToken>>) -> core::result::Result<ryg_rans_rs_parallel::ExecutorReport<R>, ryg_rans_rs_parallel::ParallelError> where T: ryg_rans_rs_parallel::ExecutorTask<Output = R> + core::marker::Send + 'static, R: core::marker::Send + 'static
+pub fn ryg_rans_rs_parallel::run_tasks_sequential<T, R>(alloc::vec::Vec<T>, core::option::Option<alloc::sync::Arc<ryg_rans_rs_parallel::CancellationToken>>) -> core::result::Result<ryg_rans_rs_parallel::ExecutorReport<R>, ryg_rans_rs_parallel::ParallelError> where T: ryg_rans_rs_parallel::ExecutorTask<Output = R> + core::marker::Send + 'static, R: core::marker::Send + 'static
+pub fn ryg_rans_rs_parallel::run_tasks_with_affinity<T, R>(alloc::vec::Vec<T>, usize, usize, core::option::Option<usize>, core::option::Option<alloc::sync::Arc<ryg_rans_rs_parallel::CancellationToken>>, ryg_rans_rs_parallel::AffinityPolicy) -> core::result::Result<ryg_rans_rs_parallel::ExecutorReport<R>, ryg_rans_rs_parallel::ParallelError> where T: ryg_rans_rs_parallel::ExecutorTask<Output = R> + core::marker::Send + 'static, R: core::marker::Send + 'static
+pub fn ryg_rans_rs_parallel::run_tasks_with_sink<T, R, S>(alloc::vec::Vec<T>, usize, usize, core::option::Option<usize>, core::option::Option<alloc::sync::Arc<ryg_rans_rs_parallel::CancellationToken>>, S) -> core::result::Result<ryg_rans_rs_parallel::ExecutorReport<R>, ryg_rans_rs_parallel::ParallelError> where T: ryg_rans_rs_parallel::ExecutorTask<Output = R> + core::marker::Send + 'static, R: core::marker::Send + 'static, S: core::ops::function::FnMut(R) + core::marker::Send + 'static
+pub fn ryg_rans_rs_parallel::sha256(&[u8]) -> [u8; 32]
+pub fn ryg_rans_rs_parallel::validate_affinity_policy(&ryg_rans_rs_parallel::AffinityPolicy) -> core::result::Result<(), ryg_rans_rs_parallel::ParallelError>

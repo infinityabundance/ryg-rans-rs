@@ -193,7 +193,7 @@ impl Default for ParallelConfig {
 ///   than blocks to process).
 ///
 /// Clamping is silent — it does not return an error.  The actual worker
-/// count is readable from `ParallelExecutionReport::actual_threads`.
+/// count is readable from the executor report's `effective_workers`.
 ///
 /// # Determinism guarantee
 ///
@@ -383,7 +383,7 @@ pub enum BackendId {
 impl BackendId {
     /// Return a human-readable label for this backend.
     ///
-    /// These labels are used in `ParallelExecutionReport::backend_counts`
+    /// These labels are used in execution telemetry (`backend_counts`).
     /// and for diagnostic logging.  They are kebab-case, stable across
     /// releases, and should not be parsed programmatically (use the
     /// enum itself for dispatch).

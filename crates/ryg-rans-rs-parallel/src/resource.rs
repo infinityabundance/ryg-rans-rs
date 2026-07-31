@@ -121,15 +121,17 @@ pub fn estimate_memory(
     let fixed_bytes: u64 = 1024 * 1024; // 1 MiB overhead
 
     // Per worker: input buffer + output buffer + model buffer + hash state
-    let per_worker_bytes = avg_block_size * 4 + 4096; // 4x block size + overhead
+    let per_worker_bytes = avg_block_size.saturating_mul(4).saturating_add(4096);
 
     // In-flight: blocks queued for processing
-    let in_flight_bytes = in_flight_blocks * avg_block_size * 2; // input + output
+    let in_flight_bytes = in_flight_blocks
+        .saturating_mul(avg_block_size)
+        .saturating_mul(2); // input + output
 
     // Reorder: completed blocks waiting for commit
     let reorder_bytes = config
         .max_buffered_output_bytes
-        .min(in_flight_blocks * avg_block_size);
+        .min(in_flight_blocks.saturating_mul(avg_block_size));
 
     let estimated_peak_bytes: u64 = fixed_bytes
         .saturating_add(per_worker_bytes.saturating_mul(worker_count as u64))
@@ -188,4 +190,48 @@ pub fn effective_worker_count(
     // Clamp to number of blocks (no more workers than blocks)
     let effective = requested.min(total_blocks.max(1));
     Ok(effective)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_estimate_memory_is_conservative_and_finite() {
+        // Phase L.13: `estimate_memory` is a documented extension API for
+        // downstream capacity planning (the engine itself does not consume
+        // it).  Its contract is: the estimate is conservative (>= the
+        // components), finite, and monotonic in block size and workers.
+        let cfg = ParallelConfig::default();
+        let small = estimate_memory(&cfg, 4096, 4);
+        let large = estimate_memory(&cfg, 65536, 16);
+
+        // The peak is the sum of the components.
+        assert_eq!(
+            small.estimated_peak_bytes,
+            small.fixed_bytes
+                + small.per_worker_bytes * 4
+                + small.in_flight_bytes
+                + small.reorder_bytes
+        );
+        // Conservative: the peak never under-reports a component.
+        assert!(small.estimated_peak_bytes >= small.in_flight_bytes);
+        assert!(small.estimated_peak_bytes >= small.reorder_bytes);
+        // Monotonic: bigger blocks / more workers must not shrink the peak.
+        assert!(large.estimated_peak_bytes >= small.estimated_peak_bytes);
+        assert!(large.per_worker_bytes > small.per_worker_bytes);
+        // No overflow: saturating arithmetic keeps everything finite.
+        let huge = estimate_memory(&cfg, u64::MAX / 2, usize::MAX);
+        assert_eq!(huge.estimated_peak_bytes, u64::MAX);
+    }
+
+    #[test]
+    fn test_effective_worker_count_clamps() {
+        let cfg = ParallelConfig {
+            threads: crate::config::ThreadCount::Exact(std::num::NonZeroUsize::new(32).unwrap()),
+            ..Default::default()
+        };
+        assert_eq!(effective_worker_count(&cfg, 4).unwrap(), 4);
+        assert_eq!(effective_worker_count(&cfg, 100).unwrap(), 32);
+    }
 }

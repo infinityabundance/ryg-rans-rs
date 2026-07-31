@@ -1,0 +1,731 @@
+pub mod ryg_rans_rs_simd
+pub mod ryg_rans_rs_simd::avx2
+pub struct ryg_rans_rs_simd::avx2::Avx2Context
+pub ryg_rans_rs_simd::avx2::Avx2Context::perm_table: ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+impl ryg_rans_rs_simd::avx2::Avx2Context
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::new() -> Self
+impl core::default::Default for ryg_rans_rs_simd::avx2::Avx2Context
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::default() -> Self
+impl core::fmt::Debug for ryg_rans_rs_simd::avx2::Avx2Context
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_simd::avx2::Avx2Context
+impl core::marker::Send for ryg_rans_rs_simd::avx2::Avx2Context
+impl core::marker::Sync for ryg_rans_rs_simd::avx2::Avx2Context
+impl core::marker::Unpin for ryg_rans_rs_simd::avx2::Avx2Context
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::avx2::Avx2Context
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::avx2::Avx2Context
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::avx2::Avx2Context
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::avx2::Avx2Context where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::avx2::Avx2Context where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::avx2::Avx2Context::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::avx2::Avx2Context where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::avx2::Avx2Context::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_simd::avx2::Avx2Context where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::avx2::Avx2Context where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::avx2::Avx2Context where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::avx2::Avx2Context
+pub fn ryg_rans_rs_simd::avx2::Avx2Context::from(T) -> T
+pub struct ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>
+pub ryg_rans_rs_simd::avx2::Avx2DecodeJob::block_index: u64
+pub ryg_rans_rs_simd::avx2::Avx2DecodeJob::compressed: &'a [u16]
+pub ryg_rans_rs_simd::avx2::Avx2DecodeJob::output: &'a mut [u8]
+pub ryg_rans_rs_simd::avx2::Avx2DecodeJob::table: &'a ryg_rans_rs_simd::packed_table::PackedWordTable
+impl<'a> core::marker::Freeze for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>
+impl<'a> !core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>
+pub fn ryg_rans_rs_simd::avx2::Avx2DecodeJob<'a>::from(T) -> T
+pub unsafe fn ryg_rans_rs_simd::avx2::decode_batch4_interleaved16_avx2(&mut [ryg_rans_rs_simd::avx2::Avx2DecodeJob<'_>], &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<alloc::vec::Vec<ryg_rans_rs_simd::packed_table::DecodeReport>, &'static str>
+pub unsafe fn ryg_rans_rs_simd::avx2::decode_interleaved16_avx2_2x8(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize, &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<(alloc::vec::Vec<u8>, ryg_rans_rs_simd::packed_table::DecodeReport), &'static str>
+pub unsafe fn ryg_rans_rs_simd::avx2::decode_interleaved16_avx2_2x8_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8], &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, &'static str>
+pub unsafe fn ryg_rans_rs_simd::avx2::decode_interleaved16_uniform256_avx2(&[u16], usize, &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<(alloc::vec::Vec<u8>, ryg_rans_rs_simd::packed_table::DecodeReport), &'static str>
+pub unsafe fn ryg_rans_rs_simd::avx2::decode_interleaved16_uniform256_avx2_into(&[u16], &mut [u8], &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, &'static str>
+pub unsafe fn ryg_rans_rs_simd::avx2::decode_interleaved8_avx2_hardware_gather(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize, &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<(alloc::vec::Vec<u8>, ryg_rans_rs_simd::packed_table::DecodeReport), &'static str>
+pub unsafe fn ryg_rans_rs_simd::avx2::decode_interleaved8_avx2_hardware_gather_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8], &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, &'static str>
+pub unsafe fn ryg_rans_rs_simd::avx2::decode_interleaved8_avx2_manual_gather(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize, &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<(alloc::vec::Vec<u8>, ryg_rans_rs_simd::packed_table::DecodeReport), &'static str>
+pub unsafe fn ryg_rans_rs_simd::avx2::decode_interleaved8_avx2_manual_gather_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8], &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, &'static str>
+pub mod ryg_rans_rs_simd::avx2_renorm
+pub struct ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+pub ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::observed_mask: u8
+pub ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::states: [u32; 8]
+pub ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::words_consumed: usize
+impl core::clone::Clone for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::clone(&self) -> ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+impl core::fmt::Debug for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+impl core::marker::Freeze for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+impl core::marker::Send for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+impl core::marker::Sync for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+impl core::marker::Unpin for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result where T: core::clone::Clone
+pub type ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::Owned = T
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result::from(T) -> T
+#[repr(align(32))] pub struct ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+pub ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::indices: [[i32; 8]; 256]
+impl core::clone::Clone for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::clone(&self) -> ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+impl core::fmt::Debug for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+impl core::marker::Send for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+impl core::marker::Sync for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+impl core::marker::Unpin for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations where T: core::clone::Clone
+pub type ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::Owned = T
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+pub fn ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations::from(T) -> T
+pub fn ryg_rans_rs_simd::avx2_renorm::build_avx2_renorm_table() -> ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations
+pub unsafe fn ryg_rans_rs_simd::avx2_renorm::renorm8_avx2(core::core_arch::x86::__m256i, &[u16], &ryg_rans_rs_simd::avx2_renorm::Avx2RenormPermutations) -> core::result::Result<ryg_rans_rs_simd::avx2_renorm::Avx2Renorm8Result, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::avx2_renorm::scalar_renorm_mask_8way(&[u32; 8]) -> u8
+pub mod ryg_rans_rs_simd::backends
+pub enum ryg_rans_rs_simd::backends::DecodeBackend
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx2Batch4On16
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx2HardwareGather8
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx2ManualGather8
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx2TwoBy8On16
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx2Uniform256TableFree16
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx512Interleaved16
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx512ManualGather16
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx512Vl2x8On16
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx512VlInterleaved8
+pub ryg_rans_rs_simd::backends::DecodeBackend::Avx512VlManualGather8
+pub ryg_rans_rs_simd::backends::DecodeBackend::Scalar16
+pub ryg_rans_rs_simd::backends::DecodeBackend::Scalar8
+pub ryg_rans_rs_simd::backends::DecodeBackend::Sse41Interleaved8
+impl ryg_rans_rs_simd::backends::DecodeBackend
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::label(&self) -> &'static str
+impl core::clone::Clone for ryg_rans_rs_simd::backends::DecodeBackend
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::clone(&self) -> ryg_rans_rs_simd::backends::DecodeBackend
+impl core::cmp::Eq for ryg_rans_rs_simd::backends::DecodeBackend
+impl core::cmp::PartialEq for ryg_rans_rs_simd::backends::DecodeBackend
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::eq(&self, &ryg_rans_rs_simd::backends::DecodeBackend) -> bool
+impl core::fmt::Debug for ryg_rans_rs_simd::backends::DecodeBackend
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::backends::DecodeBackend
+impl core::marker::StructuralPartialEq for ryg_rans_rs_simd::backends::DecodeBackend
+impl core::marker::Freeze for ryg_rans_rs_simd::backends::DecodeBackend
+impl core::marker::Send for ryg_rans_rs_simd::backends::DecodeBackend
+impl core::marker::Sync for ryg_rans_rs_simd::backends::DecodeBackend
+impl core::marker::Unpin for ryg_rans_rs_simd::backends::DecodeBackend
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::backends::DecodeBackend
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::backends::DecodeBackend
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::backends::DecodeBackend
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::backends::DecodeBackend where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::backends::DecodeBackend where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::backends::DecodeBackend::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::backends::DecodeBackend where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::backends::DecodeBackend::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::backends::DecodeBackend where T: core::clone::Clone
+pub type ryg_rans_rs_simd::backends::DecodeBackend::Owned = T
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::backends::DecodeBackend where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::backends::DecodeBackend where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::backends::DecodeBackend where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::backends::DecodeBackend where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::backends::DecodeBackend::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::backends::DecodeBackend
+pub fn ryg_rans_rs_simd::backends::DecodeBackend::from(T) -> T
+pub enum ryg_rans_rs_simd::backends::DecodeError
+pub ryg_rans_rs_simd::backends::DecodeError::InputTooShort
+pub ryg_rans_rs_simd::backends::DecodeError::InvalidTable
+pub ryg_rans_rs_simd::backends::DecodeError::OutputLengthMismatch
+pub ryg_rans_rs_simd::backends::DecodeError::StateInvariantViolation
+pub ryg_rans_rs_simd::backends::DecodeError::TrailingData
+pub ryg_rans_rs_simd::backends::DecodeError::UnsupportedBackend
+impl core::clone::Clone for ryg_rans_rs_simd::backends::DecodeError
+pub fn ryg_rans_rs_simd::backends::DecodeError::clone(&self) -> ryg_rans_rs_simd::backends::DecodeError
+impl core::cmp::Eq for ryg_rans_rs_simd::backends::DecodeError
+impl core::cmp::PartialEq for ryg_rans_rs_simd::backends::DecodeError
+pub fn ryg_rans_rs_simd::backends::DecodeError::eq(&self, &ryg_rans_rs_simd::backends::DecodeError) -> bool
+impl core::fmt::Debug for ryg_rans_rs_simd::backends::DecodeError
+pub fn ryg_rans_rs_simd::backends::DecodeError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::backends::DecodeError
+impl core::marker::StructuralPartialEq for ryg_rans_rs_simd::backends::DecodeError
+impl core::marker::Freeze for ryg_rans_rs_simd::backends::DecodeError
+impl core::marker::Send for ryg_rans_rs_simd::backends::DecodeError
+impl core::marker::Sync for ryg_rans_rs_simd::backends::DecodeError
+impl core::marker::Unpin for ryg_rans_rs_simd::backends::DecodeError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::backends::DecodeError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::backends::DecodeError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::backends::DecodeError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::backends::DecodeError where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::backends::DecodeError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::backends::DecodeError where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::backends::DecodeError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::backends::DecodeError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::backends::DecodeError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::backends::DecodeError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::backends::DecodeError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::backends::DecodeError where T: core::clone::Clone
+pub type ryg_rans_rs_simd::backends::DecodeError::Owned = T
+pub fn ryg_rans_rs_simd::backends::DecodeError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::backends::DecodeError::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::backends::DecodeError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::backends::DecodeError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::backends::DecodeError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::backends::DecodeError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::backends::DecodeError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::backends::DecodeError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::backends::DecodeError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::backends::DecodeError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::backends::DecodeError
+pub fn ryg_rans_rs_simd::backends::DecodeError::from(T) -> T
+pub struct ryg_rans_rs_simd::backends::DecodeResult
+pub ryg_rans_rs_simd::backends::DecodeResult::backend: ryg_rans_rs_simd::backends::DecodeBackend
+pub ryg_rans_rs_simd::backends::DecodeResult::output: alloc::vec::Vec<u8>
+pub ryg_rans_rs_simd::backends::DecodeResult::report: ryg_rans_rs_simd::packed_table::DecodeReport
+impl core::clone::Clone for ryg_rans_rs_simd::backends::DecodeResult
+pub fn ryg_rans_rs_simd::backends::DecodeResult::clone(&self) -> ryg_rans_rs_simd::backends::DecodeResult
+impl core::fmt::Debug for ryg_rans_rs_simd::backends::DecodeResult
+pub fn ryg_rans_rs_simd::backends::DecodeResult::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_simd::backends::DecodeResult
+impl core::marker::Send for ryg_rans_rs_simd::backends::DecodeResult
+impl core::marker::Sync for ryg_rans_rs_simd::backends::DecodeResult
+impl core::marker::Unpin for ryg_rans_rs_simd::backends::DecodeResult
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::backends::DecodeResult
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::backends::DecodeResult
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::backends::DecodeResult
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::backends::DecodeResult where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::backends::DecodeResult::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::backends::DecodeResult where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::backends::DecodeResult::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::backends::DecodeResult::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::backends::DecodeResult where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::backends::DecodeResult::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::backends::DecodeResult::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::backends::DecodeResult where T: core::clone::Clone
+pub type ryg_rans_rs_simd::backends::DecodeResult::Owned = T
+pub fn ryg_rans_rs_simd::backends::DecodeResult::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::backends::DecodeResult::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::backends::DecodeResult where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::backends::DecodeResult::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::backends::DecodeResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::backends::DecodeResult::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::backends::DecodeResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::backends::DecodeResult::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::backends::DecodeResult where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::backends::DecodeResult::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::backends::DecodeResult
+pub fn ryg_rans_rs_simd::backends::DecodeResult::from(T) -> T
+pub fn ryg_rans_rs_simd::backends::check_uniform256(&[u8], u8) -> bool
+pub fn ryg_rans_rs_simd::backends::decode_batch4_interleaved16_avx2_checked(&mut [ryg_rans_rs_simd::avx2::Avx2DecodeJob<'_>]) -> core::result::Result<alloc::vec::Vec<ryg_rans_rs_simd::backends::DecodeResult>, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved16(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved16_2x8(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved16_2x8_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8]) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved16_auto(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved16_avx2_2x8_checked(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved16_avx512(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved16_avx512_checked(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved16_avx512_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8]) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved16_avx512_manual_gather_checked(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved16_avx512vl_2x8_checked(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved16_manual_gather(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved16_manual_gather_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8]) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved16_scalar(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved16_uniform256_avx2_checked(&[u16], usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved8(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved8_auto(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved8_avx2_hardware_gather_checked(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved8_avx2_manual_gather_checked(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl_checked(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8]) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl_manual_gather_checked(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved8_manual_gather(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub unsafe fn ryg_rans_rs_simd::backends::decode_interleaved8_manual_gather_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8]) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved8_scalar(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub fn ryg_rans_rs_simd::backends::decode_interleaved8_sse41_checked(&[u16], &ryg_rans_rs_simd::RansWordTables<'_>, usize) -> core::result::Result<ryg_rans_rs_simd::backends::DecodeResult, ryg_rans_rs_simd::backends::DecodeError>
+pub mod ryg_rans_rs_simd::packed_table
+pub enum ryg_rans_rs_simd::packed_table::Encode16Error
+pub ryg_rans_rs_simd::packed_table::Encode16Error::BufferOverflow
+pub ryg_rans_rs_simd::packed_table::Encode16Error::InvalidScale
+pub ryg_rans_rs_simd::packed_table::Encode16Error::ZeroFrequency
+impl core::clone::Clone for ryg_rans_rs_simd::packed_table::Encode16Error
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::clone(&self) -> ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::cmp::Eq for ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::cmp::PartialEq for ryg_rans_rs_simd::packed_table::Encode16Error
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::eq(&self, &ryg_rans_rs_simd::packed_table::Encode16Error) -> bool
+impl core::fmt::Debug for ryg_rans_rs_simd::packed_table::Encode16Error
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::marker::StructuralPartialEq for ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::marker::Freeze for ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::marker::Send for ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::marker::Sync for ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::marker::Unpin for ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::packed_table::Encode16Error
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::packed_table::Encode16Error
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::packed_table::Encode16Error where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::packed_table::Encode16Error where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::packed_table::Encode16Error::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::packed_table::Encode16Error where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::packed_table::Encode16Error::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::packed_table::Encode16Error where T: core::clone::Clone
+pub type ryg_rans_rs_simd::packed_table::Encode16Error::Owned = T
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::packed_table::Encode16Error where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::packed_table::Encode16Error where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::packed_table::Encode16Error where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::packed_table::Encode16Error where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::packed_table::Encode16Error::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::packed_table::Encode16Error
+pub fn ryg_rans_rs_simd::packed_table::Encode16Error::from(T) -> T
+pub struct ryg_rans_rs_simd::packed_table::DecodeReport
+pub ryg_rans_rs_simd::packed_table::DecodeReport::final_states: [u32; 16]
+pub ryg_rans_rs_simd::packed_table::DecodeReport::words_consumed: usize
+impl core::clone::Clone for ryg_rans_rs_simd::packed_table::DecodeReport
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::clone(&self) -> ryg_rans_rs_simd::packed_table::DecodeReport
+impl core::fmt::Debug for ryg_rans_rs_simd::packed_table::DecodeReport
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::packed_table::DecodeReport
+impl core::marker::Freeze for ryg_rans_rs_simd::packed_table::DecodeReport
+impl core::marker::Send for ryg_rans_rs_simd::packed_table::DecodeReport
+impl core::marker::Sync for ryg_rans_rs_simd::packed_table::DecodeReport
+impl core::marker::Unpin for ryg_rans_rs_simd::packed_table::DecodeReport
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::packed_table::DecodeReport
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::packed_table::DecodeReport
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::packed_table::DecodeReport
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::packed_table::DecodeReport where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::packed_table::DecodeReport where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::packed_table::DecodeReport::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::packed_table::DecodeReport where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::packed_table::DecodeReport::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::packed_table::DecodeReport where T: core::clone::Clone
+pub type ryg_rans_rs_simd::packed_table::DecodeReport::Owned = T
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::packed_table::DecodeReport where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::packed_table::DecodeReport where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::packed_table::DecodeReport where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::packed_table::DecodeReport where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::packed_table::DecodeReport::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::packed_table::DecodeReport
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport::from(T) -> T
+pub struct ryg_rans_rs_simd::packed_table::DecodeReport8
+pub ryg_rans_rs_simd::packed_table::DecodeReport8::final_states: [u32; 8]
+pub ryg_rans_rs_simd::packed_table::DecodeReport8::words_consumed: usize
+impl core::clone::Clone for ryg_rans_rs_simd::packed_table::DecodeReport8
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::clone(&self) -> ryg_rans_rs_simd::packed_table::DecodeReport8
+impl core::fmt::Debug for ryg_rans_rs_simd::packed_table::DecodeReport8
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::packed_table::DecodeReport8
+impl core::marker::Freeze for ryg_rans_rs_simd::packed_table::DecodeReport8
+impl core::marker::Send for ryg_rans_rs_simd::packed_table::DecodeReport8
+impl core::marker::Sync for ryg_rans_rs_simd::packed_table::DecodeReport8
+impl core::marker::Unpin for ryg_rans_rs_simd::packed_table::DecodeReport8
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::packed_table::DecodeReport8
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::packed_table::DecodeReport8
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::packed_table::DecodeReport8
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::packed_table::DecodeReport8 where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::packed_table::DecodeReport8 where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::packed_table::DecodeReport8::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::packed_table::DecodeReport8 where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::packed_table::DecodeReport8::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::packed_table::DecodeReport8 where T: core::clone::Clone
+pub type ryg_rans_rs_simd::packed_table::DecodeReport8::Owned = T
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::packed_table::DecodeReport8 where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::packed_table::DecodeReport8 where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::packed_table::DecodeReport8 where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::packed_table::DecodeReport8 where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::packed_table::DecodeReport8::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::packed_table::DecodeReport8
+pub fn ryg_rans_rs_simd::packed_table::DecodeReport8::from(T) -> T
+pub struct ryg_rans_rs_simd::packed_table::EquivalenceError
+pub ryg_rans_rs_simd::packed_table::EquivalenceError::actual: ryg_rans_rs_simd::packed_table::PackedWordEntry
+pub ryg_rans_rs_simd::packed_table::EquivalenceError::expected: ryg_rans_rs_simd::packed_table::PackedWordEntry
+pub ryg_rans_rs_simd::packed_table::EquivalenceError::slot: usize
+impl core::clone::Clone for ryg_rans_rs_simd::packed_table::EquivalenceError
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::clone(&self) -> ryg_rans_rs_simd::packed_table::EquivalenceError
+impl core::fmt::Debug for ryg_rans_rs_simd::packed_table::EquivalenceError
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_simd::packed_table::EquivalenceError
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_simd::packed_table::EquivalenceError
+impl core::marker::Send for ryg_rans_rs_simd::packed_table::EquivalenceError
+impl core::marker::Sync for ryg_rans_rs_simd::packed_table::EquivalenceError
+impl core::marker::Unpin for ryg_rans_rs_simd::packed_table::EquivalenceError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::packed_table::EquivalenceError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::packed_table::EquivalenceError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::packed_table::EquivalenceError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::packed_table::EquivalenceError where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::packed_table::EquivalenceError where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::packed_table::EquivalenceError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::packed_table::EquivalenceError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::packed_table::EquivalenceError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::packed_table::EquivalenceError where T: core::clone::Clone
+pub type ryg_rans_rs_simd::packed_table::EquivalenceError::Owned = T
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_simd::packed_table::EquivalenceError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_simd::packed_table::EquivalenceError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::packed_table::EquivalenceError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::packed_table::EquivalenceError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::packed_table::EquivalenceError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::packed_table::EquivalenceError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::packed_table::EquivalenceError
+pub fn ryg_rans_rs_simd::packed_table::EquivalenceError::from(T) -> T
+pub struct ryg_rans_rs_simd::packed_table::PackedEntryError
+pub ryg_rans_rs_simd::packed_table::PackedEntryError::field: &'static str
+pub ryg_rans_rs_simd::packed_table::PackedEntryError::max: u32
+pub ryg_rans_rs_simd::packed_table::PackedEntryError::value: u32
+impl core::clone::Clone for ryg_rans_rs_simd::packed_table::PackedEntryError
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::clone(&self) -> ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::cmp::Eq for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::cmp::PartialEq for ryg_rans_rs_simd::packed_table::PackedEntryError
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::eq(&self, &ryg_rans_rs_simd::packed_table::PackedEntryError) -> bool
+impl core::fmt::Debug for ryg_rans_rs_simd::packed_table::PackedEntryError
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_simd::packed_table::PackedEntryError
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::marker::StructuralPartialEq for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::marker::Freeze for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::marker::Send for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::marker::Sync for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::marker::Unpin for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::packed_table::PackedEntryError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::packed_table::PackedEntryError where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::packed_table::PackedEntryError where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::packed_table::PackedEntryError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::packed_table::PackedEntryError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::packed_table::PackedEntryError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::packed_table::PackedEntryError where T: core::clone::Clone
+pub type ryg_rans_rs_simd::packed_table::PackedEntryError::Owned = T
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_simd::packed_table::PackedEntryError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_simd::packed_table::PackedEntryError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::packed_table::PackedEntryError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::packed_table::PackedEntryError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::packed_table::PackedEntryError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::packed_table::PackedEntryError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::packed_table::PackedEntryError
+pub fn ryg_rans_rs_simd::packed_table::PackedEntryError::from(T) -> T
+#[repr(transparent)] pub struct ryg_rans_rs_simd::packed_table::PackedWordEntry(pub u32)
+impl ryg_rans_rs_simd::packed_table::PackedWordEntry
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::bias(&self) -> u32
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::freq(&self) -> u32
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::from_slot(&ryg_rans_rs_simd::RansWordSlot, u8) -> Self
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::symbol(&self) -> u8
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::try_pack(u16, u16, u8) -> core::result::Result<Self, ryg_rans_rs_simd::packed_table::PackedEntryError>
+impl core::clone::Clone for ryg_rans_rs_simd::packed_table::PackedWordEntry
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::clone(&self) -> ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::cmp::Eq for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::cmp::PartialEq for ryg_rans_rs_simd::packed_table::PackedWordEntry
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::eq(&self, &ryg_rans_rs_simd::packed_table::PackedWordEntry) -> bool
+impl core::fmt::Debug for ryg_rans_rs_simd::packed_table::PackedWordEntry
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::marker::StructuralPartialEq for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::marker::Freeze for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::marker::Send for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::marker::Sync for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::marker::Unpin for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::packed_table::PackedWordEntry
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::packed_table::PackedWordEntry where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::packed_table::PackedWordEntry where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::packed_table::PackedWordEntry::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::packed_table::PackedWordEntry where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::packed_table::PackedWordEntry::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::packed_table::PackedWordEntry where T: core::clone::Clone
+pub type ryg_rans_rs_simd::packed_table::PackedWordEntry::Owned = T
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::packed_table::PackedWordEntry where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::packed_table::PackedWordEntry where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::packed_table::PackedWordEntry where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::packed_table::PackedWordEntry where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::packed_table::PackedWordEntry::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::packed_table::PackedWordEntry
+pub fn ryg_rans_rs_simd::packed_table::PackedWordEntry::from(T) -> T
+#[repr(align(64))] pub struct ryg_rans_rs_simd::packed_table::PackedWordTable
+impl ryg_rans_rs_simd::packed_table::PackedWordTable
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::as_ptr(&self) -> *const ryg_rans_rs_simd::packed_table::PackedWordEntry
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::as_slice(&self) -> &[ryg_rans_rs_simd::packed_table::PackedWordEntry]
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::from_freqs(&[u32], &[u32], u32) -> core::result::Result<Self, ryg_rans_rs_core::ModelError>
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::get(&self, usize) -> &ryg_rans_rs_simd::packed_table::PackedWordEntry
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::len(&self) -> usize
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::verify_equivalence(&self, &[ryg_rans_rs_simd::RansWordSlot], &[u8]) -> core::result::Result<(), ryg_rans_rs_simd::packed_table::EquivalenceError>
+impl core::clone::Clone for ryg_rans_rs_simd::packed_table::PackedWordTable
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::clone(&self) -> ryg_rans_rs_simd::packed_table::PackedWordTable
+impl core::fmt::Debug for ryg_rans_rs_simd::packed_table::PackedWordTable
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_simd::packed_table::PackedWordTable
+impl core::marker::Send for ryg_rans_rs_simd::packed_table::PackedWordTable
+impl core::marker::Sync for ryg_rans_rs_simd::packed_table::PackedWordTable
+impl core::marker::Unpin for ryg_rans_rs_simd::packed_table::PackedWordTable
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::packed_table::PackedWordTable
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::packed_table::PackedWordTable
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::packed_table::PackedWordTable
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::packed_table::PackedWordTable where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::packed_table::PackedWordTable where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::packed_table::PackedWordTable::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::packed_table::PackedWordTable where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::packed_table::PackedWordTable::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::packed_table::PackedWordTable where T: core::clone::Clone
+pub type ryg_rans_rs_simd::packed_table::PackedWordTable::Owned = T
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::packed_table::PackedWordTable where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::packed_table::PackedWordTable where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::packed_table::PackedWordTable where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::packed_table::PackedWordTable where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::packed_table::PackedWordTable::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::packed_table::PackedWordTable
+pub fn ryg_rans_rs_simd::packed_table::PackedWordTable::from(T) -> T
+pub fn ryg_rans_rs_simd::packed_table::decode_8way_packed_scalar(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<alloc::vec::Vec<u8>, &'static str>
+pub fn ryg_rans_rs_simd::packed_table::decode_8way_packed_scalar_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8]) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport8, &'static str>
+pub fn ryg_rans_rs_simd::packed_table::decode_8way_packed_scalar_with_report(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<(alloc::vec::Vec<u8>, ryg_rans_rs_simd::packed_table::DecodeReport8), &'static str>
+pub fn ryg_rans_rs_simd::packed_table::decode_interleaved16_scalar(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, usize) -> core::result::Result<(alloc::vec::Vec<u8>, ryg_rans_rs_simd::packed_table::DecodeReport), &'static str>
+pub fn ryg_rans_rs_simd::packed_table::decode_interleaved16_scalar_into(&[u16], &ryg_rans_rs_simd::packed_table::PackedWordTable, &mut [u8]) -> core::result::Result<ryg_rans_rs_simd::packed_table::DecodeReport, &'static str>
+pub fn ryg_rans_rs_simd::packed_table::encode_interleaved16(&[u8], &[u32], &[u32], u32) -> core::result::Result<alloc::vec::Vec<u16>, ryg_rans_rs_simd::packed_table::Encode16Error>
+pub struct ryg_rans_rs_simd::RansSimdDec(pub core::core_arch::x86::__m128i)
+impl core::clone::Clone for ryg_rans_rs_simd::RansSimdDec
+pub fn ryg_rans_rs_simd::RansSimdDec::clone(&self) -> ryg_rans_rs_simd::RansSimdDec
+impl core::fmt::Debug for ryg_rans_rs_simd::RansSimdDec
+pub fn ryg_rans_rs_simd::RansSimdDec::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::RansSimdDec
+impl core::marker::Freeze for ryg_rans_rs_simd::RansSimdDec
+impl core::marker::Send for ryg_rans_rs_simd::RansSimdDec
+impl core::marker::Sync for ryg_rans_rs_simd::RansSimdDec
+impl core::marker::Unpin for ryg_rans_rs_simd::RansSimdDec
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::RansSimdDec
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::RansSimdDec
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::RansSimdDec
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::RansSimdDec where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::RansSimdDec::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::RansSimdDec where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::RansSimdDec::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::RansSimdDec::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::RansSimdDec where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::RansSimdDec::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::RansSimdDec::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::RansSimdDec where T: core::clone::Clone
+pub type ryg_rans_rs_simd::RansSimdDec::Owned = T
+pub fn ryg_rans_rs_simd::RansSimdDec::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::RansSimdDec::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::RansSimdDec where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::RansSimdDec::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::RansSimdDec where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::RansSimdDec::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::RansSimdDec where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::RansSimdDec::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::RansSimdDec where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::RansSimdDec::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::RansSimdDec
+pub fn ryg_rans_rs_simd::RansSimdDec::from(T) -> T
+pub struct ryg_rans_rs_simd::RansWordSlot
+pub ryg_rans_rs_simd::RansWordSlot::bias: u16
+pub ryg_rans_rs_simd::RansWordSlot::freq: u16
+impl ryg_rans_rs_simd::RansWordSlot
+pub fn ryg_rans_rs_simd::RansWordSlot::pack(&self) -> u32
+impl core::clone::Clone for ryg_rans_rs_simd::RansWordSlot
+pub fn ryg_rans_rs_simd::RansWordSlot::clone(&self) -> ryg_rans_rs_simd::RansWordSlot
+impl core::fmt::Debug for ryg_rans_rs_simd::RansWordSlot
+pub fn ryg_rans_rs_simd::RansWordSlot::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_simd::RansWordSlot
+impl core::marker::Freeze for ryg_rans_rs_simd::RansWordSlot
+impl core::marker::Send for ryg_rans_rs_simd::RansWordSlot
+impl core::marker::Sync for ryg_rans_rs_simd::RansWordSlot
+impl core::marker::Unpin for ryg_rans_rs_simd::RansWordSlot
+impl core::marker::UnsafeUnpin for ryg_rans_rs_simd::RansWordSlot
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::RansWordSlot
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::RansWordSlot
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::RansWordSlot where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::RansWordSlot::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::RansWordSlot where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::RansWordSlot::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::RansWordSlot::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::RansWordSlot where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::RansWordSlot::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::RansWordSlot::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::RansWordSlot where T: core::clone::Clone
+pub type ryg_rans_rs_simd::RansWordSlot::Owned = T
+pub fn ryg_rans_rs_simd::RansWordSlot::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::RansWordSlot::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::RansWordSlot where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::RansWordSlot::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::RansWordSlot where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::RansWordSlot::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::RansWordSlot where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::RansWordSlot::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::RansWordSlot where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::RansWordSlot::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::RansWordSlot
+pub fn ryg_rans_rs_simd::RansWordSlot::from(T) -> T
+pub struct ryg_rans_rs_simd::RansWordTables<'a>
+pub ryg_rans_rs_simd::RansWordTables::slot2sym: &'a [u8]
+pub ryg_rans_rs_simd::RansWordTables::slots: &'a [ryg_rans_rs_simd::RansWordSlot]
+impl<'a> core::clone::Clone for ryg_rans_rs_simd::RansWordTables<'a>
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::clone(&self) -> ryg_rans_rs_simd::RansWordTables<'a>
+impl<'a> core::fmt::Debug for ryg_rans_rs_simd::RansWordTables<'a>
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a> core::marker::Freeze for ryg_rans_rs_simd::RansWordTables<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_simd::RansWordTables<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_simd::RansWordTables<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_simd::RansWordTables<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_simd::RansWordTables<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_simd::RansWordTables<'a>
+impl<'a> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_simd::RansWordTables<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_simd::RansWordTables<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_simd::RansWordTables<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_simd::RansWordTables<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_simd::RansWordTables<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_simd::RansWordTables<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_simd::RansWordTables<'a> where T: core::clone::Clone
+pub type ryg_rans_rs_simd::RansWordTables<'a>::Owned = T
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_simd::RansWordTables<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_simd::RansWordTables<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_simd::RansWordTables<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_simd::RansWordTables<'a> where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_simd::RansWordTables<'a>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_simd::RansWordTables<'a>
+pub fn ryg_rans_rs_simd::RansWordTables<'a>::from(T) -> T
+pub const ryg_rans_rs_simd::RANS_WORD_L: u32
+pub const ryg_rans_rs_simd::RANS_WORD_M: usize
+pub const ryg_rans_rs_simd::RANS_WORD_SCALE_BITS: u32
+pub fn ryg_rans_rs_simd::build_word_tables(&[u32], &[u32], u32) -> (alloc::vec::Vec<ryg_rans_rs_simd::RansWordSlot>, alloc::vec::Vec<u8>)
+pub fn ryg_rans_rs_simd::decode_8way_scalar(&[u16], &ryg_rans_rs_simd::RansWordTables<'_>, usize) -> core::result::Result<alloc::vec::Vec<u8>, &'static str>
+pub fn ryg_rans_rs_simd::decode_simd_8way(&[u16], &ryg_rans_rs_simd::RansWordTables<'_>, usize) -> core::result::Result<alloc::vec::Vec<u8>, &'static str>
+pub unsafe fn ryg_rans_rs_simd::decode_simd_8way_unchecked(&[u16], &ryg_rans_rs_simd::RansWordTables<'_>, usize) -> core::result::Result<alloc::vec::Vec<u8>, &'static str>
+pub unsafe fn ryg_rans_rs_simd::decode_simd_8way_unchecked_with_report(&[u16], &ryg_rans_rs_simd::RansWordTables<'_>, usize) -> core::result::Result<(alloc::vec::Vec<u8>, usize, [u32; 8]), &'static str>
+pub fn ryg_rans_rs_simd::encode_8way_for_test(&[u8], &[u32], &[u32]) -> alloc::vec::Vec<u16>
+pub unsafe fn ryg_rans_rs_simd::rans_simd_dec_init(&mut &[u16]) -> core::option::Option<ryg_rans_rs_simd::RansSimdDec>
+pub unsafe fn ryg_rans_rs_simd::rans_simd_dec_renorm_unchecked(&mut ryg_rans_rs_simd::RansSimdDec, &mut &[u16]) -> core::option::Option<()>
+pub unsafe fn ryg_rans_rs_simd::rans_simd_dec_sym_unchecked(&mut ryg_rans_rs_simd::RansSimdDec, &ryg_rans_rs_simd::RansWordTables<'_>) -> u32
+pub fn ryg_rans_rs_simd::rans_word_tables_init_symbol(&mut [ryg_rans_rs_simd::RansWordSlot], &mut [u8], u8, usize, usize)

@@ -1,0 +1,899 @@
+pub mod ryg_rans_rs_core
+pub mod ryg_rans_rs_core::malformed
+pub enum ryg_rans_rs_core::malformed::ValidationError
+pub ryg_rans_rs_core::malformed::ValidationError::CumulativeOverflow
+pub ryg_rans_rs_core::malformed::ValidationError::ExcessiveRenormalization
+pub ryg_rans_rs_core::malformed::ValidationError::InvalidScaleBits
+pub ryg_rans_rs_core::malformed::ValidationError::RangeOverflow
+pub ryg_rans_rs_core::malformed::ValidationError::TrailingData
+pub ryg_rans_rs_core::malformed::ValidationError::TruncatedStream
+pub ryg_rans_rs_core::malformed::ValidationError::ZeroFrequency
+impl core::clone::Clone for ryg_rans_rs_core::malformed::ValidationError
+pub fn ryg_rans_rs_core::malformed::ValidationError::clone(&self) -> ryg_rans_rs_core::malformed::ValidationError
+impl core::cmp::Eq for ryg_rans_rs_core::malformed::ValidationError
+impl core::cmp::PartialEq for ryg_rans_rs_core::malformed::ValidationError
+pub fn ryg_rans_rs_core::malformed::ValidationError::eq(&self, &ryg_rans_rs_core::malformed::ValidationError) -> bool
+impl core::fmt::Debug for ryg_rans_rs_core::malformed::ValidationError
+pub fn ryg_rans_rs_core::malformed::ValidationError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_core::malformed::ValidationError
+pub fn ryg_rans_rs_core::malformed::ValidationError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_core::malformed::ValidationError
+impl core::marker::StructuralPartialEq for ryg_rans_rs_core::malformed::ValidationError
+impl core::marker::Freeze for ryg_rans_rs_core::malformed::ValidationError
+impl core::marker::Send for ryg_rans_rs_core::malformed::ValidationError
+impl core::marker::Sync for ryg_rans_rs_core::malformed::ValidationError
+impl core::marker::Unpin for ryg_rans_rs_core::malformed::ValidationError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::malformed::ValidationError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::malformed::ValidationError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::malformed::ValidationError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::malformed::ValidationError where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::malformed::ValidationError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::malformed::ValidationError where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::malformed::ValidationError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::malformed::ValidationError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::malformed::ValidationError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::malformed::ValidationError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::malformed::ValidationError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::malformed::ValidationError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::malformed::ValidationError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::malformed::ValidationError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::malformed::ValidationError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::malformed::ValidationError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::malformed::ValidationError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::malformed::ValidationError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::malformed::ValidationError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::malformed::ValidationError
+pub fn ryg_rans_rs_core::malformed::ValidationError::from(T) -> T
+pub struct ryg_rans_rs_core::malformed::RenormGuard
+impl ryg_rans_rs_core::malformed::RenormGuard
+pub fn ryg_rans_rs_core::malformed::RenormGuard::check(&mut self) -> core::result::Result<(), ryg_rans_rs_core::malformed::ValidationError>
+pub fn ryg_rans_rs_core::malformed::RenormGuard::new_byte() -> Self
+pub fn ryg_rans_rs_core::malformed::RenormGuard::new_r64() -> Self
+pub fn ryg_rans_rs_core::malformed::RenormGuard::new_word() -> Self
+pub fn ryg_rans_rs_core::malformed::RenormGuard::reset(&mut self)
+impl core::marker::Freeze for ryg_rans_rs_core::malformed::RenormGuard
+impl core::marker::Send for ryg_rans_rs_core::malformed::RenormGuard
+impl core::marker::Sync for ryg_rans_rs_core::malformed::RenormGuard
+impl core::marker::Unpin for ryg_rans_rs_core::malformed::RenormGuard
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::malformed::RenormGuard
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::malformed::RenormGuard
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::malformed::RenormGuard
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::malformed::RenormGuard where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::malformed::RenormGuard::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::malformed::RenormGuard where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::malformed::RenormGuard::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::malformed::RenormGuard::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::malformed::RenormGuard where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::malformed::RenormGuard::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::malformed::RenormGuard::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::malformed::RenormGuard where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::malformed::RenormGuard::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::malformed::RenormGuard where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::malformed::RenormGuard::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::malformed::RenormGuard where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::malformed::RenormGuard::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_core::malformed::RenormGuard
+pub fn ryg_rans_rs_core::malformed::RenormGuard::from(T) -> T
+pub fn ryg_rans_rs_core::malformed::has_dominant_symbol(&[u32], u32) -> bool
+pub fn ryg_rans_rs_core::malformed::has_freq_one(&[u32]) -> bool
+pub fn ryg_rans_rs_core::malformed::is_single_symbol(&[u32]) -> bool
+pub fn ryg_rans_rs_core::malformed::validate_byte_compressed(&[u8]) -> core::result::Result<(), ryg_rans_rs_core::malformed::ValidationError>
+pub fn ryg_rans_rs_core::malformed::validate_byte_scale_bits(u32) -> core::result::Result<(), ryg_rans_rs_core::malformed::ValidationError>
+pub fn ryg_rans_rs_core::malformed::validate_freq_model(&[u32], &[u32], u32) -> core::result::Result<(), ryg_rans_rs_core::malformed::ValidationError>
+pub fn ryg_rans_rs_core::malformed::validate_r64_compressed(&[u8]) -> core::result::Result<(), ryg_rans_rs_core::malformed::ValidationError>
+pub fn ryg_rans_rs_core::malformed::validate_r64_scale_bits(u32) -> core::result::Result<(), ryg_rans_rs_core::malformed::ValidationError>
+pub fn ryg_rans_rs_core::malformed::validate_word_compressed(&[u16]) -> core::result::Result<(), ryg_rans_rs_core::malformed::ValidationError>
+pub fn ryg_rans_rs_core::malformed::validation_to_decode_error(ryg_rans_rs_core::malformed::ValidationError) -> ryg_rans_rs_core::DecodeError
+pub enum ryg_rans_rs_core::DecodeError
+pub ryg_rans_rs_core::DecodeError::InputTooShort
+impl core::clone::Clone for ryg_rans_rs_core::DecodeError
+pub fn ryg_rans_rs_core::DecodeError::clone(&self) -> ryg_rans_rs_core::DecodeError
+impl core::cmp::Eq for ryg_rans_rs_core::DecodeError
+impl core::cmp::PartialEq for ryg_rans_rs_core::DecodeError
+pub fn ryg_rans_rs_core::DecodeError::eq(&self, &ryg_rans_rs_core::DecodeError) -> bool
+impl core::fmt::Debug for ryg_rans_rs_core::DecodeError
+pub fn ryg_rans_rs_core::DecodeError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_core::DecodeError
+pub fn ryg_rans_rs_core::DecodeError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_core::DecodeError
+impl core::marker::StructuralPartialEq for ryg_rans_rs_core::DecodeError
+impl core::marker::Freeze for ryg_rans_rs_core::DecodeError
+impl core::marker::Send for ryg_rans_rs_core::DecodeError
+impl core::marker::Sync for ryg_rans_rs_core::DecodeError
+impl core::marker::Unpin for ryg_rans_rs_core::DecodeError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::DecodeError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::DecodeError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::DecodeError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::DecodeError where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::DecodeError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::DecodeError where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::DecodeError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::DecodeError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::DecodeError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::DecodeError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::DecodeError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::DecodeError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::DecodeError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::DecodeError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::DecodeError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::DecodeError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::DecodeError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::DecodeError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::DecodeError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::DecodeError
+pub fn ryg_rans_rs_core::DecodeError::from(T) -> T
+pub enum ryg_rans_rs_core::EncodeError
+pub ryg_rans_rs_core::EncodeError::OutputTooSmall
+impl core::clone::Clone for ryg_rans_rs_core::EncodeError
+pub fn ryg_rans_rs_core::EncodeError::clone(&self) -> ryg_rans_rs_core::EncodeError
+impl core::cmp::Eq for ryg_rans_rs_core::EncodeError
+impl core::cmp::PartialEq for ryg_rans_rs_core::EncodeError
+pub fn ryg_rans_rs_core::EncodeError::eq(&self, &ryg_rans_rs_core::EncodeError) -> bool
+impl core::fmt::Debug for ryg_rans_rs_core::EncodeError
+pub fn ryg_rans_rs_core::EncodeError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_core::EncodeError
+pub fn ryg_rans_rs_core::EncodeError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_core::EncodeError
+impl core::marker::StructuralPartialEq for ryg_rans_rs_core::EncodeError
+impl core::marker::Freeze for ryg_rans_rs_core::EncodeError
+impl core::marker::Send for ryg_rans_rs_core::EncodeError
+impl core::marker::Sync for ryg_rans_rs_core::EncodeError
+impl core::marker::Unpin for ryg_rans_rs_core::EncodeError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::EncodeError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::EncodeError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::EncodeError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::EncodeError where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::EncodeError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::EncodeError where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::EncodeError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::EncodeError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::EncodeError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::EncodeError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::EncodeError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::EncodeError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::EncodeError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::EncodeError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::EncodeError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::EncodeError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::EncodeError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::EncodeError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::EncodeError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::EncodeError
+pub fn ryg_rans_rs_core::EncodeError::from(T) -> T
+pub enum ryg_rans_rs_core::ModelError
+pub ryg_rans_rs_core::ModelError::EmptyInput
+pub ryg_rans_rs_core::ModelError::FrequencyOutOfRange
+pub ryg_rans_rs_core::ModelError::InvalidScaleBits
+pub ryg_rans_rs_core::ModelError::StartOutOfRange
+pub ryg_rans_rs_core::ModelError::TotalMismatch
+pub ryg_rans_rs_core::ModelError::WorkspaceTooSmall
+pub ryg_rans_rs_core::ModelError::ZeroFrequency
+pub ryg_rans_rs_core::ModelError::ZeroTotal
+impl core::clone::Clone for ryg_rans_rs_core::ModelError
+pub fn ryg_rans_rs_core::ModelError::clone(&self) -> ryg_rans_rs_core::ModelError
+impl core::cmp::Eq for ryg_rans_rs_core::ModelError
+impl core::cmp::PartialEq for ryg_rans_rs_core::ModelError
+pub fn ryg_rans_rs_core::ModelError::eq(&self, &ryg_rans_rs_core::ModelError) -> bool
+impl core::fmt::Debug for ryg_rans_rs_core::ModelError
+pub fn ryg_rans_rs_core::ModelError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_core::ModelError
+pub fn ryg_rans_rs_core::ModelError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_core::ModelError
+impl core::marker::StructuralPartialEq for ryg_rans_rs_core::ModelError
+impl core::marker::Freeze for ryg_rans_rs_core::ModelError
+impl core::marker::Send for ryg_rans_rs_core::ModelError
+impl core::marker::Sync for ryg_rans_rs_core::ModelError
+impl core::marker::Unpin for ryg_rans_rs_core::ModelError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::ModelError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::ModelError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::ModelError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::ModelError where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::ModelError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::ModelError where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::ModelError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::ModelError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::ModelError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::ModelError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::ModelError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::ModelError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::ModelError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::ModelError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::ModelError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::ModelError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::ModelError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::ModelError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::ModelError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::ModelError
+pub fn ryg_rans_rs_core::ModelError::from(T) -> T
+pub struct ryg_rans_rs_core::BackwardByteWriter<'a>
+impl<'a> ryg_rans_rs_core::BackwardByteWriter<'a>
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::bytes_written(&self) -> usize
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::encoded(&self) -> &[u8]
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::new(&'a mut [u8]) -> Self
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::position(&self) -> usize
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::remaining(&self) -> usize
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::write_byte(&mut self, u8) -> core::result::Result<(), ()>
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::write_u32_le(&mut self, u32) -> core::result::Result<(), ()>
+impl core::fmt::Debug for ryg_rans_rs_core::BackwardByteWriter<'_>
+pub fn ryg_rans_rs_core::BackwardByteWriter<'_>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a> ryg_rans_rs_core::BackwardWriter for ryg_rans_rs_core::BackwardByteWriter<'a>
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::write_byte(&mut self, u8) -> core::result::Result<(), ()>
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::write_u32_le(&mut self, u32) -> core::result::Result<(), ()>
+impl<'a> core::marker::Freeze for ryg_rans_rs_core::BackwardByteWriter<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_core::BackwardByteWriter<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_core::BackwardByteWriter<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_core::BackwardByteWriter<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_core::BackwardByteWriter<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::BackwardByteWriter<'a>
+impl<'a> !core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::BackwardByteWriter<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::BackwardByteWriter<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::BackwardByteWriter<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::BackwardByteWriter<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::BackwardByteWriter<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::BackwardByteWriter<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::BackwardByteWriter<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::BackwardByteWriter<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::BackwardByteWriter<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_core::BackwardByteWriter<'a>
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::from(T) -> T
+pub struct ryg_rans_rs_core::BackwardWord16Writer<'a>
+impl<'a> ryg_rans_rs_core::BackwardWord16Writer<'a>
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::bytes_written(&self) -> usize
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::encoded(&self) -> &[u8]
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::new(&'a mut [u8]) -> Self
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::position(&self) -> usize
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::write_word16(&mut self, u16) -> core::result::Result<(), ()>
+impl<'a> core::fmt::Debug for ryg_rans_rs_core::BackwardWord16Writer<'a>
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a> core::marker::Freeze for ryg_rans_rs_core::BackwardWord16Writer<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_core::BackwardWord16Writer<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_core::BackwardWord16Writer<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_core::BackwardWord16Writer<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_core::BackwardWord16Writer<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::BackwardWord16Writer<'a>
+impl<'a> !core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::BackwardWord16Writer<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::BackwardWord16Writer<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::BackwardWord16Writer<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::BackwardWord16Writer<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::BackwardWord16Writer<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::BackwardWord16Writer<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::BackwardWord16Writer<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::BackwardWord16Writer<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::BackwardWord16Writer<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_core::BackwardWord16Writer<'a>
+pub fn ryg_rans_rs_core::BackwardWord16Writer<'a>::from(T) -> T
+pub struct ryg_rans_rs_core::BackwardWord32Writer<'a>
+impl<'a> ryg_rans_rs_core::BackwardWord32Writer<'a>
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::bytes_written(&self) -> usize
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::encoded(&self) -> &[u8]
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::new(&'a mut [u8]) -> Self
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::position(&self) -> usize
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::remaining(&self) -> usize
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::words_written(&self) -> usize
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::write_word32(&mut self, u32) -> core::result::Result<(), ()>
+impl core::fmt::Debug for ryg_rans_rs_core::BackwardWord32Writer<'_>
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'_>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a> core::marker::Freeze for ryg_rans_rs_core::BackwardWord32Writer<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_core::BackwardWord32Writer<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_core::BackwardWord32Writer<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_core::BackwardWord32Writer<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_core::BackwardWord32Writer<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::BackwardWord32Writer<'a>
+impl<'a> !core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::BackwardWord32Writer<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::BackwardWord32Writer<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::BackwardWord32Writer<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::BackwardWord32Writer<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::BackwardWord32Writer<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::BackwardWord32Writer<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::BackwardWord32Writer<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::BackwardWord32Writer<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::BackwardWord32Writer<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_core::BackwardWord32Writer<'a>
+pub fn ryg_rans_rs_core::BackwardWord32Writer<'a>::from(T) -> T
+pub struct ryg_rans_rs_core::ByteInterleavedDecoder<'a, R: ryg_rans_rs_core::ForwardReader>
+impl<'a, R: ryg_rans_rs_core::ForwardReader> ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::decode(&mut self, &mut [u8], &[u8], &[ryg_rans_rs_core::RansByteDecSymbol]) -> core::result::Result<usize, ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::new(&'a mut R, u32) -> core::result::Result<Self, ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::states(&self) -> (ryg_rans_rs_core::RansByteState, ryg_rans_rs_core::RansByteState)
+impl<'a, R> core::marker::Freeze for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>
+impl<'a, R> core::marker::Send for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R> where R: core::marker::Send
+impl<'a, R> core::marker::Sync for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R> where R: core::marker::Sync
+impl<'a, R> core::marker::Unpin for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>
+impl<'a, R> core::marker::UnsafeUnpin for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>
+impl<'a, R> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R> where R: core::panic::unwind_safe::RefUnwindSafe
+impl<'a, R> !core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>
+pub fn ryg_rans_rs_core::ByteInterleavedDecoder<'a, R>::from(T) -> T
+pub struct ryg_rans_rs_core::ByteInterleavedEncoder<'a, W: ryg_rans_rs_core::BackwardWriter>
+impl<'a, W: ryg_rans_rs_core::BackwardWriter> ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::encode_reverse(&mut self, &[u8], &[ryg_rans_rs_core::RansByteEncSymbol]) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::finalize(self, &[u8], &[ryg_rans_rs_core::RansByteEncSymbol]) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::flush(&mut self) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::new(&'a mut W, u32) -> Self
+impl<'a, W> core::marker::Freeze for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>
+impl<'a, W> core::marker::Send for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W> where W: core::marker::Send
+impl<'a, W> core::marker::Sync for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W> where W: core::marker::Sync
+impl<'a, W> core::marker::Unpin for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>
+impl<'a, W> core::marker::UnsafeUnpin for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>
+impl<'a, W> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W> where W: core::panic::unwind_safe::RefUnwindSafe
+impl<'a, W> !core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>
+pub fn ryg_rans_rs_core::ByteInterleavedEncoder<'a, W>::from(T) -> T
+pub struct ryg_rans_rs_core::ByteReader<'a>
+impl<'a> ryg_rans_rs_core::ByteReader<'a>
+pub fn ryg_rans_rs_core::ByteReader<'a>::bytes_consumed(&self) -> usize
+pub fn ryg_rans_rs_core::ByteReader<'a>::new(&'a [u8]) -> Self
+pub fn ryg_rans_rs_core::ByteReader<'a>::position(&self) -> usize
+pub fn ryg_rans_rs_core::ByteReader<'a>::read_byte(&mut self) -> core::option::Option<u8>
+pub fn ryg_rans_rs_core::ByteReader<'a>::read_u32_le(&mut self) -> core::option::Option<u32>
+pub fn ryg_rans_rs_core::ByteReader<'a>::remaining(&self) -> usize
+impl core::fmt::Debug for ryg_rans_rs_core::ByteReader<'_>
+pub fn ryg_rans_rs_core::ByteReader<'_>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a> core::clone::Clone for ryg_rans_rs_core::ByteReader<'a>
+pub fn ryg_rans_rs_core::ByteReader<'a>::clone(&self) -> ryg_rans_rs_core::ByteReader<'a>
+impl<'a> ryg_rans_rs_core::ForwardReader for ryg_rans_rs_core::ByteReader<'a>
+pub fn ryg_rans_rs_core::ByteReader<'a>::read_byte(&mut self) -> core::option::Option<u8>
+pub fn ryg_rans_rs_core::ByteReader<'a>::read_u32_le(&mut self) -> core::option::Option<u32>
+impl<'a> core::marker::Freeze for ryg_rans_rs_core::ByteReader<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_core::ByteReader<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_core::ByteReader<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_core::ByteReader<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_core::ByteReader<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::ByteReader<'a>
+impl<'a> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::ByteReader<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::ByteReader<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::ByteReader<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::ByteReader<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::ByteReader<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::ByteReader<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::ByteReader<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::ByteReader<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::ByteReader<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::ByteReader<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::ByteReader<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::ByteReader<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::ByteReader<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::ByteReader<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::ByteReader<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::ByteReader<'a> where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::ByteReader<'a>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::ByteReader<'a>
+pub fn ryg_rans_rs_core::ByteReader<'a>::from(T) -> T
+pub struct ryg_rans_rs_core::Rans64DecSymbol
+pub ryg_rans_rs_core::Rans64DecSymbol::freq: u32
+pub ryg_rans_rs_core::Rans64DecSymbol::start: u32
+impl ryg_rans_rs_core::Rans64DecSymbol
+pub fn ryg_rans_rs_core::Rans64DecSymbol::new(u32, u32) -> core::result::Result<Self, ryg_rans_rs_core::ModelError>
+impl core::clone::Clone for ryg_rans_rs_core::Rans64DecSymbol
+pub fn ryg_rans_rs_core::Rans64DecSymbol::clone(&self) -> ryg_rans_rs_core::Rans64DecSymbol
+impl core::cmp::Eq for ryg_rans_rs_core::Rans64DecSymbol
+impl core::cmp::PartialEq for ryg_rans_rs_core::Rans64DecSymbol
+pub fn ryg_rans_rs_core::Rans64DecSymbol::eq(&self, &ryg_rans_rs_core::Rans64DecSymbol) -> bool
+impl core::fmt::Debug for ryg_rans_rs_core::Rans64DecSymbol
+pub fn ryg_rans_rs_core::Rans64DecSymbol::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_core::Rans64DecSymbol
+impl core::marker::StructuralPartialEq for ryg_rans_rs_core::Rans64DecSymbol
+impl core::marker::Freeze for ryg_rans_rs_core::Rans64DecSymbol
+impl core::marker::Send for ryg_rans_rs_core::Rans64DecSymbol
+impl core::marker::Sync for ryg_rans_rs_core::Rans64DecSymbol
+impl core::marker::Unpin for ryg_rans_rs_core::Rans64DecSymbol
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::Rans64DecSymbol
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::Rans64DecSymbol
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::Rans64DecSymbol
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::Rans64DecSymbol where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::Rans64DecSymbol::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::Rans64DecSymbol where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::Rans64DecSymbol::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::Rans64DecSymbol::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::Rans64DecSymbol where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::Rans64DecSymbol::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::Rans64DecSymbol::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::Rans64DecSymbol where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::Rans64DecSymbol::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::Rans64DecSymbol where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Rans64DecSymbol::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::Rans64DecSymbol where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Rans64DecSymbol::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::Rans64DecSymbol where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::Rans64DecSymbol::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::Rans64DecSymbol
+pub fn ryg_rans_rs_core::Rans64DecSymbol::from(T) -> T
+pub struct ryg_rans_rs_core::Rans64EncSymbol
+pub ryg_rans_rs_core::Rans64EncSymbol::bias: u64
+pub ryg_rans_rs_core::Rans64EncSymbol::cmpl_freq: u32
+pub ryg_rans_rs_core::Rans64EncSymbol::rcp_freq: u64
+pub ryg_rans_rs_core::Rans64EncSymbol::rcp_shift: u32
+pub ryg_rans_rs_core::Rans64EncSymbol::x_max: u64
+impl ryg_rans_rs_core::Rans64EncSymbol
+pub fn ryg_rans_rs_core::Rans64EncSymbol::new(u32, u32, u32) -> core::result::Result<Self, ryg_rans_rs_core::ModelError>
+impl core::clone::Clone for ryg_rans_rs_core::Rans64EncSymbol
+pub fn ryg_rans_rs_core::Rans64EncSymbol::clone(&self) -> ryg_rans_rs_core::Rans64EncSymbol
+impl core::fmt::Debug for ryg_rans_rs_core::Rans64EncSymbol
+pub fn ryg_rans_rs_core::Rans64EncSymbol::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_core::Rans64EncSymbol
+impl core::marker::Freeze for ryg_rans_rs_core::Rans64EncSymbol
+impl core::marker::Send for ryg_rans_rs_core::Rans64EncSymbol
+impl core::marker::Sync for ryg_rans_rs_core::Rans64EncSymbol
+impl core::marker::Unpin for ryg_rans_rs_core::Rans64EncSymbol
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::Rans64EncSymbol
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::Rans64EncSymbol
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::Rans64EncSymbol
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::Rans64EncSymbol where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::Rans64EncSymbol::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::Rans64EncSymbol where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::Rans64EncSymbol::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::Rans64EncSymbol::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::Rans64EncSymbol where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::Rans64EncSymbol::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::Rans64EncSymbol::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::Rans64EncSymbol where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::Rans64EncSymbol::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::Rans64EncSymbol where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Rans64EncSymbol::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::Rans64EncSymbol where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Rans64EncSymbol::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::Rans64EncSymbol where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::Rans64EncSymbol::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::Rans64EncSymbol
+pub fn ryg_rans_rs_core::Rans64EncSymbol::from(T) -> T
+pub struct ryg_rans_rs_core::Rans64State(pub u64)
+impl ryg_rans_rs_core::Rans64State
+pub const fn ryg_rans_rs_core::Rans64State::get(&self) -> u64
+pub const fn ryg_rans_rs_core::Rans64State::new() -> Self
+impl core::clone::Clone for ryg_rans_rs_core::Rans64State
+pub fn ryg_rans_rs_core::Rans64State::clone(&self) -> ryg_rans_rs_core::Rans64State
+impl core::cmp::Eq for ryg_rans_rs_core::Rans64State
+impl core::cmp::PartialEq for ryg_rans_rs_core::Rans64State
+pub fn ryg_rans_rs_core::Rans64State::eq(&self, &ryg_rans_rs_core::Rans64State) -> bool
+impl core::default::Default for ryg_rans_rs_core::Rans64State
+pub fn ryg_rans_rs_core::Rans64State::default() -> Self
+impl core::fmt::Debug for ryg_rans_rs_core::Rans64State
+pub fn ryg_rans_rs_core::Rans64State::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::hash::Hash for ryg_rans_rs_core::Rans64State
+pub fn ryg_rans_rs_core::Rans64State::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl core::marker::Copy for ryg_rans_rs_core::Rans64State
+impl core::marker::StructuralPartialEq for ryg_rans_rs_core::Rans64State
+impl core::marker::Freeze for ryg_rans_rs_core::Rans64State
+impl core::marker::Send for ryg_rans_rs_core::Rans64State
+impl core::marker::Sync for ryg_rans_rs_core::Rans64State
+impl core::marker::Unpin for ryg_rans_rs_core::Rans64State
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::Rans64State
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::Rans64State
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::Rans64State
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::Rans64State where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::Rans64State::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::Rans64State where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::Rans64State::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::Rans64State::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::Rans64State where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::Rans64State::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::Rans64State::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::Rans64State where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::Rans64State::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::Rans64State where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Rans64State::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::Rans64State where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Rans64State::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::Rans64State where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::Rans64State::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::Rans64State
+pub fn ryg_rans_rs_core::Rans64State::from(T) -> T
+pub struct ryg_rans_rs_core::RansByteDecSymbol
+pub ryg_rans_rs_core::RansByteDecSymbol::freq: u16
+pub ryg_rans_rs_core::RansByteDecSymbol::start: u16
+impl ryg_rans_rs_core::RansByteDecSymbol
+pub fn ryg_rans_rs_core::RansByteDecSymbol::new(u32, u32) -> core::result::Result<Self, ryg_rans_rs_core::ModelError>
+impl core::clone::Clone for ryg_rans_rs_core::RansByteDecSymbol
+pub fn ryg_rans_rs_core::RansByteDecSymbol::clone(&self) -> ryg_rans_rs_core::RansByteDecSymbol
+impl core::cmp::Eq for ryg_rans_rs_core::RansByteDecSymbol
+impl core::cmp::PartialEq for ryg_rans_rs_core::RansByteDecSymbol
+pub fn ryg_rans_rs_core::RansByteDecSymbol::eq(&self, &ryg_rans_rs_core::RansByteDecSymbol) -> bool
+impl core::fmt::Debug for ryg_rans_rs_core::RansByteDecSymbol
+pub fn ryg_rans_rs_core::RansByteDecSymbol::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_core::RansByteDecSymbol
+impl core::marker::StructuralPartialEq for ryg_rans_rs_core::RansByteDecSymbol
+impl core::marker::Freeze for ryg_rans_rs_core::RansByteDecSymbol
+impl core::marker::Send for ryg_rans_rs_core::RansByteDecSymbol
+impl core::marker::Sync for ryg_rans_rs_core::RansByteDecSymbol
+impl core::marker::Unpin for ryg_rans_rs_core::RansByteDecSymbol
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::RansByteDecSymbol
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::RansByteDecSymbol
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::RansByteDecSymbol
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::RansByteDecSymbol where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::RansByteDecSymbol::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::RansByteDecSymbol where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::RansByteDecSymbol::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::RansByteDecSymbol::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::RansByteDecSymbol where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::RansByteDecSymbol::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::RansByteDecSymbol::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::RansByteDecSymbol where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansByteDecSymbol::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::RansByteDecSymbol where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansByteDecSymbol::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::RansByteDecSymbol where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansByteDecSymbol::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::RansByteDecSymbol where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::RansByteDecSymbol::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::RansByteDecSymbol
+pub fn ryg_rans_rs_core::RansByteDecSymbol::from(T) -> T
+pub struct ryg_rans_rs_core::RansByteEncSymbol
+pub ryg_rans_rs_core::RansByteEncSymbol::bias: u32
+pub ryg_rans_rs_core::RansByteEncSymbol::cmpl_freq: u16
+pub ryg_rans_rs_core::RansByteEncSymbol::rcp_freq: u32
+pub ryg_rans_rs_core::RansByteEncSymbol::rcp_shift: u16
+pub ryg_rans_rs_core::RansByteEncSymbol::x_max: u32
+impl ryg_rans_rs_core::RansByteEncSymbol
+pub fn ryg_rans_rs_core::RansByteEncSymbol::new(u32, u32, u32) -> core::result::Result<Self, ryg_rans_rs_core::ModelError>
+impl core::clone::Clone for ryg_rans_rs_core::RansByteEncSymbol
+pub fn ryg_rans_rs_core::RansByteEncSymbol::clone(&self) -> ryg_rans_rs_core::RansByteEncSymbol
+impl core::fmt::Debug for ryg_rans_rs_core::RansByteEncSymbol
+pub fn ryg_rans_rs_core::RansByteEncSymbol::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_core::RansByteEncSymbol
+impl core::marker::Freeze for ryg_rans_rs_core::RansByteEncSymbol
+impl core::marker::Send for ryg_rans_rs_core::RansByteEncSymbol
+impl core::marker::Sync for ryg_rans_rs_core::RansByteEncSymbol
+impl core::marker::Unpin for ryg_rans_rs_core::RansByteEncSymbol
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::RansByteEncSymbol
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::RansByteEncSymbol
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::RansByteEncSymbol
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::RansByteEncSymbol where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::RansByteEncSymbol::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::RansByteEncSymbol where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::RansByteEncSymbol::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::RansByteEncSymbol::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::RansByteEncSymbol where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::RansByteEncSymbol::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::RansByteEncSymbol::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::RansByteEncSymbol where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansByteEncSymbol::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::RansByteEncSymbol where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansByteEncSymbol::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::RansByteEncSymbol where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansByteEncSymbol::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::RansByteEncSymbol where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::RansByteEncSymbol::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::RansByteEncSymbol
+pub fn ryg_rans_rs_core::RansByteEncSymbol::from(T) -> T
+pub struct ryg_rans_rs_core::RansByteState(pub u32)
+impl ryg_rans_rs_core::RansByteState
+pub const fn ryg_rans_rs_core::RansByteState::get(&self) -> u32
+pub const fn ryg_rans_rs_core::RansByteState::new() -> Self
+impl core::clone::Clone for ryg_rans_rs_core::RansByteState
+pub fn ryg_rans_rs_core::RansByteState::clone(&self) -> ryg_rans_rs_core::RansByteState
+impl core::cmp::Eq for ryg_rans_rs_core::RansByteState
+impl core::cmp::PartialEq for ryg_rans_rs_core::RansByteState
+pub fn ryg_rans_rs_core::RansByteState::eq(&self, &ryg_rans_rs_core::RansByteState) -> bool
+impl core::default::Default for ryg_rans_rs_core::RansByteState
+pub fn ryg_rans_rs_core::RansByteState::default() -> Self
+impl core::fmt::Debug for ryg_rans_rs_core::RansByteState
+pub fn ryg_rans_rs_core::RansByteState::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::hash::Hash for ryg_rans_rs_core::RansByteState
+pub fn ryg_rans_rs_core::RansByteState::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl core::marker::Copy for ryg_rans_rs_core::RansByteState
+impl core::marker::StructuralPartialEq for ryg_rans_rs_core::RansByteState
+impl core::marker::Freeze for ryg_rans_rs_core::RansByteState
+impl core::marker::Send for ryg_rans_rs_core::RansByteState
+impl core::marker::Sync for ryg_rans_rs_core::RansByteState
+impl core::marker::Unpin for ryg_rans_rs_core::RansByteState
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::RansByteState
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::RansByteState
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::RansByteState
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::RansByteState where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::RansByteState::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::RansByteState where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::RansByteState::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::RansByteState::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::RansByteState where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::RansByteState::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::RansByteState::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::RansByteState where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansByteState::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::RansByteState where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansByteState::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::RansByteState where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansByteState::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::RansByteState where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::RansByteState::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::RansByteState
+pub fn ryg_rans_rs_core::RansByteState::from(T) -> T
+pub struct ryg_rans_rs_core::RansWordSlot
+pub ryg_rans_rs_core::RansWordSlot::bias: u16
+pub ryg_rans_rs_core::RansWordSlot::freq: u16
+impl core::clone::Clone for ryg_rans_rs_core::RansWordSlot
+pub fn ryg_rans_rs_core::RansWordSlot::clone(&self) -> ryg_rans_rs_core::RansWordSlot
+impl core::fmt::Debug for ryg_rans_rs_core::RansWordSlot
+pub fn ryg_rans_rs_core::RansWordSlot::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_core::RansWordSlot
+impl core::marker::Freeze for ryg_rans_rs_core::RansWordSlot
+impl core::marker::Send for ryg_rans_rs_core::RansWordSlot
+impl core::marker::Sync for ryg_rans_rs_core::RansWordSlot
+impl core::marker::Unpin for ryg_rans_rs_core::RansWordSlot
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::RansWordSlot
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::RansWordSlot
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::RansWordSlot
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::RansWordSlot where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::RansWordSlot::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::RansWordSlot where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::RansWordSlot::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::RansWordSlot::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::RansWordSlot where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::RansWordSlot::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::RansWordSlot::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::RansWordSlot where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansWordSlot::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::RansWordSlot where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansWordSlot::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::RansWordSlot where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansWordSlot::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::RansWordSlot where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::RansWordSlot::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::RansWordSlot
+pub fn ryg_rans_rs_core::RansWordSlot::from(T) -> T
+pub struct ryg_rans_rs_core::RansWordState(pub u32)
+impl ryg_rans_rs_core::RansWordState
+pub const fn ryg_rans_rs_core::RansWordState::get(&self) -> u32
+pub const fn ryg_rans_rs_core::RansWordState::new() -> Self
+impl core::clone::Clone for ryg_rans_rs_core::RansWordState
+pub fn ryg_rans_rs_core::RansWordState::clone(&self) -> ryg_rans_rs_core::RansWordState
+impl core::cmp::Eq for ryg_rans_rs_core::RansWordState
+impl core::cmp::PartialEq for ryg_rans_rs_core::RansWordState
+pub fn ryg_rans_rs_core::RansWordState::eq(&self, &ryg_rans_rs_core::RansWordState) -> bool
+impl core::fmt::Debug for ryg_rans_rs_core::RansWordState
+pub fn ryg_rans_rs_core::RansWordState::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::hash::Hash for ryg_rans_rs_core::RansWordState
+pub fn ryg_rans_rs_core::RansWordState::hash<__H: core::hash::Hasher>(&self, &mut __H)
+impl core::marker::Copy for ryg_rans_rs_core::RansWordState
+impl core::marker::StructuralPartialEq for ryg_rans_rs_core::RansWordState
+impl core::marker::Freeze for ryg_rans_rs_core::RansWordState
+impl core::marker::Send for ryg_rans_rs_core::RansWordState
+impl core::marker::Sync for ryg_rans_rs_core::RansWordState
+impl core::marker::Unpin for ryg_rans_rs_core::RansWordState
+impl core::marker::UnsafeUnpin for ryg_rans_rs_core::RansWordState
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::RansWordState
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::RansWordState
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::RansWordState where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::RansWordState::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::RansWordState where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::RansWordState::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::RansWordState::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::RansWordState where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::RansWordState::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::RansWordState::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::RansWordState where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansWordState::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::RansWordState where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansWordState::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::RansWordState where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansWordState::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::RansWordState where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::RansWordState::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::RansWordState
+pub fn ryg_rans_rs_core::RansWordState::from(T) -> T
+pub struct ryg_rans_rs_core::RansWordTables<'a>
+pub ryg_rans_rs_core::RansWordTables::slot2sym: &'a [u8]
+pub ryg_rans_rs_core::RansWordTables::slots: &'a [ryg_rans_rs_core::RansWordSlot]
+impl<'a> core::marker::Freeze for ryg_rans_rs_core::RansWordTables<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_core::RansWordTables<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_core::RansWordTables<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_core::RansWordTables<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_core::RansWordTables<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::RansWordTables<'a>
+impl<'a> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::RansWordTables<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::RansWordTables<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::RansWordTables<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::RansWordTables<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::RansWordTables<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::RansWordTables<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::RansWordTables<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::RansWordTables<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::RansWordTables<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::RansWordTables<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansWordTables<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::RansWordTables<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansWordTables<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::RansWordTables<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::RansWordTables<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_core::RansWordTables<'a>
+pub fn ryg_rans_rs_core::RansWordTables<'a>::from(T) -> T
+pub struct ryg_rans_rs_core::SliceBackwardWriter<'a>(pub &'a mut [u8])
+impl ryg_rans_rs_core::BackwardWriter for ryg_rans_rs_core::SliceBackwardWriter<'_>
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'_>::write_byte(&mut self, u8) -> core::result::Result<(), ()>
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'_>::write_u32_le(&mut self, u32) -> core::result::Result<(), ()>
+impl<'a> core::marker::Freeze for ryg_rans_rs_core::SliceBackwardWriter<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_core::SliceBackwardWriter<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_core::SliceBackwardWriter<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_core::SliceBackwardWriter<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_core::SliceBackwardWriter<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::SliceBackwardWriter<'a>
+impl<'a> !core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::SliceBackwardWriter<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::SliceBackwardWriter<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::SliceBackwardWriter<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::SliceBackwardWriter<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::SliceBackwardWriter<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::SliceBackwardWriter<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::SliceBackwardWriter<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::SliceBackwardWriter<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::SliceBackwardWriter<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_core::SliceBackwardWriter<'a>
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'a>::from(T) -> T
+pub struct ryg_rans_rs_core::Word16Reader<'a>
+impl<'a> ryg_rans_rs_core::Word16Reader<'a>
+pub fn ryg_rans_rs_core::Word16Reader<'a>::bytes_consumed(&self) -> usize
+pub fn ryg_rans_rs_core::Word16Reader<'a>::new(&'a [u8]) -> Self
+pub fn ryg_rans_rs_core::Word16Reader<'a>::position(&self) -> usize
+pub fn ryg_rans_rs_core::Word16Reader<'a>::read_word16(&mut self) -> core::option::Option<u16>
+impl<'a> core::clone::Clone for ryg_rans_rs_core::Word16Reader<'a>
+pub fn ryg_rans_rs_core::Word16Reader<'a>::clone(&self) -> ryg_rans_rs_core::Word16Reader<'a>
+impl<'a> core::fmt::Debug for ryg_rans_rs_core::Word16Reader<'a>
+pub fn ryg_rans_rs_core::Word16Reader<'a>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a> core::marker::Freeze for ryg_rans_rs_core::Word16Reader<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_core::Word16Reader<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_core::Word16Reader<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_core::Word16Reader<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_core::Word16Reader<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::Word16Reader<'a>
+impl<'a> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::Word16Reader<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::Word16Reader<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::Word16Reader<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::Word16Reader<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::Word16Reader<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::Word16Reader<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::Word16Reader<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::Word16Reader<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::Word16Reader<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::Word16Reader<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::Word16Reader<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::Word16Reader<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Word16Reader<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::Word16Reader<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Word16Reader<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::Word16Reader<'a> where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::Word16Reader<'a>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::Word16Reader<'a>
+pub fn ryg_rans_rs_core::Word16Reader<'a>::from(T) -> T
+pub struct ryg_rans_rs_core::Word32Reader<'a>
+impl<'a> ryg_rans_rs_core::Word32Reader<'a>
+pub fn ryg_rans_rs_core::Word32Reader<'a>::bytes_consumed(&self) -> usize
+pub fn ryg_rans_rs_core::Word32Reader<'a>::new(&'a [u8]) -> Self
+pub fn ryg_rans_rs_core::Word32Reader<'a>::position(&self) -> usize
+pub fn ryg_rans_rs_core::Word32Reader<'a>::read_word32(&mut self) -> core::option::Option<u32>
+pub fn ryg_rans_rs_core::Word32Reader<'a>::remaining(&self) -> usize
+pub fn ryg_rans_rs_core::Word32Reader<'a>::words_consumed(&self) -> usize
+impl core::fmt::Debug for ryg_rans_rs_core::Word32Reader<'_>
+pub fn ryg_rans_rs_core::Word32Reader<'_>::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'a> core::clone::Clone for ryg_rans_rs_core::Word32Reader<'a>
+pub fn ryg_rans_rs_core::Word32Reader<'a>::clone(&self) -> ryg_rans_rs_core::Word32Reader<'a>
+impl<'a> core::marker::Freeze for ryg_rans_rs_core::Word32Reader<'a>
+impl<'a> core::marker::Send for ryg_rans_rs_core::Word32Reader<'a>
+impl<'a> core::marker::Sync for ryg_rans_rs_core::Word32Reader<'a>
+impl<'a> core::marker::Unpin for ryg_rans_rs_core::Word32Reader<'a>
+impl<'a> core::marker::UnsafeUnpin for ryg_rans_rs_core::Word32Reader<'a>
+impl<'a> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_core::Word32Reader<'a>
+impl<'a> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_core::Word32Reader<'a>
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_core::Word32Reader<'a> where U: core::convert::From<T>
+pub fn ryg_rans_rs_core::Word32Reader<'a>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_core::Word32Reader<'a> where U: core::convert::Into<T>
+pub type ryg_rans_rs_core::Word32Reader<'a>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_core::Word32Reader<'a>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_core::Word32Reader<'a> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_core::Word32Reader<'a>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_core::Word32Reader<'a>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_core::Word32Reader<'a> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_core::Word32Reader<'a>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_core::Word32Reader<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Word32Reader<'a>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_core::Word32Reader<'a> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_core::Word32Reader<'a>::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_core::Word32Reader<'a> where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_core::Word32Reader<'a>::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_core::Word32Reader<'a>
+pub fn ryg_rans_rs_core::Word32Reader<'a>::from(T) -> T
+pub const ryg_rans_rs_core::ALIAS_LOG2_NSYMS: u32
+pub const ryg_rans_rs_core::ALIAS_NSYMS: usize
+pub const ryg_rans_rs_core::RANS64_L: u64
+pub const ryg_rans_rs_core::RANS_BYTE_L: u32
+pub const ryg_rans_rs_core::RANS_WORD_L: u32
+pub const ryg_rans_rs_core::RANS_WORD_SCALE_BITS: u32
+pub trait ryg_rans_rs_core::BackwardWriter
+pub fn ryg_rans_rs_core::BackwardWriter::write_byte(&mut self, u8) -> core::result::Result<(), ()>
+pub fn ryg_rans_rs_core::BackwardWriter::write_u32_le(&mut self, u32) -> core::result::Result<(), ()>
+impl ryg_rans_rs_core::BackwardWriter for ryg_rans_rs_core::SliceBackwardWriter<'_>
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'_>::write_byte(&mut self, u8) -> core::result::Result<(), ()>
+pub fn ryg_rans_rs_core::SliceBackwardWriter<'_>::write_u32_le(&mut self, u32) -> core::result::Result<(), ()>
+impl<'a> ryg_rans_rs_core::BackwardWriter for ryg_rans_rs_core::BackwardByteWriter<'a>
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::write_byte(&mut self, u8) -> core::result::Result<(), ()>
+pub fn ryg_rans_rs_core::BackwardByteWriter<'a>::write_u32_le(&mut self, u32) -> core::result::Result<(), ()>
+pub trait ryg_rans_rs_core::ForwardReader
+pub fn ryg_rans_rs_core::ForwardReader::read_byte(&mut self) -> core::option::Option<u8>
+pub fn ryg_rans_rs_core::ForwardReader::read_u32_le(&mut self) -> core::option::Option<u32>
+impl<'a> ryg_rans_rs_core::ForwardReader for &'a [u8]
+pub fn &'a [u8]::read_byte(&mut self) -> core::option::Option<u8>
+pub fn &'a [u8]::read_u32_le(&mut self) -> core::option::Option<u32>
+impl<'a> ryg_rans_rs_core::ForwardReader for ryg_rans_rs_core::ByteReader<'a>
+pub fn ryg_rans_rs_core::ByteReader<'a>::read_byte(&mut self) -> core::option::Option<u8>
+pub fn ryg_rans_rs_core::ByteReader<'a>::read_u32_le(&mut self) -> core::option::Option<u32>
+pub fn ryg_rans_rs_core::rans64_dec_advance(&mut ryg_rans_rs_core::Rans64State, &mut ryg_rans_rs_core::Word32Reader<'_>, u32, u32, u32) -> core::result::Result<(), ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans64_dec_advance_step(&mut ryg_rans_rs_core::Rans64State, u32, u32, u32)
+pub fn ryg_rans_rs_core::rans64_dec_advance_symbol(&mut ryg_rans_rs_core::Rans64State, &mut ryg_rans_rs_core::Word32Reader<'_>, &ryg_rans_rs_core::Rans64DecSymbol, u32) -> core::result::Result<(), ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans64_dec_advance_symbol_step(&mut ryg_rans_rs_core::Rans64State, &ryg_rans_rs_core::Rans64DecSymbol, u32)
+pub fn ryg_rans_rs_core::rans64_dec_get(&ryg_rans_rs_core::Rans64State, u32) -> u32
+pub fn ryg_rans_rs_core::rans64_dec_init(&mut ryg_rans_rs_core::Word32Reader<'_>) -> core::result::Result<ryg_rans_rs_core::Rans64State, ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans64_dec_renorm(&mut ryg_rans_rs_core::Rans64State, &mut ryg_rans_rs_core::Word32Reader<'_>) -> core::result::Result<(), ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans64_enc_flush(&ryg_rans_rs_core::Rans64State, &mut ryg_rans_rs_core::BackwardWord32Writer<'_>) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans64_enc_put(&mut ryg_rans_rs_core::Rans64State, &mut ryg_rans_rs_core::BackwardWord32Writer<'_>, u32, u32, u32) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans64_enc_put_symbol(&mut ryg_rans_rs_core::Rans64State, &mut ryg_rans_rs_core::BackwardWord32Writer<'_>, &ryg_rans_rs_core::Rans64EncSymbol) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans64_enc_renorm(u64, &mut ryg_rans_rs_core::BackwardWord32Writer<'_>, u32, u32) -> core::result::Result<u64, ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans64_mul_hi(u64, u64) -> u64
+pub fn ryg_rans_rs_core::rans_byte_alias_normalize_freqs(&[u32], usize, u32) -> core::result::Result<([u32; 256], [u32; 257]), ryg_rans_rs_core::ModelError>
+pub fn ryg_rans_rs_core::rans_byte_dec_advance<R: ryg_rans_rs_core::ForwardReader>(&mut ryg_rans_rs_core::RansByteState, &mut R, u32, u32, u32) -> core::result::Result<(), ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans_byte_dec_advance_step(&mut ryg_rans_rs_core::RansByteState, u32, u32, u32)
+pub fn ryg_rans_rs_core::rans_byte_dec_advance_symbol<R: ryg_rans_rs_core::ForwardReader>(&mut ryg_rans_rs_core::RansByteState, &mut R, &ryg_rans_rs_core::RansByteDecSymbol, u32) -> core::result::Result<(), ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans_byte_dec_advance_symbol_step(&mut ryg_rans_rs_core::RansByteState, &ryg_rans_rs_core::RansByteDecSymbol, u32)
+pub fn ryg_rans_rs_core::rans_byte_dec_get(&ryg_rans_rs_core::RansByteState, u32) -> u32
+pub fn ryg_rans_rs_core::rans_byte_dec_init<R: ryg_rans_rs_core::ForwardReader>(&mut R) -> core::result::Result<ryg_rans_rs_core::RansByteState, ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans_byte_dec_renorm<R: ryg_rans_rs_core::ForwardReader>(&mut ryg_rans_rs_core::RansByteState, &mut R) -> core::result::Result<(), ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans_byte_enc_flush<W: ryg_rans_rs_core::BackwardWriter>(&ryg_rans_rs_core::RansByteState, &mut W) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans_byte_enc_put<W: ryg_rans_rs_core::BackwardWriter>(&mut ryg_rans_rs_core::RansByteState, &mut W, u32, u32, u32) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans_byte_enc_put_symbol<W: ryg_rans_rs_core::BackwardWriter>(&mut ryg_rans_rs_core::RansByteState, &mut W, &ryg_rans_rs_core::RansByteEncSymbol) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans_byte_enc_renorm<W: ryg_rans_rs_core::BackwardWriter>(u32, &mut W, u32, u32) -> core::result::Result<u32, ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans_word_check_scale_bits(u32) -> core::result::Result<(), ryg_rans_rs_core::ModelError>
+pub fn ryg_rans_rs_core::rans_word_dec_init(&mut ryg_rans_rs_core::Word16Reader<'_>) -> core::result::Result<ryg_rans_rs_core::RansWordState, ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans_word_dec_renorm(&mut ryg_rans_rs_core::RansWordState, &mut ryg_rans_rs_core::Word16Reader<'_>) -> core::result::Result<(), ryg_rans_rs_core::DecodeError>
+pub fn ryg_rans_rs_core::rans_word_dec_sym(&mut ryg_rans_rs_core::RansWordState, &ryg_rans_rs_core::RansWordTables<'_>, u32) -> u8
+pub fn ryg_rans_rs_core::rans_word_enc_flush(&ryg_rans_rs_core::RansWordState, &mut ryg_rans_rs_core::BackwardWord16Writer<'_>) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans_word_enc_init() -> ryg_rans_rs_core::RansWordState
+pub fn ryg_rans_rs_core::rans_word_enc_put(&mut ryg_rans_rs_core::RansWordState, &mut ryg_rans_rs_core::BackwardWord16Writer<'_>, u32, u32, u32) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
+pub fn ryg_rans_rs_core::rans_word_enc_renorm(&mut ryg_rans_rs_core::RansWordState, &mut ryg_rans_rs_core::BackwardWord16Writer<'_>, u32, u32) -> core::result::Result<(), ryg_rans_rs_core::EncodeError>
