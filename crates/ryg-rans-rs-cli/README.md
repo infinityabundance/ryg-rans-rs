@@ -1,376 +1,428 @@
 # ryg-rans-rs-cli
 
-> **Production-grade rANS compression CLI — `ryg-rans`**  
-> Version 0.1.27 — Phase J  
-> Versioned block-streaming container format (RYGRANS v1).  
-> SHA-256 integrity verification. Resource-bounded, deterministic, non-panicking.  
-> Encode, decode, inspect, verify, compare, benchmark, trace.  
-> 10 codec formats · 6 decode backends · 10 stable exit codes · 5 shell completions.
+> **The `ryg-rans` command — rANS entropy coding tool.**  
+> **Version 0.1.30** (workspace) · **Phase L.15: fully wired** · **20 integration tests**  
+> Versioned block-streaming container format (RYGRANS v1) · SHA-256 integrity
+> verification · resource-bounded, deterministic, non-panicking · 10
+> subcommands · 10 stable exit codes · 5 shell completions.
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs-cli)](https://crates.io/crates/ryg-rans-rs-cli)
-
-### Production-Ready Foundation
-
-This CLI is **deeply implemented** — the container format, resource limits, exit codes, error types, integrity verification, and CLI argument routing are complete and fully wired. Parallel block-engine encode/decode/verify via `ryg-rans-rs-parallel` (Phase I) is production-ready with **63 passing tests**. The `capabilities` and `completions` commands are fully operational. Remaining work on the remaining commands consists of connecting the CLI dispatch layer to the already-complete parallel engine — the algorithmic core, SIMD kernels, and block pipeline are sealed and tested.
 
 ---
 
 ## Table of Contents
 
 1. [What This Crate Is](#what-this-crate-is)
-2. [Commands](#commands)
-3. [Implementation Status](#implementation-status)
+2. [What This Crate Does NOT Do](#what-this-crate-does-not-do)
+3. [Commands](#commands)
 4. [Container Format](#container-format)
-5. [Codec vs Backend Distinction](#codec-vs-backend-distinction)
-6. [Safety Guarantees](#safety-guarantees)
-7. [Phase I: Parallel Block Engine Integration](#phase-i-parallel-block-engine-integration)
-8. [Criterion Benchmark Suite](#criterion-benchmark-suite)
-9. [Exit Codes](#exit-codes)
-10. [Architecture](#architecture)
-11. [Examples](#examples)
+5. [Stable Exit Codes](#stable-exit-codes)
+6. [Resource Limits](#resource-limits)
+7. [Codec vs Backend Distinction](#codec-vs-backend-distinction)
+8. [Safety and Trust Boundaries](#safety-and-trust-boundaries)
+9. [Architecture](#architecture)
+10. [Evidence Model](#evidence-model)
+11. [Performance Methodology](#performance-methodology)
+12. [Limitations](#limitations)
+13. [Examples](#examples)
+14. [Troubleshooting](#troubleshooting)
+15. [Versioning](#versioning)
+16. [Reading Order](#reading-order)
 
 ---
 
 ## What This Crate Is
 
-This crate provides the `ryg-rans` command-line tool for rANS entropy coding. It is
-a **production-grade** implementation built on the repository's sealed rANS primitives.
+This crate provides the `ryg-rans` command-line tool (binary plus library).
+The library (`ryg_rans_rs_cli::run`) parses arguments, dispatches to the
+subcommand implementations in `ops/`, and returns the stable exit code; the
+binary (`main.rs`) maps it verbatim to `std::process::ExitCode` (nonzero codes
+are never collapsed to 1).
 
-### Design Principles
+All **10 subcommands are wired and integration-tested** (Phase L.15, commit
+0fa5936): `encode`, `decode`, `inspect`, `verify`, `model`, `trace`,
+`compare`, `bench`, `capabilities`, `completions`.  The crate is
+`#![forbid(unsafe_code)]` — all SIMD acceleration is reached through safe
+facade APIs (`ryg-rans-rs-simd`'s safe `decode_simd_8way`, which uses the
+SIMD kernel when compiled with `sse4.1` and a scalar reference otherwise).
 
-1. **`#![forbid(unsafe_code)]`** — the CLI crate is entirely safe Rust. All SIMD
-   acceleration is accessed through the facade crate's safe APIs with runtime feature
-   detection.
-2. **Versioned container format** — RYGRANS v1 is a block-streaming format with explicit
-   fields, bounds checking, and SHA-256 integrity verification at both the block and
-   stream level.
-3. **Resource limits** — every command enforces configurable limits on input size, output
-   size, block size, block count, and memory. Limits are checked during reading, not after.
-4. **Deterministic output** — identical input + options → byte-identical container.
-   No timestamps, random identifiers, or host-dependent values.
-5. **Strict validation** — every field, bound, and hash is verified. Unknown format
-   versions, unsupported codecs, and trailing data are all rejected.
+Design principles:
+
+1. **Versioned container format** — RYGRANS v1 (`docs/container-format-v1.md`):
+   fixed-size header, per-block records, terminal footer, SHA-256 integrity at
+   block and stream level.
+2. **Strict integrity** — a block passes only when the stored decoded hash is
+   non-zero **and** matches; zero/unset decoded hashes fail (exit 5).
+3. **Resource limits enforced during reading** — every bound is checked while
+   bytes are consumed, not after (see [Resource Limits](#resource-limits)).
+4. **Deterministic output** — identical input + options → byte-identical
+   container.  No timestamps, no random identifiers, no host-dependent values.
+5. **No silent fallback** — unsupported codecs and explicit backend requests
+   return a typed error (exit 6), never a different code path.
+
+---
+
+## What This Crate Does NOT Do
+
+- **Does not use the `ryg-rans-rs-parallel` engine.**  The CLI has no
+  dependency on the parallel crate; encode/decode/verify run through the
+  crate's own single-threaded streaming pipeline with one shared codec
+  dispatcher (`ops::decode_block`).  There is no multi-threaded block decode.
+- **Does not support explicit decode backends.**  Only the auto dispatcher
+  exists; `decode --backend <anything-but-auto>` returns a typed unsupported
+  error (exit 6).  `verify --backend` accepts `auto` and `all-available`,
+  both served by the auto dispatcher.
+- **Does not implement every codec.**  Encode implements byte-single,
+  byte-interleaved2 (default), r64-single, word-single.  Decode implements
+  codecs 1, 2, 3, 5 and 7 (8-way via SIMD/scalar); codecs 4, 6, 8, 9, 10
+  return a typed unsupported error (exit 6).
+- **Does not handle SIGINT/SIGTERM cancellation.**  Signal-handling wiring is
+  tracked as residual L3-D in the gap ledger (OPEN).
+- **Does not benchmark for the record.**  `bench` is a live smoke
+  measurement; the Criterion suite in `ryg-rans-rs-bench` is the sealed
+  measurement surface.
+- **Does not implement "atomic" file replacement** (temp-file + rename).
+  Output files are created with `create_new` (refusing to overwrite) unless
+  `--force` is given; success is only reported after every hash verifies.
+- **No oracle/FFI.**  The CLI never shells out to C; the oracle comparison
+  lives in the separate `ryg-rans-rs-oracle` / bench crates.
 
 ---
 
 ## Commands
 
-| Command | Description | Status |
-|---------|-------------|--------|
-| `encode` | Encode input into a versioned `.rygr` container | 🏗️ CLI scaffolding (encode engine pending integration) |
-| `decode` | Strictly decode and verify a `.rygr` container | 🏗️ CLI scaffolding (decode engine pending integration) |
-| `inspect` | Inspect container structure and metadata | 🏗️ CLI scaffolding (inspect logic pending integration) |
-| `verify` | Fully verify without writing decoded output | 🏗️ CLI scaffolding (verify engine pending integration) |
-| `model` | Build, inspect, validate, and compare models | 🏗️ CLI scaffolding (model dispatch pending integration) |
-| `trace` | Trace symbol/state transitions | 🏗️ CLI scaffolding (trace logic pending integration) |
-| `compare` | Compare arith paths, backends, files, or oracle | 🏗️ CLI scaffolding (compare logic pending integration) |
-| `bench` | Benchmark production Rust codec backends | 🏗️ CLI scaffolding (bench dispatch pending integration) |
-| `capabilities` | Show compiled and runtime-supported codecs and backends | ✅ Fully implemented |
-| `completions` | Generate shell completion scripts | ✅ Fully implemented |
-
----
-
-## Implementation Status
-
-### Legend
-
-| Symbol | Meaning |
-|--------|---------|
-| ✅ **Complete** | Fully implemented, tested, and operational |
-| 🏗️ **Scaffolded** | CLI wiring (args, help, error types) is in place; core logic pending connection to downstream crates |
-| 🔧 **In Progress** | Active development underway |
-| ⏳ **Planned** | Not yet started |
-
-### Detailed Status
-
-| Component | Phase | Lines of Code | Status | Notes |
-|-----------|-------|---------------|--------|-------|
-| **CLI Argument Routing** | Foundation | ~300 | ✅ Complete | Full `clap` parse tree for all 10 commands + subcommands |
-| **Container Format (RYGRANS v1)** | Foundation | ~600 | ✅ Complete | Header (32 B), Block (104 B), Footer (104 B), Reader, Writer |
-| **Codec Registry** | Foundation | ~120 | ✅ Complete | 10 codec IDs with scale validation and state-count mapping |
-| **Frequency Model** | Foundation | ~80 | ✅ Complete | Canonical integer-only normalization |
-| **Error Types** | Foundation | ~80 | ✅ Complete | 10 typed `AppError` variants with structured context |
-| **Exit Codes** | Foundation | ~60 | ✅ Complete | 10 stable exit codes with per-code documentation |
-| **Resource Limits** | Foundation | ~100 | ✅ Complete | Input/output/block size + block count + memory enforcement |
-| **`capabilities` Command** | Delivery | 50 | ✅ Complete | JSON schema: codec IDs, versions, backends |
-| **`completions` Command** | Delivery | 30 | ✅ Complete | Bash, Fish, Zsh, PowerShell, Elvish |
-| **Parallel Block Engine** | Phase I | ~2 500 | ✅ Complete | 63 tests — encode, decode, verify, cancellation, panic containment |
-| **`encode` Command** | Phase II | — | 🏗️ Scaffolded | CLI wired; needs `ParallelEncoder` integration |
-| **`decode` Command** | Phase II | — | 🏗️ Scaffolded | CLI wired; needs `ParallelDecoder` integration |
-| **`inspect` Command** | Phase II | — | 🏗️ Scaffolded | CLI wired; needs container reader integration |
-| **`verify` Command** | Phase II | — | 🏗️ Scaffolded | CLI wired; needs `ParallelVerifier` integration |
-| **`model` Command** | Phase II | — | 🏗️ Scaffolded | CLI wired; needs `FrequencyModel` build/inspect wiring |
-| **`trace` Command** | Phase II | — | 🏗️ Scaffolded | CLI wired; needs state-trace hook integration |
-| **`compare` Command** | Phase II | — | 🏗️ Scaffolded | CLI wired; needs arithmetic/backend/file comparison |
-| **`bench` Command** | Phase II | — | 🏗️ Scaffolded | CLI wired; needs Criterion integration or inline timing |
-| **Criterion Bench Suite** | Phase I | ~900 | ✅ Complete | 9 bench files across scalar, SSE4.1, AVX2, AVX-512, container, parallel |
-| **Fuzz Targets** | Phase II | — | ⏳ Planned | `cargo fuzz` for container parser, codec decode paths |
-| **Kani Proofs** | Phase II | — | ⏳ Planned | Bounds proofs for critical resource-limit arithmetic |
+| Command | Status | Behavior |
+|---------|--------|----------|
+| `encode` | ✅ Implemented | Streaming block encode; RLE / rANS / RAW selection per block.  Codecs: `byte-single`, `byte-interleaved2` (default), `r64-single`, `word-single`.  Other codecs → typed error, exit 6.  Memory bounded by one block + payload + model. |
+| `decode` | ✅ Implemented | Strict integrity walk: payload hash, decoded-data hash, container hash, decoded-stream hash all verified; any mismatch → exit 5.  Codecs 1, 2, 3, 5, 7; 4, 6, 8, 9, 10 → typed error (exit 6).  Explicit `--backend` → typed error (exit 6). |
+| `inspect` | ✅ Implemented | Human or JSON metadata; `--blocks` lists per-block records; `--deep` decodes and verifies every block. |
+| `verify` | ✅ Implemented | Full verification without writing output; human or JSON summary; exit 5 on any failure. |
+| `model` | ✅ Implemented | `build` (deterministic integer-only normalizer), `inspect` (JSON), `validate` (frequency-sum check), `compare` (model equality). |
+| `trace` | ✅ Implemented | Verifies the whole container, then re-decodes the selected block symbol-by-symbol (state before/after per step).  `byte-single` (codec 1) rANS blocks only; other codecs → typed error (exit 6).  Text or JSONL output. |
+| `compare` | ✅ Implemented | `arithmetic` (division vs reciprocal encode, byte-identical), `backends` (dispatcher vs explicit scalar 8-way on codec-7 blocks), `files` (decoded-stream hash equality of two containers). |
+| `bench` | ✅ Implemented | In-process throughput over a deterministic skewed synthetic block with a round-trip preflight; the Criterion suite remains the sealed measurement surface. |
+| `capabilities` | ✅ Implemented | Compiled/runtime codec + backend inventory as JSON. |
+| `completions` | ✅ Implemented | bash, fish, zsh, powershell, elvish. |
 
 ---
 
 ## Container Format
 
-RYGRANS v1 — a versioned block-streaming container:
+The CLI operates on the **RYGRANS v1** container
+(full specification: `docs/container-format-v1.md`):
 
 ```text
-┌─────────────────────┐
-│ File Header (32 B)  │  ← magic "RYGRANS\0", version, flags, codec, block size
-├─────────────────────┤
-│ Block Record 0      │  ← header (104 B) + model + payload
-│   (RAW/RLE/RANS)    │     per-block SHA-256 integrity
-├─────────────────────┤
-│ Block Record 1      │
-│   ...               │
-├─────────────────────┤
-│ Footer (104 B)      │  ← block count, totals, container + stream SHA-256
-└─────────────────────┘
+┌──────────────────────────────┐
+│  File Header  (32 bytes)     │  MAGIC "RYGRANS\0" · version 1.0 ·
+│                              │  flags · default_codec_id ·
+│                              │  default_scale_bits · default_model_mode ·
+│                              │  declared_block_size
+├──────────────────────────────┤
+│  Block 0  (104-byte header)  │  TAG "BLK1" · kind · index · codec ·
+│  + model + payload           │  scale · states · lengths ·
+│                              │  payload_sha256 · decoded_sha256
+│  Block 1                     │
+│  ...                         │
+├──────────────────────────────┤
+│  Footer (104 bytes)          │  TAG "END1" · block_count ·
+│                              │  total_uncompressed · total_payload ·
+│                              │  container_sha256 · decoded_stream_sha256
+└──────────────────────────────┘
 ```
 
-### Block Kinds
+Block kinds (constants in `container/mod.rs`):
 
-| Kind | Use | Payload |
-|------|-----|---------|
-| RAW | Uncompressed data | Raw bytes (payload == decoded) |
-| RLE | Single-symbol run | 1 byte (the repeated symbol) |
-| RANS | rANS-compressed | Canonical rANS stream + model |
+| Kind | ID | Payload | Decoded-data check |
+|------|----|---------|--------------------|
+| RAW | 0 | Raw bytes (payload == decoded) | skipped (payload hash already proves equality) |
+| RLE | 1 | 1 byte: the repeated symbol | decoded hash = hash of the expanded run |
+| RANS | 2 | Canonical rANS stream + model | decoded hash = hash of the decoded output |
 
-Block selection is deterministic: RANS is used only if it's strictly smaller than RAW.
+Block selection in `encode` is deterministic: single-symbol chunks → RLE;
+empty chunks → RAW; otherwise the selected rANS codec, falling back to RAW
+when the payload does not shrink the block (unless `--always-compress`).
 
-See `docs/container-format-v1.md` for the full specification.
+**Strict integrity:** every block stores its own payload SHA-256 and
+decoded-data SHA-256; the footer stores a container-level SHA-256 (over
+header + block records) and the decoded-stream SHA-256 (over concatenated
+decoded output in ascending block order).  The reader verifies all of them,
+rejects trailing bytes after the footer, and rejects duplicate/out-of-order
+block indexes (`ContainerReader`, `ops::walk_container`).
 
 ---
 
-## Codec vs Backend Distinction
+## Stable Exit Codes
 
-### Codec IDs (Stream Format)
-
-Codec IDs identify the **stream format** — the number of states, renormalization unit,
-and scale constraint:
-
-| ID | Name | States | Renorm Unit | Scale | Use |
-|----|------|--------|-------------|-------|-----|
-| 1 | `BYTE_SINGLE` | 1 | 8-bit | 1..=16 | Single-state byte rANS |
-| 2 | `BYTE_INTERLEAVED2` | 2 | 8-bit | 1..=16 | Two-state interleaved byte |
-| 3 | `R64_SINGLE` | 1 | 32-bit | 1..=31 | Single-state 64-bit |
-| 4 | `R64_INTERLEAVED2` | 2 | 32-bit | 1..=31 | Two-state interleaved 64-bit |
-| 5 | `WORD_SINGLE` | 1 | 16-bit | 12 | Single-state Word |
-| 6 | `WORD_INTERLEAVED2` | 2 | 16-bit | 12 | Two-state Word |
-| 7 | `WORD_INTERLEAVED8` | 8 | 16-bit | 12 | Eight-way Word |
-| 8 | `WORD_INTERLEAVED16` | 16 | 16-bit | 12 | Sixteen-way Word |
-| 9 | `ALIAS_SINGLE` | 1 | 8-bit | 8..=17 | Single-state alias |
-| 10 | `ALIAS_INTERLEAVED2` | 2 | 8-bit | 8..=17 | Two-state alias |
-
-### Backends (Implementation Choice)
-
-Backends are **not** codec IDs. Division vs reciprocal are arithmetic implementations.
-SSE4.1 vs AVX-512 are decode backends. When two implementations produce the same
-canonical stream, that distinction belongs in execution metadata, not the format ID.
-
-The `capabilities` command reports which codecs and backends are available at both
-compile time and runtime:
-
-```sh
-ryg-rans capabilities --output-format json
-```
-
----
-
-## Safety Guarantees
-
-| Property | How It's Enforced |
-|----------|-------------------|
-| No unsafe code | `#![forbid(unsafe_code)]` — compile-time guarantee |
-| No CPU feature misuse | Runtime detection via `is_x86_feature_detected!` before calling SIMD kernels |
-| No decompression bombs | Limits on block size (64 MiB max), output size (configurable), block count |
-| No integer overflow | Checked arithmetic (`checked_add`) on all length accumulations |
-| No overread | Pre-declared payload lengths, bounds-checked reads |
-| No partial output | Atomic file output with temporary file + rename + sync |
-| No binary data to TTY | Refused unless `--force-tty` is supplied |
-| No shell injection | Oracle comparison uses direct exec, not shell |
-| No panic | Production paths handle all errors via typed `AppError` |
-| No trailing data | Decoder rejects bytes after footer |
-| No duplicate blocks | Block index must increase by exactly 1 |
-| No unknown formats | Unsupported major versions are rejected |
-| No detached threads | Phase I executor joins all worker handles in every exit path (success, error, cancellation) |
-| Worker panic containment | Phase I wraps every task in `catch_unwind`; panics become typed errors |
-| Cooperative cancellation | CancellationToken checked at defined yield points; no thread left dangling |
-| Thread-count-independent output | `FixedBlockPlan` depends only on input length and block size; reorder buffer enforces index-order commit |
-| Bounded memory | Phase I uses bounded channels, bounded reorder buffers, and configurable `max_buffered_input_bytes` / `max_buffered_output_bytes` |
-
----
-
-## Phase I: Parallel Block Engine Integration
-
-The CLI is designed to delegate encode, decode, and verify to the **`ryg-rans-rs-parallel`** crate — a deterministic, bounded, cancellable block-level parallel rANS engine.
-
-### What Phase I Provides
-
-| Capability | Parallel Crate Support | Tests | CLI Integration |
-|------------|----------------------|-------|-----------------|
-| **Block-level parallel encode** | `ParallelEncoder::encode_blocks()` | 63 tests | 🏗️ Pending CLI wiring |
-| **Block-level parallel decode** | `ParallelDecoder::decode_blocks()` | 63 tests | 🏗️ Pending CLI wiring |
-| **Block-level parallel verify** | `ParallelVerifier::verify_blocks()` | 63 tests | 🏗️ Pending CLI wiring |
-| **Deterministic block planning** | `FixedBlockPlan` — thread-count-independent | 63 tests | ✅ Container format accepts plan params |
-| **Bounded reorder buffer** | `ReorderBuffer<T>` — ordered commit | 63 tests | 🔧 Directly usable |
-| **Cooperative cancellation** | `CancellationToken` — yield-point checks | 63 tests | 🔧 Directly usable |
-| **Worker panic containment** | `catch_unwind` wrappers → typed errors | 63 tests | 🔧 Directly usable |
-| **Canonical error selection** | Lowest-block-index + priority ordering | 63 tests | 🔧 Directly usable |
-| **Backend dispatch** | Auto/Scalar/AVX2/AVX-512 with explicit policy | 63 tests | 🔧 `decode --backend` arg pre-wired |
-| **Decode report propagation** | `ExecutedDecode` with actual backend identity | 63 tests | 🔧 Directly usable |
-
-### Integration Path
-
-Each CLI command maps directly to a parallel crate function:
-
-```
-ryg-rans encode   →  ParallelEncoder::encode_blocks()   + ContainerWriter
-ryg-rans decode   →  ParallelDecoder::decode_blocks()   + ContainerReader
-ryg-rans verify   →  ParallelVerifier::verify_blocks()  + ContainerReader
-```
-
-The CLI's `--backend` flag already accepts `auto`, `scalar`, `sse41`, `avx512vl`, and
-`avx512` — these map directly to `BackendPolicy` in the parallel crate.
-
----
-
-## Criterion Benchmark Suite
-
-A dedicated benchmark crate (`ryg-rans-rs-bench`) provides **9 Criterion benchmark files**
-covering all execution tiers:
-
-| Benchmark File | Tier | Scope |
-|---------------|------|-------|
-| `scalar.rs` | Scalar | Division and reciprocal 8-bit/16-bit/32-bit decode throughput |
-| `sse41.rs` | SSE4.1 | SSE4.1-accelerated 8-way decode throughput |
-| `avx2.rs` | AVX2 | AVX2 manual-gather, hardware-gather, 2×8-on-16 decode throughput |
-| `avx512.rs` | AVX-512 | AVX512VL 8-way and AVX512 16-way decode throughput |
-| `dispatch.rs` | Auto-dispatch | Auto-select overhead and backend selection latency |
-| `specialized.rs` | Specialized | Uniform, alias, and skewed-model decode throughput |
-| `batch.rs` | Batched | Multi-block decode throughput with batch sizes 2–16 |
-| `parallel.rs` | Parallel engine | Multi-threaded encode/decode/verify scaling (1–16 threads) |
-| `container.rs` | Block engine | End-to-end block-engine decode+verify+encode at 4 threads, 1 MiB blocks, 16 MiB corpus |
-
-### Benchmark Features
-
-- **Real corpus profiles** — `Uniform256`, `Skewed2551`, `Binary`, `LowEntropy16`, `HighEntropy2` via `Corpus` generator with deterministic seeding
-- **Throughput measurement** — bytes/second via `criterion::Throughput::Bytes`
-- **Warm-up + measurement phases** — configurable (2 s warm-up, 10 s measurement, 30 samples default)
-- **Preflight assertions** — every benchmark verifies correctness before measuring
-- **Black-box inputs** — `black_box()` prevents compiler optimisations from distorting results
-
-Run the suite:
-
-```sh
-# All benchmarks
-cargo bench -p ryg-rans-rs-bench
-
-# Targeted benchmark groups
-cargo bench -p ryg-rans-rs-bench -- "scalar/"
-cargo bench -p ryg-rans-rs-bench -- "block-engine/"
-cargo bench -p ryg-rans-rs-bench -- "parallel/"
-
-# Baseline comparison
-cargo bench -p ryg-rans-rs-bench -- "avx2/8way"
-```
-
----
-
-## Exit Codes
+Defined in `exit.rs`; propagated verbatim by the binary (code 6 is reachable
+since Phase L.15):
 
 | Code | Meaning | Triggered By |
 |------|---------|-------------|
 | 0 | Success | All commands on success |
 | 2 | Usage error | Invalid arguments (Clap) |
 | 3 | I/O error | File not found, permission denied, broken pipe |
-| 4 | Format error | Invalid magic, truncated stream, bad model |
-| 5 | Integrity failure | SHA-256 mismatch (payload, decoded, container) |
-| 6 | Unsupported | Unknown codec, unsupported format version |
-| 7 | Resource limit | Input/output/block size exceeds limit |
-| 8 | Comparison mismatch | Arithmetic paths diverge, backends disagree |
-| 9 | Backend unavailable | Requested SIMD backend not supported by CPU |
-| 10 | Internal error | Invariant violation (bug) |
+| 4 | Container or model format error | Bad magic, truncated stream, invalid model |
+| 5 | Integrity verification failure | Payload / decoded / container / decoded-stream hash mismatch |
+| 6 | Unsupported codec or format version | Unknown codec, explicit `--backend`, unsupported decode codec |
+| 7 | Resource limit exceeded | Input/output/block size or block count exceeds a limit |
+| 8 | Parity or comparison mismatch | Arithmetic paths diverge, backends disagree, models differ |
+| 9 | Requested backend unavailable | e.g. `compare backends` on a container with no 8-way blocks |
+| 10 | Internal invariant failure | Invariant violation (bug) |
+
+---
+
+## Resource Limits
+
+Centralized in `limits.rs` (`Limits` type) and enforced **during reading**,
+not after; all accumulation uses checked arithmetic:
+
+| Limit | Default | Hard Maximum |
+|-------|---------|-------------|
+| Input size | 16 GiB | — |
+| Output size | 16 GiB | — |
+| Block size | 1 MiB | 64 MiB |
+| Payload per block | 1 MiB | — |
+| Model encoding | 2 KiB | — |
+| Block count | 1,000,000 | — |
+| Trace symbols | 256 | — |
+
+`Limits::parse_size` accepts plain bytes and KiB/MiB/GiB suffixes
+(1024-based).
+
+---
+
+## Codec vs Backend Distinction
+
+**Codecs identify the stream format** — number of states, renormalization
+unit, scale constraint (`container/codec.rs`):
+
+| ID | Name | States | Renorm | Scale |
+|----|------|--------|--------|-------|
+| 1 | `BYTE_SINGLE` | 1 | 8-bit | 1..=16 |
+| 2 | `BYTE_INTERLEAVED2` | 2 | 8-bit | 1..=16 |
+| 3 | `R64_SINGLE` | 1 | 32-bit | 1..=31 |
+| 4 | `R64_INTERLEAVED2` | 2 | 32-bit | 1..=31 |
+| 5 | `WORD_SINGLE` | 1 | 16-bit | 12 |
+| 6 | `WORD_INTERLEAVED2` | 2 | 16-bit | 12 |
+| 7 | `WORD_INTERLEAVED8` | 8 | 16-bit | 12 |
+| 8 | `WORD_INTERLEAVED16` | 16 | 16-bit | 12 |
+| 9 | `ALIAS_SINGLE` | 1 | 8-bit | 8..=17 |
+| 10 | `ALIAS_INTERLEAVED2` | 2 | 8-bit | 8..=17 |
+
+**Backends are the implementation choice, not the format.**  Division vs
+reciprocal are arithmetic implementations; scalar vs SIMD are decode
+implementations.  When two implementations produce the same canonical stream,
+the distinction belongs in execution metadata, not the format ID.  The
+`capabilities` command reports the compiled/runtime inventory:
+
+```sh
+ryg-rans capabilities
+```
+
+---
+
+## Safety and Trust Boundaries
+
+| Property | Enforcement |
+|----------|-------------|
+| No unsafe code | `#![forbid(unsafe_code)]` — compile-time |
+| No silent fallback | unsupported codec or explicit `--backend` → typed error, exit 6 |
+| Strict integrity | zero/unset decoded hashes fail; payload/decoded/container/stream hashes all verified before success |
+| Decompression bombs | block size (64 MiB max), payload (1 MiB), model (2 KiB), block count (1M), input/output (16 GiB) enforced during reading |
+| Integer overflow | checked arithmetic on every length accumulation |
+| No overread | pre-declared lengths, bounds-checked reads |
+| No overwrite | output created with `create_new`; `--force` required to replace |
+| No binary to TTY | refused unless `--force-tty` |
+| No trailing data | bytes after the footer are rejected |
+| No unknown formats | unsupported major versions rejected; unknown flags rejected |
+| No panic | production paths return typed `AppError` |
+| Bounded I/O | `BoundedReader` caps input during reads (`-` = stdin included) |
+
+Trust model: a container is **not trusted until every field, bound, and hash
+has been validated**.  The reader (`container/reader.rs`) validates the
+header (magic, version, header length, flags, reserved bytes, declared block
+size), every block record (tag, kind, codec, scale, states, model/payload
+lengths, per-block limits, payload hash, decoded hash), the footer (totals,
+container hash, decoded-stream hash), and the absence of trailing data — all
+before the command reports success.
 
 ---
 
 ## Architecture
 
 ```
-main.rs                    → thin entry point (parse args → call lib → return ExitCode)
-lib.rs                     → command routing + capabilities + completions
+main.rs                    → thin entry point: run() → ExitCode (verbatim)
+lib.rs                     → run() dispatch + capabilities + completions + clap tree
+ops/
+  mod.rs                   → shared machinery: open_input/open_output (guards),
+                             BoundedReader, the ONE codec dispatcher
+                             (decode_block / select_block), walk_container
+  encode.rs decode.rs inspect.rs verify.rs model.rs trace.rs compare.rs bench.rs
 container/
-  mod.rs                   → constants (magic, sizes, block kinds)
-  header.rs                → FileHeader: 32-byte fixed-size header
+  mod.rs                   → constants (magic "RYGRANS\0", sizes, block kinds, tags)
+  header.rs                → FileHeader: fixed 32-byte header
   block.rs                 → Block: 104-byte header + model + payload
-  footer.rs                → FileFooter: 104-byte footer + SHA-256 hashes
-  codec.rs                 → Codec registry: 10 IDs, scale validation, state counts
-  model.rs                 → FrequencyModel: canonical normalization (integer only)
-  reader.rs                → ContainerReader: streaming parser with validation
+  footer.rs                → FileFooter: 104-byte footer + container/stream hashes
+  codec.rs                 → codec registry: 10 IDs, scale validation, state counts
+  model.rs                 → FrequencyModel: canonical sparse encoding, integer-only
+                             deterministic normalization
+  reader.rs                → ContainerReader: streaming parser with full validation
   writer.rs                → ContainerWriter: streaming serializer with hashing
-error.rs                   → AppError: 10 typed variants with structured context
-exit.rs                    → 10 stable exit codes with documentation
+error.rs                   → AppError: 11 typed variants with structured context
+exit.rs                    → 10 stable exit codes + error_to_exit_code
 limits.rs                  → Limits: central resource bounds, size parsing
 ```
 
-### Downstream Integration
+Every consumer of a container (decode, inspect `--deep`, verify, compare)
+runs the **same** codec dispatcher (`ops::decode_block`) — one dispatcher,
+one truth: a container cannot verify under one path and decode under another.
 
-```
-ryg-rans-rs-cli
-  │
-  ├── ryg-rans-rs            (facade — safe public API, feature-gated SIMD re-exports)
-  │     ├── ryg-rans-rs-core  (portable scalar codecs — #![forbid(unsafe_code)])
-  │     └── ryg-rans-rs-simd  (SIMD kernels — SSE4.1, AVX2, AVX-512)
-  │
-  ├── ryg-rans-rs-parallel   (Phase I parallel block engine — 63 tests)
-  │     ├── ryg-rans-rs-core
-  │     └── ryg-rans-rs-simd (optional)
-  │
-  └── ryg-rans-rs-bench      (Criterion bench suite — 9 bench files)
-        ├── ryg-rans-rs-core
-        ├── ryg-rans-rs-simd
-        └── ryg-rans-rs-parallel
-```
+Dependencies: `ryg-rans-rs` (facade), `ryg-rans-rs-core` (`std`),
+`ryg-rans-rs-simd` (optional, default on, for the codec-7 8-way decode),
+`clap` / `clap_complete`, `serde` / `serde_json`, `sha2`, `hex`.
+
+---
+
+## Evidence Model
+
+| Claim | Evidence |
+|-------|----------|
+| All 10 subcommands wired, exit codes and stream behavior correct | 20 integration tests in `tests/cli.rs` (end-to-end via `CARGO_BIN_EXE_ryg-rans`) + `tests/model_normalizer.rs`; run with `cargo test -p ryg-rans-rs-cli` |
+| Codec behavior, container format, hash semantics | The same code paths are exercised by the project's court/evidence pipeline (Phase L.19 courts OPEN) and pinned by `docs/container-format-v1.md` / `docs/bitstream-contract.md` |
+| Performance | Not sealed here: the Criterion suite in `ryg-rans-rs-bench` is the measurement surface; the Phase K run is superseded (gap ledger L1-A…L1-S) and Phase L.18 re-seals.  No performance claim is marked **Sealed**. |
+
+Claim-check path: find the claim in this README → find the producing code
+path in `ops/` / `container/` → find the test that pins it → find the receipt
+in `evidence/` → run `cargo xtask seal`.  If any link is missing, the claim
+is not sealed.
+
+---
+
+## Performance Methodology
+
+- `ryg-rans bench` is a deliberate, dependency-free **live smoke
+  measurement**: a deterministic skewed corpus (symbol 0 at 64× frequency,
+  xorshift-generated) of the requested size, a one-shot encode+decode
+  round-trip preflight that must reproduce the input, then mean MiB/s over
+  `--samples` (default 50) encode and decode iterations.  Size is bounded to
+  `(0, 64 MiB]`.  It is **not** a replacement for the Criterion suite, which
+  remains the sealed measurement surface (`RUSTFLAGS="-C target-cpu=native"
+  cargo bench -p ryg-rans-rs-bench`).
+- No throughput numbers are quoted here: the Phase K measurements are
+  superseded and Phase L.18 is re-sealing.
+
+---
+
+## Limitations
+
+Honest, current (Phase L.15):
+
+- **Codec coverage is partial by design.**  Encode: byte-single,
+  byte-interleaved2 (default), r64-single, word-single (others → exit 6).
+  Decode: codecs 1, 2, 3, 5, 7 (8-way via SIMD/scalar); 4, 6, 8, 9, 10 →
+  exit 6.  `trace` supports byte-single rANS blocks only.
+- **No explicit backend selection in the CLI decoder** — only the auto
+  dispatcher exists; `decode --backend <name>` → exit 6.
+- **Single-threaded.**  No parallel block engine integration
+  (`ryg-rans-rs-parallel` is a separate crate with its own block format).
+- **`model` supports only the per-block model mode** on encode; global /
+  uniform / external modes → typed error (exit 6).
+- **`--arithmetic` is not selectable** on encode; the reciprocal fast path is
+  always used (`--arithmetic` accepts only `auto`).
+- **No signal handling** (SIGINT/SIGTERM/timeout) — gap ledger L3-D, OPEN.
+- **`bench` results are smoke numbers**, not sealed measurements.
 
 ---
 
 ## Examples
 
 ```sh
-# Encode a file
-ryg-rans encode --input input.bin --output input.bin.rygr
+# Encode a file (byte-interleaved2, 1 MiB blocks, per-block models)
+ryg-rans encode -i input.dat -o output.rygr
 
-# Decode a container
-ryg-rans decode --input archive.rygr --output restored.bin
+# Encode with an explicit codec / block size
+ryg-rans encode -i input.dat -o output.rygr --codec r64-single --block-size 64KiB
 
-# Encode from stdin to stdout
-cat input.bin | ryg-rans encode --input - --output archive.rygr
+# Decode and verify (strict integrity; exit 5 on any hash mismatch)
+ryg-rans decode -i output.rygr -o restored.dat
 
-# Decode to stdout (verified spool — no output until verification passes)
-ryg-rans decode --input archive.rygr --output -
+# Inspect container structure (--deep decodes and verifies every block)
+ryg-rans inspect -i output.rygr --deep
+ryg-rans inspect -i output.rygr --output-format json --blocks
 
-# Inspect container structure
-ryg-rans inspect --input archive.rygr --output-format json
+# Verify integrity without writing output
+ryg-rans verify -i output.rygr
+ryg-rans verify -i output.rygr --output-format json
 
-# Verify integrity with all available backends
-ryg-rans verify --input archive.rygr --backend all-available
+# Model tooling (binary output for container-identical bytes)
+ryg-rans model build -i input.dat -o model.bin --output-format binary
+ryg-rans model validate -i model.bin
+ryg-rans model inspect -i model.bin
+ryg-rans model compare --a model-a.bin --b model-b.bin
 
-# Build a frequency model
-ryg-rans model build --input input.bin --scale-bits 12 --output model.json
+# Trace symbol/state transitions of block 0 (byte-single codec only)
+ryg-rans trace -i output.rygr --block 0 --max-symbols 64
 
-# Show capabilities in JSON
-ryg-rans capabilities --output-format json
+# Compare division vs reciprocal encoding parity
+ryg-rans compare arithmetic -i input.dat
 
-# Generate bash completions
+# Compare the auto dispatcher against the explicit scalar 8-way reference
+ryg-rans compare backends -i output-8way.rygr
+
+# Compare two containers by decoded-stream hash
+ryg-rans compare files --a a.rygr --b b.rygr
+
+# Smoke benchmark (the Criterion suite is the sealed surface)
+ryg-rans bench --samples 50
+ryg-rans bench --codec word-single --size 4MiB --output-format json
+
+# Show capabilities / generate completions
+ryg-rans capabilities
 ryg-rans completions bash > /etc/bash_completion.d/ryg-rans
-
-# Run the Criterion benchmark suite
-cargo bench -p ryg-rans-rs-bench
-
-# Run only parallel engine benchmarks
-cargo bench -p ryg-rans-rs-bench -- "block-engine/"
 ```
+
+Stdio: use `-` for stdin/stdout (`cat input.dat | ryg-rans encode -i - -o
+archive.rygr`); binary output to a terminal is refused unless `--force-tty`.
 
 ---
 
-*Part of the ryg-rans-rs project. Version 0.1.27. Phase J.*
+## Troubleshooting
+
+| Symptom | Cause / Fix |
+|---------|-------------|
+| Exit 6 "codec '...' not implemented in the CLI encoder" | Only byte-single, byte-interleaved2, r64-single, word-single can be encoded |
+| Exit 6 "explicit backend ... not implemented in the CLI decoder" | Only the auto dispatcher exists; drop `--backend` or use `verify --backend all-available` |
+| Exit 6 "codec N not supported by the CLI decoder" | Decode implements codecs 1, 2, 3, 5, 7 only |
+| Exit 5 integrity failure | Some hash (payload, decoded, container, decoded-stream) mismatched; use `inspect --deep` to localize the block |
+| Exit 4 "trailing data after footer" / "expected block or footer" | The container has extra bytes after the footer or a corrupt block tag |
+| Exit 7 resource limit | Input/block/payload/model/block-count bound exceeded; the message states the limit and requested value |
+| Exit 9 "container has no 8-way (codec 7) blocks" | `compare backends` needs codec-7 blocks; encode with `--codec word-interleaved8`? — not supported by the CLI encoder, so compare against a container produced elsewhere |
+| Exit 3 I/O error | File missing/unreadable, output exists without `--force`, or binary output to a terminal without `--force-tty` |
+| `decode` writes partial output before failing | Decoded bytes are streamed as blocks are verified; a failure mid-container leaves partial output on disk — use `verify` for a no-write integrity check |
+
+---
+
+## Versioning
+
+- Version **0.1.30**, shared with the workspace.  Binary name `ryg-rans`.
+- Exit codes are stable once documented (`exit.rs`) — changing one is a
+  breaking change for automation.
+- The RYGRANS v1 container format is pinned by `docs/container-format-v1.md`;
+  format changes require a new major container version.
+
+---
+
+## Reading Order
+
+1. `docs/glossary.md` — exact project terminology.
+2. Root `README.md` — evidence status, CLI overview, exit codes.
+3. `docs/container-format-v1.md` — the RYGRANS v1 specification this crate
+   implements.
+4. `docs/bitstream-contract.md` — the pinned upstream stream formats.
+5. `src/lib.rs`, then `ops/` and `container/` module docs.
+6. `evidence/phase-l/gap-ledger.md` — residuals touching the CLI (L.15).
+
+---
+
+*Part of the ryg-rans-rs project. Version 0.1.30. Phase L.*

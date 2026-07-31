@@ -1,269 +1,172 @@
 # ryg-rans-rs
 
 > **Public facade for ryg-rans-rs — rANS entropy coding in Rust.**  
-> Safe, `no_std`-compatible API. Re-exports the deterministic core, optionally adds SSE4.1, AVX2, and AVX-512 decode kernels.  
-> 144 behavioral receipts across 7 algorithmic surfaces, sealed via bit-exact C↔Rust cross-decoding courts.
+> Safe, `no_std`-compatible.  Re-exports the deterministic core from
+> `ryg-rans-rs-core`, optionally adds SSE4.1-accelerated decode kernels from
+> `ryg-rans-rs-simd`, and optionally adds heap-allocated convenience wrappers.
+
+**Version: 0.1.30** (workspace) · **Phase L** · 2 tests (doc tests)
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs)](https://crates.io/crates/ryg-rans-rs)
 [![docs.rs](https://img.shields.io/docsrs/ryg-rans-rs)](https://docs.rs/ryg-rans-rs/latest/ryg_rans_rs/)
-
-**Version: 0.1.27** — Phase J
 
 ---
 
 ## Table of Contents
 
 1. [What This Crate Is](#what-this-crate-is)
-2. [Architecture Overview](#architecture-overview)
+2. [What This Crate Is NOT](#what-this-crate-is-not)
 3. [Module Reference](#module-reference)
-4. [SIMD Module](#simd-module)
-5. [Feature Matrix](#feature-matrix)
-6. [Quick Start](#quick-start)
-7. [Safety Guarantees](#safety-guarantees)
-8. [Published Versions](#published-versions)
+4. [Feature Matrix](#feature-matrix)
+5. [Quick Start](#quick-start)
+6. [Safety Boundaries](#safety-boundaries)
+7. [Evidence Model](#evidence-model)
+8. [Versioning](#versioning)
+9. [Troubleshooting](#troubleshooting)
+10. [Reading Order](#reading-order)
 
 ---
 
 ## What This Crate Is
 
-This is the **single public entry point** for the ryg-rans-rs project. It re-exports
-functionality from two internal crates:
+This is the **single public entry point** for the ryg-rans-rs project.  It is
+a **pure re-export and feature-gating layer** — it adds no algorithmic logic.
+Two internal crates provide all functionality:
 
 ```
-ryg-rans-rs-core  →  the algorithmic heart (no_std, no unsafe)
-ryg-rans-rs-simd  →  SIMD acceleration (no_std, selective unsafe under #[target_feature])
+ryg-rans-rs-core  →  the algorithmic heart (no_std, forbid(unsafe_code))
+ryg-rans-rs-simd  →  SIMD acceleration (no_std, ledgered unsafe under #[target_feature])
 ```
 
-The facade adds **no algorithmic logic** — it is purely a re-export and feature-gating
-layer. This means users get exactly one crate to depend on (`ryg-rans-rs`), while the
-core and SIMD crates remain independently versioned and tested.
+The facade (`src/lib.rs`) is `#![no_std]` and `#![deny(unsafe_code)]` —
+note **`deny`, not `forbid`**: the crate contains no unsafe code, and the
+attribute is set so any future accidental `unsafe` is a hard compile error.
+All SIMD intrinsics live behind the `simd` feature in `ryg-rans-rs-simd`,
+never in this crate.
 
-### Why a Facade Crate?
+### Re-export architecture
 
-1. **Single dependency**: Users depend on one crate instead of three
-2. **Feature isolation**: SIMD code is compiled only when the `simd` feature is enabled
-3. **Versioning flexibility**: Core and SIMD can version independently
-4. **Safety boundary**: The facade is `#![deny(unsafe_code)]` — users never directly
-   interact with unsafe SIMD intrinsics
-
-### Re-Export Architecture
-
-The facade re-exports from its dependencies using `pub use`:
-
-- **`ryg-rans-rs-core`**: Everything in the `byte` module is re-exported as the
-  `byte` module of the facade. The core's `lib.rs` is re-exported verbatim.
-- **`ryg-rans-rs-simd`**: Conditionally compiled behind `#[cfg(feature = "simd")]`.
-  When enabled, the SIMD crate's public API becomes available under the `simd` module.
-- **Helper modules**: The `alloc_utils` module provides convenience functions
-  (`encode_byte`, `decode_byte`) that wrap the core's traits with `Vec`-based I/O.
-
-The dependency graph is:
-
-```
-ryg-rans-rs (facade, #![deny(unsafe_code)])
-    ↓ imports
-ryg-rans-rs-core (#![forbid(unsafe_code)])     ryg-rans-rs-simd (unsafe fn, #[target_feature])
-    ↓ depends on ↓
-(no dependencies)                                 ryg-rans-rs-core
-```
+- **`byte` module** (always available): re-exports every public item from
+  `ryg-rans-rs-core` (`pub use ryg_rans_rs_core::*`), including the
+  `malformed` submodule.  Types: `RansByteState`, `Rans64State`,
+  `RansWordState`, `RansByteEncSymbol`, `RansByteDecSymbol`, `Rans64EncSymbol`,
+  `Rans64DecSymbol`, `BackwardByteWriter`, `ByteReader`, `SliceBackwardWriter`,
+  `ByteInterleavedEncoder`, `ByteInterleavedDecoder`, `BackwardWord16Writer`,
+  `BackwardWord32Writer`, `Word16Reader`, `Word32Reader`, `RansWordSlot`,
+  `RansWordTables`, `AliasTable`, and the `rans_byte_*`, `rans64_*`,
+  `rans_word_*`, `rans_byte_alias_*` function families.
+- **`simd` module** (`simd` feature): re-exports a fixed, documented subset of
+  `ryg-rans-rs-simd` (see [Module Reference](#module-reference)).
+- **`alloc_utils` module** (`alloc` feature): two `Vec`-based convenience
+  functions, `encode` and `decode` (see [Module Reference](#module-reference)).
 
 ---
 
-## Architecture Overview
+## What This Crate Is NOT
 
-### Internal structure
-
-```
-ryg-rans-rs (facade)
-├── byte module (always available)
-│   ├── Types: RansByteState, RansByteEncSymbol, RansByteDecSymbol
-│   ├── Encode: rans_byte_enc_put, rans_byte_enc_put_symbol
-│   ├── Decode: rans_byte_dec_init, rans_byte_dec_advance_symbol
-│   ├── I/O: BackwardByteWriter, ByteReader, SliceBackwardWriter
-│   ├── Interleaved: ByteInterleavedEncoder, ByteInterleavedDecoder
-│   ├── Constants: RANS_BYTE_L, RANS64_L, RANS_WORD_L
-│   ├── 64-bit: Rans64State, Rans64EncSymbol, Rans64DecSymbol
-│   ├── Word: RansWordState, RansWordSlot, RansWordTables
-│   └── Alias: AliasTable, rans_byte_alias_*
-│
-├── simd module (behind "simd" feature)
-│   ├── 8-way: decode_interleaved8_auto, decode_interleaved8_scalar
-│   ├── 16-way: decode_interleaved16_auto, decode_interleaved16_scalar
-│   ├── Backends: DecodeBackend enum with stable labels
-│   └── Table: PackedWordTable, PackedWordEntry
-│
-└── alloc_utils module (behind "alloc" feature)
-    └── Convenience: encode_byte, decode_byte (Vec-based)
-```
-
-### Dependency flow
-
-```
-ryg-rans-rs (facade, #![deny(unsafe_code)])
-    ↓ imports from ↓
-ryg-rans-rs-core (#![forbid(unsafe_code)])     ryg-rans-rs-simd (unsafe fn, #[target_feature])
-    ↓ depends on ↓
-(no dependencies)                                 ryg-rans-rs-core
-```
-
-The core has no knowledge of SIMD. The SIMD crate builds on the core. The facade
-provides unified access.
+- **Not an implementation.**  It performs no arithmetic, hashing, or stream
+  parsing of its own; all behavior comes from the re-exported crates.
+- **Not the parallel engine.**  Block-level parallelism lives in the separate
+  `ryg-rans-rs-parallel` crate.
+- **Not the CLI.**  The `ryg-rans` binary and the RYGRANS v1 container live in
+  the separate `ryg-rans-rs-cli` crate.
+- **Not a full SIMD surface.**  The `simd` module re-exports only the
+  documented subset below.  The complete SIMD API (packed tables, explicit
+  AVX2/AVX-512 `_checked` dispatchers, `DecodeBackend`/`DecodeResult`, and
+  the `backends` / `packed_table` modules) lives in `ryg-rans-rs-simd` and is
+  consumed directly by `ryg-rans-rs-parallel`; it is **not** re-exported here.
 
 ---
 
 ## Module Reference
 
-### `byte` Module (Always Available)
+### `byte` (always available)
 
-The `byte` module re-exports every public type and function from `ryg-rans-rs-core`.
-This includes:
+Re-exports everything from `ryg-rans-rs-core`.  Representative items:
 
-| Category | Types/Functions | Description |
-|----------|----------------|-------------|
-| **State** | `RansByteState`, `Rans64State`, `RansWordState` | Encoder/decoder state wrappers |
-| **Encode symbols** | `RansByteEncSymbol`, `Rans64EncSymbol` | Precomputed reciprocal params |
-| **Decode symbols** | `RansByteDecSymbol`, `Rans64DecSymbol` | Decoder frequency/start pairs |
-| **Encode** | `rans_byte_enc_put`, `rans_byte_enc_put_symbol`, `rans_byte_enc_flush` | Division + reciprocal encode |
-| **Decode** | `rans_byte_dec_init`, `rans_byte_dec_get`, `rans_byte_dec_advance_symbol` | Division decode |
-| **R64 encode** | `rans64_enc_put`, `rans64_enc_put_symbol`, `rans64_enc_flush` | 64-bit encode |
-| **R64 decode** | `rans64_dec_init`, `rans64_dec_advance_symbol`, `rans64_dec_renorm` | 64-bit decode |
-| **Word encode** | `rans_word_enc_init`, `rans_word_enc_put`, `rans_word_enc_flush` | Table-based word encode |
-| **Word decode** | `rans_word_dec_init`, `rans_word_dec_sym`, `rans_word_dec_renorm` | Table-based word decode |
-| **I/O** | `BackwardByteWriter`, `ByteReader`, `SliceBackwardWriter` | Buffer management |
-| **R64 I/O** | `BackwardWord32Writer`, `Word32Reader` | Word-based I/O |
-| **Word I/O** | `BackwardWord16Writer`, `Word16Reader` | 16-bit word I/O |
-| **Interleaved** | `ByteInterleavedEncoder`, `ByteInterleavedDecoder` | Two-state interleaved |
-| **Alias** | `AliasTable`, `rans_byte_alias_*` | Vose alias table + operations |
-| **Constants** | `RANS_BYTE_L`, `RANS64_L`, `RANS_WORD_L`, `RANS_WORD_SCALE_BITS` | Normalization bounds |
-| **Malformed** | `malformed::validate_byte_compressed`, `malformed::RenormGuard`, etc. | Stream validation |
+| Category | Items |
+|----------|-------|
+| State | `RansByteState`, `Rans64State`, `RansWordState` |
+| Encode symbols | `RansByteEncSymbol`, `Rans64EncSymbol` |
+| Decode symbols | `RansByteDecSymbol`, `Rans64DecSymbol` |
+| Encode (32-bit) | `rans_byte_enc_put`, `rans_byte_enc_put_symbol`, `rans_byte_enc_flush` |
+| Decode (32-bit) | `rans_byte_dec_init`, `rans_byte_dec_get`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_renorm` |
+| Encode (64-bit) | `rans64_enc_put`, `rans64_enc_put_symbol`, `rans64_enc_flush` |
+| Decode (64-bit) | `rans64_dec_init`, `rans64_dec_get`, `rans64_dec_advance_symbol`, `rans64_dec_renorm` |
+| Word rANS | `rans_word_enc_init`, `rans_word_enc_put`, `rans_word_enc_flush`, `rans_word_dec_init`, `rans_word_dec_sym`, `rans_word_dec_renorm` |
+| I/O | `BackwardByteWriter`, `ByteReader`, `SliceBackwardWriter`, `BackwardWord16Writer`, `Word16Reader`, `BackwardWord32Writer`, `Word32Reader` |
+| Interleaved | `ByteInterleavedEncoder`, `ByteInterleavedDecoder` |
+| Alias | `AliasTable`, `rans_byte_alias_normalize_freqs`, `rans_byte_alias_build_table`, `rans_byte_alias_enc_put`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_dec_advance` |
+| Constants | `RANS_BYTE_L`, `RANS64_L`, `RANS_WORD_L` |
+| Malformed-stream validation | `malformed::{validate_byte_compressed, validate_r64_compressed, validate_word_compressed, validate_freq_model, RenormGuard, ValidationError, has_dominant_symbol, ...}` |
 
-### `malformed` Sub-Module
+### `simd` (`simd` feature)
 
-The `malformed` sub-module provides defensive stream validation. It is always available
-because it lives in `ryg-rans-rs-core`:
+Re-exports exactly:
 
-```rust
-use ryg_rans_rs::byte::malformed::{
-    validate_byte_compressed,
-    RenormGuard,
-    validate_freq_model,
-    has_dominant_symbol,
-};
-```
+| Item | Notes |
+|------|-------|
+| `RANS_WORD_L`, `RANS_WORD_M`, `RANS_WORD_SCALE_BITS` | Word-rANS constants |
+| `RansWordSlot`, `RansWordTables` | Slot / table types for the 8-way kernels |
+| `build_word_tables(freqs, cum_freqs, scale_bits)` | Build `(slots, slot2sym)` |
+| `rans_word_tables_init_symbol(...)` | Fill one symbol's slots |
+| `decode_8way_scalar(compressed, tables, expected_len)` | Portable scalar 8-way decode |
+| `decode_simd_8way(compressed, tables, expected_len)` | **Safe**: SSE4.1 8-way decode when compiled with `sse4.1`, scalar fallback otherwise (compile-time `cfg`, no runtime detection) |
+| `decode_simd_8way_unchecked(...)` | **`unsafe fn`** with `#[target_feature(enable = "ssse3,sse4.1")]`; the caller must guarantee runtime SSSE3 + SSE4.1 |
+| `RansSimdDec` | SIMD decoder state (4 × 32-bit lanes) |
+| `rans_simd_dec_init(...)` | Initialize a `RansSimdDec` |
 
----
+The `unsafe fn` is listed in the machine-verified ledger
+(`crates/ryg-rans-rs-simd/unsafe-ledger.toml`) and carries its own
+`#[target_feature]` attributes and a `# Safety` section — callers are not
+relied on for target features.  Every other item here is safe.
 
-## SIMD Module
+### `alloc_utils` (`alloc` feature)
 
-The `simd` module is enabled with `features = ["simd"]` in your `Cargo.toml`.
+| Function | Signature behavior |
+|----------|--------------------|
+| `encode(symbols, esyms, scale_bits) -> Vec<u8>` | Encodes a byte slice with precomputed `RansByteEncSymbol`s into a heap-allocated buffer |
+| `decode(encoded, cum2sym, dsyms, scale_bits, num_symbols) -> Vec<u8>` | Decodes into a heap-allocated buffer |
 
-### Available APIs
-
-#### 8-Way Interleaved (Existing Format)
-
-| Function | Backend | Safety | Description |
-|----------|---------|--------|-------------|
-| `decode_interleaved8_auto` | Auto-select | ✅ Safe | Scalar (fastest on Zen 5) |
-| `decode_interleaved8_scalar` | Scalar | ✅ Safe | Always scalar |
-| `decode_interleaved8_avx512vl` | AVX512VL | ⚠️ Unsafe | Requires CPU support |
-
-#### 16-Way Interleaved (New Format)
-
-| Function | Backend | Safety | Description |
-|----------|---------|--------|-------------|
-| `decode_interleaved16_auto` | Auto-select | ✅ Safe | Scalar (fastest on Zen 5) |
-| `decode_interleaved16_scalar` | Scalar | ✅ Safe | Always scalar |
-| `decode_interleaved16_avx512` | AVX512 | ⚠️ Unsafe | Requires CPU support |
-| `encode_interleaved16` | Scalar | ✅ Safe | 16-way encoder |
-
-#### Packed Table
-
-| Type | Description |
-|------|-------------|
-| `PackedWordTable` | 4096-slot u32 packed table (freq\|bias<<12\|sym<<24) |
-| `PackedWordEntry` | Single entry with freq/bias/symbol extraction |
-| `DecodeBackend` | Enum with stable labels: `scalar-8way`, `avx512vl-8way`, etc. |
-| `DecodeResult` | Output + report + backend identity |
-
-### How to Use With and Without SIMD
-
-**Without SIMD (default)**: The `byte` module is always available. All encode/decode
-operations use pure safe Rust scalar code. This works on any platform — x86_64, ARM,
-RISC-V, Wasm, etc.
-
-```toml
-[dependencies]
-ryg-rans-rs = "0.1.27"
-```
-
-**With SIMD**: Enable the `simd` feature to get SSE4.1, AVX2, and AVX-512 decode kernels.
-These are only available on x86_64 with the appropriate CPU features. The `_auto` functions
-perform runtime detection and fall back to scalar if no SIMD is available.
-
-```toml
-[dependencies]
-ryg-rans-rs = { version = "0.1.27", features = ["simd"] }
-```
-
-**With alloc**: Enable the `alloc` feature for `Vec`-based convenience functions.
-
-```toml
-[dependencies]
-ryg-rans-rs = { version = "0.1.27", features = ["alloc", "simd"] }
-```
-
-### ISA Requirements
-
-| Backend | Required `target_feature` | First CPU Support |
-|---------|--------------------------|-------------------|
-| SSE4.1 8-way | `+ssse3,+sse4.1` | Intel Core 2 (2008), AMD Bulldozer (2011) |
-| AVX2 8-way/16-way | `+avx2` | Intel Haswell (2013), AMD Excavator (2015) |
-| AVX512VL 8-way | `+avx512f,+avx512vl,+avx512bw` | Intel Ice Lake (2019), AMD Zen 4 (2022) |
-| AVX512 16-way | `+avx512f,+avx512bw` | Intel Ice Lake (2019), AMD Zen 4 (2022) |
+Both use the core's manual APIs internally and **may panic** on malformed or
+truncated input (documented in `src/lib.rs`); for controlled environments use
+the manual API with `BackwardByteWriter` / `ByteReader` and typed
+`EncodeError` / `DecodeError`.
 
 ---
 
 ## Feature Matrix
 
-| Feature | What It Enables | `no_std` Compatible | Typical Use Case |
-|---------|----------------|-------------------|------------------|
-| (default) | Core re-export only | ✅ Yes | Embedded, kernel, Wasm |
-| `simd` | `ryg-rans-rs-simd` (SSE4.1 + AVX2 + AVX-512) | ✅ Yes (cfg dispatch) | Performance-sensitive decoding |
-| `alloc` | `alloc_utils` + alias table | ✅ Yes (extern alloc) | Heap-allocated decode |
+| Feature | Default | What It Enables | `no_std` |
+|---------|---------|-----------------|----------|
+| (none) | ✅ | `byte` module only | ✅ |
+| `simd` | — | `simd` module (re-exports from `ryg-rans-rs-simd`) | ✅ (with `alloc` where the kernels allocate; the crate itself is `#![no_std]`) |
+| `alloc` | — | `alloc_utils` module + `ryg-rans-rs-core/alloc` | ✅ (with a global allocator) |
 
-### How Features Compose
-
-| Feature Combination | What Works | Example Use Case |
-|--------------------|------------|------------------|
-| (none) | `byte` module only | Embedded decoder with fixed buffers |
-| `alloc` | `byte` + `alloc_utils` + alias table | Desktop CLI tool with Vec-based I/O |
-| `simd` | `byte` + `simd` module | Performance-critical decode with runtime dispatch |
-| `alloc` + `simd` | Everything | Full-featured application with SIMD + convenience APIs |
-
-The facade is `#![no_std]` friendly. Both `byte` and `simd` modules work without `std`.
-The `simd` module's runtime detection falls back to compile-time `cfg!(target_feature)`
-when `std` is not available.
+Composition: `simd` and `alloc` are independent.  `alloc` + `simd` enables
+everything this facade exposes.  The facade declares no `std` dependency in
+any feature combination.
 
 ---
 
 ## Quick Start
 
-### Basic Byte rANS Encode/Decode
+### Basic byte rANS encode/decode (no features)
 
 ```rust
 use ryg_rans_rs::byte::{
-    RansByteState, RansByteEncSymbol,
+    RansByteState, RansByteEncSymbol, RansByteDecSymbol,
     BackwardByteWriter, ByteReader,
     rans_byte_enc_put_symbol, rans_byte_enc_flush,
-    rans_byte_dec_init, rans_byte_dec_advance_symbol,
+    rans_byte_dec_init, rans_byte_dec_get,
+    rans_byte_dec_advance_symbol,
 };
 
 let scale_bits = 14;
-let freq = (1u32 << scale_bits) / 256;  // Uniform 256-symbol model
-let mut buf = [0u8; 4096];               // Output buffer
+let freq = (1u32 << scale_bits) / 256; // uniform 256-symbol model
+let mut buf = [0u8; 4096];
 
-// Encode a single symbol 'A' (byte value 65)
 let mut writer = BackwardByteWriter::new(&mut buf);
 let mut state = RansByteState::new();
 let sym = RansByteEncSymbol::new(0, freq, scale_bits).unwrap();
@@ -271,30 +174,45 @@ rans_byte_enc_put_symbol(&mut state, &mut writer, &sym).unwrap();
 rans_byte_enc_flush(&state, &mut writer).unwrap();
 let encoded = writer.encoded();
 
-// Decode it back
 let mut reader = ByteReader::new(encoded);
 let mut dec_state = rans_byte_dec_init(&mut reader).unwrap();
-let dsym = ryg_rans_rs::byte::RansByteDecSymbol::new(0, freq).unwrap();
+let dsym = RansByteDecSymbol::new(0, freq).unwrap();
+let cf = rans_byte_dec_get(&dec_state, scale_bits);
 rans_byte_dec_advance_symbol(&mut dec_state, &mut reader, &dsym, scale_bits).unwrap();
-// dec_state now contains the original state (RANS_BYTE_L)
 ```
 
-### AVX-512 Decode (with SIMD feature)
+### Convenience API (`alloc` feature)
 
 ```rust
-#[cfg(feature = "simd")]
-{
-    use ryg_rans_rs::simd::backends::decode_interleaved8_auto;
-    use ryg_rans_rs::simd::packed_table::PackedWordTable;
+# #[cfg(feature = "alloc")] {
+use ryg_rans_rs::byte::RansByteEncSymbol;
+use ryg_rans_rs::alloc_utils;
 
-    let packed = PackedWordTable::from_freqs(&freqs, &cum, 12).unwrap();
-    let result = decode_interleaved8_auto(&compressed, &packed, expected_len).unwrap();
-    println!("Decoded {} bytes using {}", result.output.len(), result.backend.label());
-    assert_eq!(result.output, original_input);
-}
+let scale_bits = 14;
+let total = 1u32 << scale_bits;
+let base_freq = total / 256;
+
+let esyms: Vec<_> = (0..256)
+    .map(|i| RansByteEncSymbol::new(i * base_freq, base_freq, scale_bits).unwrap())
+    .collect();
+
+let data = b"Hello, rANS!";
+let encoded = alloc_utils::encode(data, &esyms, scale_bits);
+
+let cum2sym: Vec<u8> = (0..total as usize)
+    .map(|i| (i / base_freq as usize) as u8)
+    .collect();
+
+let dsyms: Vec<_> = (0..256)
+    .map(|i| ryg_rans_rs::byte::RansByteDecSymbol::new(i * base_freq, base_freq).unwrap())
+    .collect();
+
+let decoded = alloc_utils::decode(&encoded, &cum2sym, &dsyms, scale_bits, data.len());
+assert_eq!(&decoded, data);
+# }
 ```
 
-### Malformed Input Validation
+### Malformed-input validation
 
 ```rust
 use ryg_rans_rs::byte::malformed::{
@@ -303,52 +221,78 @@ use ryg_rans_rs::byte::malformed::{
     ValidationError,
 };
 
-// Before decoding an untrusted stream:
 if let Err(e) = validate_byte_compressed(untrusted_input) {
-    return Err(e.into());
-}
-
-// During renormalization with untrusted input:
-let mut guard = RenormGuard::new_byte();
-loop {
-    guard.check()?;  // Fails after 16 iterations on corrupted input
-    let b = reader.read_byte().ok_or(DecodeError::InputTooShort)?;
-    x = (x << 8) | (b as u32);
-    if x >= RANS_BYTE_L { break; }
+    // e: ValidationError (TruncatedStream, ExcessiveRenormalization, ...)
 }
 ```
 
 ---
 
-## Safety Guarantees
+## Safety Boundaries
 
-| Layer | What | Enforcement |
-|-------|------|-------------|
-| **Core crate** | All arithmetic | `#![forbid(unsafe_code)]` — compile-time |
-| **Facade crate** | Re-exports only | `#![deny(unsafe_code)]` — compile-time |
-| **SIMD crate** | Intrinsics | 7 core `unsafe fn`, all `#[target_feature]`-gated |
-| **SIMD dispatch** | Runtime detection | Safe `_auto` functions check CPU features |
-| **No overread** | Input bounds | Every decoder checks length before reading |
-| **No overflow** | Arithmetic bounds | Kani proofs for critical formulas |
-| **No panic** | Error handling | All errors are typed — no `unwrap` in production paths |
+| Layer | Attribute | Unsafe code |
+|-------|-----------|-------------|
+| `ryg-rans-rs-core` | `#![forbid(unsafe_code)]` | none |
+| **`ryg-rans-rs` (this crate)** | `#![deny(unsafe_code)]`, `#![no_std]` | none |
+| `ryg-rans-rs-simd` | ledgered | every `unsafe fn` listed in `unsafe-ledger.toml`, each with its own `#[target_feature]` and a `# Safety` section |
 
----
-
-## Published Versions
-
-| Version | Phase | Key Changes |
-|---------|-------|-------------|
-| **0.1.27** | **J** | **Criterion all-tier benchmark suite, 8/16-thread scaling matrix, strict block parser, ultra-thorough documentation across all 8 crates** |
-| **0.1.26** | **J** | **AVX2 portability tier, Batch4, real SSE execution, backend truthfulness, Phase I CLI integration** |
-| **0.1.25** | **I** | **Phase I parallel block engine: bounded executor, FixedBlockPlan, ReorderBuffer, CancellationToken, 63 tests. Published all 7 workspace crates.** |
-| **0.1.15** | **G** | **AVX512VL 8-way + AVX512 16-way decode kernels** |
-| 0.1.14 | H | Malformed-stream hardening, fuzzing, Kani proofs |
-| 0.1.13 | F | SSE4.1 SIMD decoder, 128 receipts |
-| 0.1.12 | F | SIMD implementation, cross-courts |
-| 0.1.11 | E | Alias method seal, 120 receipts |
-| 0.1.10 | E | Alias implementation |
-| 0.1.9 | D | Word rANS seal, Docker stamp |
+The `simd` module's safe entry points are compile-time-gated (`cfg!` /
+`#[cfg(target_feature)]`); the one `unsafe fn` re-exported here
+(`decode_simd_8way_unchecked`) requires the caller to guarantee runtime
+SSSE3 + SSE4.1 support, exactly as its documentation states.
 
 ---
 
-*Part of the ryg-rans-rs project. Version 0.1.27. Phase J.*
+## Evidence Model
+
+- The facade **adds no algorithmic surface of its own**, so it has no
+  behaviour or performance receipts.  Its own test surface is the two doc
+  tests shown above (`cargo test -p ryg-rans-rs`).
+- The underlying surfaces carry the project evidence: the Phase K baseline of
+  **144 behavioural receipts** across the core/SIMD surfaces (byte, R64,
+  word, alias, SSE4.1, AVX512VL.INTERLEAVED8, AVX512.INTERLEAVED16), with the
+  Phase L courts extending the total.  Performance receipts are being
+  re-sealed in Phase L.18 (the Phase K run is superseded — gap ledger
+  L1-A…L1-S); no performance claim is marked **Sealed** until the seal gate
+  passes.
+- Claim-check path: claim → producing code path (in `ryg-rans-rs-core` or
+  `ryg-rans-rs-simd`) → court/test → receipt in `evidence/` → `cargo xtask
+  seal`.
+
+---
+
+## Versioning
+
+- Version **0.1.30**, shared with the workspace.  The facade is a re-export
+  layer, so its API surface tracks the versions of `ryg-rans-rs-core` and
+  `ryg-rans-rs-simd` (both 0.1.30).
+- The public API inventory is generated by `cargo public-api` into
+  `docs/public-api/` — do not hand-edit those files.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause / Fix |
+|---------|-------------|
+| `use ryg_rans_rs::simd::decode_interleaved8_auto;` fails to compile | The full SIMD API (`backends`, `packed_table`, `PackedWordTable`, `DecodeBackend`, `DecodeResult`) is **not** re-exported by the facade; depend on `ryg-rans-rs-simd` directly or use the re-exported subset (`decode_simd_8way`, `decode_8way_scalar`, ...) |
+| `use ryg_rans_rs::alloc_utils::encode_byte` fails | The alloc helpers are named `encode` and `decode`, not `encode_byte` / `decode_byte` |
+| SIMD decode falls back to scalar | `decode_simd_8way` uses the scalar path when the build lacks `sse4.1`; compile with `RUSTFLAGS="-C target-cpu=native"` (or the equivalent feature flags) for the SIMD path |
+| `alloc_utils` panics on short input | Documented behavior; the convenience wrappers use `expect` internally.  Use the manual API for untrusted input |
+
+---
+
+## Reading Order
+
+1. `docs/glossary.md` — exact project terminology.
+2. `docs/architecture.md` and the root `README.md` (crate map, evidence
+   status).
+3. `crates/ryg-rans-rs-core/src/lib.rs` — the re-exported surface.
+4. `crates/ryg-rans-rs-simd/src/lib.rs` + `unsafe-ledger.toml` — the SIMD
+   surface.
+5. `docs/bitstream-contract.md` and `docs/container-format-v1.md`.
+6. `evidence/phase-l/gap-ledger.md`.
+
+---
+
+*Part of the ryg-rans-rs project. Version 0.1.30. Phase L.*

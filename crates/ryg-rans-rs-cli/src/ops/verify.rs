@@ -19,6 +19,20 @@ pub fn run(matches: &ArgMatches) -> Result<(), AppError> {
         .get_one::<String>("output-format")
         .map(String::as_str)
         .unwrap_or("human");
+    let backend = matches
+        .get_one::<String>("backend")
+        .map(String::as_str)
+        .unwrap_or("auto");
+    // Same no-silent-fallback rule as `decode`: only the auto dispatcher is
+    // implemented in the CLI verifier.
+    if backend != "auto" && backend != "all-available" {
+        return Err(AppError::Unsupported(crate::error::UnsupportedError {
+            detail: format!(
+                "explicit backend '{}' not implemented in the CLI verifier; the auto dispatcher is used",
+                backend
+            ),
+        }));
+    }
 
     let limits = Limits::default();
     let input = open_input(input_path, limits.max_input_bytes)?;

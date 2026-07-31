@@ -150,11 +150,12 @@ Comparative methodology and results are in `docs/performance/comparative.md` (L.
 
 | ID | Severity | Issue | Status | Resolution |
 |----|----------|-------|--------|------------|
-| L15-A | HIGH | Remove "critical-safety-infrastructure quality" overclaim everywhere | OPEN | L.15 |
-| L15-B | HIGH | Remove stray -.o file; add root .gitignore entries | PARTIAL | `.gitignore` hardened in `c38928a`; tracked `-.o` removal lands with L.14 commit; recurrence gate lands with L.20 |
-| L15-C | MEDIUM | Fix root README header (malformed Markdown) | OPEN | L.15 |
-| L15-D | MEDIUM | Add AGENTS.md, llms.txt, docs/glossary.md, reading order | OPEN | L.15 |
-| L15-E | HIGH | CLI subcommands were scaffolding ("not yet implemented") while READMEs claimed "Production-grade"/"deeply implemented — not a scaffold" | RESOLVED | Current commit — encode (byte-single, byte-interleaved2, r64-single, word-single + RLE/RAW fallback), decode (strict integrity), inspect, verify, model build/inspect/validate/compare, trace (byte-single), compare arithmetic/backends/files, and bench are all wired and integration-tested |
+| L15-A | HIGH | Remove "critical-safety-infrastructure quality" overclaim everywhere | RESOLVED | Current commit — no occurrence remains in docs/READMEs/source comments/Cargo.toml descriptions; `cargo xtask no-overclaim` gate added to `check` prevents reintroduction |
+| L15-B | HIGH | Remove stray -.o file; add root .gitignore entries | RESOLVED | `.gitignore` hardened `c38928a`; tracked `-.o` removed `7fac502`; `criterion/` anchored to `/target/criterion/` `3bf5dd9` so committed evidence is never ignored; recurrence gate part of L.20 |
+| L15-C | MEDIUM | Fix root README header (malformed Markdown) | RESOLVED | Current commit — header rewritten (all bold markers closed, counts accurate, honest performance status: Re-sealing L.18), reading order added, CLI section matches the wired implementation, FFI policy updated for the L.14 comparative court, Docker count corrected to 11 |
+| L15-D | MEDIUM | Add AGENTS.md, llms.txt, docs/glossary.md, reading order | RESOLVED | Current commit — all four exist; glossary defines every term; AGENTS.md states ground-truth files, invariants, commands, unsafe rules |
+| L15-E | HIGH | CLI subcommands were scaffolding ("not yet implemented") while READMEs claimed "Production-grade"/"deeply implemented — not a scaffold" | RESOLVED | `0fa5936` — encode (byte-single, byte-interleaved2, r64-single, word-single + RLE/RAW fallback), decode (strict integrity), inspect, verify, model build/inspect/validate/compare, trace (byte-single), compare arithmetic/backends/files, and bench are all wired and integration-tested. Wiring surfaced and fixed: container reader 4-byte tag misalignment, model normalizer wrong-sum bug (4286≠4096; latent infinite loop; debug_assert no-op in release), main.rs exit-code collapse, unreachable exit 6, open_output --force create bug |
+| L15-F | MEDIUM | core lib.rs module doc claimed `default` enables `std` and `std` activates `alloc`; Cargo.toml has `default = []` and `std = []` (independent) | RESOLVED | Current commit — module doc corrected to match Cargo.toml; all three feature combos (none/alloc/std) verified compiling |
 
 ## L.16 — Testing
 

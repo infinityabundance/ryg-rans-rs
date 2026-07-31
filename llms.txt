@@ -1,0 +1,45 @@
+# ryg-rans-rs
+
+A native Rust forensic reconstruction of Fabian Giesen's public-domain
+`ryg_rans` entropy coder (ANS), with a deterministic parallel block engine,
+SIMD decode tiers, an evidence-sealed development process, and a fully wired
+CLI.
+
+## Key facts
+
+- Workspace: `core` (codec arithmetic, no_std), `simd` (SSE4.1/AVX2/AVX-512),
+  `parallel` (bounded executor, reorder, cache, scratch), `cli` (`ryg-rans`
+  binary), `oracle`, `casefile`, `bench` (Criterion), `xtask` (seal tooling).
+- Evidence: 144 behavioural receipts (Phase K baseline) + Phase L courts;
+  10 performance receipts; all bound through `evidence/` with SHA-256 chains.
+- Frozen invariants: bit-exact upstream parity, determinism, strict
+  integrity, no silent backend substitution, no inert config fields.
+- Host: AMD Ryzen 7 9800X3D, 8 cores / 16 threads, Linux, rustc 1.96.0.
+
+## Reading order
+
+1. README.md
+2. docs/architecture.md
+3. docs/bitstream-contract.md
+4. docs/container-format-v1.md
+5. docs/glossary.md
+6. docs/unsafe-ledger.md
+7. docs/performance-method.md
+8. docs/residual-doctrine.md
+9. docs/negative-capabilities.md
+10. docs/oracle-method.md
+11. AGENTS.md
+12. The crate README for the crate you are working on.
+
+## Quick links
+
+- [README.md](README.md)
+- [AGENTS.md](AGENTS.md)
+- [docs/](docs/)
+- [evidence/](evidence/)
+- [crates/](crates/)
+- [fuzz/](fuzz/)
+
+## License
+
+MIT (see LICENSE).

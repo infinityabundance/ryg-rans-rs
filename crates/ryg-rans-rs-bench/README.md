@@ -1,244 +1,215 @@
 # ryg-rans-rs-bench
 
-> **Criterion benchmark suite for all ryg-rans-rs execution tiers.**  
-> 9 benchmark tiers across scalar, SSE4.1, AVX2, AVX-512, batch, parallel, container, and dispatch.  
-> Deterministic corpora with 8 model profiles. Verification-before-timing policy.  
-> JSON/CSV structured export with full host metadata.
+> **Criterion benchmark suite for the ryg-rans-rs execution tiers.**
+> 9 tiers (scalar, SSE4.1, AVX2, AVX-512, specialized, batch, parallel, container, dispatch)
+> plus the legacy byte/R64/alias surfaces and the Phase L.14 comparative court.
+> Deterministic corpora (8 model profiles, fixed seeds) and a verification-before-timing policy.
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
-
-**Version: 0.1.27** · `publish = false` (workspace-internal crate)
+**Version: 0.1.30** · `publish = false` (workspace-internal crate) · 16 tests
 
 ---
 
 ## Table of Contents
 
 1. [What This Crate Is](#what-this-crate-is)
-2. [The 9 Benchmark Tiers](#the-9-benchmark-tiers)
-3. [Deterministic Corpora](#deterministic-corpora)
-4. [Verification-Before-Timing Policy](#verification-before-timing-policy)
-5. [How to Run Benchmarks](#how-to-run-benchmarks)
-6. [Interpreting Results](#interpreting-results)
-7. [Structured Export](#structured-export)
-8. [Module Reference](#module-reference)
-9. [Benchmark Architecture](#benchmark-architecture)
-10. [Adding a New Benchmark](#adding-a-new-benchmark)
-11. [Feature Flags](#feature-flags)
+2. [What This Crate Does NOT Do](#what-this-crate-does-not-do)
+3. [Benchmark Targets](#benchmark-targets)
+4. [Deterministic Corpora](#deterministic-corpora)
+5. [Verification-Before-Timing Policy](#verification-before-timing-policy)
+6. [Backend Semantics and SIMD Requirements](#backend-semantics-and-simd-requirements)
+7. [Unsafe Boundaries](#unsafe-boundaries)
+8. [How to Run Benchmarks](#how-to-run-benchmarks)
+9. [Structured Export](#structured-export)
+10. [Interpreting Results](#interpreting-results)
+11. [Evidence Model](#evidence-model)
+12. [Module Reference](#module-reference)
+13. [Limitations (honest)](#limitations-honest)
+14. [Troubleshooting](#troubleshooting)
+15. [Versioning and Reading Order](#versioning-and-reading-order)
 
 ---
 
 ## What This Crate Is
 
-This crate provides the **canonical benchmark suite** for all ryg-rans-rs decode
-backends and execution tiers. It uses [Criterion.rs](https://github.com/bheisler/criterion.rs)
-for precise throughput measurement with statistical rigor.
+This crate is the **measurement surface** for every ryg-rans-rs execution path. It uses
+[Criterion.rs](https://github.com/bheisler/criterion.rs) for statistically-grounded
+throughput measurement. Every benchmark binary:
 
-Every benchmark:
-
-1. Generates a **deterministic corpus** from a known model profile and seed
-2. **Verifies correctness** against the scalar reference decoder before timing
+1. Generates a **deterministic corpus** from a known `ModelProfile` + seed
+2. **Verifies correctness** against a scalar reference **before** any timing begins
 3. Measures **bytes/second** throughput via `criterion::Throughput::Bytes`
-4. Collects **median, mean, and standard deviation** across multiple samples
-5. Captures **full host metadata** (CPU model, rustc version, target features, git commit)
+4. Collects **median, mean, standard deviation, and 95% confidence intervals**
+5. Captures **host metadata** (CPU model, rustc version, target features, git commit)
 
-The crate is marked `publish = false` — it is workspace-internal and not published to
-crates.io.
+The crate is `publish = false` — workspace-internal, never published to crates.io.
 
 ---
 
-## The 9 Benchmark Tiers
+## What This Crate Does NOT Do
 
-### Tier 1: Scalar (`benches/scalar.rs`)
+- **It does not seal performance evidence.** This crate produces Criterion
+  measurements (raw trees under `target/criterion/`). Turning those measurements
+  into sealed performance receipts is the job of `cargo xtask performance-seal`
+  followed by the authoritative `cargo xtask seal` gate.
+- **Its current exporter output is not sealed evidence.** The exporter
+  (`src/exporter.rs`) fabricated sample counts, hardcoded verification flags, and
+  produced empty hashes in the Phase K run — residuals **L1-A … L1-N** in
+  [`evidence/phase-l/gap-ledger.md`](../../evidence/phase-l/gap-ledger.md). The
+  exporter is being **rewritten in Phase L.18**, and Phase L.18 regenerates the
+  performance evidence through the new `cargo xtask benchmark-run` wrapper. Until
+  the regenerated run passes the full seal gate, **no performance claim from this
+  crate is marked Sealed**.
+- **It has no standalone export binary.** There is no `export-results` or `export`
+  binary in this crate. Structured export is a **library API**
+  (`exporter::load_criterion_estimates` + `exporter::export_summary`) consumed by
+  `cargo xtask performance-seal`.
+- **It does not seal behavioural evidence.** Behavioural parity receipts come from
+  the oracle crate (`ryg-rans-rs-oracle`) and are verified by the seal gate.
+- **The comparative court is not one of the ten sealed performance surfaces.**
+  `benches/comparative.rs` is a separate methodological same-host comparison against
+  upstream C (Phase L.14), documented in
+  [`docs/performance/comparative.md`](../../docs/performance/comparative.md).
 
-The baseline — all scalar decode backends:
+---
 
-- `decode_8way_packed_scalar` — 8-way scalar decode (allocates output)
-- `decode_8way_packed_scalar_into` — 8-way scalar decode into preallocated buffer
-- `decode_interleaved16_scalar` — 16-way scalar decode (allocates output)
-- `decode_interleaved16_scalar_into` — 16-way scalar decode into preallocated buffer
+## Benchmark Targets
 
-Measured at: 64 B, 256 B, 1 KiB, 4 KiB, 16 KiB, 64 KiB, 256 KiB, 1 MiB.
+`benches/` contains 13 Criterion binaries. The first 9 are the tier suite; the next
+3 are the legacy surfaces; the last is the Phase L.14 comparative court.
 
-### Tier 2: SSE4.1 (`benches/sse41.rs`)
-
-Legacy SIMD backend:
-
-- `sse41-8way` — SSE4.1-accelerated 8-way decode
-- All tail lengths (1..7)
-
-### Tier 3: AVX2 (`benches/avx2.rs`)
-
-Phase J AVX2 portability tier:
-
-- `avx2-manual-gather-8way` — 8-way AVX2 manual gather
-- `avx2-hardware-gather-8way` — 8-way AVX2 hardware gather
-- `avx2-2x8-on16` — 16-way AVX2 2×8 manual gather
-- `avx2-uniform256-tablefree-16way` — 16-way AVX2 uniform256 table-free
-
-### Tier 4: AVX-512 (`benches/avx512.rs`)
-
-Full-width SIMD backends:
-
-- `avx512vl-8way` — AVX512VL 8-way decode
-- `avx512-16way` — AVX512 16-way decode
-
-### Tier 5: Specialized (`benches/specialized.rs`)
-
-Optimized backend variants:
-
-- `uniform256-tablefree` — Table-free uniform kernel
-- `manual-gather` — Scalar-load manual gather
-- `mask-expand-renorm` — Mask-expand renormalization optimization
-
-### Tier 6: Batch (`benches/batch.rs`)
-
-Multi-stream batch decoders:
-
-- `scalar-sequential-4x` — Scalar: 4 streams sequentially
-- `avx2-2x8-sequential` — AVX2: 2×8-on16 sequentially
-- `avx2-batch4-on16` — AVX2: batch4 multi-stream aggregate
-
-### Tier 7: Parallel (`benches/parallel.rs`)
-
-Multi-threaded parallel block engine (via `ryg-rans-rs-parallel`):
-
-- 1, 2, 4, 6, 8, 12, 16 threads
-- Scalability matrix: encodes and decodes with varying block sizes
-- Scaling efficiency (speedup relative to 1 thread)
-
-### Tier 8: Container (`benches/container.rs`)
-
-End-to-end container round-trip:
-
-- Full RYGRANS v1 container encode → decode cycle
-- 4 threads, 1 MiB blocks, 16 MiB corpus
-- Includes SHA-256 hashing overhead
-
-### Tier 9: Dispatch (`benches/dispatch.rs`)
-
-Backend dispatch overhead:
-
-- Auto-dispatch latency (runtime `is_x86_feature_detected!` calls)
-- Backend selection overhead
-- `_checked` vs direct `unsafe` dispatch comparison
+| # | Target | File | What It Benchmarks |
+|---|--------|------|--------------------|
+| 1 | `scalar` | `benches/scalar.rs` | Scalar reference decoders: 8-way packed (`allocating` + `into`), 16-way (`allocating`/`into` across 6 profiles), uniform256 scalar-specialized. |
+| 2 | `sse41` | `benches/sse41.rs` | `sse41-8way` interleaved8 decode after runtime detection. |
+| 3 | `avx2` | `benches/avx2.rs` | `avx2-2x8-on16`, `avx2-uniform256-tablefree-16way`, `avx2-manual-gather-8way`, `avx2-hardware-gather-8way`. |
+| 4 | `avx512` | `benches/avx512.rs` | `avx512vl-8way`, `avx512-16way`, `avx512vl-2x8-on16`. |
+| 5 | `specialized` | `benches/specialized.rs` | Profile-specialized kernels: uniform256 scalar and uniform256 AVX2 (table-free) `into` paths. |
+| 6 | `batch` | `benches/batch.rs` | Batch4 preflight with **mixed tail lengths** (0/15/9/1 mod 16), batch aggregation overhead vs sequential `into` with matched allocation. |
+| 7 | `parallel` | `benches/parallel.rs` | Block-level parallelism scaling (1/2/4/8/16 threads, fixed queue depth 64), 64 MiB and cold-16 MiB decode + verify + encode via `ryg-rans-rs-parallel`. |
+| 8 | `container` | `benches/container.rs` | Block-engine decode+integrity / encode / verify scaling (1 MiB blocks, 16/64 MiB totals). |
+| 9 | `dispatch` | `benches/dispatch.rs` | Runtime dispatch overhead: CPU-feature detection (`avx2_available_checked`), model classification, safe-wrapper vs direct unsafe dispatch. |
+| 10 | `byte_rans` | `benches/byte_rans.rs` | Legacy 32-bit byte rANS: division + reciprocal encode, decode, interleaved2 encode/decode. |
+| 11 | `r64` | `benches/r64.rs` | Legacy 64-bit rANS: division + reciprocal encode, decode, interleaved2. |
+| 12 | `alias` | `benches/alias.rs` | Legacy alias method: table construction, single + interleaved2 encode/decode. |
+| 13 | `comparative` | `benches/comparative.rs` | Phase L.14 court: Rust core vs upstream C via `ryg-rans-sys =1.2.0` FFI, same corpus/model/size; word comparison behind the `comparative-word-sse41` feature. |
 
 ---
 
 ## Deterministic Corpora
 
 Every benchmark uses a `Corpus` generated from a known `ModelProfile` and seed. The
-same profile + seed always produces identical bytes, frequencies, and compressed streams.
+same profile + seed always produces identical bytes, frequencies, and compressed
+streams — required for Criterion measurements to be comparable across runs.
 
 ### Model Profiles
 
-| Profile | Description | Entropy |
-|---------|-------------|---------|
-| `UNIFORM256` | Exactly 16 occurrences of each of 256 symbols | 8.00 bits/sym |
-| `SKEWED_255_1` | Symbol 0 appears 255× more often than any other | ~1.03 bits/sym |
-| `FREQ1_RESIDUAL` | Symbol 0 dominates; 0.1% of symbols are random residuals | ~0.02 bits/sym |
-| `SPARSE_2` | Only symbols 0 and 1, 50/50 | 1.00 bits/sym |
-| `SPARSE_17` | Only 17 distinct symbols, uniform distribution | ~4.09 bits/sym |
-| `PRIME_RESIDUE` | Multiplicative congruential generator (prime modulus 257) | ~8.00 bits/sym |
-| `RENORM_BOUNDARY` | Alternating 0/255 blocks at 16-symbol granularity | ~1.00 bits/sym |
-| `INCOMPRESSIBLE_LIKE` | Full 8-bit random via seeded RNG | ~8.00 bits/sym |
+| Profile | Description |
+|---------|-------------|
+| `Uniform256` | Every symbol 0..=255 appears exactly 16 times per 4096-byte block — perfect uniformity |
+| `Freq1Residual` | 99.9% symbol 0, 0.1% random residuals — near-zero entropy, `cmpl_freq = M - 1` path |
+| `Skewed2551` | 255/256 probability of symbol 0 — strong skew, 255:1 frequency disparity |
+| `Sparse2` | Only symbols 0 and 1, 50/50 — minimal alphabet |
+| `Sparse17` | 17 symbols, uniform — odd-sized alphabet, remainder distribution |
+| `PrimeResidue` | Lehmer RNG modulo 257, mapped through `& 0xFF` — deterministic chaotic non-uniform data |
+| `RenormBoundary` | Alternating runs of 0x00/0xFF every 16 bytes — frequent renormalisation |
+| `IncompressibleLike` | Fresh uniform random bytes from a seeded RNG — worst-case expansion |
 
 ### Corpus Sizes
 
-Benchmarks are measured at 8 sizes per tier:
+Sizes are chosen per target in the source; the common patterns are:
 
-64 B → 256 B → 1 KiB → 4 KiB → 16 KiB → 64 KiB → 256 KiB → 1 MiB
-
-This spans the range from tiny (L1 cache fits all data) to moderate (L2/L3 cache).
-Larger corpora (4 MiB+) stress memory bandwidth and are available for the parallel
-engine benchmarks.
+| Bench | Sizes |
+|-------|-------|
+| `byte_rans`, `r64`, `alias` | 64 B, 256 B, 1 KiB, 4 KiB, 64 KiB, 1 MiB |
+| `scalar` 16-way, `avx2` | 64 KiB, 256 KiB, 1 MiB (8-way paths at 64 KiB) |
+| `avx512` | 64 KiB (8-way), 1 MiB (16-way, 2×8) |
+| `batch` | 4 × 1 MiB with mixed tail lengths |
+| `parallel`, `container` | 16 MiB (cold) and 64 MiB (sustained), 1 MiB blocks |
+| `comparative` | exactly 1 MiB, `Skewed2551`, seed 42 |
 
 ### Corpus Construction
 
 ```rust
 let corpus = Corpus::generate(ModelProfile::Uniform256, 1_048_576, 42);
-let compressed = corpus.encode_16way();       // Pre-encode
-let packed_table = corpus.packed_table();     // Build packed table
+let compressed = corpus.encode_16way();   // 16-way interleaved Word rANS stream
+let packed_table = corpus.packed_table(); // 4096-slot packed decode table
 ```
+
+All three are deterministic functions of the `(profile, length, seed)` tuple
+(`StdRng::seed_from_u64`).
 
 ---
 
 ## Verification-Before-Timing Policy
 
-**Critical invariant**: No benchmark reports a timing result unless the backend has
-been verified to produce correct output.
+**Critical invariant**: no benchmark reports a timing result unless the backend has
+been verified against a scalar reference first.
 
 ### Verification Checks
 
-Every Criterion benchmark calls `verify_16way` or `verify_8way` before entering the
-timing loop:
+Every benchmark calls `verify_16way` or `verify_8way` before entering the timing
+loop:
 
 ```rust
-// Verify 16-way decode
 let report = verify_16way(
     "avx512-16way",
     &output, &words_consumed, &final_states,
     &reference_output, &reference_words, &reference_states,
 );
-assert_verified(&report);  // Panics if any check fails
+assert_verified(&report); // Panics if any check fails
 ```
-
-The verification function checks:
 
 | Check | What It Verifies |
 |-------|-----------------|
-| Output bytes match | `output == reference_output` — decoded data is byte-identical |
-| Words consumed match | `words_consumed == reference_words` — same number of u16 words read |
-| Final states match | `final_states == reference_states` — all 16 (or 8) final rANS states match |
+| Output bytes match | Decoded bytes are byte-identical to the reference |
+| Words consumed match | Both backends consumed the same number of u16 words from the compressed stream |
+| Final states match | All 16 (8-way: first 8 of 16) final rANS states are identical |
 
-All three must pass. A failure in any dimension causes a panic with a detailed message
-identifying the backend, the failing check, and the expected vs actual values.
+All three must pass. `assert_verified` **panics** on failure — the process exits
+non-zero and the faulty backend is never timed. A failure means the backend is
+miscompiled or incorrectly ported; silence would produce wrong numbers.
 
-### Why Three Checks?
+### Multi-threaded Preflight
 
-1. **Output bytes**: The most important — the decoded data must match the original input.
-   This catches algorithmic errors in the state update or table lookup.
+`parallel` and `container` additionally run a **block-engine preflight**: encode
+once (4-thread config), then decode/verify with every thread count in
+{1, 2, 4, 8, 16} and assert byte-identical outputs and equal block counts against
+the 1-thread reference **before** any timing. This pins the parallel determinism
+invariant (same input → same output, independent of worker count).
 
-2. **Words consumed**: Ensures the renormalization loop consumed exactly the right number
-   of words. A mismatch means the decoder read too few (leaving buffered state) or too many
-   (overreading the stream).
+---
 
-3. **Final states**: Ensures the decoder's internal state after processing all symbols is
-   correct. This is the most sensitive check — even a single symbol's state update error
-   is caught here.
+## Backend Semantics and SIMD Requirements
 
-### Enforcement in Benchmarks
+- **Exact backend labels** follow the project glossary: `scalar-8way`,
+  `sse41-8way`, `avx2-manual-gather`, `avx2-hardware-gather`, `avx2-2x8`,
+  `avx2-uniform256`, `avx2-batch4`, `avx512vl-8way`, `avx512-16way`.
+- **Runtime ISA detection**: SIMD benches call the simd crate's runtime checks
+  (`avx2_available`, `avx512vl_available`, `avx512_available`). If the required
+  feature is unavailable at runtime, the bench prints `UNSUPPORTED: <backend>` and
+  returns **without timing that backend** — no silent scalar substitution is
+  measured or claimed.
+- **Compile-time features are required too**: the SIMD kernels carry
+  `#[target_feature]` attributes, so build with
+  `RUSTFLAGS="-C target-cpu=native"` (or the explicit feature list) to get real
+  SIMD execution.
+- **Batch4** benches exercise the batched AVX2 decode with mixed tail lengths
+  (not just multiples of 4) and matched allocation policies between sequential and
+  batch paths so the comparison is fair.
 
-```rust
-fn bench_avx2_8way(c: &mut Criterion) {
-    let corpus = Corpus::generate(ModelProfile::Skewed255_1, 65536, 42);
-    let compressed = corpus.encode_16way();
-    let table = corpus.packed_table();
+---
 
-    // Reference decode
-    let reference = decode_interleaved16_scalar_into(
-        &compressed, &table, corpus.data.len()
-    ).unwrap();
+## Unsafe Boundaries
 
-    // Verify before benchmarking
-    let test = decode_interleaved16_avx2_2x8_checked(
-        &compressed, &table, corpus.data.len()
-    ).unwrap();
-    assert_eq!(test.output, reference.output);
-    assert_eq!(test.report.words_consumed, reference.report.words_consumed);
-    assert_eq!(test.report.final_states, reference.report.final_states);
-
-    // Now benchmark
-    c.bench_function("avx2-2x8-on16/SKEWED_255_1/64KiB", |b| {
-        b.iter(|| {
-            black_box(decode_interleaved16_avx2_2x8_checked(
-                black_box(&compressed),
-                black_box(&table),
-                black_box(corpus.data.len()),
-            ))
-        })
-    });
-}
-```
+- The bench crate itself defines no `unsafe fn`; it does contain `unsafe` **call
+  sites** (e.g. `benches/avx512.rs` calls `decode_interleaved8_avx512vl`) that
+  invoke the SIMD crate's ledgered kernels. Those kernels live in
+  `ryg-rans-rs-simd`, carry their own exact `#[target_feature]` attributes, and
+  are inventoried in `crates/ryg-rans-rs-simd/unsafe-ledger.toml`.
+- `benches/comparative.rs` is the **only** FFI surface in the workspace
+  (`ryg-rans-sys = "=1.2.0"`), pinned to the exact upstream-C binding version and
+  gated by the `comparative-word-sse41` feature for the word surface. It is a
+  measurement surface (`publish = false`), not a production dependency.
 
 ---
 
@@ -246,195 +217,209 @@ fn bench_avx2_8way(c: &mut Criterion) {
 
 ### Prerequisites
 
-- Rust toolchain (edition 2024 or later)
-- For SIMD backends: appropriate CPU features (see below)
-- For parallel benchmarks: multi-core CPU
+- Rust toolchain (workspace edition 2024)
+- For SIMD tiers: a CPU with the relevant features and
+  `RUSTFLAGS="-C target-cpu=native"` (or explicit `-C target-feature=...`)
+- For parallel/container tiers: a multi-core CPU
 
 ### Basic Usage
 
 ```sh
-# Run all benchmarks (selects available backends)
-cargo bench -p ryg-rans-rs-bench
+cargo bench -p ryg-rans-rs-bench                 # full suite
+cargo bench -p ryg-rans-rs-bench --bench scalar  # one tier
+cargo bench -p ryg-rans-rs-bench --bench avx2    # AVX2 tier
 ```
 
-### Run Specific Tiers
+### Native SIMD
 
 ```sh
-# Scalar only
-cargo bench -p ryg-rans-rs-bench --bench scalar
-
-# AVX2 only
-cargo bench -p ryg-rans-rs-bench --bench avx2
-
-# Parallel engine scaling
-cargo bench -p ryg-rans-rs-bench --bench parallel
-
-# Container round-trip
-cargo bench -p ryg-rans-rs-bench --bench container
-
-# Batch decoder
-cargo bench -p ryg-rans-rs-bench --bench batch
+RUSTFLAGS="-C target-cpu=native" cargo bench -p ryg-rans-rs-bench
 ```
 
-### Run with Full SIMD Support
-
-To measure all backends including SSE4.1, AVX2, and AVX-512:
+Or with explicit features:
 
 ```sh
 RUSTFLAGS="-C target-feature=+ssse3,+sse4.1,+avx2,+avx512f,+avx512vl,+avx512bw" \
     cargo bench -p ryg-rans-rs-bench
 ```
 
-### Run with Native CPU Features
-
-```sh
-RUSTFLAGS="-C target-cpu=native" cargo bench -p ryg-rans-rs-bench --bench avx2
-```
-
 ### Filter Specific Benchmarks
 
 ```sh
-# Run only benchmarks matching "decode_8way"
-cargo bench -p ryg-rans-rs-bench -- "decode_8way"
-
-# Run only uniform256 profiles
+cargo bench -p ryg-rans-rs-bench -- "decode"     # matches function names
 cargo bench -p ryg-rans-rs-bench -- "UNIFORM256"
-
-# Run only 1 MiB sizes
 cargo bench -p ryg-rans-rs-bench -- "1MiB"
 ```
 
 ### Save and Compare Baselines
 
 ```sh
-# Save a baseline
 cargo bench -p ryg-rans-rs-bench --bench avx2 -- --save-baseline phase-j-avx2
-
-# Compare against a saved baseline
 cargo bench -p ryg-rans-rs-bench --bench avx2 -- --baseline phase-j-avx2
 ```
 
-### JSON/CSV Export
+### Phase L.14 Comparative Court
 
 ```sh
-# Run benchmarks, then export results
-cargo bench -p ryg-rans-rs-bench
-cargo run -p ryg-rans-rs-bench --bin export-results -- target/criterion output/results
+RUSTFLAGS="-C target-cpu=native" \
+  cargo bench -p ryg-rans-rs-bench --bench comparative \
+  --features comparative-word-sse41 \
+  -- --save-baseline phase-l-comparative-final
 ```
+
+The word comparison needs the `comparative-word-sse41` feature (its C surface
+requires SSE4.1 compiled in). The default build excludes the word comparison.
+
+---
+
+## Structured Export
+
+### The Library API
+
+There is no export binary. The exporter is a library:
+
+- `exporter::load_criterion_estimates(&criterion_dir, &metadata) -> Result<Vec<BenchRecord>, String>`
+  — walks `target/criterion`, parses every `estimates.json`, and validates the
+  records (dirty-tree rejection, NaN/infinity/negative rejection, zero-sample
+  rejection, commit-mismatch rejection, duplicate-ID rejection).
+- `exporter::export_summary(&records, &output_dir) -> Result<(json_path, csv_path, json_sha, csv_sha), String>`
+  — writes canonical `results.json` (compact, lexicographically sorted keys,
+  records sorted by `benchmark_id`) and `results.csv`, returning SHA-256 hashes of
+  both.
+
+The consumer is `cargo xtask performance-seal`, which calls both functions when
+generating per-surface evidence.
+
+### `BenchRecord` JSON Schema
+
+```json
+{
+  "benchmark_id": "avx512/avx512-16way/allocating/INCOMPRESSIBLE_LIKE/1MiB",
+  "tier": "avx512",
+  "backend_requested": "avx512-16way",
+  "backend_executed": "avx512-16way",
+  "api": "allocating",
+  "profile": "INCOMPRESSIBLE_LIKE",
+  "bytes": 1048576,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "median_ns": 1234567.89,
+  "mean_ns": 1245678.90,
+  "stddev_ns": 12345.67,
+  "confidence_low_ns": 1220000.0,
+  "confidence_high_ns": 1270000.0,
+  "sample_count": 100,
+  "throughput_gib_s": 7.89,
+  "implementation_commit": "abc123def456",
+  "rustc": "rustc 1.96.0 (...)",
+  "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor",
+  "target_features": ["avx512f", "avx512bw"],
+  "runtime_features": ["avx512f", "avx512vl", "avx512bw"],
+  "verification_passed": true,
+  "output_hash": "e3b0c44298fc1c149afbf4c8996fb924...",
+  "words_consumed_hash": "e3b0c44298fc1c149afbf4c8996fb924...",
+  "final_states_hash": "e3b0c44298fc1c149afbf4c8996fb924...",
+  "status": "pass"
+}
+```
+
+CSV columns:
+`benchmark_id,tier,backend_requested,backend_executed,api,profile,bytes,threads_requested,threads_effective,median_ns,mean_ns,stddev_ns,confidence_low_ns,confidence_high_ns,sample_count,throughput_gib_s,commit,status`
+
+> **Status caveat (Phase L.18):** the current exporter reconstructed identity from
+> sanitized directory names and defaulted `sample_count`/`verification_passed`/
+> `output_hash` when the preflight channel was absent (residuals L1-A…L1-N). It is
+> under rewrite. Do not treat its current output as sealed evidence.
 
 ---
 
 ## Interpreting Results
 
-### Output Format
-
-Criterion produces output like:
+Criterion reports per-iteration time and throughput:
 
 ```
-decode_8way_packed_scalar_into/UNIFORM256/1MiB
+scalar-16way/into/INCOMPRESSIBLE_LIKE/1MiB
   time:   [10.234 ms 10.345 ms 10.456 ms]
   thrpt:  [95.67 MiB/s 96.72 MiB/s 97.81 MiB/s]
 ```
 
-- `time`: Median, mean, and upper bound of per-iteration time
-- `thrpt`: Throughput in MiB/s (higher is better), inverted from time
+- `time`: lower bound, median, upper bound of per-iteration time
+- `thrpt`: throughput in MiB/s, inverted from time (higher is better)
 
 ### Key Metrics
 
 | Metric | Meaning |
 |--------|---------|
-| Median time | The typical iteration time (50th percentile) |
-| Mean time | Average iteration time |
-| Std dev | Stability of measurement (lower = more consistent) |
-| Throughput (GiB/s) | Bytes processed per second (higher = better) |
-| Scaling efficiency | Parallel speedup relative to single-threaded |
+| Median time | Typical iteration time (50th percentile) |
+| Mean / std dev | Average and stability of measurement |
+| Throughput (GiB/s) | `(bytes / median_ns) * 1e9 / (1024³)` |
+| Confidence interval | 95% CI on the mean, from Criterion |
+| Scaling efficiency | Parallel speedup relative to 1 thread |
 
-### Comparing Backends
+### Phase K Scaling Matrix (historical, superseded)
 
-To compare backends at the same corpus size and profile:
-
-```sh
-cargo bench -p ryg-rans-rs-bench -- "scalar/UNIFORM256/1MiB"
-cargo bench -p ryg-rans-rs-bench -- "avx2/UNIFORM256/1MiB"
-```
-
-Or use Criterion's baseline comparison feature for statistical significance.
-
-### Scaling Matrix
-
-The parallel engine benchmarks produce a scaling matrix showing throughput at
-1, 2, 4, 8, and 16 threads.  Measured on **AMD Ryzen 7 9800X3D** (8 cores / 16 threads)
-with 64 MiB block-engine decode+integrity workload (64 × 1 MiB blocks, AVX2 runtime,
-cold executor, queue depth 64):
+The Phase K parallel-engine measurements below are **retained as historical
+evidence only**. The Phase L.18 pipeline regenerates the performance receipts; the
+Phase K run is superseded (residuals L1-A…L1-S) and is **not** sealed evidence.
+Host was an AMD Ryzen 7 9800X3D (8 cores / 16 threads), 64 MiB block-engine
+decode+integrity workload (64 × 1 MiB blocks, fixed queue depth 64):
 
 ```
 Threads:   1        2         4         8         16
 GiB/s:    0.90     1.69      3.24      5.25      6.36
 Speedup:  1.00×    1.87×     3.60×     5.83×     7.07×
 Efficiency: 100%  93.9%     90.0%     72.9%     44.2%
-Gain vs previous:   —     1.88×     1.92×     1.62×     1.21×
 ```
 
-Efficiency = (speedup / thread count) × 100%.
+Efficiency = (speedup / thread count) × 100%. 1–4 threads scaled near-linearly;
+SMT (8→16) added ~21%. These numbers will be regenerated and re-sealed in Phase
+L.18.
 
-**SMT gain** = `throughput(16) / throughput(8) = 1.211×`. The 21.1% gain from
-simultaneous multithreading after all eight physical cores are occupied is meaningful
-and indicates the workload is not purely memory-bound.
+### Phase L.14 Comparative Court (vs upstream C)
 
-| Threads | Interpretation |
-|--------|----------------|
-| 1–4 | Near-linear scaling (~90%+ efficiency). The block engine parallelizes almost perfectly across physical cores. |
-| 8 | 5.25 GiB/s at 72.9% efficiency. Cache/memory bandwidth start to constrain. Still the efficiency sweet spot. |
-| 16 | 6.36 GiB/s — maximum throughput. SMT adds 21% but efficiency drops to 44%. Suitable when throughput, not efficiency, is the goal. |
+Same-host, identical corpus (`Skewed2551`, seed 42, exactly 1 MiB), identical
+frequency model passed to both sides, `RUSTFLAGS="-C target-cpu=native"`,
+Criterion 0.5.1 (warm-up 2 s, measurement 8 s, 50 samples). Full methodology and
+residuals: [`docs/performance/comparative.md`](../../docs/performance/comparative.md).
 
-**Policy recommendation:**
-- Default throughput mode: available logical processors, capped by block count
-- Efficiency / shared-system mode: physical-core count (8)
-- General modeled blocks: scalar 16-way
-- Uniform256 blocks: AVX2 table-free where benchmark policy admits it
-- The architecture's real win is **deterministic multicore composition**, not wider SIMD
+**Preflight**: the compressed output of the Rust core and upstream C is
+**byte-identical** for both byte rANS (`rans_byte_enc_put_symbol` vs
+`rans_enc_put_symbol`) and word rANS (`rans_word_enc_put` LE bytes vs C u16 words
+flattened to LE bytes).
+
+| Case | Rust core | C (via `ryg-rans-sys` FFI) | Ratio |
+|------|-----------|----------------------------|-------|
+| byte encode (reciprocal) | 541.4 MiB/s | 514.8 MiB/s | **1.05×** |
+| byte encode (division, reference path) | 349.6 MiB/s | — | reciprocal is 1.55× faster |
+| byte decode | 947.3 MiB/s | 430.2 MiB/s | **2.20×** end-to-end |
+| word encode | 365.0 MiB/s | 215.7 MiB/s | **1.69×** |
+| word decode | 486.4 MiB/s | 480.2 MiB/s | **1.01×** (parity) |
+| FFI crossing (isolated) | — | 1.09 ns/call; ≈2.0 ms/MiB at 2 calls/byte | — |
+
+The byte-decode 2.20× is **end-to-end**: ≈2.0 ms/MiB of the C-side time is the
+isolated cost of the mandatory two FFI crossings per byte (measured separately);
+the Rust path pays zero crossings. The court claims no general "faster than C"
+result — it records measurements, separations, and residuals. Residuals: **L14-A**
+(C compiled by `cc` without `-march=native`, so non-vectorised C paths favour
+Rust) and **L14-B** (`rans` 0.4.0 excluded — different API/format, not
+byte-comparable).
 
 ---
 
-## Structured Export
+## Evidence Model
 
-### JSON Export Schema
-
-```json
-{
-  "benchmark_id": "scalar/UNIFORM256/1MiB",
-  "tier": "scalar",
-  "backend": "scalar-8way",
-  "api": "decode_8way_packed_scalar_into",
-  "profile": "UNIFORM256",
-  "bytes": 1048576,
-  "threads": 1,
-  "median_ns": 10345000.0,
-  "mean_ns": 10456000.0,
-  "stddev_ns": 123000.0,
-  "throughput_gib_s": 0.9672,
-  "implementation_commit": "a1b2c3d4e5f6...",
-  "rustc": "rustc 1.84.0 (9fc6b4312 2025-01-07)",
-  "cpu": "AMD Ryzen 7 9800X3D",
-  "target_features": ["avx2", "avx512f", "sse4.1"]
-}
-```
-
-### CSV Export
-
-```csv
-benchmark_id,tier,backend,api,profile,bytes,threads,median_ns,mean_ns,stddev_ns,throughput_gib_s,commit
-scalar/UNIFORM256/1MiB,scalar,scalar-8way,decode_8way_packed_scalar_into,UNIFORM256,1048576,1,10345000.0,10456000.0,123000.0,0.9672,a1b2c3d4
-```
-
-### Export Script
-
-```sh
-cargo run -p ryg-rans-rs-bench --bin export-results -- <criterion_dir> <output_dir>
-```
-
-This walks the Criterion output tree, extracts estimates, and writes `results.json` and
-`results.csv` with a SHA-256 hash of the JSON file for integrity.
+- This crate is the **measurement surface**; Criterion raw trees land in
+  `target/criterion/`.
+- A **preflight** record (backend requested/executed, output hash,
+  words-consumed hash, final-states hash, verification verdict) is what the Phase
+  L.18 exporter rewrite joins to Criterion timing by exact benchmark ID — this
+  channel does **not** exist yet, which is residual L1-D.
+- Performance **receipts** (one per surface, 10 surfaces), **manifests**, and the
+  run **index** are produced by `cargo xtask performance-seal` into
+  `evidence/performance/runs/<run-id>/` and sealed by `cargo xtask seal`.
+- The Phase K run is archived at `evidence/performance/runs/phase-k-20260731-004044/`
+  as **superseded** evidence (never deleted).
+- The Phase L.14 court artifacts are archived under `evidence/phase-l/comparative/criterion/`.
 
 ---
 
@@ -442,11 +427,9 @@ This walks the Criterion output tree, extracts estimates, and writes `results.js
 
 ### `lib.rs`
 
-Re-exports the public modules:
-
 ```rust
 pub mod common;    // Shared benchmark infrastructure
-pub mod exporter;  // JSON/CSV result export
+pub mod exporter;  // Criterion structured summary export (JSON + CSV)
 ```
 
 ### `common/corpus.rs`
@@ -454,164 +437,95 @@ pub mod exporter;  // JSON/CSV result export
 | Symbol | Kind | Description |
 |--------|------|-------------|
 | `ModelProfile` | enum | 8 deterministic model profiles |
-| `Corpus` | struct | Generated data + frequencies + model + packed table |
-| `Corpus::generate` | fn | Create corpus from profile + length + seed |
-| `Corpus::encode_16way` | fn | Encode corpus into 16-way compressed stream |
-| `Corpus::packed_table` | fn | Build packed decode table for this corpus |
+| `Corpus` | struct | Data + frequencies + cumulative frequencies + scale model |
+| `Corpus::generate(profile, length, seed)` | fn | Create a deterministic corpus |
+| `Corpus::encode_16way()` | fn | Encode into a 16-way interleaved Word rANS stream (`Vec<u16>`) |
+| `Corpus::packed_table()` | fn | Build the `PackedWordTable` for this corpus |
+| `ModelProfile::label()` | fn | Canonical profile label (e.g. `"UNIFORM256"`) |
 
 ### `common/models.rs`
 
 | Symbol | Kind | Description |
 |--------|------|-------------|
-| `build_freqs` | fn | Build normalized frequency model from data |
-| `is_uniform256` | fn | Check if model is the uniform-256 distribution |
+| `build_freqs(data, total)` | fn | Build a normalized frequency model summing to `total` |
+| `is_uniform256(freqs)` | fn | True if every symbol has frequency 16 |
 
 ### `common/verification.rs`
 
 | Symbol | Kind | Description |
 |--------|------|-------------|
-| `VerificationReport` | struct | Three-dimensional verification result |
-| `verify_16way` | fn | Verify 16-way decode against scalar reference |
-| `verify_8way` | fn | Verify 8-way decode against scalar reference |
-| `assert_verified` | fn | Panic on verification failure |
+| `VerificationReport` | struct | `output_matches`, `words_consumed_match`, `final_states_match`, `all_ok` |
+| `verify_16way(...)` | fn | Compare against the scalar 16-way reference (all 16 states) |
+| `verify_8way(...)` | fn | Compare against the scalar 8-way reference (first 8 of 16 slots) |
+| `assert_verified(&report)` | fn | Panic if `all_ok` is false |
 
 ### `common/metadata.rs`
 
 | Symbol | Kind | Description |
 |--------|------|-------------|
-| `BenchMetadata` | struct | Host metadata collector |
-| `BenchMetadata::collect` | fn | Gather CPU, rustc, features, git commit |
-| `BenchMetadata::to_map` | fn | Convert to HashMap for export |
+| `BenchMetadata` | struct | rustc version, target features, CPU model, OS, git commit, dirty-tree flag, CPU count |
+| `BenchMetadata::collect()` | fn | Gather host metadata |
+| `BenchMetadata::to_map()` | fn | `HashMap<String, String>` form for export |
 
 ### `exporter.rs`
 
 | Symbol | Kind | Description |
 |--------|------|-------------|
-| `BenchRecord` | struct | Single benchmark result record |
-| `export_summary` | fn | Write JSON and CSV exports |
-| `load_criterion_estimates` | fn | Parse Criterion output tree |
+| `BenchRecord` | struct | One validated benchmark record (fields above) |
+| `export_summary(records, dir)` | fn | Write canonical `results.json` + `results.csv`, return SHA-256 hashes |
+| `load_criterion_estimates(dir, metadata)` | fn | Parse + validate the Criterion tree into `Vec<BenchRecord>` |
 
 ---
 
-## Benchmark Architecture
+## Limitations (honest)
 
-### Directory Structure
-
-```
-benches/
-  scalar.rs          — Tier 1: Scalar decode backends
-  sse41.rs           — Tier 2: SSE4.1 decode backends
-  avx2.rs            — Tier 3: AVX2 decode backends
-  avx512.rs          — Tier 4: AVX-512 decode backends
-  specialized.rs     — Tier 5: Specialized algorithm variants
-  batch.rs           — Tier 6: Multi-stream batch decoders
-  parallel.rs        — Tier 7: Multi-threaded parallel engine
-  container.rs       — Tier 8: Container round-trip
-  dispatch.rs        — Tier 9: Dispatch overhead
-
-src/
-  lib.rs             — Public module exports
-  common/
-    corpus.rs        — Deterministic corpus generation
-    models.rs        — Frequency model construction
-    verification.rs  — Backend verification helpers
-    metadata.rs      — Host metadata collection
-  exporter.rs        — JSON/CSV result export
-```
-
-### Data Flow
-
-```
-1. Corpus::generate(profile, length, seed)
-   │
-   ├─► data: Vec<u8>           (raw input bytes)
-   ├─► freqs: Vec<u32>         (normalized frequency table)
-   ├─► cum_freqs: Vec<u32>     (cumulative frequencies)
-   │
-   ├─► corpus.encode_16way()
-   │     └─► compressed: Vec<u16>  (16-way Word rANS stream)
-   │
-   └─► corpus.packed_table()
-         └─► table: PackedWordTable  (4096-slot packed table)
-               │
-               ▼
-2. Reference decode (scalar)
-   │
-   ▼
-3. Verify backend (output, words, states)
-   │
-   ▼
-4. Benchmark (Criterion timing loop with black_box)
-   │
-   ▼
-5. Export (JSON + CSV with host metadata)
-```
+1. **Exporter under repair (L.18).** The Phase K exporter fabricated
+   `sample_count`, hardcoded `verification_passed`, and left hashes empty
+   (L1-A…L1-N); the rewrite is Phase L.18 work. Current exporter output is not
+   sealed evidence.
+2. **Phase K measurements are superseded.** Any historical number in this README
+   or the root README that is not from the Phase L.14 court is Phase K data,
+   retained for the record, regenerated in L.18.
+3. **Word comparison is opt-in.** The comparative court's word surface requires
+   the `comparative-word-sse41` feature and native RUSTFLAGS; default builds
+   exclude it.
+4. **Unavailable ISA backends are not timed.** A bench that prints
+   `UNSUPPORTED:` for a backend leaves that backend with zero measurements on that
+   host — a real signal, not an error.
+5. **The comparative court is methodological, not a sealed surface.** Its
+   numbers are not part of the ten performance receipts.
+6. No claim of general superiority over C is made anywhere in this crate's
+   documentation; the comparative court records measurements, separations, and
+   residuals.
 
 ---
 
-## Adding a New Benchmark
+## Troubleshooting
 
-To add a new benchmark tier:
-
-1. Create `benches/new_tier.rs`
-2. Define a Criterion benchmark group:
-   ```rust
-   use criterion::{Criterion, Throughput, black_box};
-   use ryg_rans_rs_bench::common::{corpus::*, verification::*};
-
-   fn bench_new_backend(c: &mut Criterion) {
-       let mut group = c.benchmark_group("new-backend");
-       for size in [64, 256, 1024, 4096] {
-           let corpus = Corpus::generate(ModelProfile::Uniform256, size, 42);
-           let compressed = corpus.encode_16way();
-           let table = corpus.packed_table();
-
-           // Verify
-           let reference = decode_interleaved16_scalar_into(
-               &compressed, &table, corpus.data.len()
-           ).unwrap();
-           let test = /* your backend */;
-           assert_verified(&verify_16way(/* ... */));
-
-           group.throughput(Throughput::Bytes(size as u64));
-           group.bench_with_input(
-               format!("UNIFORM256/{}B", size),
-               &(&compressed, &table, corpus.data.len()),
-               |b, (comp, tbl, len)| {
-                   b.iter(|| black_box(/* your backend */))
-               },
-           );
-       }
-       group.finish();
-   }
-   ```
-3. Register in `Cargo.toml`:
-   ```toml
-   [[bench]]
-   name = "new_tier"
-   harness = false
-   ```
-4. Run: `cargo bench -p ryg-rans-rs-bench --bench new_tier`
+| Symptom | Cause / Fix |
+|---------|-------------|
+| `UNSUPPORTED: avx512vl-8way` printed | CPU or build lacks the ISA. Rebuild with `RUSTFLAGS="-C target-cpu=native"` (or the explicit feature list) on capable hardware. |
+| `Backend '...' verification FAILED` | A backend produced wrong output/words/states vs the scalar reference. This is a real defect — the process aborts before timing, by design. |
+| Criterion reports 0 measurements for a group | The backend failed verification (see above) or the ISA is unavailable. |
+| `refusing to export: working tree is dirty` | `load_criterion_estimates` rejects dirty trees — benchmark provenance requires a clean checkout. |
+| Word comparative functions missing | Build without the `comparative-word-sse41` feature; that surface needs it plus SSE4.1 compiled in. |
+| `no matching package named ryg-rans-sys` | The workspace cannot resolve the pinned `=1.2.0` dependency offline; run with network access. |
 
 ---
 
-## Feature Flags
+## Versioning and Reading Order
 
-This crate has no public features. It always depends on `ryg-rans-rs-core`,
-`ryg-rans-rs-simd`, and optionally `ryg-rans-rs-parallel` (for Tiers 7 and 8).
-
-### Dependencies
-
-| Dependency | Purpose |
-|------------|---------|
-| `ryg-rans-rs-core` | Scalar reference decoder (verification baseline) |
-| `ryg-rans-rs-simd` | SSE4.1, AVX2, AVX-512 decode kernels (Tiers 2-6) |
-| `ryg-rans-rs-parallel` | Parallel block engine (Tiers 7-8) |
-| `criterion` | Benchmark harness + statistical analysis |
-| `serde` / `serde_json` | JSON export formatting |
-| `sha2` | SHA-256 hash of export files |
-| `rand` | Seeded RNG for corpus generation |
+- **Version**: 0.1.30 (workspace crates); `publish = false` — never published.
+- **Reading order**: root [`README.md`](../../README.md) →
+  [`docs/architecture.md`](../../docs/architecture.md) →
+  [`docs/performance-method.md`](../../docs/performance-method.md) →
+  [`docs/performance/comparative.md`](../../docs/performance/comparative.md) →
+  [`docs/glossary.md`](../../docs/glossary.md) → this README →
+  [`xtask/README.md`](../../xtask/README.md).
+- **Evidence status**: see the Evidence Status table in the root README; the
+  performance column reads **Re-sealing (L.18)** until the regenerated run passes
+  the seal gate.
 
 ---
 
-*Part of the ryg-rans-rs project. Version 0.1.27. Phase J.*
+*Part of the ryg-rans-rs project. Version 0.1.30. Phase L.15 documentation pass.*

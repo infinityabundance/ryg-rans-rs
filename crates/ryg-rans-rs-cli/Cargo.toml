@@ -4,7 +4,7 @@ version = "0.1.30"
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
-description = "Production-grade CLI for rANS entropy coding — encode, decode, inspect, verify, compare, benchmark"
+description = "ryg-rans CLI for rANS entropy coding — encode, decode, inspect, verify, compare, benchmark"
 
 [[bin]]
 name = "ryg-rans"

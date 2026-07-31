@@ -1,4 +1,4 @@
-//! # ryg-rans-rs-cli — Production-grade rANS compression CLI
+//! # ryg-rans-rs-cli — the ryg-rans rANS compression CLI
 //!
 //! This library implements the `ryg-rans` command-line tool for encoding,
 //! decoding, inspecting, verifying, comparing, and benchmarking rANS

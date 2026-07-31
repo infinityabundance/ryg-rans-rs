@@ -22,10 +22,22 @@ pub fn run(matches: &ArgMatches) -> Result<(), AppError> {
         .get_one::<String>("output")
         .map(String::as_str)
         .unwrap_or("-");
-    let _backend = matches
+    let backend = matches
         .get_one::<String>("backend")
         .map(String::as_str)
         .unwrap_or("auto");
+    // The CLI decoder is a single auto-dispatching codec walk (scalar core
+    // with the SIMD 8-way kernel for codec 7 when compiled in).  An explicit
+    // backend request cannot be honoured — refuse it rather than silently
+    // decoding with a different backend (no silent fallback).
+    if backend != "auto" {
+        return Err(AppError::Unsupported(crate::error::UnsupportedError {
+            detail: format!(
+                "explicit backend '{}' not implemented in the CLI decoder; the auto dispatcher is used",
+                backend
+            ),
+        }));
+    }
     let force = matches.get_flag("force");
     let force_tty = matches.get_flag("force-tty");
 

@@ -80,11 +80,13 @@
 //! systems, kernels, and WebAssembly.  Features that need allocation (`alloc`)
 //! or the standard library (`std`) are gated behind Cargo features:
 //!
-//! - `alloc` — enables `AliasTable`, `BackwardWord32Writer`, `Vec`-returning
-//!   helpers.  Uses `extern crate alloc` internally.
+//! - `alloc` — enables `AliasTable` and the `Vec`-returning helpers.
+//!   Uses `extern crate alloc` internally.
 //! - `std` — enables implementation of `std::error::Error` for error types.
-//!   Activates `alloc` implicitly.
-//! - `default` — enables `std`.
+//!   Independent of `alloc` (the two can be enabled separately).
+//! - `default` — enables **no** features (`default = []` in Cargo.toml).
+//!   The default build is `no_std`; consumers opt into `std`/`alloc`
+//!   explicitly.
 //!
 //! ### `#![forbid(unsafe_code)]`
 //!
@@ -517,9 +519,16 @@ impl RansByteEncSymbol {
         let cmpl_freq = ((1u32 << scale_bits) - freq) as u16;
 
         if freq < 2 {
-            // freq == 1 special case
-            // rcp_freq = ~0u, rcp_shift = 0
-            // bias = start + (1 << scale_bits) - 1
+            // freq == 1 special case: the general reciprocal path cannot be
+            // used because the shift computation (`freq > (1 << shift)`) would
+            // produce shift = 0 and rcp_freq would overflow the fixed-point
+            // format.  Instead, note that q = x/1 = x, so C(s,x) = (x << s) + start.
+            // The formula x + bias + q*cmpl_freq with bias = start + 2^s - 1,
+            // rcp_freq = ~0, rcp_shift = 0 gives q' = (x * ~0) >> 32 = x - 1
+            // (for x > 0) and cmpl_freq = 2^s - 1:
+            //   x + start + 2^s - 1 + (x - 1)*(2^s - 1)
+            //   = x + start + 2^s - 1 + x*2^s - x - 2^s + 1 = (x << s) + start
+            // which is exactly C(s,x) for freq = 1.
             Self {
                 x_max,
                 rcp_freq: !0u32,
@@ -729,6 +738,37 @@ pub fn rans_byte_dec_advance<R: ForwardReader>(
 ///
 /// This is the fast path that avoids integer division in the hot loop.
 /// Returns `Err(EncodeError::OutputTooSmall)` if the output buffer is exhausted.
+///
+/// # Why the algebra works
+///
+/// The division-based reference computes `C(s,x) = ((x/freq) << s) + (x%freq) + start`.
+/// With `q = x/freq` (integer division) and `r = x%freq`, `x = q*freq + r`, so:
+///
+/// ```text
+/// C(s,x) = (q << s) + r + start
+///        = q*(2^s) + (x - q*freq) + start
+///        = x + start + q*(2^s - freq)
+///        = x + bias + q*cmpl_freq
+/// ```
+///
+/// where `bias = start` and `cmpl_freq = 2^s - freq` (the frequency
+/// complement).  The expensive part is `q = x/freq`; the reciprocal trick
+/// computes `q` from a multiply-high approximation `(x * rcp_freq) >>
+/// (32 + rcp_shift)` (Alverson's method) which compiles to a single
+/// `MUL` + `SHR` pair instead of `DIV` (~4-30 cycles saved per symbol).
+/// The Kani proof `kani_reciprocal_equals_division` shows the approximation
+/// is exact for every valid `(x, freq, scale_bits)`.
+///
+/// # Invariants
+///
+/// * `sym` must have been built by `RansByteEncSymbol::new` (or the
+///   validated `new` path) for the same `scale_bits` used at decode time.
+/// * `x_max != 0` (freq >= 1), asserted in debug builds.
+///
+/// # Failure modes
+///
+/// `Err(EncodeError::OutputTooSmall)` when the writer has no room for a
+/// renorm byte.  The state is not advanced on failure.
 #[inline]
 pub fn rans_byte_enc_put_symbol<W: BackwardWriter>(
     state: &mut RansByteState,
@@ -1928,6 +1968,13 @@ pub fn rans_word_enc_put(
 ///
 /// Equivalent to `RansWordEncFlush` in `rans_word_sse41.h`.
 /// Writes 2 u16 words (4 bytes total).
+///
+/// # Why the write order is high-then-low
+///
+/// The backward writer places each word at a lower address than the
+/// previous one, so writing high first leaves `[low, high]` in forward
+/// buffer order — exactly the order `RansWordDecInit` reads (`lo | hi<<16`).
+/// Writing low first would invert the halves and corrupt every stream.
 #[inline]
 pub fn rans_word_enc_flush(
     state: &RansWordState,

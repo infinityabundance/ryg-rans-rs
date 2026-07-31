@@ -64,6 +64,12 @@ fn main() {
                 all_ok = false;
             }
 
+            // Forbidden overclaim language check (L.15)
+            if let Err(e) = check_no_overclaim() {
+                eprintln!("FAIL: no-overclaim check: {}", e);
+                all_ok = false;
+            }
+
             // Check Docker matrix evidence
             if let Err(e) = check_docker_matrix() {
                 eprintln!("FAIL: docker matrix check: {}", e);
@@ -103,6 +109,13 @@ fn main() {
                 std::process::exit(1);
             }
             println!("no-upstream-source check passed.");
+        }
+        "no-overclaim" => {
+            if let Err(e) = check_no_overclaim() {
+                eprintln!("FAIL: {}", e);
+                std::process::exit(1);
+            }
+            println!("no-overclaim check passed.");
         }
         "package-audit" => {
             eprintln!("error: gate not implemented: package-audit");
@@ -248,14 +261,95 @@ fn check_no_ffi_facade() -> Result<(), String> {
     }
     let content =
         std::fs::read_to_string(facade_path).map_err(|e| format!("read facade lib.rs: {}", e))?;
-    if !content.contains("#![forbid(unsafe_code)]") {
-        return Err("facade crate missing #![forbid(unsafe_code)]".into());
+    // The facade uses `#![deny(unsafe_code)]` (a deliberate choice: it must
+    // remain able to re-export the SIMD crate's safe wrappers without
+    // carrying unsafe itself).  Accept deny or forbid.
+    if !content.contains("#![forbid(unsafe_code)]") && !content.contains("#![deny(unsafe_code)]") {
+        return Err("facade crate missing #![forbid(unsafe_code)] / #![deny(unsafe_code)]".into());
     }
     Ok(())
 }
 
 fn check_forbid_unsafe_core() -> Result<(), String> {
     check_forbid_unsafe("crates/ryg-rans-rs-core/src/lib.rs")
+}
+
+/// Forbidden overclaim language check (L.15).
+///
+/// The repository must not claim "critical safety infrastructure" quality,
+/// "can depend on this", or "production-grade" for anything unless a future
+/// formal certification process justifies it.  This scan covers READMEs,
+/// rustdoc/source comments, Cargo.toml descriptions, and docs/ — and excludes
+/// `evidence/` (historical records quote the removed language) and `target/`.
+fn check_no_overclaim() -> Result<(), String> {
+    let forbidden = [
+        "critical safety infrastructure",
+        "critical-safety-infrastructure",
+        "safety infrastructure can depend",
+        "can depend on this",
+        "production-grade",
+    ];
+
+    let mut hits: Vec<String> = Vec::new();
+    let mut walk = |dir: &std::path::Path| -> Result<(), String> {
+        if !dir.exists() {
+            return Ok(());
+        }
+        let mut stack = vec![dir.to_path_buf()];
+        while let Some(d) = stack.pop() {
+            let read = std::fs::read_dir(&d).map_err(|e| format!("read_dir {:?}: {}", d, e))?;
+            for entry in read {
+                let entry = entry.map_err(|e| format!("dir entry: {}", e))?;
+                let path = entry.path();
+                if path.is_dir() {
+                    let name = entry.file_name();
+                    let name = name.to_string_lossy();
+                    if name == "target" || name == "evidence" || name == ".git" {
+                        continue;
+                    }
+                    if path.ends_with("oracle/adapter") {
+                        continue; // vendored C sources
+                    }
+                    stack.push(path);
+                } else if path.is_file() {
+                    let name = entry.file_name();
+                    let name = name.to_string_lossy();
+                    let interesting = name.ends_with(".md")
+                        || name.ends_with(".rs")
+                        || name == "Cargo.toml"
+                        || name == "AGENTS.md"
+                        || name == "llms.txt";
+                    if !interesting {
+                        continue;
+                    }
+                    if path.to_string_lossy().ends_with("xtask/src/main.rs") {
+                        // The check's own source lists the forbidden phrases
+                        // as data; tooling source is not a claim surface.
+                        continue;
+                    }
+                    let content = std::fs::read_to_string(&path)
+                        .map_err(|e| format!("read {:?}: {}", path, e))?;
+                    let lower = content.to_lowercase();
+                    for phrase in &forbidden {
+                        if lower.contains(phrase) {
+                            hits.push(format!("{}: contains {:?}", path.display(), phrase));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    };
+
+    walk(std::path::Path::new("."))?;
+    if !hits.is_empty() {
+        return Err(format!(
+            "forbidden overclaim language found ({} hit(s)):\n{}",
+            hits.len(),
+            hits.join("\n")
+        ));
+    }
+    Ok(())
 }
 
 fn cmd_seal() -> Result<(), String> {
