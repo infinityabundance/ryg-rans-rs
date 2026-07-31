@@ -134,7 +134,7 @@ use crate::cancellation::CancellationToken;
 use crate::config::{BackendId, BackendPolicy, ParallelConfig};
 use crate::decode_plan::{DecodePlan, create_decode_plan};
 use crate::error::{BlockError, BlockErrorKind, ParallelError};
-use crate::executor::{ExecutorReport, ExecutorTask, run_tasks};
+use crate::executor::{ExecutorReport, ExecutorTask, run_tasks, run_tasks_with_sink};
 use crate::job::{DecodeBlockJob, DecodedBlockResult, OrderedDecodedBlocks};
 use crate::reorder::{BufferSized, HasBlockIndex, ReorderBuffer};
 use std::vec::Vec;
@@ -1606,6 +1606,20 @@ impl ParallelDecoder {
         let bc = jobs.len();
         let wc = crate::resource::effective_worker_count(config, bc)?;
         let qc = config.max_in_flight_blocks.get().max(wc);
+
+        // ---- max_buffered_input_bytes enforcement ----
+        // The documented semantics: reject the operation when the total
+        // compressed input bytes of all declared blocks exceeds the
+        // configured input budget.  This bounds the compressed side of
+        // the pipeline before any worker memory is committed.
+        let input_bytes: u64 = jobs.iter().map(|j| j.block_data.len() as u64).sum();
+        if input_bytes > config.max_buffered_input_bytes {
+            return Err(ParallelError::ResourceLimit(format!(
+                "max_buffered_input_bytes exceeded: {} > {}",
+                input_bytes, config.max_buffered_input_bytes
+            )));
+        }
+
         let tasks: Vec<DecodeTask> = jobs
             .into_iter()
             .map(|j| DecodeTask {
@@ -1751,6 +1765,15 @@ impl ParallelDecoder {
         let wc = crate::resource::effective_worker_count(config, bc)?;
         let qc = config.max_in_flight_blocks.get().max(wc);
 
+        // ---- max_buffered_input_bytes enforcement (streaming) ----
+        let input_bytes: u64 = jobs.iter().map(|j| j.block_data.len() as u64).sum();
+        if input_bytes > config.max_buffered_input_bytes {
+            return Err(ParallelError::ResourceLimit(format!(
+                "max_buffered_input_bytes exceeded: {} > {}",
+                input_bytes, config.max_buffered_input_bytes
+            )));
+        }
+
         // NOTE: This currently materialises all jobs into a Vec before
         // dispatch, so it is not a true streaming pipeline yet.  The live
         // bounded executor redesign (Phase L.4) replaces this with a
@@ -1827,6 +1850,116 @@ impl ParallelDecoder {
                 cancelled,
             },
         })
+    }
+
+    /// Decode with a sink callback, committing decoded blocks in block-index
+    /// order without collecting the entire workload.
+    ///
+    /// Results stream from the bounded executor through a bounded result
+    /// channel into a live [`ReorderBuffer`]; every time a contiguous run
+    /// becomes committable, the caller's `sink` receives each block in
+    /// ascending block-index order.  Peak memory is bounded by the queue
+    /// capacities plus whatever the sink retains — the operation itself
+    /// does not accumulate all decoded output.
+    ///
+    /// Returns [`ParallelError::Cancelled`] if cancelled before all blocks
+    /// complete; never returns `Ok` with fewer blocks delivered to the sink.
+    pub fn decode_with_sink<F>(
+        blocks: impl IntoIterator<Item = DecodeBlockJob>,
+        config: &ParallelConfig,
+        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
+        sink: F,
+    ) -> Result<ExecutorReport<Result<DecodedBlockResult, BlockError>>, ParallelError>
+    where
+        F: FnMut(DecodedBlockResult) + Send + 'static,
+    {
+        let jobs: Vec<DecodeBlockJob> = blocks.into_iter().collect();
+        let bc = jobs.len();
+        if bc == 0 {
+            // Zero blocks: no work, sink never invoked.  Return an empty
+            // report with the same R type as the non-empty path.
+            return run_tasks_with_sink(
+                Vec::<DecodeTask>::new(),
+                1,
+                1,
+                None,
+                external_cancel,
+                |_r: Result<DecodedBlockResult, BlockError>| {},
+            );
+        }
+        let wc = crate::resource::effective_worker_count(config, bc)?;
+        let qc = config.max_in_flight_blocks.get().max(wc);
+
+        let input_bytes: u64 = jobs.iter().map(|j| j.block_data.len() as u64).sum();
+        if input_bytes > config.max_buffered_input_bytes {
+            return Err(ParallelError::ResourceLimit(format!(
+                "max_buffered_input_bytes exceeded: {} > {}",
+                input_bytes, config.max_buffered_input_bytes
+            )));
+        }
+
+        let tasks: Vec<DecodeTask> = jobs
+            .into_iter()
+            .map(|j| DecodeTask {
+                job: j,
+                config: config.clone(),
+            })
+            .collect();
+
+        // Live reorder: results arrive in completion order; commit only
+        // contiguous runs in block-index order, passing each to the sink.
+        // The sink closure runs on the coordinator thread and must be Send,
+        // so share the reorder buffer and error tracker through Arc<Mutex>.
+        let reorder = std::sync::Arc::new(std::sync::Mutex::new(ReorderBuffer::new(
+            config.max_in_flight_blocks.get(),
+            config.max_buffered_output_bytes,
+        )));
+        let et = std::sync::Arc::new(std::sync::Mutex::new(
+            crate::error::CanonicalErrorTracker::new(),
+        ));
+        let sink = std::sync::Arc::new(std::sync::Mutex::new(sink));
+
+        let reorder_rc = reorder.clone();
+        let et_rc = et.clone();
+        let sink_rc = sink.clone();
+        let report = run_tasks_with_sink(
+            tasks,
+            wc,
+            qc,
+            config.worker_stack_size,
+            external_cancel,
+            move |result: Result<DecodedBlockResult, BlockError>| {
+                let mut reorder = reorder_rc.lock().unwrap();
+                let mut et = et_rc.lock().unwrap();
+                let mut sink = sink_rc.lock().unwrap();
+                match result {
+                    Ok(b) => match reorder.insert(b) {
+                        Ok(Some(ready)) => {
+                            sink(ready);
+                            for rd in reorder.drain_ready() {
+                                sink(rd);
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(e) => et.record(e),
+                    },
+                    Err(e) => et.record(e),
+                }
+            },
+        )?;
+
+        {
+            let mut reorder = reorder.lock().unwrap();
+            let mut sink = sink.lock().unwrap();
+            for rd in reorder.drain_ready() {
+                sink(rd);
+            }
+        }
+
+        if let Some(c) = et.lock().unwrap().canonical_error() {
+            return Err(ParallelError::DecodeFailed(Box::new(c.clone())));
+        }
+        Ok(report)
     }
 }
 

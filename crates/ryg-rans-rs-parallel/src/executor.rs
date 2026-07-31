@@ -6,43 +6,54 @@
 //!
 //! ## Architecture
 //!
-//! The executor is built around a **bounded job channel** (`crossbeam_channel::bounded`):
+//! The executor is built around a **live producer/consumer pipeline** with
+//! two bounded channels:
 //!
-//! - The coordinator submits tasks into the bounded channel.
-//! - Worker threads dequeue tasks, execute them, and write results into a
-//!   **shared `Mutex<Vec>` collector**.
-//! - After all tasks are submitted, the sender is dropped, workers receive
-//!   `None` (the sentinel), break their receive loop, and are joined.
+//! ```text
+//!              ┌─────────────┐   bounded job    ┌─────────┐   bounded result   ┌────────────┐
+//!  producer ──▶│  job_tx     │ ───────────────▶ │ workers │ ────────────────▶ │ coordinator│
+//!  thread     │ (bounded)    │   queue        │ (N threads)│   channel        │ (drains)   │
+//!              └─────────────┘                 └─────────┘                   └────────────┘
+//! ```
 //!
-//! ## Why a Mutex collector instead of a bounded result channel?
+//! - A **producer thread** submits tasks into the bounded job channel.  When
+//!   the channel is full, the producer blocks (backpressure), so at most
+//!   `effective_queue` tasks are ever in flight.
+//! - Worker threads dequeue tasks, execute them, and send results into a
+//!   **bounded result channel**.  When the result channel is full, workers
+//!   block, applying backpressure to the pipeline.
+//! - The **coordinator** (the calling thread) drains the bounded result
+//!   channel continuously while the producer submits.  Because the producer
+//!   and coordinator run concurrently, neither channel can deadlock: workers
+//!   always drain the job channel, and the coordinator always drains the
+//!   result channel.
 //!
-//! An earlier design used a **bounded result channel** for worker output.
-//! This caused a **deadlock** scenario:
+//! ## Why a producer thread instead of inline submission?
 //!
-//! 1. The coordinator is blocked trying to send a task into the full job channel.
-//! 2. All workers are blocked trying to send results into the full result channel.
-//! 3. Nobody is draining the result channel (there is no dedicated drainer thread).
-//!    → Deadlock.
+//! An earlier design submitted all tasks inline from the coordinator and
+//! collected results in a `Mutex<Vec>`.  That accumulated every completed
+//! result before reordering, so peak memory was O(N) results regardless of
+//! queue capacity — not end-to-end bounded.
 //!
-//! The fix: use a **`Mutex<Vec>`** for result collection.  Workers lock the
-//! mutex, push their result, and unlock — the lock is held for a tiny duration
-//! (just the `push` call).  Boundedness is still guaranteed by the job channel:
-//! at most `effective_queue` tasks can be in-flight, and thus at most
-//! `effective_queue` result entries can be outstanding at any time.
+//! A design with inline submission plus a bounded result channel deadlocks:
+//! the coordinator blocks sending a task into the full job channel while all
+//! workers block sending results into the full result channel, and nobody
+//! drains results.  The producer thread breaks this by decoupling submission
+//! from the coordinator's drain loop.
 //!
 //! ## Properties
 //!
 //! - Fixed number of worker threads (no dynamic scaling).
-//! - Bounded multi-producer/multi-consumer work queue.
-//! - Mutex-based result collection (not bounded, but implicitly bounded by
-//!   job channel capacity).
+//! - Bounded job channel (`effective_queue` slots).
+//! - Bounded result channel (`result_capacity` slots).
+//! - Live result consumption: the coordinator drains results while the
+//!   producer submits — no post-hoc reorder of an unbounded buffer.
 //! - Explicit startup and shutdown.
-//! - Automatic shutdown through `Drop` (channel drop causes worker termination).
 //! - Every worker joined before `run_tasks` returns.
-//! - Worker names include stable prefix `"ryg-parallel-N"` and numeric index.
+//! - Worker names include stable prefix `"ryg-parallel-N"`.
 //! - Worker panic captured with `catch_unwind`.
-//! - Panic converted to typed `WorkerPanic` result that includes the block
-//!   index if known (via `ExecutorTask::block_index`).
+//! - Panic converted to typed `WorkerPanic` result including the block
+//!   index when known (via `ExecutorTask::block_index`).
 //! - No detached threads.
 //! - No polling timeout loops.
 //! - No busy-spin completion loops.
@@ -285,18 +296,20 @@ where
 
     let effective_workers = worker_count.min(total_tasks).max(1);
     let effective_queue = max_queue.max(effective_workers);
+    // Bounded result channel: at most `effective_queue` results in flight.
+    let result_capacity = effective_queue.max(1);
 
     // Create the shared cancellation token.
     // If the caller provided one, we use that.  Otherwise we create an internal one.
     let cancel = external_cancel.unwrap_or_else(|| Arc::new(CancellationToken::new()));
 
-    // Shared result collector (protected by a mutex).
-    let collector = Arc::new(Mutex::new(Vec::<
+    // ---- Channels ----
+    // Bounded job channel: at most `effective_queue` tasks queued.
+    let (job_sender, job_receiver) = crossbeam_channel::bounded::<T>(effective_queue);
+    // Bounded result channel: at most `result_capacity` results in flight.
+    let (result_sender, result_receiver) = crossbeam_channel::bounded::<
         Result<R, (WorkerIndex, String, Option<u64>)>,
-    >::with_capacity(total_tasks)));
-
-    // Bounded job channel.
-    let (job_sender, job_receiver) = crossbeam_channel::bounded::<Option<T>>(effective_queue);
+    >(result_capacity);
 
     // Per-worker atomic counters.
     let started = Arc::new(AtomicUsize::new(0));
@@ -307,8 +320,8 @@ where
     let mut handles = Vec::with_capacity(effective_workers);
     for i in 0..effective_workers {
         let rx = job_receiver.clone();
+        let tx = result_sender.clone();
         let cancel = cancel.clone();
-        let collector = collector.clone();
         let started = started.clone();
         let completed = completed.clone();
         let cancelled_tasks = cancelled_tasks.clone();
@@ -321,16 +334,11 @@ where
 
         let handle = builder
             .spawn(move || {
-                for task_opt in rx {
+                for task in rx {
                     if cancel.is_cancelled() {
                         cancelled_tasks.fetch_add(1, Ordering::Relaxed);
                         continue;
                     }
-
-                    let task = match task_opt {
-                        Some(t) => t,
-                        None => break,
-                    };
 
                     let block_index_for_panic = task_block_index(&task);
                     started.fetch_add(1, Ordering::Relaxed);
@@ -340,8 +348,10 @@ where
                     })) {
                         Ok(r) => {
                             completed.fetch_add(1, Ordering::Relaxed);
-                            let mut col = collector.lock().unwrap();
-                            col.push(Ok(r));
+                            // Block on the bounded result channel if the
+                            // coordinator is slow — this is the backpressure
+                            // that bounds in-flight results.
+                            let _ = tx.send(Ok(r));
                         }
                         Err(panic_payload) => {
                             let msg = if let Some(s) = panic_payload.downcast_ref::<&str>() {
@@ -352,8 +362,7 @@ where
                                 "unknown panic".to_string()
                             };
                             completed.fetch_add(1, Ordering::Relaxed);
-                            let mut col = collector.lock().unwrap();
-                            col.push(Err((i, msg, block_index_for_panic)));
+                            let _ = tx.send(Err((i, msg, block_index_for_panic)));
                             cancel.cancel();
                         }
                     }
@@ -364,20 +373,48 @@ where
         handles.push(handle);
     }
     drop(job_receiver); // workers hold their own clones
+    drop(result_sender); // workers hold their own clones; drop the original so the
+    // coordinator's drain loop terminates when workers exit
 
-    // Submit all tasks through the bounded channel.
-    let mut submitted = 0usize;
-    for task in tasks {
-        if cancel.is_cancelled() {
-            break;
+    // ---- Producer thread ----
+    // Submits tasks into the bounded job channel while the coordinator
+    // drains results.  The producer blocks when the job channel is full
+    // (backpressure); workers drain it.  This decouples submission from
+    // result draining so neither channel can deadlock.
+    let producer = {
+        let cancel = cancel.clone();
+        std::thread::Builder::new()
+            .name("ryg-parallel-producer".to_string())
+            .spawn(move || {
+                let mut submitted = 0usize;
+                for task in tasks {
+                    if cancel.is_cancelled() {
+                        break;
+                    }
+                    if job_sender.send(task).is_err() {
+                        // All workers gone — no point continuing.
+                        break;
+                    }
+                    submitted += 1;
+                }
+                submitted
+            })
+            .map_err(|e| ParallelError::ThreadCreate(format!("producer: {}", e)))?
+    };
+
+    // ---- Coordinator: drain results while producer submits ----
+    let mut results = Vec::with_capacity(total_tasks);
+    let mut panic_errors: Vec<(WorkerIndex, String, Option<u64>)> = Vec::new();
+    for item in result_receiver {
+        match item {
+            Ok(r) => results.push(r),
+            Err(e) => panic_errors.push(e),
         }
-        if job_sender.send(Some(task)).is_err() {
-            break;
-        }
-        submitted += 1;
     }
-    // Signal shutdown by dropping the sender.
-    drop(job_sender);
+    // The result channel closes when every worker (and the result_sender
+    // clone they hold) is dropped — i.e. after all workers have finished.
+
+    let submitted = producer.join().unwrap_or(0);
 
     // Join all workers.
     for handle in handles {
@@ -388,18 +425,6 @@ where
     let started_count = started.load(Ordering::Relaxed);
     let completed_count = completed.load(Ordering::Relaxed);
     let cancelled_count = cancelled_tasks.load(Ordering::Relaxed);
-
-    // Collect results from the shared mutex.
-    let mut col = collector.lock().unwrap();
-    let mut results = Vec::with_capacity(total_tasks);
-    let mut panic_errors: Vec<(WorkerIndex, String, Option<u64>)> = Vec::new();
-
-    for item in col.drain(..) {
-        match item {
-            Ok(r) => results.push(r),
-            Err(e) => panic_errors.push(e),
-        }
-    }
 
     // Check for panics first (highest priority)
     if !panic_errors.is_empty() {
@@ -435,6 +460,189 @@ where
 
     Ok(ExecutorReport {
         results,
+        worker_panics: panic_errors.len(),
+        effective_workers,
+        declared_tasks: total_tasks,
+        submitted_tasks: submitted,
+        started_tasks: started_count,
+        completed_tasks: completed_count,
+        cancelled_tasks: cancelled_count,
+        returned_results,
+        cancelled: was_cancelled,
+    })
+}
+
+/// Run tasks with a sink callback, streaming results as they complete.
+///
+/// Identical pipeline to [`run_tasks`] but the coordinator invokes `sink`
+/// for every completed result **in completion order** instead of collecting
+/// them into a final `Vec`.  This enables truly bounded streaming: peak
+/// result memory is bounded by `result_capacity` (the bounded result
+/// channel), not by the total task count.
+///
+/// The returned `ExecutorReport` has an empty `results` vec; counters are
+/// still populated.
+pub fn run_tasks_with_sink<T, R, S>(
+    tasks: Vec<T>,
+    worker_count: usize,
+    max_queue: usize,
+    stack_size: Option<usize>,
+    external_cancel: Option<Arc<CancellationToken>>,
+    mut sink: S,
+) -> Result<ExecutorReport<R>, ParallelError>
+where
+    T: ExecutorTask<Output = R> + Send + 'static,
+    R: Send + 'static,
+    S: FnMut(R) + Send + 'static,
+{
+    let total_tasks = tasks.len();
+    if total_tasks == 0 {
+        return Ok(ExecutorReport {
+            results: Vec::new(),
+            worker_panics: 0,
+            effective_workers: 0,
+            declared_tasks: 0,
+            submitted_tasks: 0,
+            started_tasks: 0,
+            completed_tasks: 0,
+            cancelled_tasks: 0,
+            returned_results: 0,
+            cancelled: false,
+        });
+    }
+
+    let effective_workers = worker_count.min(total_tasks).max(1);
+    let effective_queue = max_queue.max(effective_workers);
+    let result_capacity = effective_queue.max(1);
+    let cancel = external_cancel.unwrap_or_else(|| Arc::new(CancellationToken::new()));
+
+    let (job_sender, job_receiver) = crossbeam_channel::bounded::<T>(effective_queue);
+    let (result_sender, result_receiver) = crossbeam_channel::bounded::<
+        Result<R, (WorkerIndex, String, Option<u64>)>,
+    >(result_capacity);
+
+    let started = Arc::new(AtomicUsize::new(0));
+    let completed = Arc::new(AtomicUsize::new(0));
+    let cancelled_tasks = Arc::new(AtomicUsize::new(0));
+
+    let mut handles = Vec::with_capacity(effective_workers);
+    for i in 0..effective_workers {
+        let rx = job_receiver.clone();
+        let tx = result_sender.clone();
+        let cancel = cancel.clone();
+        let started = started.clone();
+        let completed = completed.clone();
+        let cancelled_tasks = cancelled_tasks.clone();
+
+        let mut builder = std::thread::Builder::new();
+        builder = builder.name(format!("ryg-parallel-{}", i));
+        if let Some(stack) = stack_size {
+            builder = builder.stack_size(stack);
+        }
+
+        let handle = builder
+            .spawn(move || {
+                for task in rx {
+                    if cancel.is_cancelled() {
+                        cancelled_tasks.fetch_add(1, Ordering::Relaxed);
+                        continue;
+                    }
+                    let block_index_for_panic = task_block_index(&task);
+                    started.fetch_add(1, Ordering::Relaxed);
+                    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        task.run(i, &cancel)
+                    })) {
+                        Ok(r) => {
+                            completed.fetch_add(1, Ordering::Relaxed);
+                            let _ = tx.send(Ok(r));
+                        }
+                        Err(panic_payload) => {
+                            let msg = if let Some(s) = panic_payload.downcast_ref::<&str>() {
+                                s.to_string()
+                            } else if let Some(s) = panic_payload.downcast_ref::<String>() {
+                                s.clone()
+                            } else {
+                                "unknown panic".to_string()
+                            };
+                            completed.fetch_add(1, Ordering::Relaxed);
+                            let _ = tx.send(Err((i, msg, block_index_for_panic)));
+                            cancel.cancel();
+                        }
+                    }
+                }
+            })
+            .map_err(|e| ParallelError::ThreadCreate(format!("worker {}: {}", i, e)))?;
+        handles.push(handle);
+    }
+    drop(job_receiver);
+    drop(result_sender);
+
+    let producer = {
+        let cancel = cancel.clone();
+        std::thread::Builder::new()
+            .name("ryg-parallel-producer".to_string())
+            .spawn(move || {
+                let mut submitted = 0usize;
+                for task in tasks {
+                    if cancel.is_cancelled() {
+                        break;
+                    }
+                    if job_sender.send(task).is_err() {
+                        break;
+                    }
+                    submitted += 1;
+                }
+                submitted
+            })
+            .map_err(|e| ParallelError::ThreadCreate(format!("producer: {}", e)))?
+    };
+
+    let mut panic_errors: Vec<(WorkerIndex, String, Option<u64>)> = Vec::new();
+    for item in result_receiver {
+        match item {
+            Ok(r) => sink(r),
+            Err(e) => panic_errors.push(e),
+        }
+    }
+
+    let submitted = producer.join().unwrap_or(0);
+    for handle in handles {
+        let _ = handle.join();
+    }
+
+    let was_cancelled = cancel.is_cancelled();
+    let started_count = started.load(Ordering::Relaxed);
+    let completed_count = completed.load(Ordering::Relaxed);
+    let cancelled_count = cancelled_tasks.load(Ordering::Relaxed);
+    let returned_results = completed_count.saturating_sub(panic_errors.len());
+
+    if !panic_errors.is_empty() {
+        let lowest_panic = panic_errors
+            .iter()
+            .min_by_key(|(_, _, block_idx)| block_idx.unwrap_or(u64::MAX));
+        if let Some((wi, _msg, block_idx)) = lowest_panic {
+            return Err(ParallelError::WorkerPanic {
+                block_index: *block_idx,
+                worker_index: *wi,
+            });
+        }
+    }
+
+    if was_cancelled && returned_results != total_tasks {
+        return Err(ParallelError::Cancelled {
+            completed: returned_results,
+            expected: total_tasks,
+        });
+    }
+    if !was_cancelled && returned_results != total_tasks {
+        return Err(ParallelError::IncompleteExecution {
+            completed: returned_results,
+            expected: total_tasks,
+        });
+    }
+
+    Ok(ExecutorReport {
+        results: Vec::new(),
         worker_panics: panic_errors.len(),
         effective_workers,
         declared_tasks: total_tasks,

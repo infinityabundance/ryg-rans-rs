@@ -780,6 +780,15 @@ impl ParallelEncoder {
         let worker_count = crate::resource::effective_worker_count(config, block_count)?;
         let queue_capacity = config.max_in_flight_blocks.get().max(worker_count);
 
+        // ---- max_buffered_input_bytes enforcement (encode) ----
+        let input_bytes: u64 = jobs.iter().map(|j| j.data.len() as u64).sum();
+        if input_bytes > config.max_buffered_input_bytes {
+            return Err(ParallelError::ResourceLimit(format!(
+                "max_buffered_input_bytes exceeded: {} > {}",
+                input_bytes, config.max_buffered_input_bytes
+            )));
+        }
+
         // Convert jobs to tasks
         let tasks: Vec<EncodeTask> = jobs.into_iter().map(|job| EncodeTask { job }).collect();
 

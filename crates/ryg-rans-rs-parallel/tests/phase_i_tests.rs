@@ -8,12 +8,13 @@
 //! - Canonical error selection is deterministic (lowest block index wins)
 
 use ryg_rans_rs_parallel::{
-    CancellationToken, CodecPolicy, DecodeBlockJob, EncodeBlockJob, ExecutorTask, FixedBlockPlan,
-    ModelPolicy, ParallelConfig, ParallelDecoder, ParallelEncoder, ParallelError, ParallelVerifier,
-    ThreadCount, VerifyBlockJob, run_tasks,
+    CancellationToken, CodecPolicy, DecodeBlockJob, DecodedBlockResult, EncodeBlockJob,
+    ExecutorTask, FixedBlockPlan, ModelPolicy, OrderedEncodedBlocks, ParallelConfig,
+    ParallelDecoder, ParallelEncoder, ParallelError, ParallelVerifier, ThreadCount, VerifyBlockJob,
+    run_tasks,
 };
 use std::num::NonZeroUsize;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 fn uniform256() -> Vec<u8> {
     let mut d = Vec::with_capacity(4096);
@@ -933,4 +934,155 @@ fn test_executor_cancelled_not_ok() {
             other
         ),
     }
+}
+
+// ============================================================
+// Live pipeline with sink — bounded streaming results
+// ============================================================
+
+fn encode_blocks(data: &[u8], cfg: &ParallelConfig) -> OrderedEncodedBlocks {
+    let plan = FixedBlockPlan::new(data.len() as u64, 1024);
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+    ParallelEncoder::encode_blocks(jobs, cfg).expect("encode")
+}
+
+#[test]
+fn test_decode_with_sink_ordered() {
+    let data = nonuniform_data();
+    let cfg = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(4).unwrap()),
+        ..Default::default()
+    };
+
+    let enc = encode_blocks(&data, &cfg);
+    assert_eq!(
+        enc.blocks.len(),
+        4,
+        "4096 bytes / 1024-byte blocks = 4 blocks"
+    );
+
+    let dj: Vec<DecodeBlockJob> = enc
+        .blocks
+        .iter()
+        .map(|b| DecodeBlockJob {
+            block_index: b.block_index,
+            block_data: b.block.clone(),
+        })
+        .collect();
+
+    // The sink is FnMut + Send + 'static, so it must capture shared state
+    // (Arc<Mutex<..>>) rather than a plain &mut reference.
+    let collected: Arc<Mutex<Vec<DecodedBlockResult>>> = Arc::new(Mutex::new(Vec::new()));
+    let sink_collected = collected.clone();
+    let report = ParallelDecoder::decode_with_sink(dj, &cfg, None, move |block| {
+        sink_collected.lock().unwrap().push(block);
+    })
+    .expect("decode_with_sink must succeed");
+
+    let collected = collected.lock().unwrap();
+    // Every declared block must be delivered to the sink.
+    assert_eq!(
+        report.returned_results, 4,
+        "executor must return all results"
+    );
+    assert_eq!(report.declared_tasks, 4, "all tasks declared");
+    assert_eq!(report.completed_tasks, 4, "all tasks completed");
+    assert_eq!(collected.len(), 4, "all 4 blocks must reach the sink");
+
+    // Blocks must arrive in ascending block_index order.
+    let mut prev: Option<u64> = None;
+    for b in collected.iter() {
+        if let Some(p) = prev {
+            assert!(
+                b.block_index > p,
+                "sink must receive blocks in ascending block_index order"
+            );
+        }
+        prev = Some(b.block_index);
+    }
+
+    // Concatenated output must equal the original data.
+    let mut full = Vec::new();
+    for b in collected.iter() {
+        full.extend_from_slice(&b.output);
+    }
+    assert_eq!(
+        full, data,
+        "concatenated decoded output must equal the input"
+    );
+}
+
+#[test]
+fn test_max_buffered_input_bytes_enforced() {
+    let data = nonuniform_data();
+    let cfg = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(4).unwrap()),
+        ..Default::default()
+    };
+    let enc = encode_blocks(&data, &cfg);
+    let dj: Vec<DecodeBlockJob> = enc
+        .blocks
+        .iter()
+        .map(|b| DecodeBlockJob {
+            block_index: b.block_index,
+            block_data: b.block.clone(),
+        })
+        .collect();
+
+    let tiny_cfg = ParallelConfig {
+        max_buffered_input_bytes: 10,
+        ..Default::default()
+    };
+    assert!(
+        matches!(
+            ParallelDecoder::decode_blocks(dj, &tiny_cfg),
+            Err(ParallelError::ResourceLimit(_))
+        ),
+        "decode must reject input exceeding max_buffered_input_bytes with ResourceLimit"
+    );
+}
+
+#[test]
+fn test_encode_max_buffered_input_bytes_enforced() {
+    let data = nonuniform_data();
+    let plan = FixedBlockPlan::new(data.len() as u64, 1024);
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+
+    let tiny_cfg = ParallelConfig {
+        max_buffered_input_bytes: 10,
+        ..Default::default()
+    };
+    assert!(
+        matches!(
+            ParallelEncoder::encode_blocks_with_cancel(jobs, &tiny_cfg, None),
+            Err(ParallelError::ResourceLimit(_))
+        ),
+        "encode must reject input exceeding max_buffered_input_bytes with ResourceLimit"
+    );
 }
