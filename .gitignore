@@ -14,9 +14,20 @@ target/
 .idea/
 *.iml
 
-# Build artifacts
-# Cargo.lock is tracked for this workspace (binaries: xtask, oracle, cli)
-# Cargo.lock
+# Build artifacts (Phase L.15 repository-cleanliness gate)
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.rlib
+*.rmeta
+*.profraw
+*.profdata
+criterion/
+*.rlib
 
 # Oracle binaries
 oracle/adapter/rans_trace
