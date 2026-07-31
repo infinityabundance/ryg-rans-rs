@@ -169,6 +169,14 @@ pub struct ParallelConfig {
     /// which may increase throughput for memory-bound workloads but
     /// can hurt compute-bound workloads due to resource contention.
     pub smt_policy: SmtPolicy,
+    /// Integrity verification policy for decoded-output hashes.
+    ///
+    /// Defaults to [`IntegrityPolicy::Strict`]: a zero/unset stored
+    /// decoded hash fails the block (`DecodedHashMissing`) and a nonzero
+    /// mismatch fails with `DecodedHashMismatch`.  Set
+    /// `AllowLegacyUnsetDecodedHash` only when verifying containers
+    /// produced by encoders that predate decoded-hash storage.
+    pub integrity_policy: IntegrityPolicy,
 }
 
 impl Default for ParallelConfig {
@@ -186,6 +194,7 @@ impl Default for ParallelConfig {
             disable_inner_batching: false,
             disable_simd: false,
             smt_policy: SmtPolicy::UseAllLogical,
+            integrity_policy: IntegrityPolicy::Strict,
         }
     }
 }
@@ -486,6 +495,43 @@ pub enum SmtPolicy {
     /// `AvailableParallelism` with this policy returns the raw OS
     /// count without SMT adjustment.
     Explicit,
+}
+
+/// Integrity verification policy.
+///
+/// Controls how decoded-output hashes are treated during verification.
+///
+/// - [`Strict`](IntegrityPolicy::Strict) (default for `verify`, CLI
+///   verification, forensic courts, and evidence generation): a stored
+///   decoded hash that is zero/unset fails the block with
+///   `DecodedHashMissing`.  A stored nonzero decoded hash that does not
+///   match the recomputed hash fails with `DecodedHashMismatch`.  Only a
+///   matching nonzero decoded hash passes.
+/// - [`AllowLegacyUnsetDecodedHash`](IntegrityPolicy::AllowLegacyUnsetDecodedHash):
+///   compatibility mode for containers produced by older encoders that
+///   did not store decoded hashes.  A zero/unset decoded hash is reported
+///   as `Unset` but does not by itself fail the block.  A nonzero hash
+///   mismatch still fails.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum IntegrityPolicy {
+    /// Default.  Fail on missing (zero) or mismatched decoded hashes.
+    #[default]
+    Strict,
+    /// Allow legacy containers with unset (zero) decoded hashes.
+    AllowLegacyUnsetDecodedHash,
+}
+
+/// Outcome of comparing a recomputed SHA-256 against a stored value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HashVerification {
+    /// Recomputed hash equals the stored hash.
+    Match,
+    /// Recomputed hash differs from a nonzero stored hash.
+    Mismatch,
+    /// Stored hash is all zeros — no value was recorded.
+    Unset,
+    /// No hash was computed (e.g. decode failed before hashing).
+    NotComputed,
 }
 
 /// Model construction policy — determines how symbol frequency models

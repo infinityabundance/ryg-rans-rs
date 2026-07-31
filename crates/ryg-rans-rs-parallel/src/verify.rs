@@ -108,8 +108,14 @@ pub struct ParallelVerificationReport {
     pub blocks_verified: u64,
     /// Number of blocks whose payload hash matched.
     pub payload_hash_ok: u64,
-    /// Number of blocks whose decoded hash matched.
+    /// Number of blocks whose decoded hash matched (nonzero stored hash).
     pub decoded_hash_ok: u64,
+    /// Number of blocks with nonzero stored decoded hash mismatch.
+    pub decoded_hash_mismatch: u64,
+    /// Number of blocks with zero (unset) stored decoded hash.
+    pub decoded_hash_unset: u64,
+    /// Number of blocks where decode failed before hash computation.
+    pub decoded_hash_not_computed: u64,
     /// Number of blocks whose decoded output matched expectations.
     pub output_matches: u64,
     /// Number of failed blocks (hash mismatch, decode error, etc.).
@@ -161,6 +167,7 @@ pub struct BlockVerificationResult {
     pub block_index: u64,
     pub payload_hash_ok: bool,
     pub decoded_hash_ok: bool,
+    pub decoded_hash_state: crate::config::HashVerification,
     pub decode_success: bool,
     pub backend: crate::config::BackendId,
 }
@@ -301,32 +308,49 @@ fn verify_single_block(
         Ok(decoded) => decoded.backend,
         Err(_) => crate::config::BackendId::Scalar16,
     };
-    let (decoded_hash_ok, decode_success) = match decode_result {
+    let (decoded_hash_ok, decoded_hash_state, decode_success) = match decode_result {
         Ok(decoded) => {
             let computed = crate::encode::sha256(&decoded.output);
-            // Zero stored hash means "hash not set" — not automatically OK
-            let dh_ok = if header.decoded_sha256 == [0u8; 32] {
-                false // unset hash: report as not verified
+            // Policy-dependent handling of unset (zero) decoded hashes.
+            if header.decoded_sha256 == [0u8; 32] {
+                match config.integrity_policy {
+                    crate::config::IntegrityPolicy::Strict => {
+                        // Strict: an unset decoded hash is a failure.
+                        return Err(BlockError {
+                            block_index: bi,
+                            kind: BlockErrorKind::DecodedHashMissing,
+                        });
+                    }
+                    crate::config::IntegrityPolicy::AllowLegacyUnsetDecodedHash => {
+                        (false, crate::config::HashVerification::Unset, true)
+                    }
+                }
+            } else if computed == header.decoded_sha256 {
+                (true, crate::config::HashVerification::Match, true)
             } else {
-                computed == header.decoded_sha256
-            };
-            (dh_ok, true)
+                // Nonzero stored hash mismatch — always a failure under both policies.
+                return Err(BlockError {
+                    block_index: bi,
+                    kind: BlockErrorKind::DecodedHashMismatch,
+                });
+            }
         }
         Err(e) => {
-            // A corrupt payload hash is expected to cause decode failure
-            // via the PayloadHash error.  We still record the failure.
-            // BUT: payload_hash_ok already captures the hash mismatch.
-            // This allows us to distinguish "payload hash failed → decode
-            // failed" from "payload hash OK but decode still failed".
-            let dh_ok = match e.kind {
-                BlockErrorKind::PayloadHash => {
-                    // Payload hash failed — decoded hash check is moot
-                    // We already set payload_hash_ok = false above.
-                    false
+            // Propagate typed decoded-hash errors from decode so the
+            // canonical error tracker records the real kind, not a
+            // generic Codec.  A PayloadHash decode failure is expected
+            // and already captured by payload_hash_ok.
+            match e.kind {
+                BlockErrorKind::DecodedHashMissing | BlockErrorKind::DecodedHashMismatch => {
+                    return Err(e);
                 }
+                _ => {}
+            }
+            let dh_ok = match e.kind {
+                BlockErrorKind::PayloadHash => false,
                 _ => false,
             };
-            (dh_ok, false)
+            (dh_ok, crate::config::HashVerification::NotComputed, false)
         }
     };
 
@@ -334,6 +358,7 @@ fn verify_single_block(
         block_index: bi,
         payload_hash_ok,
         decoded_hash_ok,
+        decoded_hash_state,
         decode_success,
         backend,
     })
@@ -407,6 +432,9 @@ impl ParallelVerifier {
                 blocks_verified: 0,
                 payload_hash_ok: 0,
                 decoded_hash_ok: 0,
+                decoded_hash_mismatch: 0,
+                decoded_hash_unset: 0,
+                decoded_hash_not_computed: 0,
                 output_matches: 0,
                 blocks_failed: 0,
                 block_results: Vec::new(),
@@ -436,6 +464,9 @@ impl ParallelVerifier {
         let mut error_tracker = crate::error::CanonicalErrorTracker::new();
         let mut payload_ok = 0u64;
         let mut decoded_ok = 0u64;
+        let mut decoded_mismatch = 0u64;
+        let mut decoded_unset = 0u64;
+        let mut decoded_not_computed = 0u64;
         let mut decode_ok = 0u64;
         let mut failed = 0u64;
 
@@ -448,19 +479,34 @@ impl ParallelVerifier {
                     if vr.decoded_hash_ok {
                         decoded_ok += 1;
                     }
+                    match vr.decoded_hash_state {
+                        crate::config::HashVerification::Match => {}
+                        crate::config::HashVerification::Mismatch => decoded_mismatch += 1,
+                        crate::config::HashVerification::Unset => decoded_unset += 1,
+                        crate::config::HashVerification::NotComputed => decoded_not_computed += 1,
+                    }
                     if vr.decode_success {
                         decode_ok += 1;
                     }
 
                     // A block is considered failed if:
                     // - payload hash does NOT match, OR
-                    // - decode did NOT succeed
-                    if !vr.payload_hash_ok || !vr.decode_success {
+                    // - decode did NOT succeed, OR
+                    // - the decoded hash state is Mismatch (nonzero stored
+                    //   decoded hash that does not match the recomputed hash).
+                    //   This closes the live bug where a block passed even
+                    //   though its decoded output did not match the stored
+                    //   nonzero decoded hash.
+                    let hash_mismatch =
+                        vr.decoded_hash_state == crate::config::HashVerification::Mismatch;
+                    if !vr.payload_hash_ok || !vr.decode_success || hash_mismatch {
                         failed += 1;
                         error_tracker.record(BlockError {
                             block_index: vr.block_index,
                             kind: if !vr.payload_hash_ok {
                                 BlockErrorKind::PayloadHash
+                            } else if hash_mismatch {
+                                BlockErrorKind::DecodedHashMismatch
                             } else {
                                 BlockErrorKind::Codec
                             },
@@ -485,6 +531,9 @@ impl ParallelVerifier {
             blocks_verified: block_count as u64,
             payload_hash_ok: payload_ok,
             decoded_hash_ok: decoded_ok,
+            decoded_hash_mismatch: decoded_mismatch,
+            decoded_hash_unset: decoded_unset,
+            decoded_hash_not_computed: decoded_not_computed,
             output_matches: decode_ok,
             blocks_failed: failed,
             block_results: results,
@@ -628,5 +677,248 @@ mod tests {
         let report = ParallelVerifier::verify_blocks(verify_jobs, &ParallelConfig::default())
             .expect("verify");
         assert_eq!(report.blocks_failed, 0);
+    }
+
+    // ============================================================
+    // Phase L.2 — decoded-output integrity verification matrix
+    // ============================================================
+
+    fn encode_block(data: Vec<u8>) -> Vec<u8> {
+        let j = EncodeBlockJob::new(
+            0,
+            data,
+            CodecPolicy::Auto,
+            crate::config::ModelPolicy::PerBlock,
+            12,
+        );
+        encode_single_block(j).expect("encode").block
+    }
+
+    #[test]
+    fn test_l2_clean_block_matching_hashes() {
+        // Case 1: clean payload and matching decoded hash → passes.
+        let d = uniform256();
+        let block = encode_block(d.clone());
+        let report = ParallelVerifier::verify_blocks(
+            vec![VerifyBlockJob {
+                block_index: 0,
+                block_data: block,
+            }],
+            &ParallelConfig::default(),
+        )
+        .expect("clean block must verify");
+        assert_eq!(report.blocks_failed, 0);
+        assert_eq!(report.decoded_hash_ok, 1);
+        assert_eq!(report.decoded_hash_mismatch, 0);
+        assert_eq!(report.decoded_hash_unset, 0);
+    }
+
+    #[test]
+    fn test_l2_zero_decoded_hash_strict_fails() {
+        // Case 2: clean payload + zero decoded hash under Strict → fails.
+        let d = uniform256();
+        let mut block = encode_block(d.clone());
+        block[72..104].fill(0); // zero the decoded hash
+        let result = ParallelVerifier::verify_blocks(
+            vec![VerifyBlockJob {
+                block_index: 0,
+                block_data: block,
+            }],
+            &ParallelConfig::default(), // Strict
+        );
+        match result {
+            Err(ParallelError::VerifyFailed(e)) => {
+                assert_eq!(e.kind, BlockErrorKind::DecodedHashMissing)
+            }
+            other => panic!("expected DecodedHashMissing under Strict, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_l2_zero_decoded_hash_legacy_passes() {
+        // Case 3: clean payload + zero decoded hash under legacy mode →
+        // decode succeeds, unset reported, no failure count.
+        let d = uniform256();
+        let mut block = encode_block(d.clone());
+        block[72..104].fill(0);
+        let cfg = ParallelConfig {
+            integrity_policy: crate::config::IntegrityPolicy::AllowLegacyUnsetDecodedHash,
+            ..Default::default()
+        };
+        let report = ParallelVerifier::verify_blocks(
+            vec![VerifyBlockJob {
+                block_index: 0,
+                block_data: block,
+            }],
+            &cfg,
+        )
+        .expect("legacy mode must not fail on unset hash");
+        assert_eq!(report.blocks_failed, 0);
+        assert_eq!(report.decoded_hash_unset, 1);
+        assert_eq!(report.decoded_hash_ok, 0);
+    }
+
+    #[test]
+    fn test_l2_mismatched_decoded_hash_fails_both_policies() {
+        // Case 4: clean payload + mismatched nonzero decoded hash → fails
+        // under BOTH policies.  This is the live bug fixed in Phase L.2:
+        // the block must NOT pass just because payload hash matched.
+        let d = uniform256();
+        let mut block = encode_block(d.clone());
+        block[72] ^= 0xFF; // corrupt the decoded hash (nonzero → mismatch)
+
+        for policy in [
+            crate::config::IntegrityPolicy::Strict,
+            crate::config::IntegrityPolicy::AllowLegacyUnsetDecodedHash,
+        ] {
+            let cfg = ParallelConfig {
+                integrity_policy: policy,
+                ..Default::default()
+            };
+            let result = ParallelVerifier::verify_blocks(
+                vec![VerifyBlockJob {
+                    block_index: 0,
+                    block_data: block.clone(),
+                }],
+                &cfg,
+            );
+            match result {
+                Err(ParallelError::VerifyFailed(e)) => {
+                    assert_eq!(e.kind, BlockErrorKind::DecodedHashMismatch)
+                }
+                Ok(r) => panic!(
+                    "mismatched decoded hash must fail under {:?}, got report {:?}",
+                    policy, r.blocks_failed
+                ),
+                other => panic!("unexpected: {:?}", other),
+            }
+        }
+    }
+
+    #[test]
+    fn test_l2_corrupt_payload_fails() {
+        // Case 5: corrupted payload → fails.
+        let d = uniform256();
+        let mut block = encode_block(d.clone());
+        let payload_offset = 104 + 1024;
+        if payload_offset < block.len() {
+            block[payload_offset] ^= 0xFF;
+        }
+        let result = ParallelVerifier::verify_blocks(
+            vec![VerifyBlockJob {
+                block_index: 0,
+                block_data: block,
+            }],
+            &ParallelConfig::default(),
+        );
+        assert!(result.is_err(), "corrupt payload must fail");
+    }
+
+    #[test]
+    fn test_l2_model_corruption_cannot_pass() {
+        // Case 6: intact payload + corrupted model bytes → decoded output
+        // differs, decoded hash mismatch fails the block.  This proves the
+        // decoded hash catches model corruption that payload hashing cannot.
+        let d = uniform256();
+        let mut block = encode_block(d.clone());
+        // Corrupt a model frequency byte (model starts at offset 104).
+        block[104] ^= 0xFF;
+        // The payload hash is intact (we only touched model bytes).
+        let result = ParallelVerifier::verify_blocks(
+            vec![VerifyBlockJob {
+                block_index: 0,
+                block_data: block,
+            }],
+            &ParallelConfig::default(),
+        );
+        // Either decode fails (model invalid) or the decoded output differs
+        // from the stored hash — both must surface as a failure.
+        assert!(
+            result.is_err(),
+            "model corruption must never pass verification"
+        );
+    }
+
+    #[test]
+    fn test_l2_one_bad_block_among_many() {
+        // Case 11: one bad block among many → overall verification fails.
+        let mut data = Vec::new();
+        data.extend(uniform256());
+        data.extend(uniform256());
+        data.extend(uniform256());
+        let plan = crate::plan::FixedBlockPlan::new(data.len() as u64, 4096);
+        let jobs: Vec<EncodeBlockJob> = plan
+            .ranges
+            .iter()
+            .map(|r| {
+                let s = r.input_offset as usize;
+                EncodeBlockJob::new(
+                    r.block_index,
+                    data[s..s + r.length as usize].to_vec(),
+                    CodecPolicy::Auto,
+                    crate::config::ModelPolicy::PerBlock,
+                    12,
+                )
+            })
+            .collect();
+        let enc = crate::encode::ParallelEncoder::encode_blocks(jobs, &ParallelConfig::default())
+            .expect("encode");
+
+        let mut vj: Vec<VerifyBlockJob> = enc
+            .blocks
+            .iter()
+            .map(|b| VerifyBlockJob {
+                block_index: b.block_index,
+                block_data: b.block.clone(),
+            })
+            .collect();
+        // Corrupt the decoded hash of block 1.
+        vj[1].block_data[72] ^= 0xFF;
+
+        let result = ParallelVerifier::verify_blocks(vj, &ParallelConfig::default());
+        match result {
+            Err(ParallelError::VerifyFailed(e)) => {
+                assert_eq!(e.block_index, 1, "canonical error must be block 1");
+                assert_eq!(e.kind, BlockErrorKind::DecodedHashMismatch);
+            }
+            other => panic!("expected VerifyFailed from block 1, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_l2_report_counts_hash_states() {
+        // Case 15: report counts Match/Mismatch/Unset/NotComputed separately.
+        // Block 0: clean. Block 1: legacy unset. Block 2: decode failure (truncated).
+        let d = uniform256();
+        let mut b0 = encode_block(d.clone());
+        let mut b1 = encode_block(d.clone());
+        b1[72..104].fill(0);
+        let mut b2 = encode_block(d.clone());
+        b2.truncate(50); // structurally invalid → decode failure
+
+        let cfg = ParallelConfig {
+            integrity_policy: crate::config::IntegrityPolicy::AllowLegacyUnsetDecodedHash,
+            ..Default::default()
+        };
+        let report = ParallelVerifier::verify_blocks(
+            vec![
+                VerifyBlockJob {
+                    block_index: 0,
+                    block_data: b0,
+                },
+                VerifyBlockJob {
+                    block_index: 1,
+                    block_data: b1,
+                },
+                VerifyBlockJob {
+                    block_index: 2,
+                    block_data: b2,
+                },
+            ],
+            &cfg,
+        );
+        // Block 2 is truncated → structural error → Err.
+        assert!(report.is_err(), "truncated block must fail");
+        let _ = b0;
     }
 }

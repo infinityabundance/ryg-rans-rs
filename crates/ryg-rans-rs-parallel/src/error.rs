@@ -156,11 +156,14 @@ pub struct BlockError {
 ///    An invalid model makes decode impossible.
 /// 5. `Codec` — Codec execution failed (encode or decode inner loop).
 ///    A genuine algorithmic failure.
-/// 6. `DecodedHash` — Decoded output does not match expected hash.
-///    The decode completed but produced wrong output.
-/// 7. `WorkerPanic` — The worker thread panicked.  Lowest priority
+/// 6. `DecodedHashMissing` — Stored decoded hash is zero/unset under Strict.
+///    The decode completed but the stored hash cannot verify it.
+/// 7. `DecodedHashMismatch` — Stored nonzero decoded hash does not match
+///    the recomputed hash.  The decode completed but produced wrong output
+///    (e.g. model corruption that payload hashing cannot catch).
+/// 8. `WorkerPanic` — The worker thread panicked.  Lowest priority
 ///    because the panic may be a consequence of a preceding error.
-/// 8. `OutputCommit` — Failed to commit output (reorder buffer).
+/// 9. `OutputCommit` — Failed to commit output (reorder buffer).
 ///    Usually a secondary consequence of another failure.
 ///
 /// # Determinism guarantee
@@ -181,8 +184,10 @@ pub enum BlockErrorKind {
     Model,
     /// Codec execution failure (encode or decode).
     Codec,
-    /// Decoded output hash does not match expected value.
-    DecodedHash,
+    /// Stored decoded hash is zero/unset — cannot verify under Strict policy.
+    DecodedHashMissing,
+    /// Stored decoded hash is nonzero and does not match the recomputed hash.
+    DecodedHashMismatch,
     /// Worker thread panicked during block processing.
     WorkerPanic,
     /// Failed to commit output to the reorder buffer.

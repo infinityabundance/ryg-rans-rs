@@ -399,15 +399,33 @@ pub fn decode_single_block(
     // ----- Step 7: Verify decoded hash -----
     let computed_decoded_hash = crate::encode::sha256(&executed.output);
 
-    // Verify decoded SHA-256.  A zero stored hash means "hash not set" by an
-    // older encoder — we set output_verified = false but do NOT panic/error.
+    // Verify decoded SHA-256 under the configured integrity policy.
+    //
+    // Strict (default):
+    //   zero/unset stored hash → DecodedHashMissing error
+    //   nonzero stored hash that does not match → DecodedHashMismatch error
+    //   matching nonzero hash → verified
+    //
+    // AllowLegacyUnsetDecodedHash:
+    //   zero/unset stored hash → output_verified = false (not an error)
+    //   nonzero stored hash that does not match → DecodedHashMismatch error
     let output_verified = if header.decoded_sha256 == [0u8; 32] {
-        // Zero hash: cannot verify.  Mark as unverified but allow decode to proceed.
-        false
+        match config.integrity_policy {
+            crate::config::IntegrityPolicy::Strict => {
+                return Err(BlockError {
+                    block_index: bi,
+                    kind: BlockErrorKind::DecodedHashMissing,
+                });
+            }
+            crate::config::IntegrityPolicy::AllowLegacyUnsetDecodedHash => {
+                // Zero hash: cannot verify.  Mark as unverified but allow decode.
+                false
+            }
+        }
     } else if computed_decoded_hash != header.decoded_sha256 {
         return Err(BlockError {
             block_index: bi,
-            kind: BlockErrorKind::DecodedHash,
+            kind: BlockErrorKind::DecodedHashMismatch,
         });
     } else {
         true
@@ -1929,9 +1947,9 @@ mod tests {
     }
 
     #[test]
-    fn test_rejects_zero_hash() {
-        // An encoded block with all-zero decoded_sha256 should still decode
-        // but output_verified should be false
+    fn test_rejects_zero_hash_strict() {
+        // Under Strict (default) policy, a block with all-zero decoded_sha256
+        // must FAIL with DecodedHashMissing.
         let d = uniform256();
         let j = EncodeBlockJob::new(
             0,
@@ -1946,14 +1964,51 @@ mod tests {
         let mut tampered = e.block.clone();
         tampered[72..104].fill(0);
 
+        let result = decode_single_block(
+            &DecodeBlockJob {
+                block_index: 0,
+                block_data: tampered,
+            },
+            &ParallelConfig::default(), // Strict is the default
+        );
+        match result {
+            Err(BlockError {
+                kind: BlockErrorKind::DecodedHashMissing,
+                ..
+            }) => {} // expected
+            other => panic!("expected DecodedHashMissing error, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_zero_hash_allowed_under_legacy_policy() {
+        // Under AllowLegacyUnsetDecodedHash, a zero decoded hash decodes but
+        // output_verified is false.
+        let d = uniform256();
+        let j = EncodeBlockJob::new(
+            0,
+            d.clone(),
+            CodecPolicy::Auto,
+            crate::config::ModelPolicy::PerBlock,
+            12,
+        );
+        let e = encode_single_block(j).expect("encode");
+
+        let mut tampered = e.block.clone();
+        tampered[72..104].fill(0);
+
+        let cfg = ParallelConfig {
+            integrity_policy: crate::config::IntegrityPolicy::AllowLegacyUnsetDecodedHash,
+            ..Default::default()
+        };
         let dec = decode_single_block(
             &DecodeBlockJob {
                 block_index: 0,
                 block_data: tampered,
             },
-            &ParallelConfig::default(),
+            &cfg,
         )
-        .expect("decode with zero hash should still succeed");
+        .expect("decode with zero hash under legacy policy should succeed");
         assert!(
             !dec.output_verified,
             "block with zero stored hash must not be marked verified"
@@ -2018,10 +2073,10 @@ mod tests {
         );
         match result {
             Err(BlockError {
-                kind: BlockErrorKind::DecodedHash,
+                kind: BlockErrorKind::DecodedHashMismatch,
                 ..
             }) => {} // expected
-            other => panic!("expected DecodedHash error, got {:?}", other),
+            other => panic!("expected DecodedHashMismatch error, got {:?}", other),
         }
     }
 
