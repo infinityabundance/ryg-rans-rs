@@ -1855,7 +1855,7 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
         receipt_file_sha256s.push(sha256_hex(&receipt_file_bytes));
         all_receipt_paths.push(receipt_path);
         println!(
-            "  receipt {} written (verdict={}, declared={}, executed={}, verified={}, failed={})",
+            "  receipt {} written (verdict={:?}, declared={}, executed={}, verified={}, failed={})",
             perf_id, receipt.verdict, cases_declared, cases_executed, cases_verified, cases_failed
         );
     }

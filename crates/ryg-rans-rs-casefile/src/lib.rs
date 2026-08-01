@@ -229,24 +229,9 @@ pub struct PerformanceManifest {
 }
 
 /// Performance receipt — seals a performance manifest.
-#[cfg(feature = "std")]
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-/// Typed performance receipt verdict (residual L1-M).  Unknown serialized
-/// values are rejected by serde.
-#[cfg(feature = "std")]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PerformanceReceiptVerdict {
-    /// Measurement and provenance are sealed; every executed case verified.
-    SealedMeasurement,
-    /// Sealed with explicit performance residuals (a slower backend is still
-    /// a sealed measurement).
-    SealedWithResiduals,
-    /// The receipt does not represent a valid sealed measurement.
-    Rejected,
-}
-
-/// Performance receipt.
+///
+/// `verdict` is the typed [`PerformanceReceiptVerdict`]; unknown serialized
+/// values are rejected by serde (residual L1-M).
 #[cfg(feature = "std")]
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct PerformanceReceipt {
@@ -272,6 +257,21 @@ pub struct PerformanceReceipt {
     pub commands_log_sha256: String,
     pub receipt_sha256: String,
     pub reproduction_command: String,
+}
+
+/// Typed performance receipt verdict (residual L1-M).  Unknown serialized
+/// values are rejected by serde.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PerformanceReceiptVerdict {
+    /// Measurement and provenance are sealed; every executed case verified.
+    SealedMeasurement,
+    /// Sealed with explicit performance residuals (a slower backend is still
+    /// a sealed measurement).
+    SealedWithResiduals,
+    /// The receipt does not represent a valid sealed measurement.
+    Rejected,
 }
 
 /// Performance index entry.
