@@ -443,7 +443,7 @@ impl ParallelVerifier {
     pub fn verify_blocks_with_cancel(
         blocks: impl IntoIterator<Item = VerifyBlockJob>,
         config: &ParallelConfig,
-        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
+        external_cancel: Option<crate::sync::Arc<crate::cancellation::CancellationToken>>,
     ) -> Result<ParallelVerificationReport, ParallelError> {
         let jobs: Vec<VerifyBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {

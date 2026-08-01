@@ -44,16 +44,23 @@ fuzz_target!(|data: &[u8]| {
         .map(|i| Rans64EncSymbol::new(cum[i], freqs[i], scale_bits).unwrap())
         .collect();
 
-    let cum2sym: Vec<u8> = (0..total as usize)
-        .map(|i| {
-            for j in 0..used_syms {
-                if i >= cum[j] as usize && i < cum[j + 1] as usize {
-                    return j as u8;
-                }
+    // Cumulative-frequency -> symbol lookup via binary search.  (An earlier
+    // version materialised a Vec of size 2^scale_bits — up to 1 GiB per
+    // iteration at scale 30, which stalled the fuzzer.)
+    fn cum2sym(cum: &[u32], cf: u32) -> u8 {
+        // cum is ascending; find the largest j with cum[j] <= cf.
+        let mut lo = 0usize;
+        let mut hi = cum.len() - 1;
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2;
+            if cum[mid] <= cf {
+                lo = mid;
+            } else {
+                hi = mid - 1;
             }
-            0
-        })
-        .collect();
+        }
+        lo as u8
+    }
 
     let symbols: Vec<u8> = data[2..].iter().map(|&b| b % used_syms as u8).collect();
 
@@ -90,7 +97,7 @@ fuzz_target!(|data: &[u8]| {
     let mut output = vec![0u8; symbols.len()];
     for i in 0..symbols.len() {
         let cf = rans64_dec_get(&dec_state, scale_bits);
-        let s = cum2sym.get(cf as usize).copied().unwrap_or(0) as usize;
+        let s = cum2sym(&cum, cf) as usize;
         output[i] = s as u8;
         if let Some(dsym) = dsyms.get(s) {
             if let Err(_) = rans64_dec_advance_symbol(&mut dec_state, &mut reader, dsym, scale_bits)

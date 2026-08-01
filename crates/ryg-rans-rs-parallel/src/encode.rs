@@ -806,7 +806,7 @@ impl ParallelEncoder {
     pub fn encode_blocks_with_cancel(
         blocks: impl IntoIterator<Item = EncodeBlockJob>,
         config: &ParallelConfig,
-        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
+        external_cancel: Option<crate::sync::Arc<crate::cancellation::CancellationToken>>,
     ) -> Result<OrderedEncodedBlocks, ParallelError> {
         let jobs: Vec<EncodeBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {

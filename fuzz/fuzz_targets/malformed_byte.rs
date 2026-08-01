@@ -19,7 +19,11 @@ fuzz_target!(|data: &[u8]| {
     let total = 1u32 << scale_bits;
 
     // Use first few bytes to construct a frequency model
-    let num_syms = (data[1] as usize % 16).max(2);
+    // The loop below reads `data[2 + i]`, so `num_syms` must not exceed
+    // `data.len() - 2` (the `data.len() < 8` guard alone is not enough:
+    // with len 8 and num_syms up to 16 the loop would index out of
+    // bounds — caught by the fuzzer as a target bug, not a library bug).
+    let num_syms = ((data[1] as usize % 16).max(2)).min(data.len() - 2);
     let mut freqs = vec![0u32; 256];
     let mut cum = vec![0u32; 257];
     let mut remaining = total;

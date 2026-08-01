@@ -619,6 +619,8 @@ fn map_backend(b: ryg_rans_rs_simd::backends::DecodeBackend) -> BackendId {
 /// This is a helper for both the SIMD `PackedWordTable::from_freqs` path
 /// and the pure-scalar decode path.  The 257th element (`cum[256]`) is
 /// included so that binary search over `cum` always has a valid upper bound.
+/// Only the SIMD-gated decode plan executor calls it, so it is gated too.
+#[cfg(feature = "simd")]
 fn build_cum_freqs(freqs: &[u32]) -> Vec<u32> {
     let mut cum = Vec::with_capacity(257);
     cum.push(0);
@@ -1355,7 +1357,7 @@ impl ParallelDecoder {
     pub fn decode_blocks_with_cancel(
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
         config: &ParallelConfig,
-        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
+        external_cancel: Option<crate::sync::Arc<crate::cancellation::CancellationToken>>,
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
         let jobs: Vec<DecodeBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {
@@ -1568,7 +1570,7 @@ impl ParallelDecoder {
     pub fn decode_streaming_with_cancel(
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
         config: &ParallelConfig,
-        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
+        external_cancel: Option<crate::sync::Arc<crate::cancellation::CancellationToken>>,
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
         let jobs: Vec<DecodeBlockJob> = blocks.into_iter().collect();
         if jobs.is_empty() {
@@ -1697,7 +1699,7 @@ impl ParallelDecoder {
     pub fn decode_with_sink<F>(
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
         config: &ParallelConfig,
-        external_cancel: Option<std::sync::Arc<crate::cancellation::CancellationToken>>,
+        external_cancel: Option<crate::sync::Arc<crate::cancellation::CancellationToken>>,
         sink: F,
     ) -> Result<ExecutorReport<Result<DecodedBlockResult, BlockError>>, ParallelError>
     where
@@ -1740,14 +1742,14 @@ impl ParallelDecoder {
         // contiguous runs in block-index order, passing each to the sink.
         // The sink closure runs on the coordinator thread and must be Send,
         // so share the reorder buffer and error tracker through Arc<Mutex>.
-        let reorder = std::sync::Arc::new(std::sync::Mutex::new(ReorderBuffer::new(
+        let reorder = crate::sync::Arc::new(crate::sync::Mutex::new(ReorderBuffer::new(
             config.max_in_flight_blocks.get(),
             config.max_buffered_output_bytes,
         )));
-        let et = std::sync::Arc::new(std::sync::Mutex::new(
+        let et = crate::sync::Arc::new(crate::sync::Mutex::new(
             crate::error::CanonicalErrorTracker::new(),
         ));
-        let sink = std::sync::Arc::new(std::sync::Mutex::new(sink));
+        let sink = crate::sync::Arc::new(crate::sync::Mutex::new(sink));
 
         let reorder_rc = reorder.clone();
         let et_rc = et.clone();

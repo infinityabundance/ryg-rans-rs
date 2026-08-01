@@ -20,7 +20,11 @@ fuzz_target!(|data: &[u8]| {
 
     let scale_bits = RANS_WORD_SCALE_BITS; // must be 12 per upstream
     let total = 1u32 << scale_bits;
-    let used_syms = (data[0] as usize % 256).max(1);
+    // A single-symbol model (used_syms = 1) gives freq = total = 2^12,
+    // which overflows the u32 renorm threshold `(L >> 12) << 16 * freq`
+    // (= 2^32) — exactly what the fuzzer hit.  Real encoders never reach
+    // that state: single-symbol blocks are RLE.  Require >= 2 symbols.
+    let used_syms = ((data[0] as usize % 255).max(2)).min(256);
     let uniform_freq = total / used_syms as u32;
     if uniform_freq == 0 {
         return;

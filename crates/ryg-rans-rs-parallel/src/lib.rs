@@ -40,6 +40,7 @@ mod plan;
 mod reorder;
 mod resource;
 mod scratch;
+mod sync;
 mod verify;
 
 pub use affinity::*;

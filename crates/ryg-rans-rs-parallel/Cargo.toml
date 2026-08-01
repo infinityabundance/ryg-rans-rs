@@ -15,6 +15,15 @@ sha2 = "0.10"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 libc = { version = "0.2", optional = true }
+# Optional so production builds never link loom; the `loom` feature plus
+# RUSTFLAGS="--cfg loom" enables the concurrency courts.
+loom = { version = "0.7", optional = true }
+
+[dev-dependencies]
+# Concurrency courts: run with:
+#   RUSTFLAGS="--cfg loom" cargo test -p ryg-rans-rs-parallel --features loom --release
+loom = "0.7"
+proptest = "1"
 
 [features]
 default = ["simd"]
@@ -22,6 +31,9 @@ simd = ["ryg-rans-rs-simd"]
 # Enables Linux sched_setaffinity worker pinning (requires unsafe libc calls).
 # Off by default to preserve #![forbid(unsafe_code)] in default builds.
 affinity = ["dep:libc"]
+# Concurrency courts: compile the executor against loom's synchronization
+# primitives (used together with RUSTFLAGS="--cfg loom").
+loom = ["dep:loom"]
 
 [lints.rust]
 # `loom` is a rustc cfg flag (not a cargo feature) used by tests/loom_tests.rs:

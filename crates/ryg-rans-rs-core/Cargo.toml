@@ -10,3 +10,6 @@ description = "Deterministic algorithmic core of rANS entropy coding - no_std, n
 default = []
 alloc = []
 std = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)"] }

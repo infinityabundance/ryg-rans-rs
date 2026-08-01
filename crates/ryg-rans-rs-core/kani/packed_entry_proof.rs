@@ -1,12 +1,12 @@
-//! Kani proof: PackedWordEntry field extraction round-trips.
-//!
-//! Proves that for any valid freq, bias, symbol values within the
-//! bit-field widths (12, 12, 8 bits respectively), the pack/unpack
-//! round-trip is exact.
+// Kani proof: PackedWordEntry field extraction round-trips.
+//
+// Proves that for any valid freq, bias, symbol values within the
+// bit-field widths (12, 12, 8 bits respectively), the pack/unpack
+// round-trip is exact.
 
 // kani-flags: --unwind 4 --harness kani_packed_entry_roundtrip
 
-use ryg_rans_rs_core::RansWordSlot;
+use crate::RansWordSlot;
 
 /// Model the packed entry structure inline (no_std compatible).
 fn pack_entry(freq: u16, bias: u16, symbol: u8) -> u32 {

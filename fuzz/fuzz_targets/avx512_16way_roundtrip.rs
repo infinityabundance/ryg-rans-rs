@@ -8,9 +8,11 @@
 use libfuzzer_sys::fuzz_target;
 #[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
 use ryg_rans_rs_simd::avx512::decode_interleaved16_avx512_kernel;
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
 use ryg_rans_rs_simd::packed_table::{
     decode_interleaved16_scalar, encode_interleaved16, PackedWordTable,
 };
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
 use ryg_rans_rs_simd::RANS_WORD_SCALE_BITS;
 
 fuzz_target!(|data: &[u8]| {

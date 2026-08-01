@@ -74,7 +74,10 @@ cargo check --workspace --all-targets
 cd fuzz && cargo check --workspace            # standalone fuzz workspace
 cargo test -p ryg-rans-rs-simd --test unsafe_ledger
 cargo test -p ryg-rans-rs-simd --test disasm_court
-cargo test -p ryg-rans-rs-parallel --features loom --lib -- --cfg loom   # loom courts
+# Loom concurrency courts (real interleaving exploration of the executor;
+# LOOM_MAX_PREEMPTIONS bounds the exponential state space):
+LOOM_MAX_PREEMPTIONS=2 RUSTFLAGS="--cfg loom" cargo test -p ryg-rans-rs-parallel --features loom --release --test loom_tests
+LOOM_MAX_PREEMPTIONS=2 RUSTFLAGS="--cfg loom" cargo test -p ryg-rans-rs-parallel --features loom --release --lib -- loom_channel
 ```
 
 ## Evidence-generation commands

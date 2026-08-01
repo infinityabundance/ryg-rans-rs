@@ -108,17 +108,30 @@
 //! The `kani/` directory contains **verification harnesses** using the Kani Rust
 //! Verifier to symbolically prove critical properties of the core algorithms.
 //! These proofs are run with `cargo kani` (not `cargo test`) and require the
-//! Kani toolchain.  Each proof covers the full range of valid inputs (not just
-//! a subset):
+//! Kani toolchain:
+//!
+//! ```sh
+//! cd crates/ryg-rans-rs-core && cargo kani
+//! ```
+//!
+//! The multiply-high proofs are instantiated per concrete frequency (the
+//! Alverson exactness theorem is per-frequency, and the solver cannot
+//! bit-blast a symbolic division); the instances cover the special case
+//! (freq = 1), powers of two, worst-case small odd frequencies, and the
+//! maximum frequency.  The remaining two R64 instances (freq = 3,
+//! freq = 65535) do not terminate within practical time bounds and are
+//! tracked as residual L16-E; the equivalence there is pinned by the
+//! differential round-trip tests and the Phase L.14 comparative court
+//! (byte-identical output with upstream C over 1 MiB).
 //!
 //! | Proof | File | What it proves |
 //! |-------|------|----------------|
 //! | `kani_enc_symbol_new_valid` | `kani/enc_symbol_new_proof.rs` | For **any** valid `(start, freq, scale_bits)`, `RansByteEncSymbol::new()` returns `Ok`. |
 //! | `kani_enc_symbol_new_invalid_scale` | `kani/enc_symbol_new_proof.rs` | `scale_bits = 0` or `scale_bits > 16` always produces `InvalidScaleBits`. |
-//! | `kani_enc_symbol_new_zero_freq` | `kani/enc_symbol_new_proof.rs` | `freq = 0` always produces `ZeroFrequency`. |
-//! | `kani_byte_encode_decode_inversion` | `kani/encode_decode_inversion_proof.rs` | For **any** valid state `x` and symbol `(start, freq)`, `D(s, C(s, x)) = x` (encoding is inverted by decoding). |
-//! | `kani_reciprocal_equals_division` | `kani/reciprocal_proof.rs` | Byte rANS: the reciprocal-multiply fast path produces the exact same `C(s, x)` as the division-based reference for **all** valid parameters. |
-//! | `kani_r64_reciprocal_equals_division` | `kani/r64_reciprocal_proof.rs` | R64 rANS: same proof as above but for 64-bit state space. |
+//! | `kani_enc_symbol_new_zero_freq` | `kani/enc_symbol_new_proof.rs` | `freq = 0` (with in-range `start`) always produces `ZeroFrequency`. |
+//! | `kani_byte_encode_decode_inversion_freq{1,2,3,255,4095}` | `kani/encode_decode_inversion_proof.rs` | `D(s, C(s, x)) = x` for the division-based pair at scale 12. |
+//! | `kani_reciprocal_equals_division_freq{1,2,3,7,16,255,4095}` | `kani/reciprocal_proof.rs` | Byte rANS: the reciprocal-multiply fast path produces the exact same `C(s, x)` as the division-based reference, for every reachable `x` at each instance's frequency. |
+//! | `kani_r64_reciprocal_equals_division_freq{1,2,max}` | `kani/r64_reciprocal_proof.rs` | R64 rANS: same identity for the 64-bit state space (freq 3/65535 instances tracked as L16-E). |
 //! | `kani_state_update_no_overflow` | `kani/packed_entry_proof.rs` | For any 12-bit freq, bias, and `(state >> 12) < 2^20`, the Widening mullo product `freq * (state >> 12)` does not overflow `u32`. |
 //! | `kani_packed_entry_fields` | `kani/packed_entry_proof.rs` | Packing/unpacking the 32-bit entry preserves all three fields exactly. |
 //! | `kani_slot_index_bounded` | `kani/packed_entry_proof.rs` | `state & 4095` is always in `0..4096`. |
@@ -2375,6 +2388,43 @@ pub fn rans_byte_alias_dec_advance<R: ForwardReader>(
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+#[cfg(test)]
+#[cfg(kani)]
+extern crate kani;
+
+// ---------------------------------------------------------------------------
+// Kani verification harnesses (compiled only under `cargo kani`)
+// ---------------------------------------------------------------------------
+//
+// Each proof file is a self-contained harness set.  Kani compiles the crate
+// with `--cfg kani`, which activates this module; run with:
+//
+//   cd crates/ryg-rans-rs-core && cargo kani
+//
+// The proofs pin: reciprocal == division (byte and R64), encoder-symbol
+// construction validity, packed-table state-update overflow bounds, and
+// byte encode/decode inversion.
+#[cfg(kani)]
+mod kani {
+    // Each proof file is its own submodule so identical helper names
+    // (e.g. `div_put`) across files cannot collide.
+    mod reciprocal {
+        include!("../kani/reciprocal_proof.rs");
+    }
+    mod r64_reciprocal {
+        include!("../kani/r64_reciprocal_proof.rs");
+    }
+    mod enc_symbol_new {
+        include!("../kani/enc_symbol_new_proof.rs");
+    }
+    mod packed_entry {
+        include!("../kani/packed_entry_proof.rs");
+    }
+    mod encode_decode_inversion {
+        include!("../kani/encode_decode_inversion_proof.rs");
+    }
+}
 
 #[cfg(test)]
 mod tests {

@@ -59,7 +59,7 @@
 //! cancellation from any thread holding a shared reference (e.g., via
 //! `Arc<CancellationToken>`).
 
-use core::sync::atomic::{AtomicBool, Ordering};
+use crate::sync::{AtomicBool, Ordering};
 
 /// A thread-safe, lock-free cooperative cancellation token.
 ///
@@ -186,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_cancel_from_another_thread() {
-        let ct = std::sync::Arc::new(CancellationToken::new());
+        let ct = crate::sync::Arc::new(CancellationToken::new());
         let ct2 = ct.clone();
         let handle = std::thread::spawn(move || {
             ct2.cancel();

@@ -161,10 +161,11 @@ Comparative methodology and results are in `docs/performance/comparative.md` (L.
 
 | ID | Severity | Issue | Status | Resolution |
 |----|----------|-------|--------|------------|
-| L16-A | MEDIUM | Proptest targets for reorder permutations, partition, normalization, etc. | OPEN | L.16 |
-| L16-B | MEDIUM | Fuzz targets for parsers and codecs | PARTIAL | fuzz crate repaired (`7fe286b`); corpus statistics and expanded targets in L.16 |
-| L16-C | MEDIUM | Loom models for new executor | PARTIAL | `tests/loom_tests.rs` (cfg loom) exists; full Loom run in L.16 |
-| L16-D | MEDIUM | Sanitizer/Miri runs | OPEN | L.16 |
+| L16-A | MEDIUM | Proptest targets for reorder permutations, partition, normalization, etc. | RESOLVED | Current commit — reorder permutation property (any permutation of 0..24, 256 cases, `tests/reorder_proptest.rs`), duplicate/stale-index rejection, CLI model normalizer property (random histograms × scales, sum-exactness + round-trip, `tests/model_proptest.rs`) |
+| L16-B | MEDIUM | Fuzz targets for parsers and codecs | RESOLVED | Current commit — fuzz workspace repaired; all 9 targets execute; fuzzing found and fixed three target bugs (malformed_byte out-of-bounds model reads, word_rans single-symbol u32 threshold overflow, parallel_block_plan short-slice unwrap) plus the r64 target's 1 GiB-per-iteration allocation; all targets run clean |
+| L16-C | MEDIUM | Loom models for new executor | RESOLVED | Current commit — executor made loom-instrumentable via `sync.rs` swap layer; 2 channel courts + 5 executor courts (no lost tasks, cancellation race completeness, panic no-wedge, sink completeness, reorder ascending) pass under `LOOM_MAX_PREEMPTIONS=2`.  The queue model work caught and fixed a real missed-wakeup race (sender count outside the mutex); loom's own mpsc is unusable for multi-consumer (Send-but-not-Sync receiver) |
+| L16-D | MEDIUM | Sanitizer/Miri runs | PARTIAL | Current commit — ASan ran as part of every cargo-fuzz run (default `-Zsanitizer=address`); Miri passes the full core suite (57 tests); CLI Miri run excludes process-spawning integration tests (isolation blocks `open`); the parallel crate's Miri run exceeds practical time bounds; UBSan spot coverage deferred to the L.20 gate matrix |
+| L16-E | MEDIUM | Two R64 kani instances (freq=3, freq=65535) and fully-symbolic-scale reciprocal instances do not terminate within practical time bounds (symbolic division not bit-blastable).  The identity is otherwise formally verified (21 proofs: 3 symbol-construction, 3 packed-entry, 7 byte reciprocal, 3 R64 reciprocal, 5 inversion) and pinned by differential round-trip tests plus the L.14 comparative court (byte-identical output with upstream C) | PARTIAL | Current commit — restructured to concrete-freq harness instances (21 proofs verified); the two intractable instances remain a documented accepted limitation |
 
 ## L.17 — Performance
 

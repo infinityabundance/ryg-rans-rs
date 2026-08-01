@@ -95,9 +95,9 @@
 use crate::cancellation::CancellationToken;
 use crate::error::ParallelError;
 use crate::scratch::WorkerScratch;
+use crate::sync::{Arc, AtomicUsize, Mutex as SyncMutex, Ordering};
+use crate::sync::channel;
 use std::fmt;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// Thread index for identifying workers.  Internal use only.
 ///
@@ -339,9 +339,9 @@ where
 
     // ---- Channels ----
     // Bounded job channel: at most `effective_queue` tasks queued.
-    let (job_sender, job_receiver) = crossbeam_channel::bounded::<T>(effective_queue);
+    let (job_sender, job_receiver) = channel::bounded::<T>(effective_queue);
     // Bounded result channel: at most `result_capacity` results in flight.
-    let (result_sender, result_receiver) = crossbeam_channel::bounded::<
+    let (result_sender, result_receiver) = channel::bounded::<
         Result<R, (WorkerIndex, String, Option<u64>)>,
     >(result_capacity);
 
@@ -364,7 +364,7 @@ where
     // completeness accounting.  The lock is held only for this tiny store,
     // and worker task code never touches this mutex, so it cannot be
     // poisoned by a task panic (Phase L.12 note).
-    let affinity_error: Arc<std::sync::Mutex<Option<String>>> = Arc::default();
+    let affinity_error: Arc<SyncMutex<Option<String>>> = Arc::default();
     for i in 0..effective_workers {
         let rx = job_receiver.clone();
         let tx = result_sender.clone();
@@ -375,14 +375,7 @@ where
         let affinity = affinity.clone();
         let affinity_error = affinity_error.clone();
 
-        let mut builder = std::thread::Builder::new();
-        builder = builder.name(format!("ryg-parallel-{}", i));
-        if let Some(stack) = stack_size {
-            builder = builder.stack_size(stack);
-        }
-
-        let handle = builder
-            .spawn(move || {
+        let handle = crate::sync::spawn_worker(&format!("ryg-parallel-{}", i), stack_size, move || {
                 // Apply the configured affinity before any task executes.
                 if let Err(e) =
                     crate::affinity::apply_worker_affinity(&affinity, i, effective_workers)
@@ -394,7 +387,10 @@ where
                 // Worker-exclusive scratch: created once, reused across
                 // tasks (reset between tasks), no shared mutable state.
                 let mut scratch = WorkerScratch::new(4096, 64 * 1024 * 1024);
-                for task in rx {
+                // Explicit recv loop: identical termination contract to
+                // `for task in rx` (recv errors when every sender is
+                // dropped) and compiles under both channel backends.
+                while let Ok(task) = rx.recv() {
                     if cancel.is_cancelled() {
                         cancelled_tasks.fetch_add(1, Ordering::Relaxed);
                         continue;
@@ -447,9 +443,7 @@ where
     // result draining so neither channel can deadlock.
     let producer = {
         let cancel = cancel.clone();
-        std::thread::Builder::new()
-            .name("ryg-parallel-producer".to_string())
-            .spawn(move || {
+        crate::sync::spawn_worker("ryg-parallel-producer", None, move || {
                 let mut submitted = 0usize;
                 for task in tasks {
                     if cancel.is_cancelled() {
@@ -469,7 +463,9 @@ where
     // ---- Coordinator: drain results while producer submits ----
     let mut results = Vec::with_capacity(total_tasks);
     let mut panic_errors: Vec<(WorkerIndex, String, Option<u64>)> = Vec::new();
-    for item in result_receiver {
+    // Explicit recv loop (same termination as `for item in ...`);
+    // compiles under both channel backends.
+    while let Ok(item) = result_receiver.recv() {
         match item {
             Ok(r) => results.push(r),
             Err(e) => panic_errors.push(e),
@@ -600,8 +596,8 @@ where
     let result_capacity = effective_queue.max(1);
     let cancel = external_cancel.unwrap_or_else(|| Arc::new(CancellationToken::new()));
 
-    let (job_sender, job_receiver) = crossbeam_channel::bounded::<T>(effective_queue);
-    let (result_sender, result_receiver) = crossbeam_channel::bounded::<
+    let (job_sender, job_receiver) = channel::bounded::<T>(effective_queue);
+    let (result_sender, result_receiver) = channel::bounded::<
         Result<R, (WorkerIndex, String, Option<u64>)>,
     >(result_capacity);
 
@@ -618,18 +614,14 @@ where
         let completed = completed.clone();
         let cancelled_tasks = cancelled_tasks.clone();
 
-        let mut builder = std::thread::Builder::new();
-        builder = builder.name(format!("ryg-parallel-{}", i));
-        if let Some(stack) = stack_size {
-            builder = builder.stack_size(stack);
-        }
-
-        let handle = builder
-            .spawn(move || {
+        let handle = crate::sync::spawn_worker(&format!("ryg-parallel-{}", i), stack_size, move || {
                 // Worker-exclusive scratch: created once, reused across
                 // tasks (reset between tasks), no shared mutable state.
                 let mut scratch = WorkerScratch::new(4096, 64 * 1024 * 1024);
-                for task in rx {
+                // Explicit recv loop: identical termination contract to
+                // `for task in rx` (recv errors when every sender is
+                // dropped) and compiles under both channel backends.
+                while let Ok(task) = rx.recv() {
                     if cancel.is_cancelled() {
                         cancelled_tasks.fetch_add(1, Ordering::Relaxed);
                         continue;
@@ -670,9 +662,7 @@ where
 
     let producer = {
         let cancel = cancel.clone();
-        std::thread::Builder::new()
-            .name("ryg-parallel-producer".to_string())
-            .spawn(move || {
+        crate::sync::spawn_worker("ryg-parallel-producer", None, move || {
                 let mut submitted = 0usize;
                 for task in tasks {
                     if cancel.is_cancelled() {
@@ -689,7 +679,9 @@ where
     };
 
     let mut panic_errors: Vec<(WorkerIndex, String, Option<u64>)> = Vec::new();
-    for item in result_receiver {
+    // Explicit recv loop (same termination as `for item in ...`);
+    // compiles under both channel backends.
+    while let Ok(item) = result_receiver.recv() {
         match item {
             Ok(r) => sink(r),
             Err(e) => panic_errors.push(e),

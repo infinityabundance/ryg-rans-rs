@@ -24,3 +24,6 @@ hex = "0.4"
 [features]
 default = ["simd"]
 simd = ["ryg-rans-rs-simd"]
+
+[dev-dependencies]
+proptest = "1"
