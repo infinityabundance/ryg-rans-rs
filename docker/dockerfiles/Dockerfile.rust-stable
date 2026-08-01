@@ -1,5 +1,9 @@
 # syntax=docker/dockerfile:1
-FROM rust:1.85-slim-bookworm AS rust-stable
+# Current stable toolchain (matches the host/reference build toolchain).  The
+# MSRV (1.85) is covered by the dedicated `msrv` job; this job runs the full
+# workspace test suite on the project's actual build toolchain, where the
+# AVX-512 stdarch intrinsics used by the disassembly courts are stable.
+FROM rust:1.96-slim-bookworm AS rust-stable
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates pkg-config libssl-dev \
