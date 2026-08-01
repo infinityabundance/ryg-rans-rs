@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "implementation_commit": "d6188ef9dd09af3e628b3c42b59830d6b5c73e0d",
+  "run_id": "d6188ef9dd09af3e628b3c42b59830d6b5c73e0d",
+  "host_id": "vanir-x86_64",
+  "receipts": [
+    {
+      "performance_id": "RYG_RANS.PERF.BYTE",
+      "sha256": "feedf86c8790f5ee21387372086595c2e31e64babba12fc7b1f8090d5d7b780d"
+    },
+    {
+      "performance_id": "RYG_RANS.PERF.R64",
+      "sha256": "d7161537f1f31560122b43c44ed6cdefe3d2e14579f98f97d96e58487a442d83"
+    },
+    {
+      "performance_id": "RYG_RANS.PERF.WORD.SCALAR",
+      "sha256": "6527cce94c6d8eac9b9d8fc362d85f9b97ea9093fa9b5a1572230135fb0f55c1"
+    },
+    {
+      "performance_id": "RYG_RANS.PERF.ALIAS",
+      "sha256": "e093f9fe29e5ce6c1622b984ab28cc19525876a4f864e59b600ea8214a6a428b"
+    },
+    {
+      "performance_id": "RYG_RANS.PERF.SSE41.INTERLEAVED8",
+      "sha256": "1891bed2aafdf0c5a0239381f7bc7d71c2c480529033dbf04bf460c1bdb0559a"
+    },
+    {
+      "performance_id": "RYG_RANS.PERF.AVX512VL.INTERLEAVED8",
+      "sha256": "bdd380346df4689b0de05ff625fe1abba9a0bfe3cb7ce18b7fb627ea473cbb97"
+    },
+    {
+      "performance_id": "RYG_RANS.PERF.AVX512.INTERLEAVED16",
+      "sha256": "9c32fdd92ef825b828af4f3151281f19028518f02669a7e812e1badb48abf74b"
+    },
+    {
+      "performance_id": "RYG_RANS.PERF.PHASE_H",
+      "sha256": "e07322594e9f78ff0d4e84aeff07225da09fbb1b03d28bff1af990367d26c15b"
+    },
+    {
+      "performance_id": "RYG_RANS.PERF.PHASE_J.AVX2",
+      "sha256": "6ae8f4e0a6fa688a980107325f21340906499a3531e380becd18585a17d5d73a"
+    },
+    {
+      "performance_id": "RYG_RANS.PERF.PHASE_I.PARALLEL",
+      "sha256": "31e5770be34feeb5752e294d711006ff405991105dea65c188d91fad09ed3997"
+    }
+  ]
+}

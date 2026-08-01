@@ -1774,6 +1774,7 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
     // =========================================================================
     println!("performance-seal: step 10 — generating performance receipts...");
     let mut receipt_sha256s: Vec<String> = Vec::new();
+    let mut receipt_file_sha256s: Vec<String> = Vec::new();
     let mut all_receipt_paths: Vec<std::path::PathBuf> = Vec::new();
     let evidence_commit = get_git_head_hash();
 
@@ -1800,11 +1801,13 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
             performance_id: perf_id.to_string(),
             surface: SURFACE_NAMES[idx].to_string(),
             verdict: if cases_failed > 0 {
-                "fail".to_string()
+                ryg_rans_rs_casefile::PerformanceReceiptVerdict::Rejected
+            } else if cases_executed > 0 && cases_verified == cases_executed {
+                ryg_rans_rs_casefile::PerformanceReceiptVerdict::SealedMeasurement
             } else if cases_declared > 0 {
-                "pass".to_string()
+                ryg_rans_rs_casefile::PerformanceReceiptVerdict::SealedWithResiduals
             } else {
-                "empty".to_string()
+                ryg_rans_rs_casefile::PerformanceReceiptVerdict::Rejected
             },
             implementation_commit: implementation_commit.clone(),
             evidence_commit: evidence_commit.clone(),
@@ -1845,6 +1848,11 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
         std::fs::write(&receipt_path, &receipt_json)
             .map_err(|e| format!("write receipt {:?}: {}", receipt_path, e))?;
         receipt_sha256s.push(receipt_self_hash);
+        // The final-file hash is the hash of the exact bytes stored on disk
+        // (distinct from the canonical self-hash — residual L1-L).
+        let receipt_file_bytes = std::fs::read(&receipt_path)
+            .map_err(|e| format!("read final receipt {:?}: {}", receipt_path, e))?;
+        receipt_file_sha256s.push(sha256_hex(&receipt_file_bytes));
         all_receipt_paths.push(receipt_path);
         println!(
             "  receipt {} written (verdict={}, declared={}, executed={}, verified={}, failed={})",
@@ -1863,7 +1871,8 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
             } else {
                 Some(ryg_rans_rs_casefile::PerformanceIndexEntry {
                     performance_id: EXPECTED_PERF_IDS[idx].to_string(),
-                    sha256: receipt_sha256s[idx].clone(),
+                    receipt_file_sha256: receipt_file_sha256s[idx].clone(),
+                    receipt_canonical_sha256: receipt_sha256s[idx].clone(),
                 })
             }
         })

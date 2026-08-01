@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "r64/r64-interleaved2/encode/FREQ1_RESIDUAL/256B/iter",
+  "backend_requested": "r64-interleaved2",
+  "backend_executed": "r64-interleaved2",
+  "verification_passed": true,
+  "input_sha256": "02f48967e18d64b059768a5d986cf1cf8e4b168016809f886ca8c29d5270cd2b",
+  "output_sha256": "02f48967e18d64b059768a5d986cf1cf8e4b168016809f886ca8c29d5270cd2b",
+  "reference_output_sha256": "02f48967e18d64b059768a5d986cf1cf8e4b168016809f886ca8c29d5270cd2b",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

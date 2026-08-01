@@ -231,11 +231,29 @@ pub struct PerformanceManifest {
 /// Performance receipt — seals a performance manifest.
 #[cfg(feature = "std")]
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+/// Typed performance receipt verdict (residual L1-M).  Unknown serialized
+/// values are rejected by serde.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PerformanceReceiptVerdict {
+    /// Measurement and provenance are sealed; every executed case verified.
+    SealedMeasurement,
+    /// Sealed with explicit performance residuals (a slower backend is still
+    /// a sealed measurement).
+    SealedWithResiduals,
+    /// The receipt does not represent a valid sealed measurement.
+    Rejected,
+}
+
+/// Performance receipt.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct PerformanceReceipt {
     pub schema_version: u32,
     pub performance_id: String,
     pub surface: String,
-    pub verdict: String,
+    pub verdict: PerformanceReceiptVerdict,
     pub implementation_commit: String,
     pub evidence_commit: String,
     pub run_id: String,
@@ -261,7 +279,11 @@ pub struct PerformanceReceipt {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct PerformanceIndexEntry {
     pub performance_id: String,
-    pub sha256: String,
+    /// SHA-256 of the exact final receipt file bytes on disk.
+    pub receipt_file_sha256: String,
+    /// SHA-256 of the canonical receipt content with its self-hash field
+    /// omitted/empty (never called the file hash — residual L1-L).
+    pub receipt_canonical_sha256: String,
 }
 
 /// Performance index.
