@@ -5,7 +5,7 @@
 > plus the legacy byte/R64/alias surfaces and the Phase L.14 comparative court.
 > Deterministic corpora (8 model profiles, fixed seeds) and a verification-before-timing policy.
 
-**Version: 0.1.30** · `publish = false` (workspace-internal crate) · 16 tests
+**Version: 0.2.0** · `publish = false` (workspace-internal crate) · 16 tests
 
 ---
 
@@ -515,7 +515,7 @@ pub mod exporter;  // Criterion structured summary export (JSON + CSV)
 
 ## Versioning and Reading Order
 
-- **Version**: 0.1.30 (workspace crates); `publish = false` — never published.
+- **Version**: 0.2.0 (workspace crates); `publish = false` — never published.
 - **Reading order**: root [`README.md`](../../README.md) →
   [`docs/architecture.md`](../../docs/architecture.md) →
   [`docs/performance-method.md`](../../docs/performance-method.md) →
@@ -528,4 +528,4 @@ pub mod exporter;  // Criterion structured summary export (JSON + CSV)
 
 ---
 
-*Part of the ryg-rans-rs project. Version 0.1.30. Phase L.15 documentation pass.*
+*Part of the ryg-rans-rs project. Version 0.2.0. Phase L.15 documentation pass.*
