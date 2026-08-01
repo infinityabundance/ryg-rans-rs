@@ -1462,14 +1462,16 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
     // (and by benchmark-run); only SOURCE changes block the seal.  The
     // benchmark-run wrapper already refused a dirty tree before the run.
     // Strip the two-character status prefix ("XY ") before matching paths.
-    let path_of = |l: &str| -> Option<&str> { l.get(3..) };
+    fn is_evidence(l: &str) -> bool {
+        l.get(3..).unwrap_or("").starts_with("evidence/")
+    }
     let dirty: Vec<&str> = porcelain
         .lines()
-        .filter(|l| !l.is_empty() && !path_of(l).unwrap_or("").starts_with("evidence/"))
+        .filter(|l| !l.is_empty() && !is_evidence(l))
         .collect();
     let source_dirty: Vec<&str> = porcelain
         .lines()
-        .filter(|l| !l.is_empty() && !path_of(l).unwrap_or("").starts_with("evidence/"))
+        .filter(|l| !l.is_empty() && !is_evidence(l))
         .collect();
     if !source_dirty.is_empty() {
         warn(format!(
