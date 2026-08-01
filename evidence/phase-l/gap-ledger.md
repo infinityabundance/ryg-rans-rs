@@ -185,7 +185,7 @@ Comparative methodology and results are in `docs/performance/comparative.md` (L.
 
 | ID | Severity | Issue | Status | Resolution |
 |----|----------|-------|--------|------------|
-| L19-A | HIGH | 14 new courts required with manifests and receipts | OPEN | L.19 |
+| L19-A | HIGH | 14 new courts required with manifests and receipts | RESOLVED | `61a1019` + re-pins — all 14 Phase L courts pass (14 receipts, typed verdicts, manifest hashes, self-hashes verified); re-executed at every implementation head and pinned to `efb064d` |
 | L19-B | CRITICAL | Oracle evidence generator's atomic-promote renames the whole `evidence/` tree to a backup and deletes it, destroying every artifact the oracle did not regenerate (the untracked full-precision run `phase-l-20260801c` with 800 preflight records, gap ledger, docker matrix, SUPERSEDED.md).  Violates "evidence is never deleted" | RESOLVED | `b3c8158` — promote merges receipts/manifests/index into the canonical tree (upsert by court_id), preserving all unrelated evidence; verified by re-running the oracle with the fix (nothing deleted).  The destroyed performance run is re-executed and re-sealed (tracked under L18-A) |
 
 ## L.20 — Seal gate
@@ -193,7 +193,7 @@ Comparative methodology and results are in `docs/performance/comparative.md` (L.
 | ID | Severity | Issue | Status | Resolution |
 |----|----------|-------|--------|------------|
 | L20-A | HIGH | Seal gate must validate performance evidence and never print success for skipped checks | RESOLVED | `efda2f5` + `c47bf04` + `5457d81` + `c9b5ad2` — performance-evidence validation integrated; run-manifest commit + Cargo.lock SHA-256 binding; no skipped verifications print success; gates 35-39 (publication dry-run, doc links, rustdoc warnings, README doctests, public API inventory) added |
-| L20-B | HIGH | Docker matrix must run at the exact evidence commit (its `git_commit` short-SHA prefix must match the behavioural `code_commit`); two Docker defects found and fixed: (1) CLI 8-way decode/compare referenced the optional simd crate un-gated, breaking `--no-default-features` MSRV builds; (2) the comparative FFI forced bindgen/libclang into musl/MSRV builds | OPEN | `0844f42` (CLI cfg gates), `9ceee00` (comparative feature); matrix re-run at the final implementation commit |
+| L20-B | HIGH | Docker matrix must run at the exact evidence commit (its `git_commit` short-SHA prefix must match the behavioural `code_commit`); three Docker defects found and fixed: (1) CLI 8-way decode/compare referenced the optional simd crate un-gated, breaking `--no-default-features` MSRV builds; (2) the comparative FFI forced bindgen/libclang into musl/MSRV builds; (3) the parallel-stable job's doctests silently failed because rustdoc execs its harness from `$TMPDIR`, which defaulted to a noexec tmpfs | RESOLVED | `0844f42` (CLI cfg gates), `9ceee00` (comparative feature), `2b3e546` (TMPDIR fix); matrix `ci-20260801-efb064d` — 11/11 jobs exit 0 at the final evidence commit |
 
 ---
 
