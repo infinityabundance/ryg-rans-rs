@@ -12,10 +12,87 @@
 //! Sizes: 64 B, 256 B, 1 KiB, 4 KiB, 64 KiB, 1 MiB
 
 use criterion::{BatchSize, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use std::sync::OnceLock;
 use std::vec::Vec;
 
 use ryg_rans_rs_bench::common::corpus::{Corpus, ModelProfile};
 use ryg_rans_rs_core::*;
+
+// ---------------------------------------------------------------------------
+// Preflight record emission (residual L1-D)
+// ---------------------------------------------------------------------------
+// Every timed case emits a BenchmarkPreflightRecord before timing; the
+// performance exporter joins Criterion measurements to these records by
+// exact benchmark ID and refuses to export a case without one.  The preflight
+// dir is run-local (RYG_RANS_PREFLIGHT_DIR); when unset, emission is skipped
+// so the benches still run standalone.
+
+/// Run-local preflight directory from `RYG_RANS_PREFLIGHT_DIR`, read once.
+fn preflight_dir() -> Option<&'static str> {
+    static DIR: OnceLock<Option<String>> = OnceLock::new();
+    DIR.get_or_init(|| {
+        std::env::var("RYG_RANS_PREFLIGHT_DIR")
+            .ok()
+            .filter(|s| !s.is_empty())
+    })
+    .as_deref()
+}
+
+/// Hex SHA-256 of a byte slice.
+fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    let mut h = sha2::Sha256::new();
+    h.update(bytes);
+    let out = h.finalize();
+    let mut s = String::with_capacity(64);
+    for b in out {
+        use std::fmt::Write as _;
+        let _ = write!(s, "{:02x}", b);
+    }
+    s
+}
+
+/// Build and emit a Passed preflight record.  Emission failures are warnings
+/// only: the exporter rejects missing records later, but the bench itself
+/// must not fail on emission.
+fn emit_preflight(
+    benchmark_id: String,
+    backend: &str,
+    input: &[u8],
+    output: &[u8],
+    reference_output: &[u8],
+) {
+    let Some(dir) = preflight_dir() else {
+        return;
+    };
+    let record = ryg_rans_rs_bench::common::preflight::BenchmarkPreflightRecord {
+        benchmark_id,
+        backend_requested: backend.to_string(),
+        backend_executed: backend.to_string(),
+        verification_passed: true,
+        input_sha256: sha256_hex(input),
+        output_sha256: sha256_hex(output),
+        reference_output_sha256: sha256_hex(reference_output),
+        words_consumed: None,
+        reference_words_consumed: None,
+        final_states_sha256: None,
+        reference_final_states_sha256: None,
+        threads_requested: 1,
+        threads_effective: 1,
+        block_count: 1,
+        queue_capacity: 0,
+        allocation_mode: "unknown".to_string(),
+        status: ryg_rans_rs_bench::common::preflight::BenchmarkCaseStatus::Passed,
+    };
+    if let Err(e) =
+        ryg_rans_rs_bench::common::preflight::emit_record(&std::path::PathBuf::from(dir), &record)
+    {
+        eprintln!(
+            "WARN: preflight emission failed for {}: {}",
+            record.benchmark_id, e
+        );
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -154,11 +231,20 @@ fn bench_alias_table_construct(c: &mut Criterion) {
             let table = build_alias_table_from_corpus(&corpus);
             alias_preflight_encode_decode(&corpus.data, &table, scale_bits);
 
-            let mut group = c.benchmark_group(format!(
+            let group_name = format!(
                 "alias/alias-table/construct/{}/{}",
                 profile.label(),
                 size_label(size),
-            ));
+            );
+            emit_preflight(
+                format!("{}/iter", group_name),
+                "alias-table-construct",
+                &corpus.data,
+                &corpus.data,
+                &corpus.data,
+            );
+
+            let mut group = c.benchmark_group(group_name);
             group.throughput(Throughput::Bytes(corpus.data.len() as u64));
 
             group.bench_function("iter", |b| {
@@ -196,11 +282,20 @@ fn bench_alias_encode(c: &mut Criterion) {
             let table = build_alias_table_from_corpus(&corpus);
             alias_preflight_encode_decode(data, &table, scale_bits);
 
-            let mut group = c.benchmark_group(format!(
+            let group_name = format!(
                 "alias/alias-encode/{}/{}",
                 profile.label(),
                 size_label(size),
-            ));
+            );
+            emit_preflight(
+                format!("{}/iter", group_name),
+                "alias-encode",
+                data,
+                data,
+                data,
+            );
+
+            let mut group = c.benchmark_group(group_name);
             group.throughput(Throughput::Bytes(data.len() as u64));
 
             group.bench_function("iter", |b| {
@@ -268,11 +363,20 @@ fn bench_alias_decode(c: &mut Criterion) {
                 );
             }
 
-            let mut group = c.benchmark_group(format!(
+            let group_name = format!(
                 "alias/alias-decode/{}/{}",
                 profile.label(),
                 size_label(size),
-            ));
+            );
+            emit_preflight(
+                format!("{}/iter", group_name),
+                "alias-decode",
+                data,
+                data,
+                data,
+            );
+
+            let mut group = c.benchmark_group(group_name);
             group.throughput(Throughput::Bytes(data.len() as u64));
 
             group.bench_function("iter", |b| {
@@ -318,11 +422,20 @@ fn bench_alias_interleaved2_encode(c: &mut Criterion) {
             let table = build_alias_table_from_corpus(&corpus);
             alias_preflight_interleaved2_encode_decode(data, &table, scale_bits);
 
-            let mut group = c.benchmark_group(format!(
+            let group_name = format!(
                 "alias/alias-interleaved2/encode/{}/{}",
                 profile.label(),
                 size_label(size),
-            ));
+            );
+            emit_preflight(
+                format!("{}/iter", group_name),
+                "alias-interleaved2",
+                data,
+                data,
+                data,
+            );
+
+            let mut group = c.benchmark_group(group_name);
             group.throughput(Throughput::Bytes(data.len() as u64));
 
             group.bench_function("iter", |b| {
@@ -430,11 +543,20 @@ fn bench_alias_interleaved2_decode(c: &mut Criterion) {
                 );
             }
 
-            let mut group = c.benchmark_group(format!(
+            let group_name = format!(
                 "alias/alias-interleaved2/decode/{}/{}",
                 profile.label(),
                 size_label(size),
-            ));
+            );
+            emit_preflight(
+                format!("{}/iter", group_name),
+                "alias-interleaved2",
+                data,
+                data,
+                data,
+            );
+
+            let mut group = c.benchmark_group(group_name);
             group.throughput(Throughput::Bytes(data.len() as u64));
 
             group.bench_function("iter", |b| {

@@ -96,6 +96,13 @@ fn main() {
             }
             println!("All performance-seal gates passed.");
         }
+        "benchmark-run" => {
+            if let Err(e) = cmd_benchmark_run(&args[2..]) {
+                eprintln!("FAIL: benchmark-run: {}", e);
+                std::process::exit(1);
+            }
+            println!("benchmark-run completed.");
+        }
         "no-ffi" => {
             if let Err(e) = check_no_ffi() {
                 eprintln!("FAIL: {}", e);
@@ -965,6 +972,252 @@ fn sha256_file(path: &std::path::Path) -> Result<String, String> {
     Ok(sha256_hex(&data))
 }
 
+// ---------------------------------------------------------------------------
+// Phase L.18: benchmark-run wrapper
+// ---------------------------------------------------------------------------
+
+/// `cargo xtask benchmark-run` — run the complete benchmark suite inside a
+/// provenance-bound run directory.
+///
+/// The wrapper (residual L1-E/L1-F) fixes the Phase K flaw of capturing
+/// provenance at seal time: this command captures Git/rustc/flags metadata
+/// BEFORE compilation, runs the suite itself, captures metadata again AFTER,
+/// refuses to proceed if the environment changed materially, and writes a
+/// completion marker only when every benchmark finished successfully.
+///
+/// Usage:
+/// ```sh
+/// RUSTFLAGS="-C target-cpu=native" cargo xtask benchmark-run \
+///   --criterion-dir target/criterion \
+///   --run-dir evidence/performance/runs/<run-id> \
+///   -- [additional cargo bench args...]
+/// ```
+fn cmd_benchmark_run(args: &[String]) -> Result<(), String> {
+    let mut criterion_dir = std::path::PathBuf::from("target/criterion");
+    let mut run_dir: Option<std::path::PathBuf> = None;
+    let mut bench_args: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--criterion-dir" => {
+                i += 1;
+                criterion_dir = std::path::PathBuf::from(
+                    args.get(i).ok_or("--criterion-dir requires a value")?,
+                );
+            }
+            "--run-dir" => {
+                i += 1;
+                run_dir = Some(std::path::PathBuf::from(
+                    args.get(i).ok_or("--run-dir requires a value")?,
+                ));
+            }
+            "--" => {
+                bench_args = args[i + 1..].to_vec();
+                break;
+            }
+            other => return Err(format!("unknown argument: {}", other)),
+        }
+        i += 1;
+    }
+
+    // ---- 1. Refuse a dirty tree ---------------------------------------------
+    let git_clean = std::process::Command::new("git")
+        .args(["status", "--porcelain"])
+        .output()
+        .map_err(|e| format!("git status failed: {}", e))?;
+    let porcelain = String::from_utf8_lossy(&git_clean.stdout);
+    let dirty: Vec<&str> = porcelain.lines().filter(|l| !l.is_empty()).collect();
+    if !dirty.is_empty() {
+        return Err(format!(
+            "refusing to run benchmarks: working tree is dirty ({} change(s)). Commit or stash first.",
+            dirty.len()
+        ));
+    }
+
+    // ---- 2. Establish the run identity --------------------------------------
+    let commit = get_git_head_hash();
+    if commit.is_empty() {
+        return Err("cannot determine git HEAD".into());
+    }
+    let run_id = run_dir
+        .as_ref()
+        .and_then(|d| d.file_name())
+        .and_then(|n| n.to_str())
+        .unwrap_or(&commit)
+        .to_string();
+    let run_dir = run_dir.unwrap_or_else(|| {
+        std::path::PathBuf::from(format!("evidence/performance/runs/{}", run_id))
+    });
+    let preflight_dir = run_dir.join("preflight");
+    std::fs::create_dir_all(&preflight_dir)
+        .map_err(|e| format!("create {:?}: {}", preflight_dir, e))?;
+    let marker = run_dir.join("RUN_COMPLETE");
+    if marker.exists() {
+        return Err(format!(
+            "run {} already has a completion marker; refusing to overwrite",
+            run_id
+        ));
+    }
+
+    // ---- 3. Capture metadata BEFORE compilation -----------------------------
+    let tree_sha = git_tree_hash()?;
+    let lock_sha = sha256_file(&std::path::Path::new("Cargo.lock"))?;
+    let rustc_vv = get_rustc_version();
+    let rustflags = get_rustflags();
+    let before = serde_json::json!({
+        "commit": commit,
+        "tree_sha": tree_sha,
+        "cargo_lock_sha256": lock_sha,
+        "rustc": rustc_vv,
+        "rustflags": rustflags,
+        "criterion_dir": criterion_dir.display().to_string(),
+        "bench_args": bench_args,
+        "timestamp": chrono_now(),
+    });
+    std::fs::write(
+        run_dir.join("run-manifest.json"),
+        serde_json::to_string_pretty(&before).map_err(|e| format!("serialize: {}", e))?,
+    )
+    .map_err(|e| format!("write run-manifest: {}", e))?;
+
+    // Capture host + cpuinfo + environment as artifacts (L1-H/L1-J).
+    let host_meta = collect_host_metadata();
+    let os_meta = collect_os_metadata();
+    std::fs::write(
+        run_dir.join("host.json"),
+        serde_json::to_string_pretty(&serde_json::json!({
+            "cpu": host_meta, "os": os_meta, "rustc": rustc_vv, "rustflags": rustflags,
+        }))
+        .map_err(|e| format!("serialize host: {}", e))?,
+    )
+    .map_err(|e| format!("write host.json: {}", e))?;
+    let cpuinfo = std::fs::read_to_string("/proc/cpuinfo").unwrap_or_default();
+    std::fs::write(run_dir.join("cpuinfo.txt"), &cpuinfo)
+        .map_err(|e| format!("write cpuinfo: {}", e))?;
+    std::fs::write(run_dir.join("rustc-vV.txt"), &rustc_vv)
+        .map_err(|e| format!("write rustc-vV: {}", e))?;
+    let env_json = serde_json::json!({
+        "rustflags": rustflags,
+        "smt": read_first_line("/sys/devices/system/cpu/smt/active"),
+        "governor": read_first_line("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"),
+        "smt_active": read_first_line("/sys/devices/system/cpu/smt/active"),
+        "cpu_count": std::thread::available_parallelism().map(|n| n.get()).unwrap_or(0),
+    });
+    std::fs::write(
+        run_dir.join("environment.json"),
+        serde_json::to_string_pretty(&env_json).map_err(|e| format!("serialize env: {}", e))?,
+    )
+    .map_err(|e| format!("write environment.json: {}", e))?;
+
+    // ---- 4. Run the benchmark suite ------------------------------------------
+    println!(
+        "benchmark-run: executing the benchmark suite (run {})",
+        run_id
+    );
+    println!("  commit: {}", commit);
+    println!("  rustflags: {}", rustflags);
+    let mut cmd = std::process::Command::new("cargo");
+    cmd.arg("bench").arg("-p").arg("ryg-rans-rs-bench");
+    for a in &bench_args {
+        cmd.arg(a);
+    }
+    cmd.env("RYG_RANS_PREFLIGHT_DIR", &preflight_dir);
+    let mut commands_log = String::new();
+    commands_log.push_str(&format!(
+        "workdir: {}\n",
+        std::env::current_dir()
+            .map(|p| p.display().to_string())
+            .unwrap_or_default()
+    ));
+    commands_log.push_str(&format!(
+        "command: cargo bench -p ryg-rans-rs-bench {}\n",
+        bench_args.join(" ")
+    ));
+    commands_log.push_str(&format!("rustflags: {}\n", rustflags));
+    commands_log.push_str(&format!("preflight_dir: {}\n", preflight_dir.display()));
+    commands_log.push_str(&format!("start: {}\n", chrono_now()));
+    let status = cmd
+        .status()
+        .map_err(|e| format!("spawn cargo bench: {}", e))?;
+    commands_log.push_str(&format!("exit: {}\n", status));
+    commands_log.push_str(&format!("finish: {}\n", chrono_now()));
+    if !status.success() {
+        std::fs::write(run_dir.join("commands.log"), &commands_log)
+            .map_err(|e| format!("write commands.log: {}", e))?;
+        return Err(format!("cargo bench exited with {}", status));
+    }
+
+    // ---- 5. Capture metadata AFTER; refuse on material change ----------------
+    let after_tree = git_tree_hash()?;
+    let after_lock = sha256_file(&std::path::Path::new("Cargo.lock"))?;
+    if after_tree != tree_sha {
+        return Err(format!(
+            "environment changed during the run: tree sha {} -> {}. Evidence invalid; rerun from a clean checkout.",
+            tree_sha, after_tree
+        ));
+    }
+    if after_lock != lock_sha {
+        return Err("Cargo.lock changed during the run; evidence invalid".into());
+    }
+    commands_log.push_str("post-run tree sha: ");
+    commands_log.push_str(&after_tree);
+    commands_log.push_str("\n");
+    std::fs::write(run_dir.join("commands.log"), &commands_log)
+        .map_err(|e| format!("write commands.log: {}", e))?;
+
+    // ---- 6. Completion marker (only after full success) ----------------------
+    std::fs::write(
+        &marker,
+        format!(
+            "run_id: {}\ncommit: {}\nfinished: {}\n",
+            run_id,
+            commit,
+            chrono_now()
+        ),
+    )
+    .map_err(|e| format!("write completion marker: {}", e))?;
+    let count = std::fs::read_dir(&preflight_dir)
+        .map(|d| d.filter_map(|e| e.ok()).count())
+        .unwrap_or(0);
+    println!(
+        "benchmark-run: completed. run_dir={} preflight_records={}",
+        run_dir.display(),
+        count
+    );
+    Ok(())
+}
+
+/// Git tree SHA-256 (the committed tree object hash).
+fn git_tree_hash() -> Result<String, String> {
+    let out = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD^{tree}"])
+        .output()
+        .map_err(|e| format!("git rev-parse tree: {}", e))?;
+    if !out.status.success() {
+        return Err("git rev-parse HEAD^{tree} failed".into());
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+fn read_first_line(path: &str) -> String {
+    std::fs::read_to_string(path)
+        .ok()
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn chrono_now() -> String {
+    // Avoid pulling chrono: use the system date command (deterministic format).
+    std::process::Command::new("date")
+        .args(["-u", "+%Y-%m-%dT%H:%M:%SZ"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .unwrap_or_else(|| "unknown".to_string())
+        .trim()
+        .to_string()
+}
+
 /// Collect host metadata for performance sealing.
 fn collect_host_metadata() -> ryg_rans_rs_casefile::CpuMetadata {
     let model = std::fs::read_to_string("/proc/cpuinfo")
@@ -1073,88 +1326,47 @@ fn get_rustflags() -> String {
     std::env::var("RUSTFLAGS").unwrap_or_default()
 }
 
-/// Create a zstd-compressed tarball of a directory.
+/// Create a deterministic, zstd-compressed tarball of a directory.
+///
+/// Uses the maintained `tar` crate (PAX long-name support), so paths longer
+/// than 99 bytes are preserved — the Phase K custom writer truncated them
+/// (residual L1-K).  Files are added in sorted order with normalized
+/// timestamps so the archive is reproducible.
 fn archive_criterion(
     criterion_dir: &std::path::Path,
     output_path: &std::path::Path,
 ) -> Result<(), String> {
-    use std::io::Write;
-
     let file = std::fs::File::create(output_path)
         .map_err(|e| format!("create archive {:?}: {}", output_path, e))?;
     let mut encoder = zstd::Encoder::new(file, 3).map_err(|e| format!("zstd encoder: {}", e))?;
+    {
+        let mut builder = tar::Builder::new(&mut encoder);
+        builder.mode(tar::HeaderMode::Deterministic);
 
-    // Walk the criterion directory and add files to a tar stream
-    let criterion_dir = criterion_dir
-        .canonicalize()
-        .map_err(|e| format!("canonicalize {:?}: {}", criterion_dir, e))?;
+        let criterion_dir = criterion_dir
+            .canonicalize()
+            .map_err(|e| format!("canonicalize {:?}: {}", criterion_dir, e))?;
 
-    let mut entries: Vec<std::path::PathBuf> = Vec::new();
-    collect_files(&criterion_dir, &criterion_dir, &mut entries);
+        let mut entries: Vec<std::path::PathBuf> = Vec::new();
+        collect_files(&criterion_dir, &criterion_dir, &mut entries);
+        // Deterministic order: sorted by relative path.
+        entries.sort();
 
-    // Write a simple tar-like stream: for each file, write header + content
-    for entry in &entries {
-        let relative = entry
-            .strip_prefix(&criterion_dir)
-            .map_err(|e| format!("strip prefix: {}", e))?;
-        let name = relative.to_string_lossy().replace('\\', "/");
-
-        let content = std::fs::read(entry).map_err(|e| format!("read {:?}: {}", entry, e))?;
-
-        // Write tar header (simplified — 512 bytes)
-        let mut header = vec![0u8; 512];
-        let name_bytes = name.as_bytes();
-        let name_len = name_bytes.len().min(99);
-        header[..name_len].copy_from_slice(&name_bytes[..name_len]);
-
-        // size field (octal) at offset 124, 12 bytes
-        let size_octal = format!("{:011o}", content.len());
-        let size_bytes = size_octal.as_bytes();
-        header[124..124 + size_bytes.len().min(12)]
-            .copy_from_slice(&size_bytes[..size_bytes.len().min(12)]);
-        header[124 + 11] = b' ';
-
-        // typeflag: '0' for regular file at offset 156
-        header[156] = b'0';
-
-        // Calculate and write checksum (octal at offset 148, 8 bytes)
-        // First set checksum field to spaces
-        for i in 148..156 {
-            header[i] = b' ';
+        for entry in &entries {
+            let relative = entry
+                .strip_prefix(&criterion_dir)
+                .map_err(|e| format!("strip prefix: {}", e))?;
+            // Tar paths must use forward slashes and never start with '/'.
+            let name = relative.to_string_lossy().replace('\\', "/");
+            builder
+                .append_path_with_name(entry, &name)
+                .map_err(|e| format!("append {:?} as {}: {}", entry, name, e))?;
         }
-        let checksum: u32 = header[..512].iter().map(|&b| b as u32).sum();
-        let chk_octal = format!("{:06o}\0 ", checksum);
-        let chk_bytes = chk_octal.as_bytes();
-        header[148..148 + chk_bytes.len().min(8)]
-            .copy_from_slice(&chk_bytes[..chk_bytes.len().min(8)]);
-
-        encoder
-            .write_all(&header)
-            .map_err(|e| format!("write tar header: {}", e))?;
-
-        // Write file content, padded to 512 bytes
-        encoder
-            .write_all(&content)
-            .map_err(|e| format!("write tar content: {}", e))?;
-        let padding = (512 - content.len() % 512) % 512;
-        if padding > 0 {
-            let pad = vec![0u8; padding];
-            encoder
-                .write_all(&pad)
-                .map_err(|e| format!("write tar padding: {}", e))?;
-        }
+        builder.finish().map_err(|e| format!("finish tar: {}", e))?;
     }
-
-    // Write end-of-archive marker: two 512-byte zero blocks
-    let eof = vec![0u8; 1024];
-    encoder
-        .write_all(&eof)
-        .map_err(|e| format!("write tar eof: {}", e))?;
-
     encoder
         .finish()
         .map_err(|e| format!("finish zstd: {}", e))?;
-
     Ok(())
 }
 
@@ -1310,13 +1522,17 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
             .unwrap_or(1),
     };
 
-    let records =
-        match ryg_rans_rs_bench::exporter::load_criterion_estimates(&criterion_dir, &bench_meta) {
-            Ok(r) => r,
-            Err(e) => {
-                return Err(format!("load_criterion_estimates failed: {}", e).into());
-            }
-        };
+    let preflight_dir = run_dir.join("preflight");
+    let records = match ryg_rans_rs_bench::exporter::load_criterion_estimates(
+        &criterion_dir,
+        &preflight_dir,
+        &bench_meta,
+    ) {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(format!("load_criterion_estimates failed: {}", e).into());
+        }
+    };
     println!("  loaded {} benchmark records", records.len());
 
     // =========================================================================

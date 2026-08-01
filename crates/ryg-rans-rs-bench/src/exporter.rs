@@ -408,6 +408,7 @@ fn extract_threads_requested(benchmark_id: &str) -> usize {
 /// the requested thread count (we assume the benchmark has enough work to
 /// saturate all requested workers).  Callers with more detailed runtime
 /// information can override this field after loading.
+#[allow(dead_code)] // retained for the path-based heuristic tests
 fn determine_threads_effective(threads_requested: usize, tier: &str) -> usize {
     if tier == "parallel" || tier == "container" {
         threads_requested
@@ -421,6 +422,7 @@ fn determine_threads_effective(threads_requested: usize, tier: &str) -> usize {
 // ---------------------------------------------------------------------------
 
 /// Extract byte count from benchmark ID like `".../1MiB"` or `".../4x1MiB"`.
+#[allow(dead_code)] // retained for the path-based heuristic tests
 fn extract_bytes(id: &str) -> Option<u64> {
     for token in id.split('/').rev() {
         let token = token.trim();
@@ -472,6 +474,7 @@ fn extract_bytes(id: &str) -> Option<u64> {
 ///    dataset.
 pub fn load_criterion_estimates(
     criterion_dir: &Path,
+    preflight_dir: &Path,
     metadata: &crate::common::metadata::BenchMetadata,
 ) -> Result<Vec<BenchRecord>, String> {
     // ---- Reject dirty tree ------------------------------------------------
@@ -498,6 +501,7 @@ pub fn load_criterion_estimates(
     walk_dir(
         &criterion_dir,
         &criterion_dir,
+        preflight_dir,
         &mut records,
         &mut seen_ids,
         metadata,
@@ -510,6 +514,7 @@ pub fn load_criterion_estimates(
 fn walk_dir(
     root: &Path,
     dir: &Path,
+    preflight_dir: &Path,
     records: &mut Vec<BenchRecord>,
     seen_ids: &mut HashSet<String>,
     metadata: &crate::common::metadata::BenchMetadata,
@@ -520,7 +525,15 @@ fn walk_dir(
         let path = entry.path();
 
         if path.is_dir() {
-            walk_dir(root, &path, records, seen_ids, metadata, runtime_features)?;
+            walk_dir(
+                root,
+                &path,
+                preflight_dir,
+                records,
+                seen_ids,
+                metadata,
+                runtime_features,
+            )?;
         } else if path.file_name().and_then(|n| n.to_str()) == Some("estimates.json") {
             // Skip estimate files inside /change/ directories — those are
             // baseline-comparison statistics which contain NaN values when
@@ -530,7 +543,8 @@ fn walk_dir(
             if path.to_string_lossy().contains("/change/") {
                 continue;
             }
-            let record = parse_estimate_file(&path, root, metadata, runtime_features)?;
+            let record =
+                parse_estimate_file(&path, root, preflight_dir, metadata, runtime_features)?;
 
             // Validate and push if valid
             if let Some(ref rec) = record {
@@ -564,10 +578,14 @@ fn walk_dir(
 /// completed measurement).
 fn parse_estimate_file(
     path: &Path,
-    root: &Path,
+    _root: &Path,
+    preflight_dir: &Path,
     metadata: &crate::common::metadata::BenchMetadata,
     runtime_features: &[String],
 ) -> Result<Option<BenchRecord>, String> {
+    let dir_path = path
+        .parent()
+        .ok_or_else(|| format!("{}: no parent directory", path.display()))?;
     let content = fs::read_to_string(path).map_err(|e| format!("read {:?}: {}", path, e))?;
 
     let est: HashMap<String, serde_json::Value> =
@@ -596,45 +614,57 @@ fn parse_estimate_file(
     let (confidence_low_ns, confidence_high_ns) = extract_confidence_interval(&est);
 
     // ---- Extract sample count ------------------------------------------------
-    // Criterion 0.5.1 does NOT include sample_count in estimates.json.
-    // Default to 1 when absent (the validator will still accept this;
-    // the actual sample count is visible in the raw criterion archives).
-    let sample_count = est
-        .get("sample_count")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(1) as usize;
+    // Criterion 0.5.1 does NOT include sample_count in estimates.json; the
+    // authoritative count is the number of recorded samples in the sibling
+    // `sample.json` (iterations == times).  Fabricating a count of 1 is
+    // prohibited (residual L1-C): a missing or inconsistent sample file is
+    // a hard error, never a default.
+    let sample_count = sample_count_from_dir(&dir_path)?;
 
     // ---- Validate numerics ---------------------------------------------------
     validate_estimates(median_ns, mean_ns, stddev_ns, sample_count as u64, path)?;
 
-    // ---- Derive benchmark ID from path ---------------------------------------
-    let relative = path
-        .strip_prefix(root)
-        .map_err(|_| format!("path strip {:?} from {:?}", root, path))?;
-    let benchmark_id = relative
-        .parent()
-        .and_then(|p| p.parent())
-        .and_then(|p| p.to_str())
+    // ---- Derive benchmark identity from Criterion metadata -------------------
+    // The filesystem directory name is a sanitized flattening of the
+    // benchmark hierarchy (residual L1-B): the canonical identity lives in
+    // the adjacent `benchmark.json` (`group_id`, `function_id`, `value_str`,
+    // `full_id`, `throughput`).  Never infer identity from path segments.
+    let bench_json = read_benchmark_json(&dir_path)?;
+    let benchmark_id = bench_json
+        .full_id
+        .clone()
+        .unwrap_or_else(|| "unknown".to_string());
+    let bytes = bench_json.throughput_bytes.unwrap_or(0);
+
+    // ---- Parse backend / api / profile from the Criterion ID ----------------
+    // The Criterion ID is `group_id/function_id/value_str`; tier is the
+    // first segment of the group id.  The full_id preserves the original
+    // hierarchy (e.g. `parallel/decode/cold-executor/8threads/...`).
+    let tier = bench_json
+        .group_id
+        .as_deref()
+        .and_then(|g| g.split('/').next())
         .unwrap_or("unknown")
         .to_string();
+    let _backend_parsed = bench_json
+        .function_id
+        .clone()
+        .unwrap_or_else(|| "unknown".to_string());
+    let api = bench_json
+        .group_id
+        .as_deref()
+        .and_then(|g| g.split('/').nth(1))
+        .unwrap_or("unknown")
+        .to_string();
+    let profile = bench_json
+        .value_str
+        .clone()
+        .unwrap_or_else(|| "unknown".to_string());
 
-    // Canonicalise: ensure no double-leading `/`
-    let benchmark_id = benchmark_id.trim_start_matches('/').to_string();
-
-    // ---- Parse benchmark_id components (clone parts before moving benchmark_id)
-    // We need owned strings here because `benchmark_id` is moved into the struct below.
-    let parts: Vec<&str> = benchmark_id.split('/').collect();
-    let tier = parts.first().copied().unwrap_or("unknown").to_string();
-    let backend_parsed = parts.get(1).copied().unwrap_or("unknown").to_string();
-    let api = parts.get(2).copied().unwrap_or("unknown").to_string();
-    let profile = parts.get(3).copied().unwrap_or("unknown").to_string();
-
-    // ---- Extract bytes -------------------------------------------------------
-    let bytes = extract_bytes(&benchmark_id).unwrap_or(0);
-
-    // ---- Extract thread counts -----------------------------------------------
-    let threads_requested = extract_threads_requested(&benchmark_id);
-    let threads_effective = determine_threads_effective(threads_requested, &tier);
+    // ---- Extract thread counts from the Criterion ID -------------------------
+    // Only the parallel/container tiers encode thread counts (`<N>threads`
+    // or `<N>workers`); every other tier is single-threaded by design.
+    let _threads_requested = extract_threads_requested(&benchmark_id);
 
     // ---- Compute throughput --------------------------------------------------
     let throughput_gib_s = if bytes > 0 && median_ns > 0.0 {
@@ -643,16 +673,32 @@ fn parse_estimate_file(
         0.0
     };
 
+    // ---- Join the preflight evidence channel (residual L1-D) -----------------
+    // A case is never assumed to have passed verification; the preflight
+    // sidecar must exist, be unique, and have passed.  Hashes come from the
+    // preflight, never from defaults.
+    let registry = crate::common::preflight::PreflightRegistry::load(preflight_dir)?;
+    let preflight = match registry.get(&benchmark_id) {
+        Some(p) => p.clone(),
+        None => {
+            return Err(format!(
+                "{}: no preflight record for benchmark '{}' (verification cannot be assumed)",
+                path.display(),
+                benchmark_id
+            ));
+        }
+    };
+
     Ok(Some(BenchRecord {
         benchmark_id,
         tier,
-        backend_requested: backend_parsed.clone(),
-        backend_executed: backend_parsed,
+        backend_requested: preflight.backend_requested.clone(),
+        backend_executed: preflight.backend_executed.clone(),
         api,
         profile,
         bytes,
-        threads_requested,
-        threads_effective,
+        threads_requested: preflight.threads_requested,
+        threads_effective: preflight.threads_effective,
         median_ns,
         mean_ns,
         stddev_ns,
@@ -665,12 +711,99 @@ fn parse_estimate_file(
         cpu: metadata.cpu_model.clone(),
         target_features: metadata.target_features.clone(),
         runtime_features: runtime_features.to_vec(),
-        verification_passed: true,
-        output_hash: String::new(),
-        words_consumed_hash: String::new(),
-        final_states_hash: String::new(),
-        status: "pass".to_string(),
+        verification_passed: preflight.verification_passed,
+        output_hash: preflight.output_sha256.clone(),
+        words_consumed_hash: preflight.words_consumed_sha256(),
+        final_states_hash: preflight.final_states_sha256(),
+        status: if preflight.verification_passed {
+            "pass"
+        } else {
+            "fail"
+        }
+        .to_string(),
     }))
+}
+
+// ---------------------------------------------------------------------------
+// Canonical Criterion metadata readers (residuals L1-B, L1-C)
+// ---------------------------------------------------------------------------
+
+/// The identity and throughput metadata Criterion records next to every
+/// measurement (in `benchmark.json`).  These fields are the canonical
+/// source of a benchmark's identity — never the sanitized directory name.
+#[derive(Debug, Default)]
+struct BenchmarkJson {
+    group_id: Option<String>,
+    function_id: Option<String>,
+    value_str: Option<String>,
+    full_id: Option<String>,
+    throughput_bytes: Option<u64>,
+}
+
+/// Read the `benchmark.json` sibling of an estimate file.
+///
+/// Criterion writes `throughput` as `{"Base": "Bytes", "ElemCount": N}`
+/// (or `{"Base": "Elements", "ElemCount": N}` for element throughput).
+/// An absent file is an error: identity must never be inferred from the
+/// sanitized path (residual L1-B).
+fn read_benchmark_json(dir: &Path) -> Result<BenchmarkJson, String> {
+    let path = dir.join("benchmark.json");
+    let content = fs::read_to_string(&path).map_err(|e| format!("read {:?}: {}", path, e))?;
+    let v: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("parse {:?}: {}", path, e))?;
+
+    let throughput_bytes = v
+        .get("throughput")
+        .and_then(|t| t.get("ElemCount"))
+        .and_then(|n| n.as_u64());
+
+    Ok(BenchmarkJson {
+        group_id: v.get("group_id").and_then(|x| x.as_str()).map(String::from),
+        function_id: v
+            .get("function_id")
+            .and_then(|x| x.as_str())
+            .map(String::from),
+        value_str: v
+            .get("value_str")
+            .and_then(|x| x.as_str())
+            .map(String::from),
+        full_id: v.get("full_id").and_then(|x| x.as_str()).map(String::from),
+        throughput_bytes,
+    })
+}
+
+/// Read the actual sample count from the sibling `sample.json`.
+///
+/// Criterion 0.5.1 does not store `sample_count` in `estimates.json`; the
+/// authoritative count is the number of recorded iterations (times).  The
+/// iters and times arrays must have equal length; a mismatch or an absent
+/// file is a hard error (residual L1-C: sample counts are never fabricated
+/// and never defaulted to one).
+fn sample_count_from_dir(dir: &Path) -> Result<usize, String> {
+    let path = dir.join("sample.json");
+    let content = fs::read_to_string(&path).map_err(|e| format!("read {:?}: {}", path, e))?;
+    let v: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("parse {:?}: {}", path, e))?;
+    let iters = v
+        .get("iters")
+        .and_then(|x| x.as_array())
+        .ok_or_else(|| format!("{}: sample.json has no iters array", path.display()))?;
+    let times = v
+        .get("times")
+        .and_then(|x| x.as_array())
+        .ok_or_else(|| format!("{}: sample.json has no times array", path.display()))?;
+    if iters.len() != times.len() {
+        return Err(format!(
+            "{}: iters.len() {} != times.len() {}",
+            path.display(),
+            iters.len(),
+            times.len()
+        ));
+    }
+    if iters.is_empty() {
+        return Err(format!("{}: zero samples recorded", path.display()));
+    }
+    Ok(iters.len())
 }
 
 /// Extract the 95% confidence interval from a parsed Criterion estimate map.
@@ -976,8 +1109,6 @@ mod tests {
 
     #[test]
     fn test_sort_deterministic() {
-        
-
         let make_rec = |id: &str, median: f64| BenchRecord {
             benchmark_id: id.to_string(),
             tier: String::new(),

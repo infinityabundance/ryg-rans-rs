@@ -20,8 +20,111 @@
 
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::num::NonZeroUsize;
+use std::sync::OnceLock;
 
 use ryg_rans_rs_bench::common::corpus::{Corpus, ModelProfile};
+
+// ---------------------------------------------------------------------------
+// Preflight record emission (residual L1-D)
+// ---------------------------------------------------------------------------
+// Every timed case emits a BenchmarkPreflightRecord before timing; the
+// performance exporter joins Criterion measurements to these records by
+// exact benchmark ID and refuses to export a case without one.  The preflight
+// dir is run-local (RYG_RANS_PREFLIGHT_DIR); when unset, emission is skipped
+// so the benches still run standalone.
+
+/// Run-local preflight directory from `RYG_RANS_PREFLIGHT_DIR`, read once.
+fn preflight_dir() -> Option<&'static str> {
+    static DIR: OnceLock<Option<String>> = OnceLock::new();
+    DIR.get_or_init(|| {
+        std::env::var("RYG_RANS_PREFLIGHT_DIR")
+            .ok()
+            .filter(|s| !s.is_empty())
+    })
+    .as_deref()
+}
+
+/// Hex SHA-256 of a byte slice.
+fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    let mut h = sha2::Sha256::new();
+    h.update(bytes);
+    let out = h.finalize();
+    let mut s = String::with_capacity(64);
+    for b in out {
+        use std::fmt::Write as _;
+        let _ = write!(s, "{:02x}", b);
+    }
+    s
+}
+
+/// Hex SHA-256 of the canonical serialization of a final-states vector
+/// (little-endian bytes of each u32, concatenated).
+fn states_sha256(states: &[u32]) -> String {
+    use sha2::Digest;
+    let mut h = sha2::Sha256::new();
+    for &s in states {
+        h.update(s.to_le_bytes());
+    }
+    let out = h.finalize();
+    let mut s = String::with_capacity(64);
+    for b in out {
+        use std::fmt::Write as _;
+        let _ = write!(s, "{:02x}", b);
+    }
+    s
+}
+
+/// Build and emit a Passed preflight record.  Emission failures are warnings
+/// only: the exporter rejects missing records later, but the bench itself
+/// must not fail on emission.
+#[allow(clippy::too_many_arguments)]
+fn emit_preflight(
+    benchmark_id: String,
+    backend: &str,
+    input: &[u8],
+    output: &[u8],
+    reference_output: &[u8],
+    words_consumed: Option<usize>,
+    reference_words_consumed: Option<usize>,
+    final_states: Option<&[u32]>,
+    reference_final_states: Option<&[u32]>,
+    threads_requested: usize,
+    threads_effective: usize,
+    block_count: usize,
+    queue_capacity: usize,
+) {
+    let Some(dir) = preflight_dir() else {
+        return;
+    };
+    let record = ryg_rans_rs_bench::common::preflight::BenchmarkPreflightRecord {
+        benchmark_id,
+        backend_requested: backend.to_string(),
+        backend_executed: backend.to_string(),
+        verification_passed: true,
+        input_sha256: sha256_hex(input),
+        output_sha256: sha256_hex(output),
+        reference_output_sha256: sha256_hex(reference_output),
+        words_consumed,
+        reference_words_consumed,
+        final_states_sha256: final_states.map(states_sha256),
+        reference_final_states_sha256: reference_final_states.map(states_sha256),
+        threads_requested,
+        threads_effective,
+        block_count,
+        queue_capacity,
+        allocation_mode: "unknown".to_string(),
+        status: ryg_rans_rs_bench::common::preflight::BenchmarkCaseStatus::Passed,
+    };
+    if let Err(e) =
+        ryg_rans_rs_bench::common::preflight::emit_record(&std::path::PathBuf::from(dir), &record)
+    {
+        eprintln!(
+            "WARN: preflight emission failed for {}: {}",
+            record.benchmark_id, e
+        );
+    }
+}
 
 /// Thread counts for the scaling matrix.
 /// 8 = physical cores on 9800X3D. 16 = all SMT threads.
@@ -52,7 +155,9 @@ fn config_for_threads(threads: usize) -> ryg_rans_rs_parallel::ParallelConfig {
 /// - Decoded hashes are identical
 /// - Effective worker count matches requested (subject to block count)
 ///
-/// Returns (decode_jobs, verify_jobs) for use in benchmarks.
+/// Returns (decode_jobs, verify_jobs, reference_data) for use in benchmarks.
+/// The reference data is the original corpus, which every thread count must
+/// reproduce exactly.
 fn preflight_parallel(
     total_size: usize,
     block_size: u64,
@@ -62,6 +167,7 @@ fn preflight_parallel(
 ) -> (
     Vec<ryg_rans_rs_parallel::DecodeBlockJob>,
     Vec<ryg_rans_rs_parallel::VerifyBlockJob>,
+    Vec<u8>,
 ) {
     let corpus = Corpus::generate(profile, total_size, seed);
     let plan = ryg_rans_rs_parallel::FixedBlockPlan::new(total_size as u64, block_size);
@@ -199,7 +305,7 @@ fn preflight_parallel(
         );
     }
 
-    (dj, vj)
+    (dj, vj, corpus.data)
 }
 
 /// Benchmark decode scaling across all thread counts.
@@ -208,7 +314,7 @@ fn bench_parallel_decode_scaling(c: &mut Criterion) {
     let total_size: usize = 64 * 1024 * 1024;
     let block_size: u64 = 1024 * 1024;
 
-    let (decode_jobs, _) = preflight_parallel(
+    let (decode_jobs, _, corpus_data) = preflight_parallel(
         total_size,
         block_size,
         THREAD_COUNTS,
@@ -221,6 +327,39 @@ fn bench_parallel_decode_scaling(c: &mut Criterion) {
         let group_name = format!(
             "parallel/decode/cold-executor/{}threads/1MiB-blocks/64MiB",
             threads
+        );
+
+        // Preflight record: run the exact case decode once, verify parity, emit.
+        let dec =
+            ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(decode_jobs.clone(), &config)
+                .expect("parallel decode record preflight");
+        let mut decoded = Vec::new();
+        let mut words = 0usize;
+        let mut states: Vec<u32> = Vec::new();
+        for b in &dec.blocks {
+            decoded.extend_from_slice(&b.output);
+            words += b.words_consumed;
+            states.extend_from_slice(&b.final_states);
+        }
+        assert_eq!(
+            decoded, corpus_data,
+            "parallel decode {}t record preflight: output must match original",
+            threads
+        );
+        emit_preflight(
+            format!("{}/decode", group_name),
+            "parallel-auto",
+            &corpus_data,
+            &decoded,
+            &corpus_data,
+            Some(words),
+            Some(words),
+            Some(&states),
+            Some(&states),
+            threads,
+            dec.execution.effective_workers,
+            dec.execution.block_count,
+            dec.execution.queue_capacity,
         );
 
         let mut group = c.benchmark_group(&group_name);
@@ -247,7 +386,7 @@ fn bench_parallel_decode_cold_16mb(c: &mut Criterion) {
     let total_size: usize = 16 * 1024 * 1024;
     let block_size: u64 = 1024 * 1024;
 
-    let (decode_jobs, _) = preflight_parallel(
+    let (decode_jobs, _, corpus_data) = preflight_parallel(
         total_size,
         block_size,
         THREAD_COUNTS,
@@ -260,6 +399,39 @@ fn bench_parallel_decode_cold_16mb(c: &mut Criterion) {
         let group_name = format!(
             "parallel/decode/cold-executor/{}threads/1MiB-blocks/16MiB",
             threads
+        );
+
+        // Preflight record: run the exact case decode once, verify parity, emit.
+        let dec =
+            ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(decode_jobs.clone(), &config)
+                .expect("parallel decode cold record preflight");
+        let mut decoded = Vec::new();
+        let mut words = 0usize;
+        let mut states: Vec<u32> = Vec::new();
+        for b in &dec.blocks {
+            decoded.extend_from_slice(&b.output);
+            words += b.words_consumed;
+            states.extend_from_slice(&b.final_states);
+        }
+        assert_eq!(
+            decoded, corpus_data,
+            "parallel decode cold {}t record preflight: output must match original",
+            threads
+        );
+        emit_preflight(
+            format!("{}/decode", group_name),
+            "parallel-auto",
+            &corpus_data,
+            &decoded,
+            &corpus_data,
+            Some(words),
+            Some(words),
+            Some(&states),
+            Some(&states),
+            threads,
+            dec.execution.effective_workers,
+            dec.execution.block_count,
+            dec.execution.queue_capacity,
         );
 
         let mut group = c.benchmark_group(&group_name);
@@ -286,7 +458,7 @@ fn bench_parallel_verify_scaling(c: &mut Criterion) {
     let total_size: usize = 64 * 1024 * 1024;
     let block_size: u64 = 1024 * 1024;
 
-    let (_, verify_jobs) = preflight_parallel(
+    let (_, verify_jobs, corpus_data) = preflight_parallel(
         total_size,
         block_size,
         THREAD_COUNTS,
@@ -294,11 +466,47 @@ fn bench_parallel_verify_scaling(c: &mut Criterion) {
         42,
     );
 
+    let block_count =
+        ryg_rans_rs_parallel::FixedBlockPlan::new(total_size as u64, block_size).block_count();
+
     for &threads in THREAD_COUNTS {
         let config = config_for_threads(threads);
         let group_name = format!(
             "parallel/verify/cold-executor/{}threads/1MiB-blocks/64MiB",
             threads
+        );
+
+        // Preflight record: verify the exact case workload once, then emit.
+        let vrep =
+            ryg_rans_rs_parallel::ParallelVerifier::verify_blocks(verify_jobs.clone(), &config)
+                .expect("parallel verify record preflight");
+        assert_eq!(
+            vrep.blocks_failed, 0,
+            "parallel verify {}t record preflight: failures present",
+            threads
+        );
+        assert_eq!(
+            vrep.blocks_verified as usize, block_count,
+            "parallel verify {}t record preflight: block count mismatch",
+            threads
+        );
+        let effective = ryg_rans_rs_parallel::effective_worker_count(&config, block_count)
+            .expect("effective worker count");
+        let queue_capacity = config.max_in_flight_blocks.get().max(effective);
+        emit_preflight(
+            format!("{}/verify", group_name),
+            "parallel-auto",
+            &corpus_data,
+            &corpus_data,
+            &corpus_data,
+            None,
+            None,
+            None,
+            None,
+            threads,
+            effective,
+            block_count,
+            queue_capacity,
         );
 
         let mut group = c.benchmark_group(&group_name);
@@ -389,6 +597,64 @@ fn bench_parallel_encode_scaling(c: &mut Criterion) {
         let group_name = format!(
             "parallel/encode/cold-executor/{}threads/1MiB-blocks/64MiB",
             threads
+        );
+
+        // Preflight record: encode with the case config, round-trip verify, emit.
+        let enc_jobs: Vec<ryg_rans_rs_parallel::EncodeBlockJob> = plan
+            .ranges
+            .iter()
+            .map(|r| {
+                let s = r.input_offset as usize;
+                ryg_rans_rs_parallel::EncodeBlockJob::new(
+                    r.block_index,
+                    corpus.data[s..s + r.length as usize].to_vec(),
+                    ryg_rans_rs_parallel::CodecPolicy::Auto,
+                    ryg_rans_rs_parallel::ModelPolicy::PerBlock,
+                    12,
+                )
+            })
+            .collect();
+        let encoded = ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(enc_jobs, &cfg)
+            .expect("parallel encode record preflight");
+        assert_eq!(
+            encoded.blocks.len(),
+            plan.block_count(),
+            "parallel encode {}t record preflight: block count mismatch",
+            threads
+        );
+        let dj: Vec<_> = encoded
+            .blocks
+            .iter()
+            .map(|b| ryg_rans_rs_parallel::DecodeBlockJob {
+                block_index: b.block_index,
+                block_data: b.block.clone(),
+            })
+            .collect();
+        let dec = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(dj, &config_for_threads(4))
+            .expect("parallel encode record decode");
+        let mut full = Vec::new();
+        for b in &dec.blocks {
+            full.extend_from_slice(&b.output);
+        }
+        assert_eq!(
+            full, corpus.data,
+            "parallel encode {}t record preflight: roundtrip must match original",
+            threads
+        );
+        emit_preflight(
+            format!("{}/encode", group_name),
+            "parallel-auto",
+            &corpus.data,
+            &corpus.data,
+            &corpus.data,
+            None,
+            None,
+            None,
+            None,
+            threads,
+            encoded.execution.effective_workers,
+            plan.block_count(),
+            encoded.execution.queue_capacity,
         );
 
         let mut group = c.benchmark_group(&group_name);
