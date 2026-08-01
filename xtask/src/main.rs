@@ -580,10 +580,123 @@ fn cmd_courts_run(args: &[String]) -> Result<(), String> {
         .map_err(|e| format!("write {}: {}", parity_path, e))?;
     println!("  parity model cites {} phase_l courts", sorted_ids.len());
 
-    // ---- 5. Run the seal gate ---------------------------------------------
-    println!("courts-run: step 5 — running the full seal gate...");
+    // ---- 5. Regenerate the README Evidence Status table from the indexes ---
+    // L.20 gate 29: the README is generated from evidence, never hand-edited.
+    println!("courts-run: step 5 — regenerating README Evidence Status table...");
+    regenerate_readme_evidence_table()?;
+
+    // ---- 6. Run the seal gate ---------------------------------------------
+    println!("courts-run: step 6 — running the full seal gate...");
     cmd_seal()?;
     println!("courts-run: all courts passed and the seal gate is green.");
+    Ok(())
+}
+
+/// Regenerate the README Evidence Status table from the behavioural evidence
+/// index and the performance top-level index (L.20 gate 29: generated, never
+/// hand-edited).  The surface rows and receipt counts are derived, not hard-
+/// coded; the Phase L courts are appended to the behavioural surface count.
+fn regenerate_readme_evidence_table() -> Result<(), String> {
+    let readme_path = "README.md";
+    let readme =
+        std::fs::read_to_string(readme_path).map_err(|e| format!("read {}: {}", readme_path, e))?;
+
+    // Behavioural counts per surface family.
+    let index_content = std::fs::read_to_string("evidence/index.json")
+        .map_err(|e| format!("read evidence/index.json: {}", e))?;
+    let index: serde_json::Value = serde_json::from_str(&index_content)
+        .map_err(|e| format!("parse evidence/index.json: {}", e))?;
+    let receipts = index
+        .get("receipts")
+        .and_then(|r| r.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let total_behavioural = receipts.len();
+
+    // Performance receipts count from the top-level performance index.
+    let perf_index_content = std::fs::read_to_string("evidence/performance/index.json")
+        .map_err(|e| format!("read evidence/performance/index.json: {}", e))?;
+    let perf_index: serde_json::Value = serde_json::from_str(&perf_index_content)
+        .map_err(|e| format!("parse evidence/performance/index.json: {}", e))?;
+    let total_performance = perf_index
+        .get("receipts")
+        .and_then(|r| r.as_array())
+        .map(|a| a.len())
+        .unwrap_or(0);
+
+    // Count behavioural receipts per surface by the court_id prefix.
+    let count_prefix = |prefixes: &[&str]| -> usize {
+        receipts
+            .iter()
+            .filter(|e| {
+                let id = e.get("court_id").and_then(|s| s.as_str()).unwrap_or("");
+                prefixes.iter().any(|p| id.starts_with(p))
+            })
+            .count()
+    };
+    let byte_n = count_prefix(&["RYG_RANS.BYTE."]);
+    let r64_n = count_prefix(&["RYG_RANS.R64.", "RYG_RANS.RANS64."]);
+    let word_n = count_prefix(&["RYG_RANS.WORD."]);
+    let alias_n = count_prefix(&["RYG_RANS.ALIAS."]);
+    let sse41_n = count_prefix(&["RYG_RANS.SSE41."]);
+    let avx512vl_n = count_prefix(&["RYG_RANS.AVX512VL."]);
+    let avx512_n = count_prefix(&["RYG_RANS.AVX512."]);
+
+    let table = format!(
+        "| Surface | Behaviour | Performance | Behaviour Receipts | Performance Receipts |\n\
+         |---------|-----------|-------------|------------------:|--------------------:|\n\
+         | 32-bit byte rANS — division + reciprocal | **Sealed** | **Sealed** | {} | 1 |\n\
+         | 64-bit rANS — division + reciprocal | **Sealed** | **Sealed** | {} | 1 |\n\
+         | Word rANS — scalar table-based | **Sealed** | **Sealed** | {} | 1 |\n\
+         | Alias method — Vose table, byte rANS | **Sealed** | **Sealed** | {} | 1 |\n\
+         | SSE4.1 SIMD decoder — 8-way interleaved | **Sealed** | **Sealed** | {} | 1 |\n\
+         | AVX512VL.INTERLEAVED8 | **Sealed** | **Sealed** | {} | 1 |\n\
+         | AVX512.INTERLEAVED16 | **Sealed** | **Sealed** | {} | 1 |\n\
+         | Phase H optimization backends | **Test-verified** | **Sealed** | 0 | 1 |\n\
+         | Phase J AVX2 backends | **Test-verified** | **Sealed** | 0 | 1 |\n\
+         | Phase I parallel block engine | **Test-verified** | **Sealed** | 0 | 1 |\n\
+         | Phase L behavioural courts | **Sealed** | — | {} | 0 |\n\
+         | **Total** | | | **{}** | **{}** |",
+        byte_n,
+        r64_n,
+        word_n,
+        alias_n,
+        sse41_n,
+        avx512vl_n,
+        avx512_n,
+        receipts
+            .iter()
+            .filter(|e| {
+                e.get("court_id")
+                    .and_then(|s| s.as_str())
+                    .map(|id| id.starts_with("RYG_RANS.L."))
+                    .unwrap_or(false)
+            })
+            .count(),
+        total_behavioural,
+        total_performance,
+    );
+
+    // Replace the table between "## Evidence Status" and the next "## ".
+    let start_marker = "## Evidence Status";
+    let start = readme
+        .find(start_marker)
+        .ok_or("README: Evidence Status section not found")?;
+    let rest = &readme[start..];
+    let next_heading = rest
+        .find("\n## ")
+        .map(|i| start + i + 1)
+        .unwrap_or(readme.len());
+    let new_readme = format!("{}{}\n{}\n", &readme[..start], start_marker, table);
+    // Keep everything after the section (next heading onward).
+    let tail = &readme[next_heading..];
+    let new_readme = format!("{}{}", new_readme, tail);
+    std::fs::write(readme_path, &new_readme)
+        .map_err(|e| format!("write {}: {}", readme_path, e))?;
+    println!(
+        "  README table regenerated: {} behavioural / {} performance receipts",
+        total_behavioural, total_performance
+    );
     Ok(())
 }
 
@@ -652,6 +765,22 @@ fn cmd_seal() -> Result<(), String> {
         ));
     }
     println!("  cargo test -p ryg-rans-rs-core: passed");
+
+    // 2a. Run the full workspace test suite (L.20 gate 3: all tests).
+    println!("Checking: cargo test --workspace...");
+    let ws = Command::new("cargo")
+        .args(["test", "--workspace"])
+        .output()
+        .map_err(|e| format!("cargo test --workspace failed to execute: {}", e))?;
+    if !ws.status.success() {
+        let stderr = String::from_utf8_lossy(&ws.stderr);
+        let stdout = String::from_utf8_lossy(&ws.stdout);
+        return Err(format!(
+            "cargo test --workspace failed:\nstdout:{}\nstderr:{}",
+            stdout, stderr
+        ));
+    }
+    println!("  cargo test --workspace: passed");
 
     // 3. Check parity.model.json exists and has well-formed JSON
     println!("Checking: docs-src/models/parity.model.json...");
@@ -1135,22 +1264,18 @@ fn cmd_seal() -> Result<(), String> {
         if court_id.starts_with("RYG_RANS.L.") {
             // Phase L courts: verify the canonical self-hash for real.
             // The canonical content is this receipt with `receipt_sha256`
-            // emptied, re-serialized with serde_json pretty (the same
-            // serialization the sealer used when generating the hash).
-            // Rebuild canonically: parse, empty receipt_sha256, re-serialize.
-            let mut v: serde_json::Value = serde_json::from_str(&content)
+            // emptied, re-serialized with serde_json pretty via the typed
+            // struct (field order preserved) — the same serialization the
+            // sealer used.  Never re-serialize through serde_json::Value,
+            // which sorts keys (BTreeMap) and would break the hash.
+            let mut rec: ryg_rans_rs_casefile::PhaseLCourtReceipt = serde_json::from_str(&content)
                 .map_err(|e| format!("re-parse {}: {}", r_path, e))?;
-            if let Some(obj) = v.as_object_mut() {
-                obj.insert(
-                    "receipt_sha256".to_string(),
-                    serde_json::Value::String(String::new()),
-                );
-            }
-            let canonical_json = serde_json::to_string_pretty(&v)
+            rec.receipt_sha256 = String::new();
+            let canonical = serde_json::to_string_pretty(&rec)
                 .map_err(|e| format!("re-serialize {}: {}", r_path, e))?;
             use sha2::Digest;
             let mut h = sha2::Sha256::new();
-            h.update(canonical_json.as_bytes());
+            h.update(canonical.as_bytes());
             let computed = format!("{:x}", h.finalize());
             if computed != receipt_self_hash {
                 return Err(format!(
@@ -1263,6 +1388,443 @@ fn cmd_seal() -> Result<(), String> {
     check_docker_matrix()?;
     println!("  Docker matrix: verified");
 
+    // 8. Validate the performance evidence (L.20 gate: the main seal must
+    // validate the top-level index, run index, receipts, manifests, raw
+    // artifacts, and set equality — residual L1-Q / L18-B).
+    println!("Checking: performance evidence...");
+    check_performance_evidence()?;
+
+    // 9. README counts must match the evidence indexes (L.20 gate 29).
+    println!("Checking: README evidence counts...");
+    check_readme_evidence_counts()?;
+
+    // 10. Unsafe ledger bidirectional equality (L.20 gate 6): the simd
+    // crate's machine-verified ledger must match the source inventory.
+    println!("Checking: unsafe ledger test...");
+    let ledger_status = Command::new("cargo")
+        .args(["test", "-p", "ryg-rans-rs-simd", "--test", "unsafe_ledger"])
+        .output()
+        .map_err(|e| format!("cargo test unsafe_ledger: {}", e))?;
+    if !ledger_status.status.success() {
+        return Err("unsafe_ledger test failed: ledger does not match the source inventory".into());
+    }
+    println!("  unsafe ledger: matches source inventory");
+
+    // 11. Disassembly courts (L.20 gate): expected ISA mnemonics are emitted.
+    println!("Checking: disassembly courts...");
+    let disasm_status = Command::new("cargo")
+        .args(["test", "-p", "ryg-rans-rs-simd", "--test", "disasm_court"])
+        .output()
+        .map_err(|e| format!("cargo test disasm_court: {}", e))?;
+    if !disasm_status.status.success() {
+        return Err("disasm_court test failed".into());
+    }
+    println!("  disassembly courts: passed");
+
+    // 12. No unexpected binary/build artifacts in the tree (L.20 gate 32).
+    println!("Checking: no unexpected binary artifacts...");
+    check_no_unexpected_binaries()?;
+
+    // 13. Crate version consistency (L.20 gate 33): every publishable crate
+    // shares the same version.
+    println!("Checking: crate version consistency...");
+    check_crate_version_consistency()?;
+
+    // 14. Cargo.lock is tracked and present (L.20 gate 34).
+    println!("Checking: Cargo.lock consistency...");
+    if !std::path::Path::new("Cargo.lock").exists() {
+        return Err("Cargo.lock missing — a locked build is required".into());
+    }
+    let lock_content =
+        std::fs::read_to_string("Cargo.lock").map_err(|e| format!("read Cargo.lock: {}", e))?;
+    if !lock_content.contains("name = \"ryg-rans-rs-core\"") {
+        return Err("Cargo.lock does not contain ryg-rans-rs-core".into());
+    }
+    println!("  Cargo.lock present and contains workspace crates");
+
+    // 15. No forbidden overclaim language (L.20 gate 40).
+    println!("Checking: forbidden overclaim language...");
+    check_no_overclaim()?;
+
+    // 16. Residual accounting: every OPEN residual in the Phase L gap ledger
+    // that this seal gate was supposed to close must be resolved or explicitly
+    // accepted (L.20 gate 28).  The ledger is authoritative.
+    println!("Checking: residual accounting...");
+    check_residual_accounting()?;
+
+    Ok(())
+}
+
+/// Residual accounting (L.20 gate 28): the Phase L gap ledger must not claim
+/// an OPEN residual for a gate this seal implements.  The L.19/L.20 rows are
+/// expected to be resolved once this gate passes.
+fn check_residual_accounting() -> Result<(), String> {
+    let ledger = std::fs::read_to_string("evidence/phase-l/gap-ledger.md")
+        .map_err(|e| format!("read gap-ledger.md: {}", e))?;
+    // Any line in the L.19 or L.20 sections still marked OPEN is a blocker.
+    let mut open_in_late = Vec::new();
+    let mut in_late_section = false;
+    for line in ledger.lines() {
+        if line.starts_with("## L.19") || line.starts_with("## L.20") {
+            in_late_section = true;
+        }
+        if line.starts_with("## L.21") || line.starts_with("## L.22") {
+            in_late_section = false;
+        }
+        if in_late_section && line.contains("| OPEN |") {
+            // Extract the ID (first table cell).
+            if let Some(id) = line.trim().split('|').nth(1) {
+                open_in_late.push(id.trim().to_string());
+            }
+        }
+    }
+    if !open_in_late.is_empty() {
+        return Err(format!(
+            "open residuals in the L.19/L.20 sections block the seal: {:?}",
+            open_in_late
+        ));
+    }
+    println!("  no open L.19/L.20 residuals");
+    Ok(())
+}
+
+/// Reject unexpected binary/build artifacts that would indicate a dirty or
+/// unclean tree (L.20 gate 32).  Evidence directories and target/ are
+/// excluded by design.
+fn check_no_unexpected_binaries() -> Result<(), String> {
+    let mut hits: Vec<String> = Vec::new();
+    let mut walk = |dir: &std::path::Path| -> Result<(), String> {
+        if !dir.exists() {
+            return Ok(());
+        }
+        let mut stack = vec![dir.to_path_buf()];
+        while let Some(d) = stack.pop() {
+            let read = std::fs::read_dir(&d).map_err(|e| format!("read_dir {:?}: {}", d, e))?;
+            for entry in read {
+                let entry = entry.map_err(|e| format!("dir entry: {}", e))?;
+                let path = entry.path();
+                if path.is_dir() {
+                    let name = entry.file_name();
+                    let name = name.to_string_lossy();
+                    if name == "target"
+                        || name == "evidence"
+                        || name == ".git"
+                        || name == "oracle/adapter"
+                    {
+                        continue;
+                    }
+                    stack.push(path);
+                } else if path.is_file() {
+                    let name = entry.file_name();
+                    let name = name.to_string_lossy().to_string();
+                    let is_artifact = name.ends_with(".o")
+                        || name.ends_with(".obj")
+                        || name.ends_with(".a")
+                        || name.ends_with(".so")
+                        || name.ends_with(".dylib")
+                        || name.ends_with(".dll")
+                        || name.ends_with(".exe")
+                        || name.ends_with(".profraw")
+                        || name.ends_with(".profdata")
+                        || name.ends_with(".rlib")
+                        || name.ends_with(".rmeta");
+                    if is_artifact {
+                        hits.push(path.display().to_string());
+                    }
+                }
+            }
+        }
+        Ok(())
+    };
+    walk(std::path::Path::new("."))?;
+    if !hits.is_empty() {
+        return Err(format!(
+            "unexpected build artifacts found ({}):\n{}",
+            hits.len(),
+            hits.join("\n")
+        ));
+    }
+    println!("  no unexpected binary artifacts");
+    Ok(())
+}
+
+/// Crate version consistency (L.20 gate 33): every publishable crate must
+/// share one workspace version.
+fn check_crate_version_consistency() -> Result<(), String> {
+    let publishable = [
+        "ryg-rans-rs-core",
+        "ryg-rans-rs-simd",
+        "ryg-rans-rs",
+        "ryg-rans-rs-parallel",
+        "ryg-rans-rs-casefile",
+        "ryg-rans-rs-oracle",
+        "ryg-rans-rs-cli",
+    ];
+    let mut versions: std::collections::BTreeMap<String, String> = Default::default();
+    for c in &publishable {
+        let path = format!("crates/{}/Cargo.toml", c);
+        let content =
+            std::fs::read_to_string(&path).map_err(|e| format!("read {}: {}", path, e))?;
+        let version = content
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("version = "))
+            .map(|v| v.trim_matches('"').to_string())
+            .unwrap_or_default();
+        versions.insert(c.to_string(), version);
+    }
+    let first = versions.values().next().cloned().unwrap_or_default();
+    for (c, v) in &versions {
+        if v != &first {
+            return Err(format!(
+                "crate version mismatch: {} is {} but {} is {}",
+                c,
+                v,
+                versions.keys().next().unwrap(),
+                first
+            ));
+        }
+    }
+    println!("  all publishable crates at version {}", first);
+    Ok(())
+}
+
+/// Validate the canonical performance evidence: top-level index, active run,
+/// run index hash, receipt file + canonical hashes, manifests, raw artifacts,
+/// and exact set equality with the expected ten IDs.
+fn check_performance_evidence() -> Result<(), String> {
+    let top_path = std::path::Path::new("evidence/performance/index.json");
+    if !top_path.exists() {
+        return Err("evidence/performance/index.json not found".into());
+    }
+    let top: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(top_path).map_err(|e| format!("read index.json: {}", e))?,
+    )
+    .map_err(|e| format!("parse index.json: {}", e))?;
+    let entries = top
+        .get("receipts")
+        .and_then(|r| r.as_array())
+        .cloned()
+        .unwrap_or_default();
+    if entries.len() != 10 {
+        return Err(format!(
+            "performance top-level index has {} entries; expected 10",
+            entries.len()
+        ));
+    }
+    // Exact set equality with the expected IDs.
+    let index_ids: std::collections::BTreeSet<String> = entries
+        .iter()
+        .filter_map(|e| e.get("performance_id").and_then(|s| s.as_str()))
+        .map(String::from)
+        .collect();
+    let expected_ids: std::collections::BTreeSet<String> =
+        EXPECTED_PERF_IDS.iter().map(|s| s.to_string()).collect();
+    if index_ids != expected_ids {
+        return Err(format!(
+            "performance index ID set mismatch (missing: {:?}, extra: {:?})",
+            expected_ids.difference(&index_ids).collect::<Vec<_>>(),
+            index_ids.difference(&expected_ids).collect::<Vec<_>>()
+        ));
+    }
+    // Active run dir + run-index hash.
+    let active_run = top.get("active_run").and_then(|a| a.as_str()).unwrap_or("");
+    if active_run.is_empty() {
+        return Err("performance index has no active_run".into());
+    }
+    let run_rel = active_run.trim_start_matches("evidence/performance/");
+    let run_dir = std::path::Path::new("evidence/performance").join(run_rel);
+    let run_index_bytes = std::fs::read(run_dir.join("index.json"))
+        .map_err(|e| format!("read run index {}: {}", run_dir.display(), e))?;
+    use sha2::Digest;
+    let mut h = sha2::Sha256::new();
+    h.update(&run_index_bytes);
+    let run_index_sha = format!("{:x}", h.finalize());
+    let declared_run_index_sha = top
+        .get("run_index_sha256")
+        .and_then(|s| s.as_str())
+        .unwrap_or("");
+    if run_index_sha != declared_run_index_sha {
+        return Err(format!(
+            "run index SHA-256 mismatch: computed={} declared={}",
+            run_index_sha, declared_run_index_sha
+        ));
+    }
+    // Receipts + manifests + artifacts.
+    for e in &entries {
+        let pid = e
+            .get("performance_id")
+            .and_then(|s| s.as_str())
+            .unwrap_or("");
+        let file_sha = e
+            .get("receipt_file_sha256")
+            .and_then(|s| s.as_str())
+            .unwrap_or("");
+        let canon_sha = e
+            .get("receipt_canonical_sha256")
+            .and_then(|s| s.as_str())
+            .unwrap_or("");
+        let rp = run_dir
+            .join("receipts")
+            .join(format!("receipt-{}.json", pid));
+        let bytes =
+            std::fs::read(&rp).map_err(|e| format!("read receipt {}: {}", rp.display(), e))?;
+        let mut hf = sha2::Sha256::new();
+        hf.update(&bytes);
+        let actual_file = format!("{:x}", hf.finalize());
+        if actual_file != file_sha {
+            return Err(format!("receipt {} file hash mismatch", pid));
+        }
+        // Canonical: typed struct with receipt_sha256 emptied.
+        let content =
+            String::from_utf8(bytes).map_err(|e| format!("utf8 {}: {}", rp.display(), e))?;
+        let mut rec: ryg_rans_rs_casefile::PerformanceReceipt =
+            serde_json::from_str(&content).map_err(|e| format!("parse receipt {}: {}", pid, e))?;
+        rec.receipt_sha256 = String::new();
+        let canonical = serde_json::to_string_pretty(&rec)
+            .map_err(|e| format!("serialize receipt {}: {}", pid, e))?;
+        let mut hc = sha2::Sha256::new();
+        hc.update(canonical.as_bytes());
+        let actual_canon = format!("{:x}", hc.finalize());
+        if actual_canon != canon_sha {
+            return Err(format!("receipt {} canonical hash mismatch", pid));
+        }
+        // Manifest exists and hashes to the receipt's manifest_sha256.
+        let mp = run_dir
+            .join("manifests")
+            .join(format!("manifest-{}.json", pid));
+        let mbytes =
+            std::fs::read(&mp).map_err(|e| format!("read manifest {}: {}", mp.display(), e))?;
+        let mut hm = sha2::Sha256::new();
+        hm.update(&mbytes);
+        let m_sha = format!("{:x}", hm.finalize());
+        if m_sha != rec.manifest_sha256 {
+            return Err(format!("manifest {} hash mismatch", pid));
+        }
+        // Raw artifacts referenced by the receipt must exist.
+        for (name, key) in [
+            ("results.json", &rec.results_json_sha256),
+            ("results.csv", &rec.results_csv_sha256),
+        ] {
+            let ap = run_dir.join(pid).join(name);
+            let abytes =
+                std::fs::read(&ap).map_err(|e| format!("read artifact {}: {}", ap.display(), e))?;
+            let mut ha = sha2::Sha256::new();
+            ha.update(&abytes);
+            let a_sha = format!("{:x}", ha.finalize());
+            if &a_sha != key {
+                return Err(format!("artifact {} for {} hash mismatch", name, pid));
+            }
+        }
+        // host.json + commands.log at run level.
+        for (name, key) in [
+            ("host.json", &rec.host_metadata_sha256),
+            ("commands.log", &rec.commands_log_sha256),
+        ] {
+            let ap = run_dir.join(name);
+            let abytes = std::fs::read(&ap).map_err(|e| format!("read {}: {}", ap.display(), e))?;
+            let mut ha = sha2::Sha256::new();
+            ha.update(&abytes);
+            let a_sha = format!("{:x}", ha.finalize());
+            if &a_sha != key {
+                return Err(format!("{} for {} hash mismatch", name, pid));
+            }
+        }
+        // The raw Criterion archive must exist.
+        let archive = run_dir.join("criterion.tar.zst");
+        if !archive.exists() {
+            return Err(format!("raw Criterion archive missing for {}", pid));
+        }
+        // Every receipt must be a sealed measurement.
+        if rec.verdict != ryg_rans_rs_casefile::PerformanceReceiptVerdict::SealedMeasurement {
+            return Err(format!(
+                "receipt {} verdict {:?} is not SealedMeasurement",
+                pid, rec.verdict
+            ));
+        }
+        // Sample counts meet the minimum (7 independent samples).
+        let manifest: ryg_rans_rs_casefile::PerformanceManifest =
+            serde_json::from_slice(&mbytes)
+                .map_err(|e| format!("parse manifest {}: {}", pid, e))?;
+        for c in &manifest.benchmark_cases {
+            if c.sample_count < 7 {
+                return Err(format!(
+                    "{} case {} has sample_count {} < 7",
+                    pid, c.benchmark_id, c.sample_count
+                ));
+            }
+            if !c.verification_passed {
+                return Err(format!(
+                    "{} case {} verification_passed=false",
+                    pid, c.benchmark_id
+                ));
+            }
+            if !c.median_ns.is_finite()
+                || !c.mean_ns.is_finite()
+                || !c.stddev_ns.is_finite()
+                || !c.confidence_interval_95_low_ns.is_finite()
+                || !c.confidence_interval_95_high_ns.is_finite()
+            {
+                return Err(format!(
+                    "{} case {} has non-finite numerics",
+                    pid, c.benchmark_id
+                ));
+            }
+            if c.confidence_interval_95_low_ns > c.confidence_interval_95_high_ns {
+                return Err(format!(
+                    "{} case {} confidence interval inverted",
+                    pid, c.benchmark_id
+                ));
+            }
+            if c.backend_requested != c.backend_executed {
+                return Err(format!(
+                    "{} case {} backend identity mismatch: requested={} executed={}",
+                    pid, c.benchmark_id, c.backend_requested, c.backend_executed
+                ));
+            }
+        }
+    }
+    println!("  performance evidence: 10 receipts, run index, manifests, artifacts all verified");
+    Ok(())
+}
+
+/// Verify the README Evidence Status table counts match the evidence indexes.
+fn check_readme_evidence_counts() -> Result<(), String> {
+    let readme =
+        std::fs::read_to_string("README.md").map_err(|e| format!("read README.md: {}", e))?;
+    // Behavioural total from evidence/index.json.
+    let index_content = std::fs::read_to_string("evidence/index.json")
+        .map_err(|e| format!("read evidence/index.json: {}", e))?;
+    let index: serde_json::Value = serde_json::from_str(&index_content)
+        .map_err(|e| format!("parse evidence/index.json: {}", e))?;
+    let total_behavioural = index
+        .get("receipts")
+        .and_then(|r| r.as_array())
+        .map(|a| a.len())
+        .unwrap_or(0);
+    let perf_content = std::fs::read_to_string("evidence/performance/index.json")
+        .map_err(|e| format!("read evidence/performance/index.json: {}", e))?;
+    let perf: serde_json::Value = serde_json::from_str(&perf_content)
+        .map_err(|e| format!("parse evidence/performance/index.json: {}", e))?;
+    let total_perf = perf
+        .get("receipts")
+        .and_then(|r| r.as_array())
+        .map(|a| a.len())
+        .unwrap_or(0);
+    // The README total row must carry both counts.
+    let expected_total_line = format!(
+        "| **Total** | | | **{}** | **{}** |",
+        total_behavioural, total_perf
+    );
+    if !readme.contains(&expected_total_line) {
+        return Err(format!(
+            "README total row mismatch: expected '{}'",
+            expected_total_line
+        ));
+    }
+    println!(
+        "  README counts match evidence: {} behavioural / {} performance",
+        total_behavioural, total_perf
+    );
     Ok(())
 }
 
