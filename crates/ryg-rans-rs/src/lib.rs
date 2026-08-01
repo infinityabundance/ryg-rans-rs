@@ -3,7 +3,7 @@
 //! **Public facade for rANS entropy coding.** Safe, `no_std`-compatible API
 //! for byte-aligned and 64-bit rANS encoding and decoding.
 //!
-//! This crate re-exports the deterministic core from [`ryg-rans-rs-core`]
+//! This crate re-exports the deterministic core from `ryg-rans-rs-core`
 //! and optionally adds SSE4.1 accelerated decode kernels and
 //! allocation-based convenience wrappers.
 //!
@@ -12,8 +12,8 @@
 //! | Module | Source | Feature | Description |
 //! |--------|--------|---------|-------------|
 //! | [`byte`] | `ryg-rans-rs-core` | always | Complete rANS core: 32-bit byte and 64-bit variants |
-//! | [`simd`] | `ryg-rans-rs-simd` | `simd` | SSE4.1 accelerated decoder kernels |
-//! | [`alloc_utils`] | this crate | `alloc` | Convenience encode/decode with `Vec<u8>` |
+//! | `simd` | `ryg-rans-rs-simd` | `simd` | SSE4.1 accelerated decoder kernels |
+//! | `alloc_utils` | this crate | `alloc` | Convenience encode/decode with `Vec<u8>` |
 //!
 //! ## Features
 //!
@@ -79,7 +79,7 @@ extern crate alloc;
 
 /// Byte-aligned 32-bit and 64-bit rANS types and functions.
 ///
-/// Re-exports everything from [`ryg-rans-rs-core`]. Contains:
+/// Re-exports everything from `ryg-rans-rs-core`. Contains:
 ///
 /// - `RansByteState`, `RansByteEncSymbol`, `RansByteDecSymbol` — 32-bit types
 /// - `Rans64State`, `Rans64EncSymbol`, `Rans64DecSymbol` — 64-bit types

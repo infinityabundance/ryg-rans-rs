@@ -6,7 +6,8 @@
 //!   `decode_blocks_with_cancel`, `decode_streaming_with_cancel`,
 //!   `verify_blocks_with_cancel`).
 //! - The executor tracks declared/submitted/started/completed/cancelled/
-//!   skipped/returned counts in [`ExecutorReport`].
+//!   skipped/returned counts in `ExecutorReport` (see
+//!   `ryg_rans_rs_parallel::report`).
 //! - Cancellation returns `ParallelError::Cancelled { completed, expected }`
 //!   and never `Ok` with fewer results than declared.
 //! - An incomplete execution without cancellation returns

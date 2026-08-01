@@ -182,9 +182,8 @@ impl DecodeBackend {
     /// - **Unique**: no two backends share a label
     /// - **Self-describing**: the label indicates both the ISA and lane count
     ///
-    /// ```ignore
-    /// // Example (not runnable as doctest in no_std context):
-    /// // assert_eq!(backend.label(), "avx512vl-8way");
+    /// ```text
+    /// backend.label() == "avx512vl-8way"
     /// ```
     pub fn label(&self) -> &'static str {
         match self {

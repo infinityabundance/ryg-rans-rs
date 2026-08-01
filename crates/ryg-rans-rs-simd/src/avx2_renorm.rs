@@ -178,8 +178,8 @@ pub struct Avx2Renorm8Result {
 /// // lane 2 gets compact word 1
 /// ```
 ///
-/// `vpermd` with these indices would place compact_words[0] at lane 0,
-/// compact_words[1] at lane 2, and compact_words[0] at all other lanes
+/// `vpermd` with these indices would place compact_words\[0\] at lane 0,
+/// compact_words\[1\] at lane 2, and compact_words\[0\] at all other lanes
 /// (safe because blending removes them).
 ///
 /// ## Alignment

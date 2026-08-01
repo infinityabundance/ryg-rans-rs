@@ -2022,7 +2022,7 @@ pub fn rans_word_dec_init(reader: &mut Word16Reader) -> Result<RansWordState, De
 ///
 /// Equivalent to `RansWordDecSym` in `rans_word_sse41.h`.
 /// Uses the table-based decoder: slot = x & (M-1), then
-/// x' = slots[slot].freq * (x >> scale_bits) + slots[slot].bias
+/// x' = slots\[slot\].freq * (x >> scale_bits) + slots\[slot\].bias
 /// Returns the decoded symbol.
 #[inline]
 pub fn rans_word_dec_sym(
@@ -2095,7 +2095,7 @@ pub const ALIAS_NSYMS: usize = 1 << 8;
 #[derive(Debug, Clone)]
 #[cfg(any(feature = "alloc", test))]
 pub struct AliasTable {
-    /// Threshold per bucket: if xm < divider[i], use odd slot;
+    /// Threshold per bucket: if xm < divider\[i\], use odd slot;
     /// otherwise use even slot. After construction, this stores
     /// the absolute position: `i * tgt_sum + original_divider`.
     pub divider: [u32; ALIAS_NSYMS],
