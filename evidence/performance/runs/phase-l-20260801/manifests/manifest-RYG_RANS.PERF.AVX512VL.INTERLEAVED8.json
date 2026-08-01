@@ -2,8 +2,8 @@
   "schema_version": 1,
   "performance_id": "RYG_RANS.PERF.AVX512VL.INTERLEAVED8",
   "surface": "AVX512VL — interleaved8",
-  "implementation_commit": "d6188ef9dd09af3e628b3c42b59830d6b5c73e0d",
-  "run_id": "d6188ef9dd09af3e628b3c42b59830d6b5c73e0d",
+  "implementation_commit": "01ccfd92705cca6e48bc7fab7ef5d76f8de90234",
+  "run_id": "01ccfd92705cca6e48bc7fab7ef5d76f8de90234",
   "host_id": "vanir-x86_64",
   "benchmark_cases": [
     {
@@ -51,12 +51,12 @@
   ],
   "artifact_hashes": {
     "criterion_archive_sha256": "a24e43e824cabf844ad260640c4b0dd874e65be962069ec6a2e986210f561e09",
-    "results_json_sha256": "fbf6f83209da41472e1c887f72aaee840701bdf287a6f57c142832cd19f88063",
-    "results_csv_sha256": "cd36151df3106a778a37bb100f50ecc53907456421b1e88025d688049e04bdc8",
+    "results_json_sha256": "daaccc1f05c4ae75211e04cd44fc474f52f2a867ccd960e851784d28cfc70179",
+    "results_csv_sha256": "524508155b9c74c9716d2cdc8a91295792d136d00ba15fb3d7af15310e5907d1",
     "host_metadata_sha256": "6a04b0a1c8e573c8a668171252f1e356b17fd7e3d28668a5ba6d27885d676abc",
     "commands_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
-  "command": "target/debug/xtask performance-seal --criterion-dir target/criterion --run-dir evidence/performance/runs/phase-l-20260801 --implementation-commit d6188ef9dd09af3e628b3c42b59830d6b5c73e0d",
+  "command": "target/debug/xtask performance-seal --criterion-dir target/criterion --run-dir evidence/performance/runs/phase-l-20260801 --implementation-commit 01ccfd92705cca6e48bc7fab7ef5d76f8de90234",
   "rustflags": "",
   "criterion_version": "0.5.1",
   "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",

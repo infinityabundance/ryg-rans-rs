@@ -3,6 +3,8 @@
   "implementation_commit": "01ccfd92705cca6e48bc7fab7ef5d76f8de90234",
   "run_id": "01ccfd92705cca6e48bc7fab7ef5d76f8de90234",
   "host_id": "vanir-x86_64",
+  "active_run": "evidence/performance/runs/phase-l-20260801",
+  "run_index_sha256": "49872f1e6341f72f541928c8457264810d76ad71f3a0855da650889c07da61e9",
   "receipts": [
     {
       "performance_id": "RYG_RANS.PERF.BYTE",
