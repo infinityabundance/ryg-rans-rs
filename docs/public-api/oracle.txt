@@ -1,0 +1,469 @@
+pub mod ryg_rans_rs_oracle
+pub mod ryg_rans_rs_oracle::phase_g
+pub struct ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::c_backend: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::c_compressed_hex: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::c_self_decode: bool
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::c_to_rust_scalar: bool
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::c_to_rust_simd: bool
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::case_id: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::compressed_match: bool
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::frequencies: alloc::vec::Vec<u32>
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::input_hex: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::profile: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::rust_backend: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::rust_compressed_hex: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::rust_scalar_self_decode: bool
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::rust_simd_self_decode: bool
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::rust_to_c: bool
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::scale_bits: u32
+pub ryg_rans_rs_oracle::phase_g::Avx512CaseResult::simd_scalar_agree: bool
+impl core::clone::Clone for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::clone(&self) -> ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+impl core::fmt::Debug for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl serde_core::ser::Serialize for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl core::marker::Freeze for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+impl core::marker::Send for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+impl core::marker::Sync for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+impl core::marker::Unpin for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+impl core::marker::UnsafeUnpin for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_oracle::phase_g::Avx512CaseResult where U: core::convert::From<T>
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_oracle::phase_g::Avx512CaseResult where U: core::convert::Into<T>
+pub type ryg_rans_rs_oracle::phase_g::Avx512CaseResult::Error = core::convert::Infallible
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_oracle::phase_g::Avx512CaseResult where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_oracle::phase_g::Avx512CaseResult::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_oracle::phase_g::Avx512CaseResult where T: core::clone::Clone
+pub type ryg_rans_rs_oracle::phase_g::Avx512CaseResult::Owned = T
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_oracle::phase_g::Avx512CaseResult where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_oracle::phase_g::Avx512CaseResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_oracle::phase_g::Avx512CaseResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_oracle::phase_g::Avx512CaseResult where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+pub fn ryg_rans_rs_oracle::phase_g::Avx512CaseResult::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_oracle::phase_g::Avx512CaseResult
+pub type ryg_rans_rs_oracle::phase_g::Avx512CaseResult::Output = T
+pub struct ryg_rans_rs_oracle::phase_g::Avx512Manifest
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::cases: alloc::vec::Vec<ryg_rans_rs_oracle::phase_g::Avx512CaseResult>
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::court_id: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::court_path: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::manifest_sha256: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::num_cases: usize
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::profile: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::scale_bits: u32
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::schema_version: u32
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::seed: u64
+pub ryg_rans_rs_oracle::phase_g::Avx512Manifest::variant: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::clone(&self) -> ryg_rans_rs_oracle::phase_g::Avx512Manifest
+impl core::fmt::Debug for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl serde_core::ser::Serialize for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl core::marker::Freeze for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+impl core::marker::Send for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+impl core::marker::Sync for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+impl core::marker::Unpin for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+impl core::marker::UnsafeUnpin for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_oracle::phase_g::Avx512Manifest where U: core::convert::From<T>
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_oracle::phase_g::Avx512Manifest where U: core::convert::Into<T>
+pub type ryg_rans_rs_oracle::phase_g::Avx512Manifest::Error = core::convert::Infallible
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_oracle::phase_g::Avx512Manifest where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_oracle::phase_g::Avx512Manifest::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_oracle::phase_g::Avx512Manifest where T: core::clone::Clone
+pub type ryg_rans_rs_oracle::phase_g::Avx512Manifest::Owned = T
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_oracle::phase_g::Avx512Manifest where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_oracle::phase_g::Avx512Manifest where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_oracle::phase_g::Avx512Manifest where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_oracle::phase_g::Avx512Manifest where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Manifest::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_oracle::phase_g::Avx512Manifest
+pub type ryg_rans_rs_oracle::phase_g::Avx512Manifest::Output = T
+pub struct ryg_rans_rs_oracle::phase_g::Avx512Receipt
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::code_commit: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::court_id: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::court_path: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::manifest_sha256: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::num_cases: usize
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::oracle_compiler: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::pairs_compared: u64
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::pairs_matched: u64
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::profile: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::receipt_sha256: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::reproduction_command: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::residual_count: u32
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::residual_ids: alloc::vec::Vec<alloc::string::String>
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::scale_bits: u32
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::schema_version: u32
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::seed: u64
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::upstream_commit: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::variant: alloc::string::String
+pub ryg_rans_rs_oracle::phase_g::Avx512Receipt::verdict: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::clone(&self) -> ryg_rans_rs_oracle::phase_g::Avx512Receipt
+impl core::fmt::Debug for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl serde_core::ser::Serialize for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl core::marker::Freeze for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+impl core::marker::Send for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+impl core::marker::Sync for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+impl core::marker::Unpin for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+impl core::marker::UnsafeUnpin for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_oracle::phase_g::Avx512Receipt where U: core::convert::From<T>
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_oracle::phase_g::Avx512Receipt where U: core::convert::Into<T>
+pub type ryg_rans_rs_oracle::phase_g::Avx512Receipt::Error = core::convert::Infallible
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_oracle::phase_g::Avx512Receipt where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_oracle::phase_g::Avx512Receipt::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_oracle::phase_g::Avx512Receipt where T: core::clone::Clone
+pub type ryg_rans_rs_oracle::phase_g::Avx512Receipt::Owned = T
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_oracle::phase_g::Avx512Receipt where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_oracle::phase_g::Avx512Receipt where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_oracle::phase_g::Avx512Receipt where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_oracle::phase_g::Avx512Receipt where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+pub fn ryg_rans_rs_oracle::phase_g::Avx512Receipt::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_oracle::phase_g::Avx512Receipt
+pub type ryg_rans_rs_oracle::phase_g::Avx512Receipt::Output = T
+pub fn ryg_rans_rs_oracle::phase_g::run_avx512_16_court(&str, u32, u64, ryg_rans_rs_oracle::ModelProfile, core::option::Option<usize>) -> core::result::Result<(ryg_rans_rs_oracle::phase_g::Avx512Receipt, ryg_rans_rs_oracle::phase_g::Avx512Manifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub fn ryg_rans_rs_oracle::phase_g::run_avx512vl8_court(&str, u32, u64, ryg_rans_rs_oracle::ModelProfile, core::option::Option<usize>) -> core::result::Result<(ryg_rans_rs_oracle::phase_g::Avx512Receipt, ryg_rans_rs_oracle::phase_g::Avx512Manifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub mod ryg_rans_rs_oracle::phase_i
+pub fn ryg_rans_rs_oracle::phase_i::run_parallel_decode_determinism_court(ryg_rans_rs_oracle::ModelProfile, u32, u64) -> core::result::Result<(ryg_rans_rs_oracle::Receipt, ryg_rans_rs_oracle::CaseManifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub fn ryg_rans_rs_oracle::phase_i::run_parallel_encode_determinism_court(ryg_rans_rs_oracle::ModelProfile, u32, u64) -> core::result::Result<(ryg_rans_rs_oracle::Receipt, ryg_rans_rs_oracle::CaseManifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub enum ryg_rans_rs_oracle::CourtPath
+pub ryg_rans_rs_oracle::CourtPath::Division
+pub ryg_rans_rs_oracle::CourtPath::Reciprocal
+impl ryg_rans_rs_oracle::CourtPath
+pub fn ryg_rans_rs_oracle::CourtPath::c_dec_interleaved_op(&self, &str) -> &'static str
+pub fn ryg_rans_rs_oracle::CourtPath::c_dec_op(&self, &str) -> &'static str
+pub fn ryg_rans_rs_oracle::CourtPath::c_enc_interleaved_op(&self, &str) -> &'static str
+pub fn ryg_rans_rs_oracle::CourtPath::c_enc_op(&self, &str) -> &'static str
+pub fn ryg_rans_rs_oracle::CourtPath::label(&self) -> &'static str
+impl core::clone::Clone for ryg_rans_rs_oracle::CourtPath
+pub fn ryg_rans_rs_oracle::CourtPath::clone(&self) -> ryg_rans_rs_oracle::CourtPath
+impl core::cmp::PartialEq for ryg_rans_rs_oracle::CourtPath
+pub fn ryg_rans_rs_oracle::CourtPath::eq(&self, &ryg_rans_rs_oracle::CourtPath) -> bool
+impl core::fmt::Debug for ryg_rans_rs_oracle::CourtPath
+pub fn ryg_rans_rs_oracle::CourtPath::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_oracle::CourtPath
+impl core::marker::StructuralPartialEq for ryg_rans_rs_oracle::CourtPath
+impl core::marker::Freeze for ryg_rans_rs_oracle::CourtPath
+impl core::marker::Send for ryg_rans_rs_oracle::CourtPath
+impl core::marker::Sync for ryg_rans_rs_oracle::CourtPath
+impl core::marker::Unpin for ryg_rans_rs_oracle::CourtPath
+impl core::marker::UnsafeUnpin for ryg_rans_rs_oracle::CourtPath
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_oracle::CourtPath
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_oracle::CourtPath
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_oracle::CourtPath where U: core::convert::From<T>
+pub fn ryg_rans_rs_oracle::CourtPath::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_oracle::CourtPath where U: core::convert::Into<T>
+pub type ryg_rans_rs_oracle::CourtPath::Error = core::convert::Infallible
+pub fn ryg_rans_rs_oracle::CourtPath::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_oracle::CourtPath where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_oracle::CourtPath::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_oracle::CourtPath::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_oracle::CourtPath where T: core::clone::Clone
+pub type ryg_rans_rs_oracle::CourtPath::Owned = T
+pub fn ryg_rans_rs_oracle::CourtPath::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_oracle::CourtPath::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_oracle::CourtPath where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CourtPath::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_oracle::CourtPath where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CourtPath::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_oracle::CourtPath where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CourtPath::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_oracle::CourtPath where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_oracle::CourtPath::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_oracle::CourtPath
+pub fn ryg_rans_rs_oracle::CourtPath::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_oracle::CourtPath
+pub type ryg_rans_rs_oracle::CourtPath::Output = T
+pub enum ryg_rans_rs_oracle::ModelProfile
+pub ryg_rans_rs_oracle::ModelProfile::Freq1Residual
+pub ryg_rans_rs_oracle::ModelProfile::LengthBoundary
+pub ryg_rans_rs_oracle::ModelProfile::PrimeResidue
+pub ryg_rans_rs_oracle::ModelProfile::RenormBoundary
+pub ryg_rans_rs_oracle::ModelProfile::ScaleSweep
+pub ryg_rans_rs_oracle::ModelProfile::Skewed2551
+pub ryg_rans_rs_oracle::ModelProfile::Sparse17
+pub ryg_rans_rs_oracle::ModelProfile::Sparse2
+pub ryg_rans_rs_oracle::ModelProfile::Uniform256
+impl ryg_rans_rs_oracle::ModelProfile
+pub fn ryg_rans_rs_oracle::ModelProfile::generate_frequencies(&self, u32) -> alloc::vec::Vec<u32>
+pub fn ryg_rans_rs_oracle::ModelProfile::generate_input(&self, u64, usize, u32) -> alloc::vec::Vec<u8>
+pub fn ryg_rans_rs_oracle::ModelProfile::label(&self) -> &'static str
+pub fn ryg_rans_rs_oracle::ModelProfile::num_cases(&self) -> usize
+pub fn ryg_rans_rs_oracle::ModelProfile::scale_bits(&self) -> core::option::Option<u32>
+impl core::clone::Clone for ryg_rans_rs_oracle::ModelProfile
+pub fn ryg_rans_rs_oracle::ModelProfile::clone(&self) -> ryg_rans_rs_oracle::ModelProfile
+impl core::cmp::PartialEq for ryg_rans_rs_oracle::ModelProfile
+pub fn ryg_rans_rs_oracle::ModelProfile::eq(&self, &ryg_rans_rs_oracle::ModelProfile) -> bool
+impl core::fmt::Debug for ryg_rans_rs_oracle::ModelProfile
+pub fn ryg_rans_rs_oracle::ModelProfile::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for ryg_rans_rs_oracle::ModelProfile
+impl core::marker::StructuralPartialEq for ryg_rans_rs_oracle::ModelProfile
+impl core::marker::Freeze for ryg_rans_rs_oracle::ModelProfile
+impl core::marker::Send for ryg_rans_rs_oracle::ModelProfile
+impl core::marker::Sync for ryg_rans_rs_oracle::ModelProfile
+impl core::marker::Unpin for ryg_rans_rs_oracle::ModelProfile
+impl core::marker::UnsafeUnpin for ryg_rans_rs_oracle::ModelProfile
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_oracle::ModelProfile
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_oracle::ModelProfile
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_oracle::ModelProfile where U: core::convert::From<T>
+pub fn ryg_rans_rs_oracle::ModelProfile::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_oracle::ModelProfile where U: core::convert::Into<T>
+pub type ryg_rans_rs_oracle::ModelProfile::Error = core::convert::Infallible
+pub fn ryg_rans_rs_oracle::ModelProfile::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_oracle::ModelProfile where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_oracle::ModelProfile::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_oracle::ModelProfile::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_oracle::ModelProfile where T: core::clone::Clone
+pub type ryg_rans_rs_oracle::ModelProfile::Owned = T
+pub fn ryg_rans_rs_oracle::ModelProfile::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_oracle::ModelProfile::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_oracle::ModelProfile where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::ModelProfile::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_oracle::ModelProfile where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::ModelProfile::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_oracle::ModelProfile where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::ModelProfile::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_oracle::ModelProfile where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_oracle::ModelProfile::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_oracle::ModelProfile
+pub fn ryg_rans_rs_oracle::ModelProfile::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_oracle::ModelProfile
+pub type ryg_rans_rs_oracle::ModelProfile::Output = T
+pub struct ryg_rans_rs_oracle::CaseManifest
+pub ryg_rans_rs_oracle::CaseManifest::cases: alloc::vec::Vec<ryg_rans_rs_oracle::CaseResult>
+pub ryg_rans_rs_oracle::CaseManifest::court_id: alloc::string::String
+pub ryg_rans_rs_oracle::CaseManifest::court_path: alloc::string::String
+pub ryg_rans_rs_oracle::CaseManifest::profile: alloc::string::String
+pub ryg_rans_rs_oracle::CaseManifest::scale_bits: u32
+pub ryg_rans_rs_oracle::CaseManifest::schema_version: u32
+pub ryg_rans_rs_oracle::CaseManifest::seed: u64
+pub ryg_rans_rs_oracle::CaseManifest::variant: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_oracle::CaseManifest
+pub fn ryg_rans_rs_oracle::CaseManifest::clone(&self) -> ryg_rans_rs_oracle::CaseManifest
+impl core::fmt::Debug for ryg_rans_rs_oracle::CaseManifest
+pub fn ryg_rans_rs_oracle::CaseManifest::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl serde_core::ser::Serialize for ryg_rans_rs_oracle::CaseManifest
+pub fn ryg_rans_rs_oracle::CaseManifest::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl<'de> serde_core::de::Deserialize<'de> for ryg_rans_rs_oracle::CaseManifest
+pub fn ryg_rans_rs_oracle::CaseManifest::deserialize<__D>(__D) -> core::result::Result<Self, <__D as serde_core::de::Deserializer>::Error> where __D: serde_core::de::Deserializer<'de>
+impl core::marker::Freeze for ryg_rans_rs_oracle::CaseManifest
+impl core::marker::Send for ryg_rans_rs_oracle::CaseManifest
+impl core::marker::Sync for ryg_rans_rs_oracle::CaseManifest
+impl core::marker::Unpin for ryg_rans_rs_oracle::CaseManifest
+impl core::marker::UnsafeUnpin for ryg_rans_rs_oracle::CaseManifest
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_oracle::CaseManifest
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_oracle::CaseManifest
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_oracle::CaseManifest where U: core::convert::From<T>
+pub fn ryg_rans_rs_oracle::CaseManifest::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_oracle::CaseManifest where U: core::convert::Into<T>
+pub type ryg_rans_rs_oracle::CaseManifest::Error = core::convert::Infallible
+pub fn ryg_rans_rs_oracle::CaseManifest::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_oracle::CaseManifest where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_oracle::CaseManifest::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_oracle::CaseManifest::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_oracle::CaseManifest where T: core::clone::Clone
+pub type ryg_rans_rs_oracle::CaseManifest::Owned = T
+pub fn ryg_rans_rs_oracle::CaseManifest::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_oracle::CaseManifest::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_oracle::CaseManifest where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CaseManifest::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_oracle::CaseManifest where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CaseManifest::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_oracle::CaseManifest where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CaseManifest::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_oracle::CaseManifest where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_oracle::CaseManifest::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_oracle::CaseManifest
+pub fn ryg_rans_rs_oracle::CaseManifest::from(T) -> T
+impl<T> serde_core::de::DeserializeOwned for ryg_rans_rs_oracle::CaseManifest where T: for<'de> serde_core::de::Deserialize<'de>
+impl<T> typenum::type_operators::Same for ryg_rans_rs_oracle::CaseManifest
+pub type ryg_rans_rs_oracle::CaseManifest::Output = T
+pub struct ryg_rans_rs_oracle::CaseResult
+pub ryg_rans_rs_oracle::CaseResult::c_compressed_hex: alloc::string::String
+pub ryg_rans_rs_oracle::CaseResult::c_self_decode: bool
+pub ryg_rans_rs_oracle::CaseResult::c_to_rust: bool
+pub ryg_rans_rs_oracle::CaseResult::case_id: alloc::string::String
+pub ryg_rans_rs_oracle::CaseResult::compressed_match: bool
+pub ryg_rans_rs_oracle::CaseResult::frequencies: alloc::vec::Vec<u32>
+pub ryg_rans_rs_oracle::CaseResult::input_hex: alloc::string::String
+pub ryg_rans_rs_oracle::CaseResult::rust_compressed_hex: alloc::string::String
+pub ryg_rans_rs_oracle::CaseResult::rust_self_decode: bool
+pub ryg_rans_rs_oracle::CaseResult::rust_to_c: bool
+pub ryg_rans_rs_oracle::CaseResult::scale_bits: u32
+pub ryg_rans_rs_oracle::CaseResult::simd_scalar_agree: bool
+impl core::clone::Clone for ryg_rans_rs_oracle::CaseResult
+pub fn ryg_rans_rs_oracle::CaseResult::clone(&self) -> ryg_rans_rs_oracle::CaseResult
+impl core::fmt::Debug for ryg_rans_rs_oracle::CaseResult
+pub fn ryg_rans_rs_oracle::CaseResult::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl serde_core::ser::Serialize for ryg_rans_rs_oracle::CaseResult
+pub fn ryg_rans_rs_oracle::CaseResult::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl<'de> serde_core::de::Deserialize<'de> for ryg_rans_rs_oracle::CaseResult
+pub fn ryg_rans_rs_oracle::CaseResult::deserialize<__D>(__D) -> core::result::Result<Self, <__D as serde_core::de::Deserializer>::Error> where __D: serde_core::de::Deserializer<'de>
+impl core::marker::Freeze for ryg_rans_rs_oracle::CaseResult
+impl core::marker::Send for ryg_rans_rs_oracle::CaseResult
+impl core::marker::Sync for ryg_rans_rs_oracle::CaseResult
+impl core::marker::Unpin for ryg_rans_rs_oracle::CaseResult
+impl core::marker::UnsafeUnpin for ryg_rans_rs_oracle::CaseResult
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_oracle::CaseResult
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_oracle::CaseResult
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_oracle::CaseResult where U: core::convert::From<T>
+pub fn ryg_rans_rs_oracle::CaseResult::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_oracle::CaseResult where U: core::convert::Into<T>
+pub type ryg_rans_rs_oracle::CaseResult::Error = core::convert::Infallible
+pub fn ryg_rans_rs_oracle::CaseResult::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_oracle::CaseResult where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_oracle::CaseResult::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_oracle::CaseResult::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_oracle::CaseResult where T: core::clone::Clone
+pub type ryg_rans_rs_oracle::CaseResult::Owned = T
+pub fn ryg_rans_rs_oracle::CaseResult::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_oracle::CaseResult::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_oracle::CaseResult where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CaseResult::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_oracle::CaseResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CaseResult::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_oracle::CaseResult where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CaseResult::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_oracle::CaseResult where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_oracle::CaseResult::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_oracle::CaseResult
+pub fn ryg_rans_rs_oracle::CaseResult::from(T) -> T
+impl<T> serde_core::de::DeserializeOwned for ryg_rans_rs_oracle::CaseResult where T: for<'de> serde_core::de::Deserialize<'de>
+impl<T> typenum::type_operators::Same for ryg_rans_rs_oracle::CaseResult
+pub type ryg_rans_rs_oracle::CaseResult::Output = T
+pub struct ryg_rans_rs_oracle::CourtConfig
+pub ryg_rans_rs_oracle::CourtConfig::path: ryg_rans_rs_oracle::CourtPath
+pub ryg_rans_rs_oracle::CourtConfig::profile: ryg_rans_rs_oracle::ModelProfile
+pub ryg_rans_rs_oracle::CourtConfig::variant: &'static str
+impl core::marker::Freeze for ryg_rans_rs_oracle::CourtConfig
+impl core::marker::Send for ryg_rans_rs_oracle::CourtConfig
+impl core::marker::Sync for ryg_rans_rs_oracle::CourtConfig
+impl core::marker::Unpin for ryg_rans_rs_oracle::CourtConfig
+impl core::marker::UnsafeUnpin for ryg_rans_rs_oracle::CourtConfig
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_oracle::CourtConfig
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_oracle::CourtConfig
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_oracle::CourtConfig where U: core::convert::From<T>
+pub fn ryg_rans_rs_oracle::CourtConfig::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_oracle::CourtConfig where U: core::convert::Into<T>
+pub type ryg_rans_rs_oracle::CourtConfig::Error = core::convert::Infallible
+pub fn ryg_rans_rs_oracle::CourtConfig::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_oracle::CourtConfig where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_oracle::CourtConfig::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_oracle::CourtConfig::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_oracle::CourtConfig where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CourtConfig::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_oracle::CourtConfig where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CourtConfig::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_oracle::CourtConfig where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::CourtConfig::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_oracle::CourtConfig
+pub fn ryg_rans_rs_oracle::CourtConfig::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_oracle::CourtConfig
+pub type ryg_rans_rs_oracle::CourtConfig::Output = T
+pub struct ryg_rans_rs_oracle::Receipt
+pub ryg_rans_rs_oracle::Receipt::code_commit: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::court_id: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::court_path: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::manifest_sha256: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::num_cases: u32
+pub ryg_rans_rs_oracle::Receipt::oracle_compiler: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::pairs_compared: u64
+pub ryg_rans_rs_oracle::Receipt::pairs_matched: u64
+pub ryg_rans_rs_oracle::Receipt::profile: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::receipt_sha256: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::reproduction_command: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::residual_count: u32
+pub ryg_rans_rs_oracle::Receipt::residual_ids: alloc::vec::Vec<alloc::string::String>
+pub ryg_rans_rs_oracle::Receipt::scale_bits: u32
+pub ryg_rans_rs_oracle::Receipt::schema_version: u32
+pub ryg_rans_rs_oracle::Receipt::seed: u64
+pub ryg_rans_rs_oracle::Receipt::upstream_commit: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::variant: alloc::string::String
+pub ryg_rans_rs_oracle::Receipt::verdict: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_oracle::Receipt
+pub fn ryg_rans_rs_oracle::Receipt::clone(&self) -> ryg_rans_rs_oracle::Receipt
+impl core::fmt::Debug for ryg_rans_rs_oracle::Receipt
+pub fn ryg_rans_rs_oracle::Receipt::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl serde_core::ser::Serialize for ryg_rans_rs_oracle::Receipt
+pub fn ryg_rans_rs_oracle::Receipt::serialize<__S>(&self, __S) -> core::result::Result<<__S as serde_core::ser::Serializer>::Ok, <__S as serde_core::ser::Serializer>::Error> where __S: serde_core::ser::Serializer
+impl<'de> serde_core::de::Deserialize<'de> for ryg_rans_rs_oracle::Receipt
+pub fn ryg_rans_rs_oracle::Receipt::deserialize<__D>(__D) -> core::result::Result<Self, <__D as serde_core::de::Deserializer>::Error> where __D: serde_core::de::Deserializer<'de>
+impl core::marker::Freeze for ryg_rans_rs_oracle::Receipt
+impl core::marker::Send for ryg_rans_rs_oracle::Receipt
+impl core::marker::Sync for ryg_rans_rs_oracle::Receipt
+impl core::marker::Unpin for ryg_rans_rs_oracle::Receipt
+impl core::marker::UnsafeUnpin for ryg_rans_rs_oracle::Receipt
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_oracle::Receipt
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_oracle::Receipt
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_oracle::Receipt where U: core::convert::From<T>
+pub fn ryg_rans_rs_oracle::Receipt::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_oracle::Receipt where U: core::convert::Into<T>
+pub type ryg_rans_rs_oracle::Receipt::Error = core::convert::Infallible
+pub fn ryg_rans_rs_oracle::Receipt::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_oracle::Receipt where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_oracle::Receipt::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_oracle::Receipt::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_oracle::Receipt where T: core::clone::Clone
+pub type ryg_rans_rs_oracle::Receipt::Owned = T
+pub fn ryg_rans_rs_oracle::Receipt::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_oracle::Receipt::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_oracle::Receipt where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::Receipt::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_oracle::Receipt where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::Receipt::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_oracle::Receipt where T: ?core::marker::Sized
+pub fn ryg_rans_rs_oracle::Receipt::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_oracle::Receipt where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_oracle::Receipt::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_oracle::Receipt
+pub fn ryg_rans_rs_oracle::Receipt::from(T) -> T
+impl<T> serde_core::de::DeserializeOwned for ryg_rans_rs_oracle::Receipt where T: for<'de> serde_core::de::Deserialize<'de>
+impl<T> typenum::type_operators::Same for ryg_rans_rs_oracle::Receipt
+pub type ryg_rans_rs_oracle::Receipt::Output = T
+pub fn ryg_rans_rs_oracle::all_court_configs() -> alloc::vec::Vec<ryg_rans_rs_oracle::CourtConfig>
+pub fn ryg_rans_rs_oracle::run_alias_court(&str, u32, u64, ryg_rans_rs_oracle::ModelProfile) -> core::result::Result<(ryg_rans_rs_oracle::Receipt, ryg_rans_rs_oracle::CaseManifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub fn ryg_rans_rs_oracle::run_alias_interleaved_court(&str, u32, u64, ryg_rans_rs_oracle::ModelProfile) -> core::result::Result<(ryg_rans_rs_oracle::Receipt, ryg_rans_rs_oracle::CaseManifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub fn ryg_rans_rs_oracle::run_byte_court(&str, u32, u64, usize, ryg_rans_rs_oracle::CourtPath) -> core::result::Result<(ryg_rans_rs_oracle::Receipt, ryg_rans_rs_oracle::CaseManifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub fn ryg_rans_rs_oracle::run_court_with_profile(&str, u32, u64, ryg_rans_rs_oracle::CourtPath, &str, ryg_rans_rs_oracle::ModelProfile) -> core::result::Result<(ryg_rans_rs_oracle::Receipt, ryg_rans_rs_oracle::CaseManifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub fn ryg_rans_rs_oracle::run_interleaved_court(&str, u32, u64, ryg_rans_rs_oracle::CourtPath, &str, ryg_rans_rs_oracle::ModelProfile) -> core::result::Result<(ryg_rans_rs_oracle::Receipt, ryg_rans_rs_oracle::CaseManifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub fn ryg_rans_rs_oracle::run_r64_court(&str, u32, u64, usize, ryg_rans_rs_oracle::CourtPath) -> core::result::Result<(ryg_rans_rs_oracle::Receipt, ryg_rans_rs_oracle::CaseManifest, alloc::vec::Vec<u8>), alloc::string::String>
+pub fn ryg_rans_rs_oracle::run_simd_court(&str, u32, u64, ryg_rans_rs_oracle::ModelProfile, core::option::Option<usize>) -> core::result::Result<(ryg_rans_rs_oracle::Receipt, ryg_rans_rs_oracle::CaseManifest, alloc::vec::Vec<u8>), alloc::string::String>

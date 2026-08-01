@@ -1,0 +1,142 @@
+pub mod ryg_rans_rs_casefile
+pub struct ryg_rans_rs_casefile::Casefile
+pub ryg_rans_rs_casefile::Casefile::case_id: &'static str
+pub ryg_rans_rs_casefile::Casefile::cumulative_frequencies: alloc::vec::Vec<u32>
+pub ryg_rans_rs_casefile::Casefile::frequencies: alloc::vec::Vec<u32>
+pub ryg_rans_rs_casefile::Casefile::input: alloc::vec::Vec<u8>
+pub ryg_rans_rs_casefile::Casefile::input_sha256: core::option::Option<[u8; 32]>
+pub ryg_rans_rs_casefile::Casefile::interleave: u32
+pub ryg_rans_rs_casefile::Casefile::operation: &'static str
+pub ryg_rans_rs_casefile::Casefile::scale_bits: u32
+pub ryg_rans_rs_casefile::Casefile::schema_version: u32
+pub ryg_rans_rs_casefile::Casefile::seed: u64
+pub ryg_rans_rs_casefile::Casefile::upstream_commit: &'static str
+pub ryg_rans_rs_casefile::Casefile::variant: &'static str
+impl ryg_rans_rs_casefile::Casefile
+pub fn ryg_rans_rs_casefile::Casefile::new(&'static str, &'static str) -> Self
+impl core::clone::Clone for ryg_rans_rs_casefile::Casefile
+pub fn ryg_rans_rs_casefile::Casefile::clone(&self) -> ryg_rans_rs_casefile::Casefile
+impl core::fmt::Debug for ryg_rans_rs_casefile::Casefile
+pub fn ryg_rans_rs_casefile::Casefile::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_casefile::Casefile
+impl core::marker::Send for ryg_rans_rs_casefile::Casefile
+impl core::marker::Sync for ryg_rans_rs_casefile::Casefile
+impl core::marker::Unpin for ryg_rans_rs_casefile::Casefile
+impl core::marker::UnsafeUnpin for ryg_rans_rs_casefile::Casefile
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_casefile::Casefile
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_casefile::Casefile
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_casefile::Casefile where U: core::convert::From<T>
+pub fn ryg_rans_rs_casefile::Casefile::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_casefile::Casefile where U: core::convert::Into<T>
+pub type ryg_rans_rs_casefile::Casefile::Error = core::convert::Infallible
+pub fn ryg_rans_rs_casefile::Casefile::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_casefile::Casefile where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_casefile::Casefile::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_casefile::Casefile::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_casefile::Casefile where T: core::clone::Clone
+pub type ryg_rans_rs_casefile::Casefile::Owned = T
+pub fn ryg_rans_rs_casefile::Casefile::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_casefile::Casefile::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_casefile::Casefile where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Casefile::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_casefile::Casefile where T: ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Casefile::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_casefile::Casefile where T: ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Casefile::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_casefile::Casefile where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_casefile::Casefile::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_casefile::Casefile
+pub fn ryg_rans_rs_casefile::Casefile::from(T) -> T
+pub struct ryg_rans_rs_casefile::Receipt
+pub ryg_rans_rs_casefile::Receipt::case_count: u32
+pub ryg_rans_rs_casefile::Receipt::court_id: &'static str
+pub ryg_rans_rs_casefile::Receipt::pairs_compared: u64
+pub ryg_rans_rs_casefile::Receipt::pairs_matched: u64
+pub ryg_rans_rs_casefile::Receipt::residual_count: u32
+pub ryg_rans_rs_casefile::Receipt::residual_ids: alloc::vec::Vec<&'static str>
+pub ryg_rans_rs_casefile::Receipt::rust_commit: core::option::Option<&'static str>
+pub ryg_rans_rs_casefile::Receipt::schema_version: u32
+pub ryg_rans_rs_casefile::Receipt::timestamp: core::option::Option<u64>
+pub ryg_rans_rs_casefile::Receipt::upstream_commit: &'static str
+pub ryg_rans_rs_casefile::Receipt::verdict: &'static str
+impl core::clone::Clone for ryg_rans_rs_casefile::Receipt
+pub fn ryg_rans_rs_casefile::Receipt::clone(&self) -> ryg_rans_rs_casefile::Receipt
+impl core::fmt::Debug for ryg_rans_rs_casefile::Receipt
+pub fn ryg_rans_rs_casefile::Receipt::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_casefile::Receipt
+impl core::marker::Send for ryg_rans_rs_casefile::Receipt
+impl core::marker::Sync for ryg_rans_rs_casefile::Receipt
+impl core::marker::Unpin for ryg_rans_rs_casefile::Receipt
+impl core::marker::UnsafeUnpin for ryg_rans_rs_casefile::Receipt
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_casefile::Receipt
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_casefile::Receipt
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_casefile::Receipt where U: core::convert::From<T>
+pub fn ryg_rans_rs_casefile::Receipt::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_casefile::Receipt where U: core::convert::Into<T>
+pub type ryg_rans_rs_casefile::Receipt::Error = core::convert::Infallible
+pub fn ryg_rans_rs_casefile::Receipt::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_casefile::Receipt where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_casefile::Receipt::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_casefile::Receipt::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_casefile::Receipt where T: core::clone::Clone
+pub type ryg_rans_rs_casefile::Receipt::Owned = T
+pub fn ryg_rans_rs_casefile::Receipt::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_casefile::Receipt::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_casefile::Receipt where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Receipt::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_casefile::Receipt where T: ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Receipt::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_casefile::Receipt where T: ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Receipt::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_casefile::Receipt where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_casefile::Receipt::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_casefile::Receipt
+pub fn ryg_rans_rs_casefile::Receipt::from(T) -> T
+pub struct ryg_rans_rs_casefile::Residual
+pub ryg_rans_rs_casefile::Residual::case_id: &'static str
+pub ryg_rans_rs_casefile::Residual::class: &'static str
+pub ryg_rans_rs_casefile::Residual::court_id: &'static str
+pub ryg_rans_rs_casefile::Residual::severity: &'static str
+pub ryg_rans_rs_casefile::Residual::status: &'static str
+pub ryg_rans_rs_casefile::Residual::upstream_commit: &'static str
+pub ryg_rans_rs_casefile::Residual::variant: &'static str
+impl core::clone::Clone for ryg_rans_rs_casefile::Residual
+pub fn ryg_rans_rs_casefile::Residual::clone(&self) -> ryg_rans_rs_casefile::Residual
+impl core::fmt::Debug for ryg_rans_rs_casefile::Residual
+pub fn ryg_rans_rs_casefile::Residual::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_casefile::Residual
+pub fn ryg_rans_rs_casefile::Residual::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_casefile::Residual
+impl core::marker::Send for ryg_rans_rs_casefile::Residual
+impl core::marker::Sync for ryg_rans_rs_casefile::Residual
+impl core::marker::Unpin for ryg_rans_rs_casefile::Residual
+impl core::marker::UnsafeUnpin for ryg_rans_rs_casefile::Residual
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_casefile::Residual
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_casefile::Residual
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_casefile::Residual where U: core::convert::From<T>
+pub fn ryg_rans_rs_casefile::Residual::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_casefile::Residual where U: core::convert::Into<T>
+pub type ryg_rans_rs_casefile::Residual::Error = core::convert::Infallible
+pub fn ryg_rans_rs_casefile::Residual::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_casefile::Residual where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_casefile::Residual::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_casefile::Residual::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_casefile::Residual where T: core::clone::Clone
+pub type ryg_rans_rs_casefile::Residual::Owned = T
+pub fn ryg_rans_rs_casefile::Residual::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_casefile::Residual::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_casefile::Residual where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Residual::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_casefile::Residual where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Residual::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_casefile::Residual where T: ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Residual::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_casefile::Residual where T: ?core::marker::Sized
+pub fn ryg_rans_rs_casefile::Residual::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_casefile::Residual where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_casefile::Residual::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_casefile::Residual
+pub fn ryg_rans_rs_casefile::Residual::from(T) -> T
+pub const ryg_rans_rs_casefile::CASEFILE_SCHEMA_VERSION: u32
+pub const ryg_rans_rs_casefile::PERF_SCHEMA_VERSION: u32
+pub const ryg_rans_rs_casefile::PHASE_L_SCHEMA_VERSION: u32

@@ -1,0 +1,1087 @@
+pub mod ryg_rans_rs_cli
+pub mod ryg_rans_rs_cli::container
+pub mod ryg_rans_rs_cli::container::block
+pub struct ryg_rans_rs_cli::container::block::Block
+pub ryg_rans_rs_cli::container::block::Block::block_index: u64
+pub ryg_rans_rs_cli::container::block::Block::block_kind: u8
+pub ryg_rans_rs_cli::container::block::Block::codec_id: u16
+pub ryg_rans_rs_cli::container::block::Block::decoded_sha256: [u8; 32]
+pub ryg_rans_rs_cli::container::block::Block::model_data: alloc::vec::Vec<u8>
+pub ryg_rans_rs_cli::container::block::Block::payload: alloc::vec::Vec<u8>
+pub ryg_rans_rs_cli::container::block::Block::payload_sha256: [u8; 32]
+pub ryg_rans_rs_cli::container::block::Block::scale_bits: u8
+pub ryg_rans_rs_cli::container::block::Block::state_count: u8
+pub ryg_rans_rs_cli::container::block::Block::uncompressed_length: u32
+impl ryg_rans_rs_cli::container::block::Block
+pub fn ryg_rans_rs_cli::container::block::Block::header_to_bytes(&self) -> alloc::vec::Vec<u8>
+pub fn ryg_rans_rs_cli::container::block::Block::new_rans(u64, u16, u8, u8, u32, alloc::vec::Vec<u8>, alloc::vec::Vec<u8>) -> Self
+pub fn ryg_rans_rs_cli::container::block::Block::new_raw(u64, alloc::vec::Vec<u8>) -> Self
+pub fn ryg_rans_rs_cli::container::block::Block::new_rle(u64, u8, u32) -> Self
+pub fn ryg_rans_rs_cli::container::block::Block::parse_header(&[u8], u64) -> core::result::Result<(ryg_rans_rs_cli::container::block::BlockHeaderInfo, usize), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::block::Block::to_bytes(&self) -> alloc::vec::Vec<u8>
+impl core::clone::Clone for ryg_rans_rs_cli::container::block::Block
+pub fn ryg_rans_rs_cli::container::block::Block::clone(&self) -> ryg_rans_rs_cli::container::block::Block
+impl core::fmt::Debug for ryg_rans_rs_cli::container::block::Block
+pub fn ryg_rans_rs_cli::container::block::Block::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::container::block::Block
+impl core::marker::Send for ryg_rans_rs_cli::container::block::Block
+impl core::marker::Sync for ryg_rans_rs_cli::container::block::Block
+impl core::marker::Unpin for ryg_rans_rs_cli::container::block::Block
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::container::block::Block
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::container::block::Block
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::container::block::Block
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::container::block::Block where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::container::block::Block::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::container::block::Block where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::container::block::Block::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::container::block::Block::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::container::block::Block where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::container::block::Block::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::container::block::Block::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::container::block::Block where T: core::clone::Clone
+pub type ryg_rans_rs_cli::container::block::Block::Owned = T
+pub fn ryg_rans_rs_cli::container::block::Block::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::container::block::Block::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_cli::container::block::Block where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::block::Block::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::container::block::Block where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::block::Block::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::container::block::Block where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::block::Block::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::container::block::Block where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::container::block::Block::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::container::block::Block
+pub fn ryg_rans_rs_cli::container::block::Block::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::container::block::Block
+pub type ryg_rans_rs_cli::container::block::Block::Output = T
+pub struct ryg_rans_rs_cli::container::block::BlockHeaderInfo
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::block_index: u64
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::block_kind: u8
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::codec_id: u16
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::decoded_sha256: [u8; 32]
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::model_length: u32
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::payload_length: u32
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::payload_sha256: [u8; 32]
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::scale_bits: u8
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::state_count: u8
+pub ryg_rans_rs_cli::container::block::BlockHeaderInfo::uncompressed_length: u32
+impl core::clone::Clone for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::clone(&self) -> ryg_rans_rs_cli::container::block::BlockHeaderInfo
+impl core::fmt::Debug for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+impl core::marker::Send for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+impl core::marker::Sync for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+impl core::marker::Unpin for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::container::block::BlockHeaderInfo where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::container::block::BlockHeaderInfo where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::container::block::BlockHeaderInfo::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::container::block::BlockHeaderInfo where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::container::block::BlockHeaderInfo::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::container::block::BlockHeaderInfo where T: core::clone::Clone
+pub type ryg_rans_rs_cli::container::block::BlockHeaderInfo::Owned = T
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_cli::container::block::BlockHeaderInfo where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::container::block::BlockHeaderInfo where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::container::block::BlockHeaderInfo where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::container::block::BlockHeaderInfo where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+pub fn ryg_rans_rs_cli::container::block::BlockHeaderInfo::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::container::block::BlockHeaderInfo
+pub type ryg_rans_rs_cli::container::block::BlockHeaderInfo::Output = T
+pub mod ryg_rans_rs_cli::container::codec
+pub mod ryg_rans_rs_cli::container::codec::ids
+pub const ryg_rans_rs_cli::container::codec::ids::ALIAS_INTERLEAVED2: u16
+pub const ryg_rans_rs_cli::container::codec::ids::ALIAS_SINGLE: u16
+pub const ryg_rans_rs_cli::container::codec::ids::BYTE_INTERLEAVED2: u16
+pub const ryg_rans_rs_cli::container::codec::ids::BYTE_SINGLE: u16
+pub const ryg_rans_rs_cli::container::codec::ids::R64_INTERLEAVED2: u16
+pub const ryg_rans_rs_cli::container::codec::ids::R64_SINGLE: u16
+pub const ryg_rans_rs_cli::container::codec::ids::WORD_INTERLEAVED16: u16
+pub const ryg_rans_rs_cli::container::codec::ids::WORD_INTERLEAVED2: u16
+pub const ryg_rans_rs_cli::container::codec::ids::WORD_INTERLEAVED8: u16
+pub const ryg_rans_rs_cli::container::codec::ids::WORD_SINGLE: u16
+pub fn ryg_rans_rs_cli::container::codec::codec_name(u16) -> &'static str
+pub fn ryg_rans_rs_cli::container::codec::codec_states(u16) -> core::option::Option<u8>
+pub fn ryg_rans_rs_cli::container::codec::is_supported(u16) -> bool
+pub fn ryg_rans_rs_cli::container::codec::validate_scale_bits(u16, u8) -> core::result::Result<(), &'static str>
+pub mod ryg_rans_rs_cli::container::footer
+pub struct ryg_rans_rs_cli::container::footer::FileFooter
+pub ryg_rans_rs_cli::container::footer::FileFooter::block_count: u64
+pub ryg_rans_rs_cli::container::footer::FileFooter::container_sha256: [u8; 32]
+pub ryg_rans_rs_cli::container::footer::FileFooter::decoded_stream_sha256: [u8; 32]
+pub ryg_rans_rs_cli::container::footer::FileFooter::flags: u8
+pub ryg_rans_rs_cli::container::footer::FileFooter::total_payload_length: u64
+pub ryg_rans_rs_cli::container::footer::FileFooter::total_uncompressed_length: u64
+impl ryg_rans_rs_cli::container::footer::FileFooter
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::compute(u64, u64, u64, [u8; 32], [u8; 32]) -> Self
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::from_bytes(&[u8]) -> core::result::Result<Self, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::to_bytes(&self) -> [u8; 104]
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::verify_totals(&self, u64, u64, u64) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+impl core::clone::Clone for ryg_rans_rs_cli::container::footer::FileFooter
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::clone(&self) -> ryg_rans_rs_cli::container::footer::FileFooter
+impl core::cmp::Eq for ryg_rans_rs_cli::container::footer::FileFooter
+impl core::cmp::PartialEq for ryg_rans_rs_cli::container::footer::FileFooter
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::eq(&self, &ryg_rans_rs_cli::container::footer::FileFooter) -> bool
+impl core::fmt::Debug for ryg_rans_rs_cli::container::footer::FileFooter
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for ryg_rans_rs_cli::container::footer::FileFooter
+impl core::marker::Freeze for ryg_rans_rs_cli::container::footer::FileFooter
+impl core::marker::Send for ryg_rans_rs_cli::container::footer::FileFooter
+impl core::marker::Sync for ryg_rans_rs_cli::container::footer::FileFooter
+impl core::marker::Unpin for ryg_rans_rs_cli::container::footer::FileFooter
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::container::footer::FileFooter
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::container::footer::FileFooter
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::container::footer::FileFooter
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::container::footer::FileFooter where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::container::footer::FileFooter where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::container::footer::FileFooter::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::container::footer::FileFooter where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::container::footer::FileFooter::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::container::footer::FileFooter where T: core::clone::Clone
+pub type ryg_rans_rs_cli::container::footer::FileFooter::Owned = T
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_cli::container::footer::FileFooter where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::container::footer::FileFooter where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::container::footer::FileFooter where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::container::footer::FileFooter where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::container::footer::FileFooter::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::container::footer::FileFooter
+pub fn ryg_rans_rs_cli::container::footer::FileFooter::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::container::footer::FileFooter
+pub type ryg_rans_rs_cli::container::footer::FileFooter::Output = T
+pub mod ryg_rans_rs_cli::container::header
+pub mod ryg_rans_rs_cli::container::header::flags
+pub const ryg_rans_rs_cli::container::header::flags::ALWAYS_COMPRESS: u16
+pub const ryg_rans_rs_cli::container::header::flags::GLOBAL_MODEL: u16
+pub const ryg_rans_rs_cli::container::header::flags::HAS_EXTRA_HEADER: u16
+pub const ryg_rans_rs_cli::container::header::flags::KNOWN_FLAGS: u16
+pub struct ryg_rans_rs_cli::container::header::FileHeader
+pub ryg_rans_rs_cli::container::header::FileHeader::declared_block_size: u32
+pub ryg_rans_rs_cli::container::header::FileHeader::default_codec_id: u16
+pub ryg_rans_rs_cli::container::header::FileHeader::default_model_mode: u8
+pub ryg_rans_rs_cli::container::header::FileHeader::default_scale_bits: u8
+pub ryg_rans_rs_cli::container::header::FileHeader::flags: u16
+pub ryg_rans_rs_cli::container::header::FileHeader::major_version: u16
+pub ryg_rans_rs_cli::container::header::FileHeader::minor_version: u16
+impl ryg_rans_rs_cli::container::header::FileHeader
+pub fn ryg_rans_rs_cli::container::header::FileHeader::from_bytes(&[u8]) -> core::result::Result<Self, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::header::FileHeader::has_global_model(&self) -> bool
+pub fn ryg_rans_rs_cli::container::header::FileHeader::to_bytes(&self) -> [u8; 32]
+impl core::clone::Clone for ryg_rans_rs_cli::container::header::FileHeader
+pub fn ryg_rans_rs_cli::container::header::FileHeader::clone(&self) -> ryg_rans_rs_cli::container::header::FileHeader
+impl core::cmp::Eq for ryg_rans_rs_cli::container::header::FileHeader
+impl core::cmp::PartialEq for ryg_rans_rs_cli::container::header::FileHeader
+pub fn ryg_rans_rs_cli::container::header::FileHeader::eq(&self, &ryg_rans_rs_cli::container::header::FileHeader) -> bool
+impl core::default::Default for ryg_rans_rs_cli::container::header::FileHeader
+pub fn ryg_rans_rs_cli::container::header::FileHeader::default() -> Self
+impl core::fmt::Debug for ryg_rans_rs_cli::container::header::FileHeader
+pub fn ryg_rans_rs_cli::container::header::FileHeader::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for ryg_rans_rs_cli::container::header::FileHeader
+impl core::marker::Freeze for ryg_rans_rs_cli::container::header::FileHeader
+impl core::marker::Send for ryg_rans_rs_cli::container::header::FileHeader
+impl core::marker::Sync for ryg_rans_rs_cli::container::header::FileHeader
+impl core::marker::Unpin for ryg_rans_rs_cli::container::header::FileHeader
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::container::header::FileHeader
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::container::header::FileHeader
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::container::header::FileHeader
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::container::header::FileHeader where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::container::header::FileHeader::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::container::header::FileHeader where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::container::header::FileHeader::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::container::header::FileHeader::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::container::header::FileHeader where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::container::header::FileHeader::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::container::header::FileHeader::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::container::header::FileHeader where T: core::clone::Clone
+pub type ryg_rans_rs_cli::container::header::FileHeader::Owned = T
+pub fn ryg_rans_rs_cli::container::header::FileHeader::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::container::header::FileHeader::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_cli::container::header::FileHeader where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::header::FileHeader::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::container::header::FileHeader where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::header::FileHeader::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::container::header::FileHeader where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::header::FileHeader::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::container::header::FileHeader where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::container::header::FileHeader::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::container::header::FileHeader
+pub fn ryg_rans_rs_cli::container::header::FileHeader::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::container::header::FileHeader
+pub type ryg_rans_rs_cli::container::header::FileHeader::Output = T
+pub mod ryg_rans_rs_cli::container::model
+pub struct ryg_rans_rs_cli::container::model::FrequencyModel
+pub ryg_rans_rs_cli::container::model::FrequencyModel::active_symbols: usize
+pub ryg_rans_rs_cli::container::model::FrequencyModel::cumulative: alloc::vec::Vec<u32>
+pub ryg_rans_rs_cli::container::model::FrequencyModel::frequencies: alloc::vec::Vec<u32>
+pub ryg_rans_rs_cli::container::model::FrequencyModel::scale_bits: u8
+impl ryg_rans_rs_cli::container::model::FrequencyModel
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::build(&[u64; 256], u8) -> core::result::Result<Self, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::build_uniform(u8) -> Self
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::from_bytes(&[u8], u8) -> core::result::Result<Self, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::sha256(&self) -> [u8; 32]
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::to_bytes(&self) -> alloc::vec::Vec<u8>
+impl core::clone::Clone for ryg_rans_rs_cli::container::model::FrequencyModel
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::clone(&self) -> ryg_rans_rs_cli::container::model::FrequencyModel
+impl core::cmp::Eq for ryg_rans_rs_cli::container::model::FrequencyModel
+impl core::cmp::PartialEq for ryg_rans_rs_cli::container::model::FrequencyModel
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::eq(&self, &ryg_rans_rs_cli::container::model::FrequencyModel) -> bool
+impl core::fmt::Debug for ryg_rans_rs_cli::container::model::FrequencyModel
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for ryg_rans_rs_cli::container::model::FrequencyModel
+impl core::marker::Freeze for ryg_rans_rs_cli::container::model::FrequencyModel
+impl core::marker::Send for ryg_rans_rs_cli::container::model::FrequencyModel
+impl core::marker::Sync for ryg_rans_rs_cli::container::model::FrequencyModel
+impl core::marker::Unpin for ryg_rans_rs_cli::container::model::FrequencyModel
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::container::model::FrequencyModel
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::container::model::FrequencyModel
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::container::model::FrequencyModel
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::container::model::FrequencyModel where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::container::model::FrequencyModel where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::container::model::FrequencyModel::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::container::model::FrequencyModel where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::container::model::FrequencyModel::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::container::model::FrequencyModel where T: core::clone::Clone
+pub type ryg_rans_rs_cli::container::model::FrequencyModel::Owned = T
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_cli::container::model::FrequencyModel where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::container::model::FrequencyModel where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::container::model::FrequencyModel where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::container::model::FrequencyModel where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::container::model::FrequencyModel::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::container::model::FrequencyModel
+pub fn ryg_rans_rs_cli::container::model::FrequencyModel::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::container::model::FrequencyModel
+pub type ryg_rans_rs_cli::container::model::FrequencyModel::Output = T
+pub fn ryg_rans_rs_cli::container::model::compute_histogram(&[u8]) -> [u64; 256]
+pub mod ryg_rans_rs_cli::container::reader
+pub struct ryg_rans_rs_cli::container::reader::ContainerReader<R: alloc::io::read::Read>
+impl<R: alloc::io::read::Read> ryg_rans_rs_cli::container::reader::ContainerReader<R>
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::block_count_seen(&self) -> u64
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::check_trailing_data(&mut self) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::decoded_stream_hash(&self) -> [u8; 32]
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::new(R, ryg_rans_rs_cli::limits::Limits) -> Self
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::read_block<F>(&mut self, F) -> core::result::Result<core::option::Option<(ryg_rans_rs_cli::container::block::Block, alloc::vec::Vec<u8>)>, ryg_rans_rs_cli::error::AppError> where F: core::ops::function::FnMut(&ryg_rans_rs_cli::container::block::BlockHeaderInfo, &[u8], &[u8]) -> core::result::Result<alloc::vec::Vec<u8>, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::read_footer(&mut self) -> core::result::Result<ryg_rans_rs_cli::container::footer::FileFooter, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::read_header(&mut self) -> core::result::Result<ryg_rans_rs_cli::container::header::FileHeader, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::total_payload_seen(&self) -> u64
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::total_uncompressed_seen(&self) -> u64
+impl<R> core::marker::Freeze for ryg_rans_rs_cli::container::reader::ContainerReader<R> where R: core::marker::Freeze
+impl<R> core::marker::Send for ryg_rans_rs_cli::container::reader::ContainerReader<R> where R: core::marker::Send
+impl<R> core::marker::Sync for ryg_rans_rs_cli::container::reader::ContainerReader<R> where R: core::marker::Sync
+impl<R> core::marker::Unpin for ryg_rans_rs_cli::container::reader::ContainerReader<R> where R: core::marker::Unpin
+impl<R> core::marker::UnsafeUnpin for ryg_rans_rs_cli::container::reader::ContainerReader<R> where R: core::marker::UnsafeUnpin
+impl<R> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::container::reader::ContainerReader<R> where R: core::panic::unwind_safe::RefUnwindSafe
+impl<R> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::container::reader::ContainerReader<R> where R: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::container::reader::ContainerReader<R> where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::container::reader::ContainerReader<R> where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::container::reader::ContainerReader<R>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::container::reader::ContainerReader<R> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::container::reader::ContainerReader<R>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_cli::container::reader::ContainerReader<R> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::container::reader::ContainerReader<R> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::container::reader::ContainerReader<R> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::container::reader::ContainerReader<R>
+pub fn ryg_rans_rs_cli::container::reader::ContainerReader<R>::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::container::reader::ContainerReader<R>
+pub type ryg_rans_rs_cli::container::reader::ContainerReader<R>::Output = T
+pub mod ryg_rans_rs_cli::container::writer
+pub struct ryg_rans_rs_cli::container::writer::ContainerWriter<W: core::io::write::Write>
+impl<W: core::io::write::Write> ryg_rans_rs_cli::container::writer::ContainerWriter<W>
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::flush(&mut self) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::into_inner(self) -> W
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::new(W) -> Self
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::write_block(&mut self, &ryg_rans_rs_cli::container::block::Block, &[u8]) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::write_footer(&mut self) -> core::result::Result<ryg_rans_rs_cli::container::footer::FileFooter, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::write_header(&mut self, &ryg_rans_rs_cli::container::header::FileHeader) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+impl<W> core::marker::Freeze for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where W: core::marker::Freeze
+impl<W> core::marker::Send for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where W: core::marker::Send
+impl<W> core::marker::Sync for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where W: core::marker::Sync
+impl<W> core::marker::Unpin for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where W: core::marker::Unpin
+impl<W> core::marker::UnsafeUnpin for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where W: core::marker::UnsafeUnpin
+impl<W> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where W: core::panic::unwind_safe::RefUnwindSafe
+impl<W> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where W: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::container::writer::ContainerWriter<W>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::container::writer::ContainerWriter<W>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::container::writer::ContainerWriter<W> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::container::writer::ContainerWriter<W>
+pub fn ryg_rans_rs_cli::container::writer::ContainerWriter<W>::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::container::writer::ContainerWriter<W>
+pub type ryg_rans_rs_cli::container::writer::ContainerWriter<W>::Output = T
+pub const ryg_rans_rs_cli::container::BLOCK_HEADER_SIZE: usize
+pub const ryg_rans_rs_cli::container::BLOCK_KIND_RANS: u8
+pub const ryg_rans_rs_cli::container::BLOCK_KIND_RAW: u8
+pub const ryg_rans_rs_cli::container::BLOCK_KIND_RLE: u8
+pub const ryg_rans_rs_cli::container::BLOCK_TAG: &[u8; 4]
+pub const ryg_rans_rs_cli::container::FOOTER_SIZE: usize
+pub const ryg_rans_rs_cli::container::FOOTER_TAG: &[u8; 4]
+pub const ryg_rans_rs_cli::container::HEADER_SIZE: usize
+pub const ryg_rans_rs_cli::container::MAGIC: &[u8; 8]
+pub const ryg_rans_rs_cli::container::MAJOR_VERSION: u16
+pub const ryg_rans_rs_cli::container::MINOR_VERSION: u16
+pub mod ryg_rans_rs_cli::error
+pub use ryg_rans_rs_cli::error::DecodeError
+pub use ryg_rans_rs_cli::error::EncodeError
+pub use ryg_rans_rs_cli::error::ModelError
+pub enum ryg_rans_rs_cli::error::AppError
+pub ryg_rans_rs_cli::error::AppError::Backend(ryg_rans_rs_cli::error::BackendError)
+pub ryg_rans_rs_cli::error::AppError::Codec(ryg_rans_rs_cli::error::CodecError)
+pub ryg_rans_rs_cli::error::AppError::Comparison(ryg_rans_rs_cli::error::ComparisonError)
+pub ryg_rans_rs_cli::error::AppError::ExternalOracle(ryg_rans_rs_cli::error::OracleError)
+pub ryg_rans_rs_cli::error::AppError::Format(ryg_rans_rs_cli::error::FormatError)
+pub ryg_rans_rs_cli::error::AppError::Integrity(ryg_rans_rs_cli::error::IntegrityError)
+pub ryg_rans_rs_cli::error::AppError::InternalInvariant(ryg_rans_rs_cli::error::InternalInvariantError)
+pub ryg_rans_rs_cli::error::AppError::Io(ryg_rans_rs_cli::error::IoError)
+pub ryg_rans_rs_cli::error::AppError::Model(ryg_rans_rs_core::ModelError)
+pub ryg_rans_rs_cli::error::AppError::ResourceLimit(ryg_rans_rs_cli::error::ResourceLimitError)
+pub ryg_rans_rs_cli::error::AppError::Unsupported(ryg_rans_rs_cli::error::UnsupportedError)
+impl ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::exit_code(&self) -> i32
+pub fn ryg_rans_rs_cli::error::AppError::kind(&self) -> &'static str
+pub fn ryg_rans_rs_cli::error::AppError::to_json_value(&self) -> serde_json::value::Value
+impl core::clone::Clone for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::clone(&self) -> ryg_rans_rs_cli::error::AppError
+impl core::convert::From<alloc::string::String> for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::from(alloc::string::String) -> Self
+impl core::convert::From<core::io::error::Error> for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::from(core::io::error::Error) -> Self
+impl core::convert::From<ryg_rans_rs_core::DecodeError> for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::from(ryg_rans_rs_core::DecodeError) -> Self
+impl core::convert::From<ryg_rans_rs_core::EncodeError> for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::from(ryg_rans_rs_core::EncodeError) -> Self
+impl core::convert::From<ryg_rans_rs_core::ModelError> for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::from(ryg_rans_rs_core::ModelError) -> Self
+impl core::error::Error for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
+impl core::fmt::Debug for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::AppError
+impl core::marker::Send for ryg_rans_rs_cli::error::AppError
+impl core::marker::Sync for ryg_rans_rs_cli::error::AppError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::AppError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::AppError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::AppError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::AppError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::AppError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::AppError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::AppError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::AppError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::AppError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::AppError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::AppError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::AppError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::AppError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::AppError::Owned = T
+pub fn ryg_rans_rs_cli::error::AppError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::AppError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::AppError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::AppError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::AppError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::AppError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::AppError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::AppError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::AppError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::AppError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::AppError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::AppError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::AppError
+pub fn ryg_rans_rs_cli::error::AppError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::AppError
+pub type ryg_rans_rs_cli::error::AppError::Output = T
+pub struct ryg_rans_rs_cli::error::BackendError
+pub ryg_rans_rs_cli::error::BackendError::backend: alloc::string::String
+pub ryg_rans_rs_cli::error::BackendError::detail: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_cli::error::BackendError
+pub fn ryg_rans_rs_cli::error::BackendError::clone(&self) -> ryg_rans_rs_cli::error::BackendError
+impl core::error::Error for ryg_rans_rs_cli::error::BackendError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::BackendError
+pub fn ryg_rans_rs_cli::error::BackendError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::BackendError
+pub fn ryg_rans_rs_cli::error::BackendError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::BackendError
+impl core::marker::Send for ryg_rans_rs_cli::error::BackendError
+impl core::marker::Sync for ryg_rans_rs_cli::error::BackendError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::BackendError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::BackendError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::BackendError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::BackendError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::BackendError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::BackendError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::BackendError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::BackendError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::BackendError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::BackendError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::BackendError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::BackendError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::BackendError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::BackendError::Owned = T
+pub fn ryg_rans_rs_cli::error::BackendError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::BackendError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::BackendError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::BackendError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::BackendError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::BackendError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::BackendError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::BackendError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::BackendError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::BackendError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::BackendError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::BackendError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::BackendError
+pub fn ryg_rans_rs_cli::error::BackendError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::BackendError
+pub type ryg_rans_rs_cli::error::BackendError::Output = T
+pub struct ryg_rans_rs_cli::error::CodecError
+pub ryg_rans_rs_cli::error::CodecError::codec_id: core::option::Option<u16>
+pub ryg_rans_rs_cli::error::CodecError::detail: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_cli::error::CodecError
+pub fn ryg_rans_rs_cli::error::CodecError::clone(&self) -> ryg_rans_rs_cli::error::CodecError
+impl core::error::Error for ryg_rans_rs_cli::error::CodecError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::CodecError
+pub fn ryg_rans_rs_cli::error::CodecError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::CodecError
+pub fn ryg_rans_rs_cli::error::CodecError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::CodecError
+impl core::marker::Send for ryg_rans_rs_cli::error::CodecError
+impl core::marker::Sync for ryg_rans_rs_cli::error::CodecError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::CodecError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::CodecError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::CodecError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::CodecError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::CodecError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::CodecError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::CodecError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::CodecError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::CodecError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::CodecError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::CodecError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::CodecError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::CodecError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::CodecError::Owned = T
+pub fn ryg_rans_rs_cli::error::CodecError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::CodecError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::CodecError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::CodecError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::CodecError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::CodecError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::CodecError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::CodecError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::CodecError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::CodecError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::CodecError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::CodecError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::CodecError
+pub fn ryg_rans_rs_cli::error::CodecError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::CodecError
+pub type ryg_rans_rs_cli::error::CodecError::Output = T
+pub struct ryg_rans_rs_cli::error::ComparisonError
+pub ryg_rans_rs_cli::error::ComparisonError::detail: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_cli::error::ComparisonError
+pub fn ryg_rans_rs_cli::error::ComparisonError::clone(&self) -> ryg_rans_rs_cli::error::ComparisonError
+impl core::error::Error for ryg_rans_rs_cli::error::ComparisonError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::ComparisonError
+pub fn ryg_rans_rs_cli::error::ComparisonError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::ComparisonError
+pub fn ryg_rans_rs_cli::error::ComparisonError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::ComparisonError
+impl core::marker::Send for ryg_rans_rs_cli::error::ComparisonError
+impl core::marker::Sync for ryg_rans_rs_cli::error::ComparisonError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::ComparisonError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::ComparisonError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::ComparisonError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::ComparisonError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::ComparisonError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::ComparisonError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::ComparisonError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::ComparisonError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::ComparisonError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::ComparisonError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::ComparisonError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::ComparisonError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::ComparisonError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::ComparisonError::Owned = T
+pub fn ryg_rans_rs_cli::error::ComparisonError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::ComparisonError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::ComparisonError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::ComparisonError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::ComparisonError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::ComparisonError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::ComparisonError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::ComparisonError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::ComparisonError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::ComparisonError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::ComparisonError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::ComparisonError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::ComparisonError
+pub fn ryg_rans_rs_cli::error::ComparisonError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::ComparisonError
+pub type ryg_rans_rs_cli::error::ComparisonError::Output = T
+pub struct ryg_rans_rs_cli::error::FormatError
+pub ryg_rans_rs_cli::error::FormatError::block_index: core::option::Option<u64>
+pub ryg_rans_rs_cli::error::FormatError::detail: alloc::string::String
+pub ryg_rans_rs_cli::error::FormatError::offset: core::option::Option<u64>
+impl core::clone::Clone for ryg_rans_rs_cli::error::FormatError
+pub fn ryg_rans_rs_cli::error::FormatError::clone(&self) -> ryg_rans_rs_cli::error::FormatError
+impl core::error::Error for ryg_rans_rs_cli::error::FormatError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::FormatError
+pub fn ryg_rans_rs_cli::error::FormatError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::FormatError
+pub fn ryg_rans_rs_cli::error::FormatError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::FormatError
+impl core::marker::Send for ryg_rans_rs_cli::error::FormatError
+impl core::marker::Sync for ryg_rans_rs_cli::error::FormatError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::FormatError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::FormatError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::FormatError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::FormatError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::FormatError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::FormatError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::FormatError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::FormatError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::FormatError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::FormatError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::FormatError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::FormatError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::FormatError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::FormatError::Owned = T
+pub fn ryg_rans_rs_cli::error::FormatError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::FormatError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::FormatError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::FormatError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::FormatError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::FormatError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::FormatError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::FormatError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::FormatError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::FormatError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::FormatError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::FormatError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::FormatError
+pub fn ryg_rans_rs_cli::error::FormatError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::FormatError
+pub type ryg_rans_rs_cli::error::FormatError::Output = T
+pub struct ryg_rans_rs_cli::error::IntegrityError
+pub ryg_rans_rs_cli::error::IntegrityError::block_index: core::option::Option<u64>
+pub ryg_rans_rs_cli::error::IntegrityError::detail: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_cli::error::IntegrityError
+pub fn ryg_rans_rs_cli::error::IntegrityError::clone(&self) -> ryg_rans_rs_cli::error::IntegrityError
+impl core::error::Error for ryg_rans_rs_cli::error::IntegrityError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::IntegrityError
+pub fn ryg_rans_rs_cli::error::IntegrityError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::IntegrityError
+pub fn ryg_rans_rs_cli::error::IntegrityError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::IntegrityError
+impl core::marker::Send for ryg_rans_rs_cli::error::IntegrityError
+impl core::marker::Sync for ryg_rans_rs_cli::error::IntegrityError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::IntegrityError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::IntegrityError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::IntegrityError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::IntegrityError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::IntegrityError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::IntegrityError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::IntegrityError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::IntegrityError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::IntegrityError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::IntegrityError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::IntegrityError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::IntegrityError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::IntegrityError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::IntegrityError::Owned = T
+pub fn ryg_rans_rs_cli::error::IntegrityError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::IntegrityError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::IntegrityError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::IntegrityError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::IntegrityError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::IntegrityError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::IntegrityError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::IntegrityError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::IntegrityError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::IntegrityError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::IntegrityError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::IntegrityError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::IntegrityError
+pub fn ryg_rans_rs_cli::error::IntegrityError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::IntegrityError
+pub type ryg_rans_rs_cli::error::IntegrityError::Output = T
+pub struct ryg_rans_rs_cli::error::InternalInvariantError
+pub ryg_rans_rs_cli::error::InternalInvariantError::detail: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_cli::error::InternalInvariantError
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::clone(&self) -> ryg_rans_rs_cli::error::InternalInvariantError
+impl core::error::Error for ryg_rans_rs_cli::error::InternalInvariantError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::InternalInvariantError
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::InternalInvariantError
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::InternalInvariantError
+impl core::marker::Send for ryg_rans_rs_cli::error::InternalInvariantError
+impl core::marker::Sync for ryg_rans_rs_cli::error::InternalInvariantError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::InternalInvariantError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::InternalInvariantError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::InternalInvariantError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::InternalInvariantError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::InternalInvariantError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::InternalInvariantError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::InternalInvariantError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::InternalInvariantError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::InternalInvariantError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::InternalInvariantError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::InternalInvariantError::Owned = T
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::InternalInvariantError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::InternalInvariantError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::InternalInvariantError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::InternalInvariantError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::InternalInvariantError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::InternalInvariantError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::InternalInvariantError
+pub fn ryg_rans_rs_cli::error::InternalInvariantError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::InternalInvariantError
+pub type ryg_rans_rs_cli::error::InternalInvariantError::Output = T
+pub struct ryg_rans_rs_cli::error::IoError
+pub ryg_rans_rs_cli::error::IoError::detail: alloc::string::String
+pub ryg_rans_rs_cli::error::IoError::path: core::option::Option<std::path::PathBuf>
+impl core::clone::Clone for ryg_rans_rs_cli::error::IoError
+pub fn ryg_rans_rs_cli::error::IoError::clone(&self) -> ryg_rans_rs_cli::error::IoError
+impl core::error::Error for ryg_rans_rs_cli::error::IoError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::IoError
+pub fn ryg_rans_rs_cli::error::IoError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::IoError
+pub fn ryg_rans_rs_cli::error::IoError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::IoError
+impl core::marker::Send for ryg_rans_rs_cli::error::IoError
+impl core::marker::Sync for ryg_rans_rs_cli::error::IoError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::IoError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::IoError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::IoError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::IoError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::IoError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::IoError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::IoError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::IoError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::IoError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::IoError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::IoError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::IoError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::IoError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::IoError::Owned = T
+pub fn ryg_rans_rs_cli::error::IoError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::IoError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::IoError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::IoError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::IoError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::IoError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::IoError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::IoError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::IoError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::IoError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::IoError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::IoError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::IoError
+pub fn ryg_rans_rs_cli::error::IoError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::IoError
+pub type ryg_rans_rs_cli::error::IoError::Output = T
+pub struct ryg_rans_rs_cli::error::OracleError
+pub ryg_rans_rs_cli::error::OracleError::detail: alloc::string::String
+pub ryg_rans_rs_cli::error::OracleError::exit_code: core::option::Option<i32>
+impl core::clone::Clone for ryg_rans_rs_cli::error::OracleError
+pub fn ryg_rans_rs_cli::error::OracleError::clone(&self) -> ryg_rans_rs_cli::error::OracleError
+impl core::error::Error for ryg_rans_rs_cli::error::OracleError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::OracleError
+pub fn ryg_rans_rs_cli::error::OracleError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::OracleError
+pub fn ryg_rans_rs_cli::error::OracleError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::OracleError
+impl core::marker::Send for ryg_rans_rs_cli::error::OracleError
+impl core::marker::Sync for ryg_rans_rs_cli::error::OracleError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::OracleError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::OracleError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::OracleError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::OracleError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::OracleError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::OracleError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::OracleError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::OracleError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::OracleError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::OracleError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::OracleError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::OracleError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::OracleError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::OracleError::Owned = T
+pub fn ryg_rans_rs_cli::error::OracleError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::OracleError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::OracleError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::OracleError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::OracleError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::OracleError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::OracleError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::OracleError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::OracleError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::OracleError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::OracleError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::OracleError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::OracleError
+pub fn ryg_rans_rs_cli::error::OracleError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::OracleError
+pub type ryg_rans_rs_cli::error::OracleError::Output = T
+pub struct ryg_rans_rs_cli::error::ResourceLimitError
+pub ryg_rans_rs_cli::error::ResourceLimitError::detail: alloc::string::String
+pub ryg_rans_rs_cli::error::ResourceLimitError::limit: u64
+pub ryg_rans_rs_cli::error::ResourceLimitError::requested: u64
+impl core::clone::Clone for ryg_rans_rs_cli::error::ResourceLimitError
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::clone(&self) -> ryg_rans_rs_cli::error::ResourceLimitError
+impl core::error::Error for ryg_rans_rs_cli::error::ResourceLimitError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::ResourceLimitError
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::ResourceLimitError
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::ResourceLimitError
+impl core::marker::Send for ryg_rans_rs_cli::error::ResourceLimitError
+impl core::marker::Sync for ryg_rans_rs_cli::error::ResourceLimitError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::ResourceLimitError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::ResourceLimitError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::ResourceLimitError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::ResourceLimitError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::ResourceLimitError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::ResourceLimitError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::ResourceLimitError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::ResourceLimitError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::ResourceLimitError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::ResourceLimitError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::ResourceLimitError::Owned = T
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::ResourceLimitError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::ResourceLimitError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::ResourceLimitError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::ResourceLimitError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::ResourceLimitError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::ResourceLimitError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::ResourceLimitError
+pub fn ryg_rans_rs_cli::error::ResourceLimitError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::ResourceLimitError
+pub type ryg_rans_rs_cli::error::ResourceLimitError::Output = T
+pub struct ryg_rans_rs_cli::error::UnsupportedError
+pub ryg_rans_rs_cli::error::UnsupportedError::detail: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_cli::error::UnsupportedError
+pub fn ryg_rans_rs_cli::error::UnsupportedError::clone(&self) -> ryg_rans_rs_cli::error::UnsupportedError
+impl core::error::Error for ryg_rans_rs_cli::error::UnsupportedError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::UnsupportedError
+pub fn ryg_rans_rs_cli::error::UnsupportedError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::UnsupportedError
+pub fn ryg_rans_rs_cli::error::UnsupportedError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::UnsupportedError
+impl core::marker::Send for ryg_rans_rs_cli::error::UnsupportedError
+impl core::marker::Sync for ryg_rans_rs_cli::error::UnsupportedError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::UnsupportedError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::UnsupportedError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::UnsupportedError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::UnsupportedError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::UnsupportedError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::UnsupportedError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::UnsupportedError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::UnsupportedError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::UnsupportedError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::UnsupportedError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::UnsupportedError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::UnsupportedError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::UnsupportedError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::UnsupportedError::Owned = T
+pub fn ryg_rans_rs_cli::error::UnsupportedError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::UnsupportedError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::UnsupportedError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::UnsupportedError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::UnsupportedError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::UnsupportedError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::UnsupportedError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::UnsupportedError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::UnsupportedError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::UnsupportedError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::UnsupportedError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::UnsupportedError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::UnsupportedError
+pub fn ryg_rans_rs_cli::error::UnsupportedError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::UnsupportedError
+pub type ryg_rans_rs_cli::error::UnsupportedError::Output = T
+pub mod ryg_rans_rs_cli::exit
+pub mod ryg_rans_rs_cli::exit::codes
+pub const ryg_rans_rs_cli::exit::codes::BACKEND_UNAVAILABLE: i32
+pub const ryg_rans_rs_cli::exit::codes::COMPARISON_MISMATCH: i32
+pub const ryg_rans_rs_cli::exit::codes::FORMAT_ERROR: i32
+pub const ryg_rans_rs_cli::exit::codes::INTEGRITY_ERROR: i32
+pub const ryg_rans_rs_cli::exit::codes::INTERNAL_ERROR: i32
+pub const ryg_rans_rs_cli::exit::codes::IO_ERROR: i32
+pub const ryg_rans_rs_cli::exit::codes::RESOURCE_LIMIT: i32
+pub const ryg_rans_rs_cli::exit::codes::SUCCESS: i32
+pub const ryg_rans_rs_cli::exit::codes::UNSUPPORTED: i32
+pub const ryg_rans_rs_cli::exit::codes::USAGE: i32
+pub fn ryg_rans_rs_cli::exit::error_to_exit_code(&ryg_rans_rs_cli::error::AppError) -> i32
+pub mod ryg_rans_rs_cli::limits
+pub struct ryg_rans_rs_cli::limits::Limits
+pub ryg_rans_rs_cli::limits::Limits::max_block_bytes: u32
+pub ryg_rans_rs_cli::limits::Limits::max_blocks: u64
+pub ryg_rans_rs_cli::limits::Limits::max_input_bytes: u64
+pub ryg_rans_rs_cli::limits::Limits::max_model_bytes: u32
+pub ryg_rans_rs_cli::limits::Limits::max_oracle_output_bytes: u64
+pub ryg_rans_rs_cli::limits::Limits::max_output_bytes: u64
+pub ryg_rans_rs_cli::limits::Limits::max_payload_bytes: u32
+pub ryg_rans_rs_cli::limits::Limits::max_trace_symbols: u64
+pub ryg_rans_rs_cli::limits::Limits::oracle_timeout: core::time::Duration
+impl ryg_rans_rs_cli::limits::Limits
+pub fn ryg_rans_rs_cli::limits::Limits::check_block_count(&self, u64) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::limits::Limits::check_block_size(&self, u32) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::limits::Limits::check_model_size(&self, u32) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::limits::Limits::check_output_total(&self, u64, u64) -> core::result::Result<u64, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::limits::Limits::check_payload_size(&self, u32) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::limits::Limits::parse_size(&str) -> core::result::Result<u64, alloc::string::String>
+impl core::clone::Clone for ryg_rans_rs_cli::limits::Limits
+pub fn ryg_rans_rs_cli::limits::Limits::clone(&self) -> ryg_rans_rs_cli::limits::Limits
+impl core::default::Default for ryg_rans_rs_cli::limits::Limits
+pub fn ryg_rans_rs_cli::limits::Limits::default() -> Self
+impl core::fmt::Debug for ryg_rans_rs_cli::limits::Limits
+pub fn ryg_rans_rs_cli::limits::Limits::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::limits::Limits
+impl core::marker::Send for ryg_rans_rs_cli::limits::Limits
+impl core::marker::Sync for ryg_rans_rs_cli::limits::Limits
+impl core::marker::Unpin for ryg_rans_rs_cli::limits::Limits
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::limits::Limits
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::limits::Limits
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::limits::Limits
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::limits::Limits where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::limits::Limits::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::limits::Limits where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::limits::Limits::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::limits::Limits::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::limits::Limits where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::limits::Limits::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::limits::Limits::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::limits::Limits where T: core::clone::Clone
+pub type ryg_rans_rs_cli::limits::Limits::Owned = T
+pub fn ryg_rans_rs_cli::limits::Limits::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::limits::Limits::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_cli::limits::Limits where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::limits::Limits::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::limits::Limits where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::limits::Limits::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::limits::Limits where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::limits::Limits::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::limits::Limits where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::limits::Limits::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::limits::Limits
+pub fn ryg_rans_rs_cli::limits::Limits::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::limits::Limits
+pub type ryg_rans_rs_cli::limits::Limits::Output = T
+pub const ryg_rans_rs_cli::limits::DEFAULT_BLOCK_SIZE: u32
+pub const ryg_rans_rs_cli::limits::DEFAULT_MAX_BLOCKS: u64
+pub const ryg_rans_rs_cli::limits::DEFAULT_MAX_INPUT: u64
+pub const ryg_rans_rs_cli::limits::DEFAULT_MAX_MODEL: u32
+pub const ryg_rans_rs_cli::limits::DEFAULT_MAX_ORACLE_OUTPUT: u64
+pub const ryg_rans_rs_cli::limits::DEFAULT_MAX_OUTPUT: u64
+pub const ryg_rans_rs_cli::limits::DEFAULT_MAX_PAYLOAD: u32
+pub const ryg_rans_rs_cli::limits::DEFAULT_MAX_TRACE_SYMBOLS: u64
+pub const ryg_rans_rs_cli::limits::DEFAULT_ORACLE_TIMEOUT: core::time::Duration
+pub const ryg_rans_rs_cli::limits::HARD_MAX_BLOCK_SIZE: u32
+pub mod ryg_rans_rs_cli::ops
+pub mod ryg_rans_rs_cli::ops::bench
+pub fn ryg_rans_rs_cli::ops::bench::run(&clap_builder::parser::matches::arg_matches::ArgMatches) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub mod ryg_rans_rs_cli::ops::compare
+pub fn ryg_rans_rs_cli::ops::compare::run(&clap_builder::parser::matches::arg_matches::ArgMatches) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub mod ryg_rans_rs_cli::ops::decode
+pub fn ryg_rans_rs_cli::ops::decode::run(&clap_builder::parser::matches::arg_matches::ArgMatches) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub mod ryg_rans_rs_cli::ops::encode
+pub fn ryg_rans_rs_cli::ops::encode::run(&clap_builder::parser::matches::arg_matches::ArgMatches) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub mod ryg_rans_rs_cli::ops::inspect
+pub fn ryg_rans_rs_cli::ops::inspect::run(&clap_builder::parser::matches::arg_matches::ArgMatches) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub mod ryg_rans_rs_cli::ops::model
+pub fn ryg_rans_rs_cli::ops::model::run(&clap_builder::parser::matches::arg_matches::ArgMatches) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub mod ryg_rans_rs_cli::ops::trace
+pub fn ryg_rans_rs_cli::ops::trace::run(&clap_builder::parser::matches::arg_matches::ArgMatches) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub mod ryg_rans_rs_cli::ops::verify
+pub fn ryg_rans_rs_cli::ops::verify::run(&clap_builder::parser::matches::arg_matches::ArgMatches) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub enum ryg_rans_rs_cli::ops::BlockChoice
+pub ryg_rans_rs_cli::ops::BlockChoice::Rans
+pub ryg_rans_rs_cli::ops::BlockChoice::Rans::model: alloc::vec::Vec<u8>
+pub ryg_rans_rs_cli::ops::BlockChoice::Rans::payload: alloc::vec::Vec<u8>
+pub ryg_rans_rs_cli::ops::BlockChoice::Raw
+pub ryg_rans_rs_cli::ops::BlockChoice::Rle
+pub ryg_rans_rs_cli::ops::BlockChoice::Rle::count: u32
+pub ryg_rans_rs_cli::ops::BlockChoice::Rle::symbol: u8
+impl core::clone::Clone for ryg_rans_rs_cli::ops::BlockChoice
+pub fn ryg_rans_rs_cli::ops::BlockChoice::clone(&self) -> ryg_rans_rs_cli::ops::BlockChoice
+impl core::cmp::Eq for ryg_rans_rs_cli::ops::BlockChoice
+impl core::cmp::PartialEq for ryg_rans_rs_cli::ops::BlockChoice
+pub fn ryg_rans_rs_cli::ops::BlockChoice::eq(&self, &ryg_rans_rs_cli::ops::BlockChoice) -> bool
+impl core::fmt::Debug for ryg_rans_rs_cli::ops::BlockChoice
+pub fn ryg_rans_rs_cli::ops::BlockChoice::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for ryg_rans_rs_cli::ops::BlockChoice
+impl core::marker::Freeze for ryg_rans_rs_cli::ops::BlockChoice
+impl core::marker::Send for ryg_rans_rs_cli::ops::BlockChoice
+impl core::marker::Sync for ryg_rans_rs_cli::ops::BlockChoice
+impl core::marker::Unpin for ryg_rans_rs_cli::ops::BlockChoice
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::ops::BlockChoice
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::ops::BlockChoice
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::ops::BlockChoice
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::ops::BlockChoice where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::ops::BlockChoice::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::ops::BlockChoice where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::ops::BlockChoice::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::ops::BlockChoice::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::ops::BlockChoice where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::ops::BlockChoice::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::ops::BlockChoice::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::ops::BlockChoice where T: core::clone::Clone
+pub type ryg_rans_rs_cli::ops::BlockChoice::Owned = T
+pub fn ryg_rans_rs_cli::ops::BlockChoice::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::ops::BlockChoice::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_cli::ops::BlockChoice where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::ops::BlockChoice::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::ops::BlockChoice where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::ops::BlockChoice::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::ops::BlockChoice where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::ops::BlockChoice::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::ops::BlockChoice where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::ops::BlockChoice::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::ops::BlockChoice
+pub fn ryg_rans_rs_cli::ops::BlockChoice::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::ops::BlockChoice
+pub type ryg_rans_rs_cli::ops::BlockChoice::Output = T
+pub struct ryg_rans_rs_cli::ops::BoundedReader<R: alloc::io::read::Read>
+impl<R: alloc::io::read::Read> ryg_rans_rs_cli::ops::BoundedReader<R>
+pub fn ryg_rans_rs_cli::ops::BoundedReader<R>::new(R, u64) -> Self
+impl<R: alloc::io::read::Read> alloc::io::read::Read for ryg_rans_rs_cli::ops::BoundedReader<R>
+pub fn ryg_rans_rs_cli::ops::BoundedReader<R>::read(&mut self, &mut [u8]) -> core::io::error::Result<usize>
+impl<R> core::marker::Freeze for ryg_rans_rs_cli::ops::BoundedReader<R> where R: core::marker::Freeze
+impl<R> core::marker::Send for ryg_rans_rs_cli::ops::BoundedReader<R> where R: core::marker::Send
+impl<R> core::marker::Sync for ryg_rans_rs_cli::ops::BoundedReader<R> where R: core::marker::Sync
+impl<R> core::marker::Unpin for ryg_rans_rs_cli::ops::BoundedReader<R> where R: core::marker::Unpin
+impl<R> core::marker::UnsafeUnpin for ryg_rans_rs_cli::ops::BoundedReader<R> where R: core::marker::UnsafeUnpin
+impl<R> core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::ops::BoundedReader<R> where R: core::panic::unwind_safe::RefUnwindSafe
+impl<R> core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::ops::BoundedReader<R> where R: core::panic::unwind_safe::UnwindSafe
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::ops::BoundedReader<R> where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::ops::BoundedReader<R>::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::ops::BoundedReader<R> where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::ops::BoundedReader<R>::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::ops::BoundedReader<R>::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::ops::BoundedReader<R> where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::ops::BoundedReader<R>::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::ops::BoundedReader<R>::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_cli::ops::BoundedReader<R> where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::ops::BoundedReader<R>::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::ops::BoundedReader<R> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::ops::BoundedReader<R>::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::ops::BoundedReader<R> where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::ops::BoundedReader<R>::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::ops::BoundedReader<R>
+pub fn ryg_rans_rs_cli::ops::BoundedReader<R>::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::ops::BoundedReader<R>
+pub type ryg_rans_rs_cli::ops::BoundedReader<R>::Output = T
+pub struct ryg_rans_rs_cli::ops::DecodeOutcome
+pub ryg_rans_rs_cli::ops::DecodeOutcome::block_count: u64
+pub ryg_rans_rs_cli::ops::DecodeOutcome::decoded_stream_sha256: [u8; 32]
+pub ryg_rans_rs_cli::ops::DecodeOutcome::total_payload: u64
+pub ryg_rans_rs_cli::ops::DecodeOutcome::total_uncompressed: u64
+impl core::clone::Clone for ryg_rans_rs_cli::ops::DecodeOutcome
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::clone(&self) -> ryg_rans_rs_cli::ops::DecodeOutcome
+impl core::fmt::Debug for ryg_rans_rs_cli::ops::DecodeOutcome
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::ops::DecodeOutcome
+impl core::marker::Send for ryg_rans_rs_cli::ops::DecodeOutcome
+impl core::marker::Sync for ryg_rans_rs_cli::ops::DecodeOutcome
+impl core::marker::Unpin for ryg_rans_rs_cli::ops::DecodeOutcome
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::ops::DecodeOutcome
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::ops::DecodeOutcome
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::ops::DecodeOutcome
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::ops::DecodeOutcome where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::ops::DecodeOutcome where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::ops::DecodeOutcome::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::ops::DecodeOutcome where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::ops::DecodeOutcome::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::ops::DecodeOutcome where T: core::clone::Clone
+pub type ryg_rans_rs_cli::ops::DecodeOutcome::Owned = T
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::to_owned(&self) -> T
+impl<T> core::any::Any for ryg_rans_rs_cli::ops::DecodeOutcome where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::ops::DecodeOutcome where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::ops::DecodeOutcome where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::ops::DecodeOutcome where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::ops::DecodeOutcome::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::ops::DecodeOutcome
+pub fn ryg_rans_rs_cli::ops::DecodeOutcome::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::ops::DecodeOutcome
+pub type ryg_rans_rs_cli::ops::DecodeOutcome::Output = T
+pub const ryg_rans_rs_cli::ops::DEFAULT_SCALE_BITS: u8
+pub fn ryg_rans_rs_cli::ops::build_cum2sym(&ryg_rans_rs_cli::container::model::FrequencyModel) -> alloc::vec::Vec<u8>
+pub fn ryg_rans_rs_cli::ops::build_word_tables(&ryg_rans_rs_cli::container::model::FrequencyModel) -> (alloc::vec::Vec<ryg_rans_rs_core::RansWordSlot>, alloc::vec::Vec<u8>)
+pub fn ryg_rans_rs_cli::ops::codec_from_name(&str) -> core::result::Result<u16, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::ops::decode_block(&ryg_rans_rs_cli::container::block::BlockHeaderInfo, &[u8], &[u8]) -> core::result::Result<alloc::vec::Vec<u8>, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::ops::decode_word_8way_scalar_explicit(usize, &[u8], &ryg_rans_rs_cli::container::model::FrequencyModel) -> core::result::Result<alloc::vec::Vec<u8>, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::ops::open_input(&str, u64) -> core::result::Result<alloc::boxed::Box<dyn alloc::io::read::Read>, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::ops::open_output(&str, bool, bool) -> core::result::Result<alloc::boxed::Box<dyn core::io::write::Write>, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::ops::select_block(u16, u8, &[u8], bool) -> core::result::Result<ryg_rans_rs_cli::ops::BlockChoice, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::ops::sha256_hex(&[u8]) -> alloc::string::String
+pub fn ryg_rans_rs_cli::ops::walk_container<R: alloc::io::read::Read, F>(R, ryg_rans_rs_cli::limits::Limits, F) -> core::result::Result<ryg_rans_rs_cli::ops::DecodeOutcome, ryg_rans_rs_cli::error::AppError> where F: core::ops::function::FnMut(&ryg_rans_rs_cli::container::block::Block, &[u8]) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::run(impl core::iter::traits::collect::IntoIterator<Item = std::ffi::os_str::OsString>, &mut dyn alloc::io::read::Read, &mut dyn core::io::write::Write, &mut dyn core::io::write::Write) -> i32
