@@ -1687,6 +1687,28 @@ fn check_performance_evidence() -> Result<(), String> {
         run_commit
     );
 
+    // The run-manifest also records the Cargo.lock SHA-256 at benchmark time
+    // (L1-F).  If the lock has since changed, the benchmark binaries may have
+    // been built from a different dependency graph — the evidence cannot be
+    // sealed against the current tree.
+    let run_lock = run_manifest
+        .get("cargo_lock_sha256")
+        .and_then(|s| s.as_str())
+        .unwrap_or("");
+    if run_lock.is_empty() {
+        return Err("run-manifest.json missing cargo_lock_sha256 (L1-F binding incomplete)".into());
+    }
+    let current_lock_bytes =
+        std::fs::read("Cargo.lock").map_err(|e| format!("read Cargo.lock: {}", e))?;
+    let current_lock_sha = sha256_hex(&current_lock_bytes);
+    if run_lock != current_lock_sha {
+        return Err(format!(
+            "run-manifest Cargo.lock SHA-256 {} does not match the current tree's {} — the benchmark was built from a different dependency graph; re-run the benchmark suite at the sealed commit",
+            run_lock, current_lock_sha
+        ));
+    }
+    println!("  run-manifest Cargo.lock SHA-256 verified against the current tree");
+
     let run_index_bytes = std::fs::read(run_dir.join("index.json"))
         .map_err(|e| format!("read run index {}: {}", run_dir.display(), e))?;
     use sha2::Digest;
