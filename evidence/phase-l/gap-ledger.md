@@ -39,8 +39,8 @@ residual addressed; remainder tracked) · **OPEN** (not yet addressed).
 | L1-N | HIGH | executed/verified counters derived from fabricated defaults | RESOLVED | counters derive from the preflight join + real sample counts |
 | L1-O | HIGH | Parity citations not updated (still performance_status:"unsealed") | RESOLVED | parity.model.json cites all ten performance receipts |
 | L1-P | HIGH | No canonical top-level evidence/performance/index.json | RESOLVED | evidence/performance/index.json (active run, run-index hash, dual receipt hashes) |
-| L1-Q | HIGH | cargo xtask seal does not validate performance evidence | OPEN | L.20 seal-gate integration |
-| L1-R | CRITICAL | Behavioral self-hash verification falsely reports success after skipping | OPEN | L.20 — performance receipts ARE self-hash-verified (step 14 re-serializes); behavioral path audited in L.20 |
+| L1-Q | HIGH | cargo xtask seal does not validate performance evidence | RESOLVED | `efda2f5` — `check_performance_evidence` in cmd_seal: top-level index (10 entries, exact set equality), active run, run-index SHA, receipt file+canonical hashes, manifests, results JSON/CSV, host.json/commands.log, criterion archive, verdicts, sample minima, finite numerics, CI order, backend identity; `c47bf04` adds run-manifest commit binding |
+| L1-R | CRITICAL | Behavioral self-hash verification falsely reports success after skipping | RESOLVED | `efda2f5` — Phase L receipt self-hash verification uses the typed struct (field order preserved), never serde_json::Value; legacy oracle receipts are reported as "no verifiable canonical scheme" rather than falsely verified |
 | L1-S | HIGH | Phase K artifacts must be marked superseded, not deleted | RESOLVED | SUPERSEDED.md with all ten invalidation reasons; run retained in full |
 
 ## L.2 — Decoded-output integrity verification bug
@@ -178,20 +178,21 @@ Comparative methodology and results are in `docs/performance/comparative.md` (L.
 | L18-A | LOW | The phase-l-20260801 run used reduced measurement settings (sample-size 10, 2 s measurement, 1 s warmup) to bound wall time; the full-precision production reseal (Criterion defaults) is a tracked follow-up — the pipeline, provenance, and evidence chain are validated and sealed | OPEN | Full-precision rerun via the same wrapper; the current run remains valid evidence (10 samples ≥ the 7-sample minimum) |
 | L18-D | CRITICAL | The L.19 court hunt exposed that ALL 800 records in the phase-l-20260801 run have `bytes=0` and `throughput_gib_s=0`: the exporter read `throughput.ElemCount` but Criterion 0.5.1 writes `throughput.Bytes` — the Phase K L1-A defect (zero throughput fields) persisted into the "sealed" L.18 run | RESOLVED | Current commit — `read_benchmark_json` accepts `Bytes`/`Elements` directly and legacy `ElemCount`; run must be re-sealed from the raw criterion tree + preflight records |
 | L18-E | HIGH | The L.18 receipts hash an EMPTY commands log (`commands_log_sha256 = e3b0c442…` = SHA-256 of the empty string) and an in-memory host metadata JSON rather than the run dir's `commands.log` / `host.json` file bytes (L1-G/L1-H not fully closed) | RESOLVED | Current commit — `performance-seal` now reads and hashes the exact run-dir `commands.log` and `host.json` bytes; empty/missing commands log is a warn + seal-visible defect |
-| L18-B | MEDIUM | Main `cargo xtask seal` does not yet validate the performance evidence (top-level index, run index, receipts, manifests, preflight, README regeneration) | OPEN | L.20 seal-gate hardening |
-| L18-C | LOW | The `bench` subcommand of the CLI and the Docker matrix were not part of the L.18 run | OPEN | L.20 gate matrix / documented scope |
+| L18-B | MEDIUM | Main `cargo xtask seal` does not yet validate the performance evidence (top-level index, run index, receipts, manifests, preflight, README regeneration) | RESOLVED | `efda2f5` — full performance-evidence validation in cmd_seal (see L1-Q); `c47bf04` adds run-manifest commit binding |
+| L18-C | LOW | The `bench` subcommand of the CLI and the Docker matrix were not part of the L.18 run | OPEN | L.20 gate matrix / Docker matrix re-run at the final commit |
 
 ## L.19 — Phase L courts
 
 | ID | Severity | Issue | Status | Resolution |
 |----|----------|-------|--------|------------|
 | L19-A | HIGH | 14 new courts required with manifests and receipts | OPEN | L.19 |
+| L19-B | CRITICAL | Oracle evidence generator's atomic-promote renames the whole `evidence/` tree to a backup and deletes it, destroying every artifact the oracle did not regenerate (the untracked full-precision run `phase-l-20260801c` with 800 preflight records, gap ledger, docker matrix, SUPERSEDED.md).  Violates "evidence is never deleted" | RESOLVED | `b3c8158` — promote merges receipts/manifests/index into the canonical tree (upsert by court_id), preserving all unrelated evidence; verified by re-running the oracle with the fix (nothing deleted).  The destroyed performance run is re-executed and re-sealed (tracked under L18-A) |
 
 ## L.20 — Seal gate
 
 | ID | Severity | Issue | Status | Resolution |
 |----|----------|-------|--------|------------|
-| L20-A | HIGH | Seal gate must validate performance evidence and never print success for skipped checks | OPEN | L.20 |
+| L20-A | HIGH | Seal gate must validate performance evidence and never print success for skipped checks | RESOLVED | `efda2f5` + `c47bf04` — performance-evidence validation integrated; run-manifest commit binding; no skipped verifications print success |
 
 ---
 
