@@ -1633,6 +1633,59 @@ fn check_performance_evidence() -> Result<(), String> {
     }
     let run_rel = active_run.trim_start_matches("evidence/performance/");
     let run_dir = std::path::Path::new("evidence/performance").join(run_rel);
+
+    // Run-manifest binding (L1-F / L20): the benchmark-run wrapper recorded
+    // the exact commit + tree + Cargo.lock SHA at benchmark time.  The seal
+    // must compare those captured values against the intended implementation
+    // commit — never trust a run dir that claims a different source.
+    let run_manifest_path = run_dir.join("run-manifest.json");
+    let run_manifest_bytes = std::fs::read(&run_manifest_path).map_err(|e| {
+        format!(
+            "run-manifest.json missing in active run {}: {} (a benchmark-run wrapper run is required)",
+            run_dir.display(),
+            e
+        )
+    })?;
+    let run_manifest: serde_json::Value = serde_json::from_slice(&run_manifest_bytes)
+        .map_err(|e| format!("parse run-manifest.json: {}", e))?;
+    let run_commit = run_manifest
+        .get("commit")
+        .and_then(|s| s.as_str())
+        .unwrap_or("");
+    let declared_impl_commit = top
+        .get("implementation_commit")
+        .and_then(|s| s.as_str())
+        .unwrap_or("");
+    if run_commit.is_empty() || declared_impl_commit.is_empty() {
+        return Err("run-manifest.json or top-level index missing implementation commit".into());
+    }
+    if run_commit != declared_impl_commit {
+        return Err(format!(
+            "run-manifest commit {} does not match top-level index implementation_commit {}",
+            run_commit, declared_impl_commit
+        ));
+    }
+    // The implementation commit must be an ancestor of HEAD (evidence from
+    // uncommitted or divergent source is not sealable).
+    let head_hash = get_git_head_hash();
+    if !head_hash.is_empty() {
+        let is_ancestor = std::process::Command::new("git")
+            .args(["merge-base", "--is-ancestor", run_commit, &head_hash])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        if !is_ancestor {
+            return Err(format!(
+                "run-manifest commit {} is not an ancestor of HEAD {}",
+                run_commit, head_hash
+            ));
+        }
+    }
+    println!(
+        "  run-manifest binding: commit {} verified against top-level index",
+        run_commit
+    );
+
     let run_index_bytes = std::fs::read(run_dir.join("index.json"))
         .map_err(|e| format!("read run index {}: {}", run_dir.display(), e))?;
     use sha2::Digest;
