@@ -11,7 +11,7 @@ use crate::container::header::FileHeader;
 use crate::container::writer::ContainerWriter;
 use crate::error::AppError;
 use crate::limits::Limits;
-use crate::ops::{BlockChoice, open_input, open_output, select_block};
+use crate::ops::{BlockChoice, open_input, open_output, parse_timeout, select_block};
 use clap::ArgMatches;
 use sha2::Digest;
 use std::io::{Read, Write};
@@ -65,6 +65,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), AppError> {
     let always_compress = matches.get_flag("always-compress");
     let force = matches.get_flag("force");
     let force_tty = matches.get_flag("force-tty");
+    let timeout_secs = parse_timeout(matches)?;
+    // Cooperative cancellation: SIGINT/SIGTERM handlers + optional timeout
+    // watchdog; the block loop polls so cancellation returns the typed
+    // Cancelled error (exit 11) instead of a hard kill.
+    let _cancel = crate::signal::CancellationGuard::install(timeout_secs);
 
     let limits = Limits::default();
 
@@ -128,6 +133,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), AppError> {
     let mut total_uncompressed: u64 = 0;
     let mut chunk = vec![0u8; block_size as usize];
     loop {
+        // Poll once per block: a pending signal/timeout surfaces as a typed
+        // Cancelled error at a block boundary, never mid-write.
+        crate::signal::CancellationGuard::check()?;
         // Read one block-sized chunk (short read at EOF).
         let mut filled = 0usize;
         while filled < chunk.len() {

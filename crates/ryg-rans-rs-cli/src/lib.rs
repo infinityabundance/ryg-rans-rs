@@ -9,7 +9,14 @@
 //! This crate uses `#![forbid(unsafe_code)]`.  All SIMD acceleration is
 //! accessed through safe facade APIs that perform runtime feature detection.
 
-#![forbid(unsafe_code)]
+#![cfg_attr(not(feature = "signals"), forbid(unsafe_code))]
+
+// The `signals` feature installs SIGINT/SIGTERM handlers via `libc::signal`
+// (async-signal-safe atomic-flag handlers, documented in `signal.rs`).  That
+// feature is the only place `unsafe` appears in this crate, mirroring how the
+// parallel crate gates its libc affinity calls behind the `affinity` feature.
+// Default builds (signals on) therefore carry the minimal unsafe surface;
+// builds with `--no-default-features` stay fully `forbid(unsafe_code)`.
 
 use clap::{Arg, Command};
 use error::AppError;
@@ -20,10 +27,11 @@ pub mod error;
 pub mod exit;
 pub mod limits;
 pub mod ops;
+pub mod signal;
 
 /// Run the CLI with the given arguments.
 ///
-/// Returns the stable exit code (0 on success, 2–10 per the documented
+/// Returns the stable exit code (0 on success, 2–11 per the documented
 /// table).  The stdio streams are bound inside the operations (the binary
 /// passes real stdio); integration tests exercise the compiled binary via
 /// `CARGO_BIN_EXE_ryg-rans` so exit codes and stream behaviour are tested
@@ -218,7 +226,8 @@ fn build_cli() -> Command {
                         .long("force-tty")
                         .help("Allow binary output to terminal")
                         .action(clap::ArgAction::SetTrue),
-                ),
+                )
+                .arg(timeout_arg()),
         )
         .subcommand(
             Command::new("decode")
@@ -257,7 +266,8 @@ fn build_cli() -> Command {
                         .long("force-tty")
                         .help("Allow binary output to terminal")
                         .action(clap::ArgAction::SetTrue),
-                ),
+                )
+                .arg(timeout_arg()),
         )
         .subcommand(
             Command::new("inspect")
@@ -314,7 +324,8 @@ fn build_cli() -> Command {
                         .value_name("FMT")
                         .help("Output format: human, json")
                         .default_value("human"),
-                ),
+                )
+                .arg(timeout_arg()),
         )
         .subcommand(
             Command::new("model")
@@ -545,6 +556,20 @@ fn build_cli() -> Command {
                         .default_value("bash"),
                 ),
         )
+}
+
+/// Shared `--timeout` argument for long-running subcommands.
+///
+/// A positive value arms a watchdog that cancels the operation with the
+/// typed `Cancelled` error (exit code 11) after the given number of seconds.
+/// Fractional seconds are accepted (e.g. `0.5`).  `0` (the default) disables
+/// the watchdog; SIGINT/SIGTERM cancellation is always installed.
+fn timeout_arg() -> clap::Arg {
+    clap::Arg::new("timeout")
+        .long("timeout")
+        .value_name("SECS")
+        .help("Cancel after N seconds (fractional allowed, 0 = disabled)")
+        .default_value("0")
 }
 
 /// Generate shell completions.

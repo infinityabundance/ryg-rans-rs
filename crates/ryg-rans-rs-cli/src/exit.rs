@@ -17,6 +17,7 @@
 /// | 8 | Parity or comparison mismatch |
 /// | 9 | Requested backend unavailable |
 /// | 10 | Internal invariant failure |
+/// | 11 | Operation cancelled (signal, timeout, or caller request) |
 pub mod codes {
     /// Success.
     pub const SUCCESS: i32 = 0;
@@ -38,6 +39,8 @@ pub mod codes {
     pub const BACKEND_UNAVAILABLE: i32 = 9;
     /// Internal invariant failure.
     pub const INTERNAL_ERROR: i32 = 10;
+    /// Operation cancelled (signal, timeout, or caller request).
+    pub const CANCELLED: i32 = 11;
 }
 
 /// Convert an error reference to a stable exit code.
@@ -54,5 +57,6 @@ pub fn error_to_exit_code(error: &crate::error::AppError) -> i32 {
         crate::error::AppError::Comparison(_) => codes::COMPARISON_MISMATCH,
         crate::error::AppError::ExternalOracle(_) => codes::IO_ERROR,
         crate::error::AppError::InternalInvariant(_) => codes::INTERNAL_ERROR,
+        crate::error::AppError::Cancelled(_) => codes::CANCELLED,
     }
 }

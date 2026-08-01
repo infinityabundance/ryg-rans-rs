@@ -4,7 +4,7 @@
 //!
 //! ## Exit codes
 //!
-//! The documented stable exit codes (0, 2–10) are propagated verbatim:
+//! The documented stable exit codes (0, 2–11) are propagated verbatim:
 //! `main` maps the returned code to `ExitCode` without collapsing nonzero
 //! values to 1, so automation can rely on the documented semantics.
 //!
@@ -23,6 +23,6 @@ fn main() -> std::process::ExitCode {
         &mut std::io::stdout(),
         &mut std::io::stderr(),
     );
-    // Stable exit codes are documented as 0 and 2..=10; all fit in u8.
+    // Stable exit codes are documented as 0 and 2..=11; all fit in u8.
     std::process::ExitCode::from(code.clamp(0, 255) as u8)
 }

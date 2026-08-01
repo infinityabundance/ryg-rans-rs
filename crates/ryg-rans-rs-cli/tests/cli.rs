@@ -79,6 +79,26 @@ fn make_data(seed: u64, len: usize) -> Vec<u8> {
     data
 }
 
+/// Deterministic incompressible data (no 0-bias, no runs).
+///
+/// The cancellation tests need a decode that is still inside the block loop
+/// when the timeout watchdog fires or SIGINT is delivered.  `make_data` is
+/// highly compressible, so its blocks decode at memcpy speed via RLE and the
+/// whole operation finishes in milliseconds.  A xorshift64 stream is ~1:1
+/// incompressible, forcing RANS blocks whose decode takes real time (~300
+/// MB/s single-threaded), so a 1 GiB input stays resident for seconds.
+fn make_random(seed: u64, len: usize) -> Vec<u8> {
+    let mut x = seed.wrapping_mul(0x9e3779b97f4a7c15).wrapping_add(0x12345);
+    let mut data = Vec::with_capacity(len);
+    for _ in 0..len {
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        data.push(x as u8);
+    }
+    data
+}
+
 #[test]
 fn encode_decode_roundtrip_all_codecs() {
     let td = TempDir::new("roundtrip");
@@ -633,4 +653,142 @@ fn decode_rejects_tampered_decoded_hash() {
         td.path("o.bin").to_str().unwrap(),
     ]);
     assert_eq!(dec.status.code(), Some(5), "expected integrity exit code 5");
+}
+
+/// L3-D: `--timeout N` cancels a long-running decode with the typed exit
+/// code 11 after N seconds.
+///
+/// The input is 64 MiB of deterministic incompressible data.  Debug-mode
+/// decode runs at ~15 MB/s, so the walk takes ~4 s and is still inside the
+/// block loop when the 0.3 s watchdog fires — a ~14x headroom that holds on
+/// any machine that can compile this crate at all (debug-mode rANS is
+/// unoptimized everywhere; release-mode throughput is irrelevant here because
+/// `cargo test` always runs the debug binary).  The exact content is
+/// irrelevant — the decode is cancelled mid-walk.
+#[test]
+fn timeout_cancels_decode_with_exit_11() {
+    let td = TempDir::new("timeout");
+    let data = make_random(7, 1 << 26);
+    let input = td.path("input.bin");
+    std::fs::write(&input, &data).unwrap();
+    let rygr = td.path("big.rygr");
+    let enc = run(&[
+        "encode",
+        "-i",
+        input.to_str().unwrap(),
+        "-o",
+        rygr.to_str().unwrap(),
+        "--block-size",
+        "64KiB",
+    ]);
+    assert!(
+        enc.status.success(),
+        "encode failed: {}",
+        String::from_utf8_lossy(&enc.stderr)
+    );
+
+    let dec = run(&[
+        "decode",
+        "-i",
+        rygr.to_str().unwrap(),
+        "-o",
+        td.path("o.bin").to_str().unwrap(),
+        "--timeout",
+        "0.3",
+    ]);
+    assert_eq!(
+        dec.status.code(),
+        Some(11),
+        "expected cancelled exit code 11; stderr: {}",
+        String::from_utf8_lossy(&dec.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&dec.stderr);
+    assert!(
+        stderr.contains("cancelled") && stderr.contains("timeout"),
+        "stderr should name the timeout cancellation: {}",
+        stderr
+    );
+}
+
+/// L3-D: SIGINT sent to a running decode returns the typed exit code 11
+/// instead of terminating the process with the default signal disposition.
+#[cfg(unix)]
+#[test]
+fn sigint_cancels_decode_with_exit_11() {
+    use std::process::Stdio;
+    use std::time::{Duration, Instant};
+
+    let td = TempDir::new("sigint");
+    let data = make_random(11, 1 << 26);
+    let input = td.path("input.bin");
+    std::fs::write(&input, &data).unwrap();
+    let rygr = td.path("big.rygr");
+    let enc = run(&[
+        "encode",
+        "-i",
+        input.to_str().unwrap(),
+        "-o",
+        rygr.to_str().unwrap(),
+        "--block-size",
+        "64KiB",
+    ]);
+    assert!(enc.status.success(), "encode failed");
+
+    // Spawn decode with stdin piped so the block loop is still running when
+    // we deliver SIGINT (decode polls cancellation between blocks).
+    let mut child = Command::new(bin())
+        .args([
+            "decode",
+            "-i",
+            rygr.to_str().unwrap(),
+            "-o",
+            td.path("o.bin").to_str().unwrap(),
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn decode");
+    // Wait until the output file is growing: the decode writes each block to
+    // the file incrementally, so this proves the handlers are installed and
+    // the block loop is running.  Only then deliver SIGINT, so the signal is
+    // observed by the poll rather than lost at startup or after completion
+    // (this also stays deterministic on slow machines like Docker VMs).
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let mut started = false;
+    while Instant::now() < deadline {
+        match child.try_wait().unwrap() {
+            Some(status) => panic!("decode exited before SIGINT: {status}"),
+            None => {}
+        }
+        if std::fs::metadata(td.path("o.bin"))
+            .map(|m| m.len() >= 64 * 1024)
+            .unwrap_or(false)
+        {
+            started = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(25));
+    }
+    assert!(started, "decode never produced output");
+    // SAFETY: kill(2) with SIGINT; the child is our own spawned process.
+    let pid = child.id() as i32;
+    let rc = unsafe { libc::kill(pid, libc::SIGINT) };
+    assert_eq!(rc, 0, "kill failed");
+    // Drop the stdin pipe handle so the child isn't blocked on a writer; the
+    // decode reads from the container file, so stdin is unused.
+    drop(child.stdin.take());
+    let out = child.wait_with_output().expect("wait decode");
+    assert_eq!(
+        out.status.code(),
+        Some(11),
+        "expected cancelled exit code 11; stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("cancelled") && stderr.contains("SIGINT"),
+        "stderr should name the signal cancellation: {}",
+        stderr
+    );
 }

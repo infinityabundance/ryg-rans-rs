@@ -6,7 +6,7 @@
 
 use crate::error::AppError;
 use crate::limits::Limits;
-use crate::ops::{decode_block, open_input};
+use crate::ops::{decode_block, open_input, parse_timeout};
 use clap::ArgMatches;
 
 /// Execute `verify`.
@@ -23,6 +23,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), AppError> {
         .get_one::<String>("backend")
         .map(String::as_str)
         .unwrap_or("auto");
+    let timeout_secs = parse_timeout(matches)?;
+    // Cooperative cancellation: SIGINT/SIGTERM handlers + optional timeout
+    // watchdog; the block loop polls so cancellation returns the typed
+    // Cancelled error (exit 11) instead of a hard kill.
+    let _cancel = crate::signal::CancellationGuard::install(timeout_secs);
     // Same no-silent-fallback rule as `decode`: only the auto dispatcher is
     // implemented in the CLI verifier.
     if backend != "auto" && backend != "all-available" {
@@ -43,6 +48,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), AppError> {
     let mut blocks: u64 = 0;
     let mut bytes: u64 = 0;
     loop {
+        // Poll once per block so SIGINT/SIGTERM/timeout surfaces as the typed
+        // Cancelled error at a block boundary.
+        crate::signal::CancellationGuard::check()?;
         match cr.read_block(|info, model_data, payload| decode_block(info, model_data, payload))? {
             Some((_block, decoded)) => {
                 blocks += 1;

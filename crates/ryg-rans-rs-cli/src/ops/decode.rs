@@ -8,7 +8,7 @@
 use crate::container::reader::ContainerReader;
 use crate::error::AppError;
 use crate::limits::Limits;
-use crate::ops::{decode_block, open_input, open_output};
+use crate::ops::{decode_block, open_input, open_output, parse_timeout};
 use clap::ArgMatches;
 use std::io::{BufReader, Write};
 
@@ -40,6 +40,12 @@ pub fn run(matches: &ArgMatches) -> Result<(), AppError> {
     }
     let force = matches.get_flag("force");
     let force_tty = matches.get_flag("force-tty");
+    let timeout_secs = parse_timeout(matches)?;
+
+    // Install SIGINT/SIGTERM handlers and (optionally) the timeout watchdog.
+    // The block loop polls cancellation between blocks so a Ctrl-C or timeout
+    // returns the typed Cancelled error (exit 11) instead of a hard kill.
+    let _cancel = crate::signal::CancellationGuard::install(timeout_secs);
 
     let limits = Limits::default();
     let input = open_input(input_path, limits.max_input_bytes)?;
@@ -50,6 +56,10 @@ pub fn run(matches: &ArgMatches) -> Result<(), AppError> {
     let mut blocks: u64 = 0;
     let mut total_uncompressed: u64 = 0;
     loop {
+        // Cooperative cancellation: polled once per block so a pending
+        // SIGINT/SIGTERM/timeout is observed promptly and surfaces as the
+        // typed error rather than a signal default action.
+        crate::signal::CancellationGuard::check()?;
         match cr.read_block(|info, model_data, payload| decode_block(info, model_data, payload))? {
             Some((_block, decoded)) => {
                 output.write_all(&decoded).map_err(|e| {

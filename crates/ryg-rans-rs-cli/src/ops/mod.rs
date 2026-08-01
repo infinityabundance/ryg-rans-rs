@@ -28,6 +28,7 @@ use crate::container::codec;
 use crate::container::reader::ContainerReader;
 use crate::error::{AppError, CodecError, FormatError, IoError, UnsupportedError};
 use crate::limits::Limits;
+use clap::ArgMatches;
 use ryg_rans_rs_core::{
     BackwardByteWriter, BackwardWord16Writer, BackwardWord32Writer, ByteInterleavedDecoder,
     ByteInterleavedEncoder, ByteReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State,
@@ -43,6 +44,38 @@ use std::io::{BufReader, IsTerminal, Read, Write};
 
 /// Default scale bits used when the user does not specify one.
 pub const DEFAULT_SCALE_BITS: u8 = 12;
+
+/// Parse the shared `--timeout` argument into a fractional-seconds bound.
+///
+/// Returns a typed `Format` error for a non-numeric, negative, or non-finite
+/// value so a typo like `--timeout -1` never silently disables the watchdog
+/// (which is what `0` is documented to mean).
+pub fn parse_timeout(matches: &ArgMatches) -> Result<f64, AppError> {
+    let secs: f64 = matches
+        .get_one::<String>("timeout")
+        .map(|s| {
+            s.parse::<f64>().map_err(|_| {
+                AppError::Format(FormatError {
+                    detail: format!(
+                        "invalid --timeout '{}': expected seconds (fractional allowed, e.g. 0.5)",
+                        s
+                    ),
+                    block_index: None,
+                    offset: None,
+                })
+            })
+        })
+        .transpose()?
+        .unwrap_or(0.0);
+    if !secs.is_finite() || secs < 0.0 {
+        return Err(AppError::Format(FormatError {
+            detail: "invalid --timeout: must be a finite non-negative number of seconds".into(),
+            block_index: None,
+            offset: None,
+        }));
+    }
+    Ok(secs)
+}
 
 /// Result of walking a whole container.
 #[derive(Debug, Clone)]

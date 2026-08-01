@@ -46,6 +46,8 @@ pub enum AppError {
     ExternalOracle(OracleError),
     /// Internal invariant violation (bug).
     InternalInvariant(InternalInvariantError),
+    /// Operation cancelled by signal, timeout, or caller request.
+    Cancelled(CancelledError),
 }
 
 impl fmt::Display for AppError {
@@ -62,6 +64,7 @@ impl fmt::Display for AppError {
             AppError::Comparison(e) => write!(f, "comparison error: {}", e),
             AppError::ExternalOracle(e) => write!(f, "oracle error: {}", e),
             AppError::InternalInvariant(e) => write!(f, "internal error: {}", e),
+            AppError::Cancelled(e) => write!(f, "cancelled: {}", e),
         }
     }
 }
@@ -80,6 +83,7 @@ impl std::error::Error for AppError {
             AppError::Comparison(e) => Some(e),
             AppError::ExternalOracle(e) => Some(e),
             AppError::InternalInvariant(e) => Some(e),
+            AppError::Cancelled(_) => None,
         }
     }
 }
@@ -99,6 +103,7 @@ impl AppError {
             AppError::Comparison(_) => "comparison_mismatch",
             AppError::ExternalOracle(_) => "oracle_error",
             AppError::InternalInvariant(_) => "internal_invariant",
+            AppError::Cancelled(_) => "cancelled",
         }
     }
 
@@ -116,6 +121,7 @@ impl AppError {
             AppError::Comparison(_) => 8,
             AppError::ExternalOracle(_) => 3,
             AppError::InternalInvariant(_) => 10,
+            AppError::Cancelled(_) => 11,
         }
     }
 
@@ -297,6 +303,19 @@ impl fmt::Display for InternalInvariantError {
 }
 
 impl std::error::Error for InternalInvariantError {}
+
+#[derive(Debug, Clone)]
+pub struct CancelledError {
+    pub detail: String,
+}
+
+impl fmt::Display for CancelledError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.detail)
+    }
+}
+
+impl std::error::Error for CancelledError {}
 
 // ---------------------------------------------------------------------------
 // From impls for core errors
