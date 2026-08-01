@@ -23,25 +23,25 @@ residual addressed; remainder tracked) · **OPEN** (not yet addressed).
 
 | ID | Severity | Issue | Status | Resolution |
 |----|----------|-------|--------|------------|
-| L1-A | CRITICAL | All 831 records: sample_count=1 (fabricated), verification_passed=true (hardcoded), status="pass", empty output_hash, profile="unknown", api="unknown", threads=1/1, 798/831 bytes=0, 798/831 throughput=0 | OPEN | L.18 exporter rewrite (benchmark.json/sample.json join + preflight channel) |
-| L1-B | CRITICAL | Exporter derives identity from sanitized directory names, not Criterion benchmark.json (group_id, function_id, value_str, full_id, throughput) | OPEN | L.18 |
-| L1-C | CRITICAL | Sample count fabricated (defaults to 1 when absent); must read sample.json | OPEN | L.18 |
-| L1-D | CRITICAL | Verification hardcoded true; no preflight evidence channel exists | OPEN | L.18 |
-| L1-E | CRITICAL | Runtime provenance captured at seal time, not benchmark time; needs benchmark-run wrapper | OPEN | L.18 |
-| L1-F | CRITICAL | Commit binding is tautological (assign then compare same value) | OPEN | L.18 |
-| L1-G | CRITICAL | Command log is empty (hashed but never written) | OPEN | L.18 |
-| L1-H | HIGH | Host metadata hashed but not stored as artifact (host.json) | OPEN | L.18 |
-| L1-I | HIGH | CPU feature reporting uses compile-time cfg on sealer binary → empty feature set | OPEN | L.18 |
-| L1-J | HIGH | RUSTFLAGS lost (empty in manifest despite -C target-cpu=native) | OPEN | L.18 |
-| L1-K | HIGH | Custom tar truncates paths to 99 bytes; need tar crate with PAX/GNU long-name | OPEN | L.18 |
-| L1-L | CRITICAL | Index sha256 = canonical self-hash, not final-file hash; needs two distinct fields | OPEN | L.18 |
-| L1-M | MEDIUM | Receipt verdicts are untyped strings; need typed enums | OPEN | L.18 |
-| L1-N | HIGH | executed/verified counters derived from fabricated defaults | OPEN | L.18 |
-| L1-O | HIGH | Parity citations not updated (still performance_status:"unsealed") | OPEN | L.18 |
-| L1-P | HIGH | No canonical top-level evidence/performance/index.json | OPEN | L.18 |
-| L1-Q | HIGH | cargo xtask seal does not validate performance evidence | OPEN | L.18/L.20 |
-| L1-R | CRITICAL | Behavioral self-hash verification falsely reports success after skipping | OPEN | L.18/L.20 |
-| L1-S | HIGH | Phase K artifacts must be marked superseded, not deleted | OPEN | L.18 (quarantine step) |
+| L1-A | CRITICAL | All 831 records: sample_count=1 (fabricated), verification_passed=true (hardcoded), status="pass", empty output_hash, profile="unknown", api="unknown", threads=1/1, 798/831 bytes=0, 798/831 throughput=0 | RESOLVED | L.18 commits (`5aff037`..`8f17bf3`) — exporter rewritten: canonical IDs from benchmark.json, real sample counts from sample.json, bytes from Criterion throughput, verification from preflight join; new run has 800 records with real values |
+| L1-B | CRITICAL | Exporter derives identity from sanitized directory names, not Criterion benchmark.json (group_id, function_id, value_str, full_id, throughput) | RESOLVED | `5aff037` — read_benchmark_json; full_id is the canonical identity |
+| L1-C | CRITICAL | Sample count fabricated (defaults to 1 when absent); must read sample.json | RESOLVED | `5aff037` — sample_count_from_dir; missing/inconsistent sample files are hard errors |
+| L1-D | CRITICAL | Verification hardcoded true; no preflight evidence channel exists | RESOLVED | `5aff037` — common/preflight.rs; all nine surface benches emit preflight records; exporter rejects missing/duplicate/failed preflight |
+| L1-E | CRITICAL | Runtime provenance captured at seal time, not benchmark time; needs benchmark-run wrapper | RESOLVED | `5aff037` + follow-ups — cargo xtask benchmark-run: clean-tree refusal, run-id, before/after metadata, absolute preflight path, isolated criterion tree, RUN_COMPLETE marker |
+| L1-F | CRITICAL | Commit binding is tautological (assign then compare same value) | RESOLVED | benchmark-run binds the run to the tree at run time; seal compares against the intended commit |
+| L1-G | CRITICAL | Command log is empty (hashed but never written) | RESOLVED | commands.log now records workdir/command/flags/preflight-dir/start/exit/finish |
+| L1-H | HIGH | Host metadata hashed but not stored as artifact (host.json) | RESOLVED | host.json + cpuinfo.txt + rustc-vV.txt + environment.json written and hashed |
+| L1-I | HIGH | CPU feature reporting uses compile-time cfg on sealer binary → empty feature set | RESOLVED | runtime features from is_x86_feature_detected + /proc/cpuinfo; compiled features recorded separately |
+| L1-J | HIGH | RUSTFLAGS lost (empty in manifest despite -C target-cpu=native) | RESOLVED | rustflags captured before the run in run-manifest + environment.json |
+| L1-K | HIGH | Custom tar truncates paths to 99 bytes; need tar crate with PAX/GNU long-name | RESOLVED | tar crate with deterministic mode; archive round-trips with 101-char paths preserved |
+| L1-L | CRITICAL | Index sha256 = canonical self-hash, not final-file hash; needs two distinct fields | RESOLVED | PerformanceIndexEntry carries receipt_file_sha256 + receipt_canonical_sha256; all ten file hashes verify |
+| L1-M | MEDIUM | Receipt verdicts are untyped strings; need typed enums | RESOLVED | PerformanceReceiptVerdict enum (sealed_measurement/sealed_with_residuals/rejected); unknown values rejected |
+| L1-N | HIGH | executed/verified counters derived from fabricated defaults | RESOLVED | counters derive from the preflight join + real sample counts |
+| L1-O | HIGH | Parity citations not updated (still performance_status:"unsealed") | RESOLVED | parity.model.json cites all ten performance receipts |
+| L1-P | HIGH | No canonical top-level evidence/performance/index.json | RESOLVED | evidence/performance/index.json (active run, run-index hash, dual receipt hashes) |
+| L1-Q | HIGH | cargo xtask seal does not validate performance evidence | OPEN | L.20 seal-gate integration |
+| L1-R | CRITICAL | Behavioral self-hash verification falsely reports success after skipping | OPEN | L.20 — performance receipts ARE self-hash-verified (step 14 re-serializes); behavioral path audited in L.20 |
+| L1-S | HIGH | Phase K artifacts must be marked superseded, not deleted | RESOLVED | SUPERSEDED.md with all ten invalidation reasons; run retained in full |
 
 ## L.2 — Decoded-output integrity verification bug
 
@@ -174,6 +174,10 @@ Comparative methodology and results are in `docs/performance/comparative.md` (L.
 | L17-A | MEDIUM | Component isolation (decode vs hash vs model) not measured | PARTIAL | Current commit — software decomposition measured (1-worker parallel overhead 1.38× over the raw kernel, dominated by dual SHA-256 per block); explicit benchmark-only hooks for exact separation deferred to the L.18 sealed run (docs/performance/phase-l17-analysis.md) |
 | L17-B | MEDIUM | Queue-depth sweep, affinity, SMT measurements missing | RESOLVED | Current commit — queue-depth sweep (8–128: flat 36.5–36.7 ms, pure bound not a lever) exposed and fixed the reorder bound bug (`effective_queue + workers`); 256 MiB extended matrix and sequential-threshold crossover measured; affinity/SMT policy effects are covered by the L.6 wiring tests (typed policies, sched_getaffinity verification) — actual affinity pinning measurements deferred to the L.18 sealed run |
 | L17-C | LOW | Hardware counters unavailable (perf not installed / no kernel permission on this host) | OPEN | Documented accepted limitation in docs/performance/phase-l17-analysis.md; component isolation uses software decomposition instead |
+
+| L18-A | LOW | The phase-l-20260801 run used reduced measurement settings (sample-size 10, 2 s measurement, 1 s warmup) to bound wall time; the full-precision production reseal (Criterion defaults) is a tracked follow-up — the pipeline, provenance, and evidence chain are validated and sealed | OPEN | Full-precision rerun via the same wrapper; the current run remains valid evidence (10 samples ≥ the 7-sample minimum) |
+| L18-B | MEDIUM | Main `cargo xtask seal` does not yet validate the performance evidence (top-level index, run index, receipts, manifests, preflight, README regeneration) | OPEN | L.20 seal-gate hardening |
+| L18-C | LOW | The `bench` subcommand of the CLI and the Docker matrix were not part of the L.18 run | OPEN | L.20 gate matrix / documented scope |
 
 ## L.19 — Phase L courts
 
