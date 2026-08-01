@@ -761,7 +761,16 @@ fn read_benchmark_json(dir: &Path) -> Result<BenchmarkJson, String> {
 
     let throughput_bytes = v
         .get("throughput")
-        .and_then(|t| t.get("ElemCount"))
+        .and_then(|t| {
+            // Criterion 0.5.1 writes `{"Bytes": N}` (byte throughput) or
+            // `{"Elements": N}` (element throughput).  Some versions wrote
+            // `{"Base": "Bytes", "ElemCount": N}`.  Accept both: the
+            // `Bytes`/`Elements` direct field first (current format), then
+            // the legacy `ElemCount` form.
+            t.get("Bytes")
+                .or_else(|| t.get("Elements"))
+                .or_else(|| t.get("ElemCount"))
+        })
         .and_then(|n| n.as_u64());
 
     Ok(BenchmarkJson {

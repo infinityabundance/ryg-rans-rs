@@ -95,8 +95,8 @@
 use crate::cancellation::CancellationToken;
 use crate::error::ParallelError;
 use crate::scratch::WorkerScratch;
-use crate::sync::{Arc, AtomicUsize, Mutex as SyncMutex, Ordering};
 use crate::sync::channel;
+use crate::sync::{Arc, AtomicUsize, Mutex as SyncMutex, Ordering};
 use std::fmt;
 
 /// Thread index for identifying workers.  Internal use only.
@@ -341,9 +341,8 @@ where
     // Bounded job channel: at most `effective_queue` tasks queued.
     let (job_sender, job_receiver) = channel::bounded::<T>(effective_queue);
     // Bounded result channel: at most `result_capacity` results in flight.
-    let (result_sender, result_receiver) = channel::bounded::<
-        Result<R, (WorkerIndex, String, Option<u64>)>,
-    >(result_capacity);
+    let (result_sender, result_receiver) =
+        channel::bounded::<Result<R, (WorkerIndex, String, Option<u64>)>>(result_capacity);
 
     // Per-worker atomic counters.
     let started = Arc::new(AtomicUsize::new(0));
@@ -354,6 +353,25 @@ where
     // starts, never a silent ignore.  The per-worker application below may
     // still fail at runtime; that failure is surfaced as a WorkerPanic.
     crate::affinity::validate_affinity_policy(&affinity)?;
+
+    // Validate the worker stack size against the platform minimum.
+    //
+    // A stack smaller than the platform's thread-stack minimum does not fail
+    // at `thread::Builder::spawn` on all platforms — on Linux the thread is
+    // created and then immediately overflows the guard area, aborting the
+    // whole process.  That is unacceptable for a library: a configuration
+    // error must be a typed `ParallelError::Config`, never a hard abort.
+    // `PTHREAD_STACK_MIN` is 16 KiB on glibc and 64 KiB on musl; we use the
+    // larger safe bound so both pass.  (Phase L.6 worker_stack_size contract:
+    // "Thread creation error propagation" — validated here, observably.)
+    if let Some(stack) = stack_size {
+        if stack < 64 * 1024 {
+            return Err(ParallelError::Config(format!(
+                "worker_stack_size {} is below the platform-safe minimum of 64 KiB",
+                stack
+            )));
+        }
+    }
 
     // Spawn workers
     let mut handles = Vec::with_capacity(effective_workers);
@@ -375,7 +393,8 @@ where
         let affinity = affinity.clone();
         let affinity_error = affinity_error.clone();
 
-        let handle = crate::sync::spawn_worker(&format!("ryg-parallel-{}", i), stack_size, move || {
+        let handle =
+            crate::sync::spawn_worker(&format!("ryg-parallel-{}", i), stack_size, move || {
                 // Apply the configured affinity before any task executes.
                 if let Err(e) =
                     crate::affinity::apply_worker_affinity(&affinity, i, effective_workers)
@@ -444,20 +463,20 @@ where
     let producer = {
         let cancel = cancel.clone();
         crate::sync::spawn_worker("ryg-parallel-producer", None, move || {
-                let mut submitted = 0usize;
-                for task in tasks {
-                    if cancel.is_cancelled() {
-                        break;
-                    }
-                    if job_sender.send(task).is_err() {
-                        // All workers gone — no point continuing.
-                        break;
-                    }
-                    submitted += 1;
+            let mut submitted = 0usize;
+            for task in tasks {
+                if cancel.is_cancelled() {
+                    break;
                 }
-                submitted
-            })
-            .map_err(|e| ParallelError::ThreadCreate(format!("producer: {}", e)))?
+                if job_sender.send(task).is_err() {
+                    // All workers gone — no point continuing.
+                    break;
+                }
+                submitted += 1;
+            }
+            submitted
+        })
+        .map_err(|e| ParallelError::ThreadCreate(format!("producer: {}", e)))?
     };
 
     // ---- Coordinator: drain results while producer submits ----
@@ -597,9 +616,8 @@ where
     let cancel = external_cancel.unwrap_or_else(|| Arc::new(CancellationToken::new()));
 
     let (job_sender, job_receiver) = channel::bounded::<T>(effective_queue);
-    let (result_sender, result_receiver) = channel::bounded::<
-        Result<R, (WorkerIndex, String, Option<u64>)>,
-    >(result_capacity);
+    let (result_sender, result_receiver) =
+        channel::bounded::<Result<R, (WorkerIndex, String, Option<u64>)>>(result_capacity);
 
     let started = Arc::new(AtomicUsize::new(0));
     let completed = Arc::new(AtomicUsize::new(0));
@@ -614,7 +632,8 @@ where
         let completed = completed.clone();
         let cancelled_tasks = cancelled_tasks.clone();
 
-        let handle = crate::sync::spawn_worker(&format!("ryg-parallel-{}", i), stack_size, move || {
+        let handle =
+            crate::sync::spawn_worker(&format!("ryg-parallel-{}", i), stack_size, move || {
                 // Worker-exclusive scratch: created once, reused across
                 // tasks (reset between tasks), no shared mutable state.
                 let mut scratch = WorkerScratch::new(4096, 64 * 1024 * 1024);
@@ -663,19 +682,19 @@ where
     let producer = {
         let cancel = cancel.clone();
         crate::sync::spawn_worker("ryg-parallel-producer", None, move || {
-                let mut submitted = 0usize;
-                for task in tasks {
-                    if cancel.is_cancelled() {
-                        break;
-                    }
-                    if job_sender.send(task).is_err() {
-                        break;
-                    }
-                    submitted += 1;
+            let mut submitted = 0usize;
+            for task in tasks {
+                if cancel.is_cancelled() {
+                    break;
                 }
-                submitted
-            })
-            .map_err(|e| ParallelError::ThreadCreate(format!("producer: {}", e)))?
+                if job_sender.send(task).is_err() {
+                    break;
+                }
+                submitted += 1;
+            }
+            submitted
+        })
+        .map_err(|e| ParallelError::ThreadCreate(format!("producer: {}", e)))?
     };
 
     let mut panic_errors: Vec<(WorkerIndex, String, Option<u64>)> = Vec::new();

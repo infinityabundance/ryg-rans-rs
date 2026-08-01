@@ -11,11 +11,15 @@ publish = false
 ryg-rans-rs-simd = { workspace = true, features = ["std"] }
 ryg-rans-rs-parallel = { workspace = true }
 ryg-rans-rs-core = { workspace = true, features = ["std", "alloc"] }
+ryg-rans-rs-casefile = { version = "0.2.0", path = "../ryg-rans-rs-casefile", features = ["std"] }
 criterion = { workspace = true }
 sha2 = "0.10"
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+toml = "0.8"
+tar = "0.4"
+zstd = { version = "0.13", features = ["experimental"] }
 # Phase L.14 comparative court: maintained FFI bindings to upstream ryg_rans
 # (https://github.com/m4tx/ryg-rans-sys), pinned to the exact version.
 ryg-rans-sys = { version = "=1.2.0", features = ["byte", "64"] }
