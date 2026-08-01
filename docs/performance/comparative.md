@@ -111,7 +111,7 @@ court: any stream produced by either side decodes identically on the other.
 ```sh
 RUSTFLAGS="-C target-cpu=native" \
   cargo bench -p ryg-rans-rs-bench --bench comparative \
-  --features comparative-word-sse41 \
+  --features comparative \
   -- --save-baseline phase-l-comparative-final
 ```
 

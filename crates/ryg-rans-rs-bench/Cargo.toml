@@ -22,13 +22,22 @@ tar = "0.4"
 zstd = { version = "0.13", features = ["experimental"] }
 # Phase L.14 comparative court: maintained FFI bindings to upstream ryg_rans
 # (https://github.com/m4tx/ryg-rans-sys), pinned to the exact version.
-ryg-rans-sys = { version = "=1.2.0", features = ["byte", "64"] }
+#
+# Optional: the comparative bench is the ONLY consumer, and pulling it into
+# every build forces the bindgen build-script (which needs libclang) into
+# toolchains that must stay lean — musl, MSRV, and cross-compile matrix
+# jobs.  The `comparative` feature keeps those builds free of the FFI
+# toolchain while the `comparative` bench target (required-features) still
+# compiles and runs exactly as before when the feature is enabled.
+ryg-rans-sys = { version = "=1.2.0", features = ["byte", "64"], optional = true }
 
 [features]
 # The upstream word_sse41 FFI surface requires SSE4.1 to be compiled in
 # (its build script checks target_feature).  Enable this feature (under
 # RUSTFLAGS="-C target-cpu=native") to include the word-rANS C comparison.
 comparative-word-sse41 = ["ryg-rans-sys/word_sse41"]
+# Enables the FFI comparative court (bindgen/libclang build dependency).
+comparative = ["dep:ryg-rans-sys"]
 
 [[bench]]
 name = "scalar"
@@ -85,3 +94,4 @@ harness = false
 [[bench]]
 name = "comparative"
 harness = false
+required-features = ["comparative"]
