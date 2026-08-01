@@ -1300,6 +1300,20 @@ fn find_symbol_from_freqs(freqs: &[u32], slot: usize) -> u8 {
 /// that will be used for decoding.
 pub struct ParallelDecoder;
 
+/// Reorder-buffer block bound for a parallel decode.
+///
+/// The executor can have `effective_queue + effective_workers` tasks in
+/// flight simultaneously (`effective_queue` queued plus one per worker), and
+/// every one of those can produce a completed result that is still
+/// out-of-order when it reaches the coordinator.  The reorder buffer must
+/// therefore bound at `effective_queue + workers`, not `max_in_flight`
+/// alone: a queue depth below the worker count made the old bound smaller
+/// than the true peak in-flight count, and a slow early block then produced
+/// a spurious `ResourceLimit` (found by the Phase L.17 queue-depth sweep).
+fn reorder_block_bound(config: &crate::config::ParallelConfig, workers: usize) -> usize {
+    config.max_in_flight_blocks.get().max(workers) + workers
+}
+
 impl ParallelDecoder {
     /// Decode all blocks in parallel and return them in ascending order.
     ///
@@ -1341,6 +1355,7 @@ impl ParallelDecoder {
     /// of execution order.  The parallel decode itself is deterministic:
     /// the same block data always produces the same decoded output on the
     /// same backend, independent of thread scheduling.
+
     pub fn decode_blocks(
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
         config: &ParallelConfig,
@@ -1466,7 +1481,7 @@ impl ParallelDecoder {
         let effective_workers = report.effective_workers;
 
         let mut reorder = ReorderBuffer::new(
-            config.max_in_flight_blocks.get(),
+            reorder_block_bound(config, effective_workers),
             config.max_buffered_output_bytes,
         );
         let mut ordered = Vec::with_capacity(bc);
@@ -1621,7 +1636,7 @@ impl ParallelDecoder {
         let effective_workers = report.effective_workers;
 
         let mut reorder = ReorderBuffer::new(
-            config.max_in_flight_blocks.get(),
+            reorder_block_bound(config, effective_workers),
             config.max_buffered_output_bytes,
         );
         let mut ordered = Vec::with_capacity(bc);
@@ -1743,7 +1758,7 @@ impl ParallelDecoder {
         // The sink closure runs on the coordinator thread and must be Send,
         // so share the reorder buffer and error tracker through Arc<Mutex>.
         let reorder = crate::sync::Arc::new(crate::sync::Mutex::new(ReorderBuffer::new(
-            config.max_in_flight_blocks.get(),
+            reorder_block_bound(config, wc),
             config.max_buffered_output_bytes,
         )));
         let et = crate::sync::Arc::new(crate::sync::Mutex::new(

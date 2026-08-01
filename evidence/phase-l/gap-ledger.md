@@ -171,8 +171,9 @@ Comparative methodology and results are in `docs/performance/comparative.md` (L.
 
 | ID | Severity | Issue | Status | Resolution |
 |----|----------|-------|--------|------------|
-| L17-A | MEDIUM | Component isolation (decode vs hash vs model) not measured | OPEN | L.17 |
-| L17-B | MEDIUM | Queue-depth sweep, affinity, SMT measurements missing | OPEN | L.17 |
+| L17-A | MEDIUM | Component isolation (decode vs hash vs model) not measured | PARTIAL | Current commit — software decomposition measured (1-worker parallel overhead 1.38× over the raw kernel, dominated by dual SHA-256 per block); explicit benchmark-only hooks for exact separation deferred to the L.18 sealed run (docs/performance/phase-l17-analysis.md) |
+| L17-B | MEDIUM | Queue-depth sweep, affinity, SMT measurements missing | RESOLVED | Current commit — queue-depth sweep (8–128: flat 36.5–36.7 ms, pure bound not a lever) exposed and fixed the reorder bound bug (`effective_queue + workers`); 256 MiB extended matrix and sequential-threshold crossover measured; affinity/SMT policy effects are covered by the L.6 wiring tests (typed policies, sched_getaffinity verification) — actual affinity pinning measurements deferred to the L.18 sealed run |
+| L17-C | LOW | Hardware counters unavailable (perf not installed / no kernel permission on this host) | OPEN | Documented accepted limitation in docs/performance/phase-l17-analysis.md; component isolation uses software decomposition instead |
 
 ## L.19 — Phase L courts
 

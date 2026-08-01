@@ -55,6 +55,10 @@ name = "parallel"
 harness = false
 
 [[bench]]
+name = "parallel_l17"
+harness = false
+
+[[bench]]
 name = "container"
 harness = false
 

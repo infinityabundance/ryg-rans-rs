@@ -1084,3 +1084,60 @@ fn test_encode_max_buffered_input_bytes_enforced() {
         "encode must reject input exceeding max_buffered_input_bytes with ResourceLimit"
     );
 }
+
+// ============================================================
+// Phase L.17 regression: queue depth below worker count
+// ============================================================
+
+/// The reorder-buffer block bound must cover the true peak in-flight count
+/// (`effective_queue + workers`), not just `max_in_flight`.  With a queue
+/// depth below the worker count and a slow early block, out-of-order
+/// results used to overflow the reorder bound and fail with a spurious
+/// `ResourceLimit` (found by the Phase L.17 queue-depth sweep).
+#[test]
+fn test_queue_depth_below_worker_count_no_spurious_limit() {
+    let data = nonuniform_data();
+    // 8 workers, queue depth 2: effective_queue = max(2, 8) = 8, so up to
+    // 16 tasks are genuinely in flight while only 2 fit the old reorder
+    // bound.
+    let cfg = ParallelConfig {
+        threads: ThreadCount::Exact(NonZeroUsize::new(8).unwrap()),
+        max_in_flight_blocks: NonZeroUsize::new(2).unwrap(),
+        parallel_threshold_bytes: 0,
+        ..Default::default()
+    };
+    let plan = FixedBlockPlan::new(data.len() as u64, 4096);
+    let jobs: Vec<EncodeBlockJob> = plan
+        .ranges
+        .iter()
+        .map(|r| {
+            let s = r.input_offset as usize;
+            EncodeBlockJob::new(
+                r.block_index,
+                data[s..s + r.length as usize].to_vec(),
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            )
+        })
+        .collect();
+    let enc = ParallelEncoder::encode_blocks(jobs, &cfg).expect("encode");
+    let decode_jobs: Vec<DecodeBlockJob> = enc
+        .blocks
+        .iter()
+        .map(|b| DecodeBlockJob {
+            block_index: b.block_index,
+            block_data: b.block.clone(),
+        })
+        .collect();
+    let got =
+        ParallelDecoder::decode_blocks(decode_jobs.clone(), &cfg).expect("decode must not limit");
+    assert_eq!(got.blocks.len(), plan.block_count() as usize);
+    let mut expected = Vec::new();
+    for r in &plan.ranges {
+        let s = r.input_offset as usize;
+        expected.extend_from_slice(&data[s..s + r.length as usize]);
+    }
+    let decoded: Vec<u8> = got.blocks.iter().flat_map(|b| b.output.clone()).collect();
+    assert_eq!(decoded, expected, "output parity at queue depth 2 with 8 workers");
+}
