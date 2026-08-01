@@ -1051,6 +1051,11 @@ fn cmd_benchmark_run(args: &[String]) -> Result<(), String> {
     let preflight_dir = run_dir.join("preflight");
     std::fs::create_dir_all(&preflight_dir)
         .map_err(|e| format!("create {:?}: {}", preflight_dir, e))?;
+    // Bench binaries run with cwd = the crate root, so the env var must be
+    // an ABSOLUTE path or records land in the wrong tree (the first wrapper
+    // run dropped them under crates/ryg-rans-rs-bench/evidence/).
+    let preflight_dir = std::fs::canonicalize(&preflight_dir)
+        .map_err(|e| format!("canonicalize {:?}: {}", preflight_dir, e))?;
     let marker = run_dir.join("RUN_COMPLETE");
     if marker.exists() {
         return Err(format!(
