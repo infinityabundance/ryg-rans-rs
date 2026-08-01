@@ -105,28 +105,27 @@ evidence index by the seal machinery (never hand-edited).
 
 | Surface | Behaviour | Performance | Behaviour Receipts | Performance Receipts |
 |---------|-----------|-------------|------------------:|--------------------:|
-| 32-bit byte rANS — division + reciprocal | **Sealed** | Re-sealing (L.18) | 44 | 1 |
-| 64-bit rANS — division + reciprocal | **Sealed** | Re-sealing (L.18) | 44 | 1 |
-| Word rANS — scalar table-based | **Sealed** | Re-sealing (L.18) | 16 | 1 |
-| Alias method — Vose table, byte rANS | **Sealed** | Re-sealing (L.18) | 16 | 1 |
-| SSE4.1 SIMD decoder — 8-way interleaved | **Sealed** | Re-sealing (L.18) | 8 | 1 |
-| AVX512VL.INTERLEAVED8 | **Sealed** | Re-sealing (L.18) | 8 | 1 |
-| AVX512.INTERLEAVED16 | **Sealed** | Re-sealing (L.18) | 8 | 1 |
-| Phase H optimization backends | **Test-verified** | Re-sealing (L.18) | 0 | 1 |
-| Phase J AVX2 backends | **Test-verified** | Re-sealing (L.18) | 0 | 1 |
-| Phase I parallel block engine | **Test-verified** | Re-sealing (L.18) | 0 | 1 |
+| 32-bit byte rANS — division + reciprocal | **Sealed** | **Sealed** | 44 | 1 |
+| 64-bit rANS — division + reciprocal | **Sealed** | **Sealed** | 44 | 1 |
+| Word rANS — scalar table-based | **Sealed** | **Sealed** | 16 | 1 |
+| Alias method — Vose table, byte rANS | **Sealed** | **Sealed** | 16 | 1 |
+| SSE4.1 SIMD decoder — 8-way interleaved | **Sealed** | **Sealed** | 8 | 1 |
+| AVX512VL.INTERLEAVED8 | **Sealed** | **Sealed** | 8 | 1 |
+| AVX512.INTERLEAVED16 | **Sealed** | **Sealed** | 8 | 1 |
+| Phase H optimization backends | **Test-verified** | **Sealed** | 0 | 1 |
+| Phase J AVX2 backends | **Test-verified** | **Sealed** | 0 | 1 |
+| Phase I parallel block engine | **Test-verified** | **Sealed** | 0 | 1 |
 | **Total** | | | **144** | **10** |
 
-**Why the performance column says "Re-sealing (L.18)":** ten performance
-receipts exist from the Phase K run (`evidence/performance/runs/phase-k-*`),
-but Phase L documented defects in that run's exported metadata (fabricated
-sample counts, hardcoded verification flags, empty hashes, 99-byte archive
-path truncation — residuals L1-A…L1-S in
-[`evidence/phase-l/gap-ledger.md`](evidence/phase-l/gap-ledger.md)).  The run
-is retained as superseded evidence, never deleted, and Phase L.18 regenerates
-the performance evidence through the new `cargo xtask benchmark-run` wrapper.
-Until the regenerated run passes the full seal gate, no performance claim is
-marked **Sealed**.
+**How the performance column is generated:** the ten receipts and this table
+come from the sealed run `evidence/performance/runs/phase-l-20260801/`
+(800 executed cases, all preflight-verified, zero failures) through
+`cargo xtask benchmark-run` + `cargo xtask performance-seal`.  The Phase K
+run (`phase-k-20260731-004044`) is retained as superseded evidence (see its
+`SUPERSEDED.md`); the Phase L.18 run uses reduced measurement settings
+(sample-size 10, 2 s measurement) — the full-precision reseal is a tracked
+follow-up.  The Phase L.20 seal gate regenerates this table from the two
+evidence indexes.
 
 ### Receipt Accounting (behavioural)
 
