@@ -9,7 +9,7 @@
   "num_cases": 28,
   "verdict": "admitted_match",
   "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
-  "code_commit": "2b3e54609b5f169df84fbe9579da834575d1b49e",
+  "code_commit": "efb064d3e5cfac3212571ab98fec62f079cfb098",
   "pairs_compared": 168,
   "pairs_matched": 168,
   "residual_count": 0,

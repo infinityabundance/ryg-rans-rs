@@ -1,60 +1,60 @@
 {
   "schema_version": 1,
-  "implementation_commit": "cbb6166dd4746e24c26daf116378bf2f95cb36bb",
-  "run_id": "cbb6166dd4746e24c26daf116378bf2f95cb36bb",
+  "implementation_commit": "efb064d3e5cfac3212571ab98fec62f079cfb098",
+  "run_id": "efb064d3e5cfac3212571ab98fec62f079cfb098",
   "host_id": "vanir-x86_64",
-  "active_run": "evidence/performance/runs/phase-l-20260801f",
-  "run_index_sha256": "4ae9b5dd72396043eec663c1345ec0c2d2b214cbc7d41148c489816dbe04cbaf",
+  "active_run": "evidence/performance/runs/phase-l-20260801g",
+  "run_index_sha256": "c7a0bf60fc87d61cda0610265fa6eae9bcf24d4de3a8c16a0f6b438f70a07d52",
   "receipts": [
     {
       "performance_id": "RYG_RANS.PERF.BYTE",
-      "receipt_file_sha256": "d5ff17de069b9ea1ce5a8d8693dc8abcafe31ae551c1e781a6e9ba262b5755d6",
-      "receipt_canonical_sha256": "4f2e4d1958ad1fc1263b3e607b4c9b2cb473fcde15fa1054137e59e43836606e"
+      "receipt_file_sha256": "71457d85da6c826082e910335d50264466f9b9cac94daeb4968c04673d2f90ef",
+      "receipt_canonical_sha256": "9a90eaa6a713505dca39a1d1a5f35a66d7ba7fb1f7c43561827a5f378ff41901"
     },
     {
       "performance_id": "RYG_RANS.PERF.R64",
-      "receipt_file_sha256": "2e81f1f043cdd8e1a2ceefdd304d22a958769511fc16fe90f80eff4dd959a6c1",
-      "receipt_canonical_sha256": "a5b09df3680ae1b8d9dfea204fb7f15c3543c804446d472929f61985eee1b08a"
+      "receipt_file_sha256": "8f86c8e76119dd30dcd8ff58ca8b0b73eb876574b13d3f22a3603ec68e378062",
+      "receipt_canonical_sha256": "34522c7eb01b44255a177b7bf165786731f30a7af2fd40ea66b48a3ae83193c9"
     },
     {
       "performance_id": "RYG_RANS.PERF.WORD.SCALAR",
-      "receipt_file_sha256": "d62da649e133332e7bd093e5db6beeb0cec2a8c0a2a4937392d299167c0afe42",
-      "receipt_canonical_sha256": "5701a26bfba4dd3f6d199b5067987da05b3a3f3b2ad88d9fb7b37588a3b876ed"
+      "receipt_file_sha256": "e57cc3f67e0ab0c034d9897d90dac09b6f86ffb7c592915f582ff9e4239266c2",
+      "receipt_canonical_sha256": "63cacfc0a1408ecaa67d5a734be1c59e49612fb7e4b01cebd776638e5eb15712"
     },
     {
       "performance_id": "RYG_RANS.PERF.ALIAS",
-      "receipt_file_sha256": "5f6708022043599bfe62b1804ef6a2ca1e6961ceabce47e077dac25be9f0a712",
-      "receipt_canonical_sha256": "4c163146de32ed35c1238f2ccab24ef436af75d6afa6c8890b13bb71b93f2438"
+      "receipt_file_sha256": "e29dfdd83baeff211ea5180b9b693258bcca8152af7c62528664ae639d3eeb78",
+      "receipt_canonical_sha256": "eee42b3b52447edef1c1c014f9c3257a6750cec113fc07f27a73912da2f3e453"
     },
     {
       "performance_id": "RYG_RANS.PERF.SSE41.INTERLEAVED8",
-      "receipt_file_sha256": "de006a3c15a8a98e6a09fe6b981ef40a5456e6ac1ca60b6bdf4b4b223059b678",
-      "receipt_canonical_sha256": "0e9fd3deefbde259669c9b5f23f88d8c47ee8db94130feebe3a0ffe062884c02"
+      "receipt_file_sha256": "45d8645638fd63655c7e0f5ce317852f9c15371f14f72bbe466e0eeff1c7cc8e",
+      "receipt_canonical_sha256": "48df8565d5dab86359d6fb9c0bb1c3705d2b5aaee24447a0ccf683100484bb29"
     },
     {
       "performance_id": "RYG_RANS.PERF.AVX512VL.INTERLEAVED8",
-      "receipt_file_sha256": "2718c3a6a33a99711866fb1f7342138ec43a75aa324e42e4df932b0c3930952b",
-      "receipt_canonical_sha256": "ea6f0a895b448941e4d40833c2f0a448025703887c93b325c7de10b69801a0d7"
+      "receipt_file_sha256": "e6f49aab9ab436a1ff8603fb4fa1138f068648e2acf8cacc9887975385ad77c8",
+      "receipt_canonical_sha256": "740cc18745df25feef6d286016a866d668edff8cce9b84fbc956cbbd0a80bf5d"
     },
     {
       "performance_id": "RYG_RANS.PERF.AVX512.INTERLEAVED16",
-      "receipt_file_sha256": "433838bc7fb3b55ad8c34feea6e4a5f7b94137e10c9284027b14a44c46f44f3d",
-      "receipt_canonical_sha256": "917a356714d279e033dcdb52f94ffeab5429c8a02a2b6761eae61d1730c3e528"
+      "receipt_file_sha256": "83a123dbd9b3e05b27857e343a4eb243b51403e63dd61c27b275e3aff33e95a9",
+      "receipt_canonical_sha256": "220de10e8da29f8ff157e8ab71f51d81127e227677d3220b48260840574b5db9"
     },
     {
       "performance_id": "RYG_RANS.PERF.PHASE_H",
-      "receipt_file_sha256": "a338b657a755f1e2938713185da25d21a528cebb2f69d6b019e58cf6ea09231e",
-      "receipt_canonical_sha256": "3f01ed0fce74656df4870e958e36298023d89de5d19960fac64eef64d9a9f1fc"
+      "receipt_file_sha256": "fbabc46453ac09acf9d53861c0e3f8aa79b3363f4c970d62af60bde7fb3422d2",
+      "receipt_canonical_sha256": "c4cedfff42a9123ce2bc165c7144cf16a252dbccb9731b249c437d5bc4a72761"
     },
     {
       "performance_id": "RYG_RANS.PERF.PHASE_J.AVX2",
-      "receipt_file_sha256": "bc97bbd63686443088a5f9085c0de7c0ec5a5d3fffb50e3bb2191fae24985fcd",
-      "receipt_canonical_sha256": "c968206de359cfe3e6559d31f7d6133a73092d395c865aef95beaccfbd78e6f2"
+      "receipt_file_sha256": "7f1b6138d45a9702bd7337c8617b05950f16d3c9f736b2447c009ae8cd57f244",
+      "receipt_canonical_sha256": "c018ff551a55abf768f0c12e4b155c4c28f25315c0a68c0c0b4e244e5f84bb50"
     },
     {
       "performance_id": "RYG_RANS.PERF.PHASE_I.PARALLEL",
-      "receipt_file_sha256": "58a9b38b1bbbd818d5b042919606e1af892fc31adf474c1cf0b70ed6c86d7619",
-      "receipt_canonical_sha256": "cf3989700b21dd47a74f6b36238b9a5e8d5754ccca360ae59bc1b04e245d9a5d"
+      "receipt_file_sha256": "5607604f0decd16a43be1139fa3979ef3d91bf5dd0bbda142b6f67f66893594b",
+      "receipt_canonical_sha256": "1a2db1531505f1b006d3bd0c7d0ab1b7d5569c10cea4c4ce39294239cdd568c0"
     }
   ]
 }

@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "alias/alias-encode/SPARSE_2/1MiB/iter",
+  "backend_requested": "alias-encode",
+  "backend_executed": "alias-encode",
+  "verification_passed": true,
+  "input_sha256": "79c3bfddfb0101d92673d3f901ebc86b89de802f34d1fbeea55dafbd31348ab3",
+  "output_sha256": "79c3bfddfb0101d92673d3f901ebc86b89de802f34d1fbeea55dafbd31348ab3",
+  "reference_output_sha256": "79c3bfddfb0101d92673d3f901ebc86b89de802f34d1fbeea55dafbd31348ab3",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}
