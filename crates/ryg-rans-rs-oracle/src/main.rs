@@ -194,27 +194,93 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if all_passed {
         let should_promote = staging_root != evidence_root && !is_filtered_run;
         if should_promote {
-            // Atomic promote: rename canonical to backup, staging to canonical
-            let backup = format!(
-                "{}.backup.{}",
-                evidence_root,
-                chrono::Utc::now().format("%Y%m%d-%H%M%S")
-            );
-            if let Err(e) = std::fs::rename(&evidence_root, &backup) {
-                eprintln!("  WARNING: could not back up canonical evidence: {}", e);
-            } else {
-                match std::fs::rename(&staging_root, &evidence_root) {
-                    Ok(()) => {
-                        let _ = std::fs::remove_dir_all(&backup); // success — remove backup
-                        println!("  Promoted staging → canonical evidence");
-                    }
-                    Err(e) => {
-                        // Restore from backup
-                        let _ = std::fs::rename(&backup, &evidence_root);
-                        return Err(format!("failed to promote staging: {}", e).into());
+            // Promote by MERGING the oracle-generated artifacts into the
+            // canonical tree — never by replacing the whole tree.
+            //
+            // The old rename-evidence-to-backup-then-delete-backup scheme
+            // destroyed every artifact the oracle did not itself regenerate
+            // (performance runs, gap ledger, docker matrix — residual L19-B),
+            // violating the frozen invariant that evidence is never deleted.
+            // `run-phase-g` already promotes by merge; this keeps the same
+            // semantics for the 128-court oracle generator.
+            let canonical_receipt_dir = format!("{}/receipts", evidence_root);
+            let canonical_manifest_dir = format!("{}/manifests", evidence_root);
+            std::fs::create_dir_all(&canonical_receipt_dir)?;
+            std::fs::create_dir_all(&canonical_manifest_dir)?;
+
+            // Copy staging receipts to canonical (overwrite same-name files).
+            for entry in std::fs::read_dir(&receipt_dir)? {
+                let entry = entry?;
+                let fname = entry.file_name();
+                let dest = format!("{}/{}", canonical_receipt_dir, fname.to_string_lossy());
+                std::fs::copy(entry.path(), &dest)?;
+            }
+            // Copy staging manifests to canonical (overwrite same-name files).
+            for entry in std::fs::read_dir(&manifest_dir)? {
+                let entry = entry?;
+                let fname = entry.file_name();
+                let dest = format!("{}/{}", canonical_manifest_dir, fname.to_string_lossy());
+                std::fs::copy(entry.path(), &dest)?;
+            }
+
+            // Merge the index: load the canonical index (if present), upsert
+            // each staged court entry by court_id, preserving entries for
+            // courts this run did not generate (e.g. Phase G AVX512 courts).
+            let canonical_index_path = format!("{}/index.json", evidence_root);
+            let mut canonical_receipts: Vec<serde_json::Value> = Vec::new();
+            if std::path::Path::new(&canonical_index_path).exists() {
+                if let Ok(content) = std::fs::read_to_string(&canonical_index_path) {
+                    if let Ok(existing) = serde_json::from_str::<serde_json::Value>(&content) {
+                        if let Some(receipts) = existing.get("receipts").and_then(|r| r.as_array())
+                        {
+                            canonical_receipts = receipts.clone();
+                        }
                     }
                 }
             }
+            let mut known_ids: std::collections::HashSet<String> = canonical_receipts
+                .iter()
+                .filter_map(|r| r.get("court_id").and_then(|c| c.as_str()).map(String::from))
+                .collect();
+            for entry in &index {
+                let court_id = entry
+                    .get("court_id")
+                    .and_then(|c| c.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                if known_ids.contains(&court_id) {
+                    if let Some(pos) = canonical_receipts.iter().position(|r| {
+                        r.get("court_id").and_then(|c| c.as_str()) == Some(court_id.as_str())
+                    }) {
+                        canonical_receipts[pos] = entry.clone();
+                    }
+                } else {
+                    canonical_receipts.push(entry.clone());
+                    known_ids.insert(court_id);
+                }
+            }
+            let code_commit = std::env::var("RANS_GIT_COMMIT")
+                .ok()
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| {
+                    std::process::Command::new("git")
+                        .args(["rev-parse", "HEAD"])
+                        .output()
+                        .ok()
+                        .and_then(|o| String::from_utf8(o.stdout).ok())
+                        .map(|s| s.trim().to_string())
+                        .unwrap_or_else(|| "unknown".to_string())
+                });
+            let merged_index = serde_json::json!({
+                "schema_version": 1,
+                "code_commit": code_commit,
+                "receipts": canonical_receipts,
+            });
+            std::fs::write(
+                &canonical_index_path,
+                serde_json::to_string_pretty(&merged_index)?,
+            )?;
+            println!("  Promoted staging → canonical evidence (merged, nothing deleted)");
         } else if is_filtered_run {
             println!(
                 "  Filtered run — evidence kept in staging: {}",
