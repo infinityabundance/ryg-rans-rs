@@ -167,6 +167,7 @@ fn backends(matches: &ArgMatches) -> Result<(), AppError> {
     // SIMD kernel when compiled in).
     let mut stream_a: Vec<u8> = Vec::new();
     let mut stream_b: Vec<u8> = Vec::new();
+    #[cfg(feature = "simd")]
     let mut eightway_blocks: u64 = 0;
     loop {
         match cr.read_block(|info, model_data, payload| {
@@ -177,25 +178,38 @@ fn backends(matches: &ArgMatches) -> Result<(), AppError> {
                 if block.block_kind == crate::container::BLOCK_KIND_RANS
                     && block.codec_id == codec::ids::WORD_INTERLEAVED8
                 {
-                    let model = crate::container::model::FrequencyModel::from_bytes(
-                        &block.model_data,
-                        block.scale_bits,
-                    )?;
-                    let scalar = crate::ops::decode_word_8way_scalar_explicit(
-                        block.uncompressed_length as usize,
-                        &block.payload,
-                        &model,
-                    )?;
-                    if scalar != decoded {
-                        return Err(AppError::Comparison(ComparisonError {
-                            detail: format!(
-                                "scalar reference and dispatcher outputs differ at block {}",
-                                block.block_index
-                            ),
-                        }));
+                    // `compare backends` needs the SIMD crate for the 8-way
+                    // scalar reference; without the feature the comparison
+                    // is not defined for 8-way blocks and must fail with a
+                    // typed error rather than silently skip the check.
+                    #[cfg(not(feature = "simd"))]
+                    return Err(AppError::Unsupported(crate::error::UnsupportedError {
+                        detail: format!(
+                            "8-way comparison requires the `simd` feature (CLI built with --no-default-features)"
+                        ),
+                    }));
+                    #[cfg(feature = "simd")]
+                    {
+                        let model = crate::container::model::FrequencyModel::from_bytes(
+                            &block.model_data,
+                            block.scale_bits,
+                        )?;
+                        let scalar = crate::ops::decode_word_8way_scalar_explicit(
+                            block.uncompressed_length as usize,
+                            &block.payload,
+                            &model,
+                        )?;
+                        if scalar != decoded {
+                            return Err(AppError::Comparison(ComparisonError {
+                                detail: format!(
+                                    "scalar reference and dispatcher outputs differ at block {}",
+                                    block.block_index
+                                ),
+                            }));
+                        }
+                        stream_b.extend_from_slice(&scalar);
+                        eightway_blocks += 1;
                     }
-                    stream_b.extend_from_slice(&scalar);
-                    eightway_blocks += 1;
                 } else {
                     stream_b.extend_from_slice(&decoded);
                 }
@@ -206,6 +220,11 @@ fn backends(matches: &ArgMatches) -> Result<(), AppError> {
     let _footer = cr.read_footer()?;
     cr.check_trailing_data()?;
 
+    // With the `simd` feature the 8-way reference path exists and the count
+    // must be non-zero; without it, the loop above already returned a typed
+    // Unsupported error the moment an 8-way block appeared, so the comparison
+    // is guaranteed to have either succeeded or failed explicitly.
+    #[cfg(feature = "simd")]
     if eightway_blocks == 0 {
         return Err(AppError::Backend(crate::error::BackendError {
             detail: "container has no 8-way (codec 7) blocks to compare".into(),
@@ -217,10 +236,16 @@ fn backends(matches: &ArgMatches) -> Result<(), AppError> {
             detail: "decoded streams differ between backends".into(),
         }));
     }
+    #[cfg(feature = "simd")]
     println!(
         "OK: dispatcher (SIMD when compiled) and explicit scalar 8-way produced identical output ({} bytes, {} 8-way block(s))",
         stream_a.len(),
         eightway_blocks
+    );
+    #[cfg(not(feature = "simd"))]
+    println!(
+        "OK: decoded streams identical ({} bytes; 8-way comparison unavailable without the `simd` feature)",
+        stream_a.len()
     );
     Ok(())
 }

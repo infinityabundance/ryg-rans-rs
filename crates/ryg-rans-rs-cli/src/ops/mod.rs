@@ -268,7 +268,24 @@ pub fn decode_block(
                     scale_bits,
                 ),
                 codec::ids::WORD_INTERLEAVED8 => {
-                    decode_word_8way(info.uncompressed_length as usize, payload, &model)
+                    #[cfg(feature = "simd")]
+                    {
+                        decode_word_8way(info.uncompressed_length as usize, payload, &model)
+                    }
+                    // The 8-way codec requires the SIMD crate (packed tables +
+                    // scalar/SIMD kernels).  With `--no-default-features` the
+                    // crate is not compiled in; per the no-silent-fallback
+                    // doctrine an explicit typed error is returned rather than
+                    // silently reinterpreting the stream as single-state.
+                    #[cfg(not(feature = "simd"))]
+                    {
+                        Err(AppError::Unsupported(UnsupportedError {
+                            detail: format!(
+                                "codec {} requires the `simd` feature (CLI built with --no-default-features)",
+                                codec::ids::WORD_INTERLEAVED8
+                            ),
+                        }))
+                    }
                 }
                 other => Err(AppError::Unsupported(UnsupportedError {
                     detail: format!("codec {} not supported by the CLI decoder", other),
@@ -438,6 +455,10 @@ fn decode_word_single(
 /// words before forwarding.  `decode_simd_8way` selects the SIMD kernel at
 /// compile time and falls back to its scalar 8-way reference when SSE4.1 is
 /// not compiled in.
+///
+/// Requires the `simd` feature (the optional `ryg-rans-rs-simd` dependency);
+/// callers must gate on `#[cfg(feature = "simd")]`.
+#[cfg(feature = "simd")]
 fn decode_word_8way(
     len: usize,
     payload: &[u8],
@@ -463,6 +484,10 @@ fn decode_word_8way(
 }
 
 /// Convert a byte payload to little-endian u16 words.
+///
+/// Only the 8-way codecs consume word payloads; the function is compiled in
+/// only when the `simd` feature (which provides the 8-way kernels) is on.
+#[cfg(feature = "simd")]
 fn payload_to_words(payload: &[u8]) -> Result<Vec<u16>, AppError> {
     if payload.len() % 2 != 0 {
         return Err(AppError::Format(FormatError {
@@ -479,6 +504,9 @@ fn payload_to_words(payload: &[u8]) -> Result<Vec<u16>, AppError> {
 
 /// Explicit scalar 8-way decode (codec 7) — used by `compare backends` as
 /// the reference side, independent of compile-time SIMD selection.
+///
+/// Requires the `simd` feature; the `compare` op gates its only call site.
+#[cfg(feature = "simd")]
 pub fn decode_word_8way_scalar_explicit(
     len: usize,
     payload: &[u8],
