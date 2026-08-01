@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.PERFORMANCE.EXPORT",
   "title": "Performance exporter correctness (L.1 / L.18)",
   "verdict": "passed",
-  "implementation_commit": "5457d81bc2bef742348a070594b06482235e768f",
-  "evidence_commit": "5457d81bc2bef742348a070594b06482235e768f",
+  "implementation_commit": "cbb6166dd4746e24c26daf116378bf2f95cb36bb",
+  "evidence_commit": "cbb6166dd4746e24c26daf116378bf2f95cb36bb",
   "num_cases": 10,
   "cases_passed": 10,
   "cases_failed": 0,
@@ -19,7 +19,7 @@
     "L1-F",
     "L1-J"
   ],
-  "manifest_sha256": "abbfaf373095f5bf29be746023edbfe100090928ae8df40fd75a5391563a5acc",
-  "receipt_sha256": "a3cfd969b4e2dd2cd3213145925e9733bf0c5de54fe9a349b27319ff5e217b5e",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 5457d81bc2bef742348a070594b06482235e768f --only RYG_RANS.L.PERFORMANCE.EXPORT"
+  "manifest_sha256": "5552245de74d0102605ab7fb43dc64d7642fe8c795606acb5f43d447aa322b15",
+  "receipt_sha256": "5959061073869a9ab53222045e1200cb7fb5c699032d71c9088c36899e817ba6",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit cbb6166dd4746e24c26daf116378bf2f95cb36bb --only RYG_RANS.L.PERFORMANCE.EXPORT"
 }

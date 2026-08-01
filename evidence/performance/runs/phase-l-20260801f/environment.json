@@ -1,0 +1,7 @@
+{
+  "cpu_count": 16,
+  "governor": "performance",
+  "rustflags": "-C target-cpu=native",
+  "smt": "1",
+  "smt_active": "1"
+}

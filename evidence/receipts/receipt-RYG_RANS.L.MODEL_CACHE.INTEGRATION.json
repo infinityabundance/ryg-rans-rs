@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.MODEL_CACHE.INTEGRATION",
   "title": "ModelCache production integration (L.8)",
   "verdict": "passed",
-  "implementation_commit": "5457d81bc2bef742348a070594b06482235e768f",
-  "evidence_commit": "5457d81bc2bef742348a070594b06482235e768f",
+  "implementation_commit": "cbb6166dd4746e24c26daf116378bf2f95cb36bb",
+  "evidence_commit": "cbb6166dd4746e24c26daf116378bf2f95cb36bb",
   "num_cases": 11,
   "cases_passed": 11,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "L8-A"
   ],
-  "manifest_sha256": "ede5613ed2b5c7c69632fe2819f921135f323adcefd6e7aad8e6b7157ce40649",
-  "receipt_sha256": "f2e203c00f5e0714d424c4b58e94567fa48cc607e76ac664e30d2ff6e92cac66",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 5457d81bc2bef742348a070594b06482235e768f --only RYG_RANS.L.MODEL_CACHE.INTEGRATION"
+  "manifest_sha256": "942f35f62ef4a2f93e13421e6d1527c563d5b4f4d770e5cbd7456c3052bfa3be",
+  "receipt_sha256": "bbd4559181532566499d16e44f218c7d412da7c510337c734999b99640562765",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit cbb6166dd4746e24c26daf116378bf2f95cb36bb --only RYG_RANS.L.MODEL_CACHE.INTEGRATION"
 }

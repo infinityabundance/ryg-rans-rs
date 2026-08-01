@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "alias/alias-table/construct/UNIFORM256/64KiB/iter",
+  "backend_requested": "alias-table-construct",
+  "backend_executed": "alias-table-construct",
+  "verification_passed": true,
+  "input_sha256": "6b183af492a6395144a38e57d392ee1018cf083c898cf746c3f04afc5a54ecba",
+  "output_sha256": "6b183af492a6395144a38e57d392ee1018cf083c898cf746c3f04afc5a54ecba",
+  "reference_output_sha256": "6b183af492a6395144a38e57d392ee1018cf083c898cf746c3f04afc5a54ecba",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

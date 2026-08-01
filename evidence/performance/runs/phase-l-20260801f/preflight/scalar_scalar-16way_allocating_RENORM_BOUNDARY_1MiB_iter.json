@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "scalar/scalar-16way/allocating/RENORM_BOUNDARY/1MiB/iter",
+  "backend_requested": "scalar-16way",
+  "backend_executed": "scalar-16way",
+  "verification_passed": true,
+  "input_sha256": "120d9b44c5f21f446ba372e4264a43ff98b940a31750c8dc841dbb70252aa5a4",
+  "output_sha256": "120d9b44c5f21f446ba372e4264a43ff98b940a31750c8dc841dbb70252aa5a4",
+  "reference_output_sha256": "120d9b44c5f21f446ba372e4264a43ff98b940a31750c8dc841dbb70252aa5a4",
+  "words_consumed": 65568,
+  "reference_words_consumed": 65568,
+  "final_states_sha256": "77cf337bb7c6215aee3b4dfdbce1ff110dcd5c7ee31fdc82349e109d4a562c2a",
+  "reference_final_states_sha256": "77cf337bb7c6215aee3b4dfdbce1ff110dcd5c7ee31fdc82349e109d4a562c2a",
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "allocating",
+  "status": "passed"
+}

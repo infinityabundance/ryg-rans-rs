@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "scalar/scalar-16way/into/SPARSE_2/256KiB/iter",
+  "backend_requested": "scalar-16way",
+  "backend_executed": "scalar-16way",
+  "verification_passed": true,
+  "input_sha256": "968bb968386188d29901561075ff470c23cf01b6ec5ae6fb5ae2f32e5b222f49",
+  "output_sha256": "968bb968386188d29901561075ff470c23cf01b6ec5ae6fb5ae2f32e5b222f49",
+  "reference_output_sha256": "968bb968386188d29901561075ff470c23cf01b6ec5ae6fb5ae2f32e5b222f49",
+  "words_consumed": 16411,
+  "reference_words_consumed": 16411,
+  "final_states_sha256": "77cf337bb7c6215aee3b4dfdbce1ff110dcd5c7ee31fdc82349e109d4a562c2a",
+  "reference_final_states_sha256": "77cf337bb7c6215aee3b4dfdbce1ff110dcd5c7ee31fdc82349e109d4a562c2a",
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "into",
+  "status": "passed"
+}

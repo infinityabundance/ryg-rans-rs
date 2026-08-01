@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "alias/alias-interleaved2/decode/UNIFORM256/256B/iter",
+  "backend_requested": "alias-interleaved2",
+  "backend_executed": "alias-interleaved2",
+  "verification_passed": true,
+  "input_sha256": "91cb9071ef703336dce922970e53788fa6cfd2ab277d142112218aa5054683aa",
+  "output_sha256": "91cb9071ef703336dce922970e53788fa6cfd2ab277d142112218aa5054683aa",
+  "reference_output_sha256": "91cb9071ef703336dce922970e53788fa6cfd2ab277d142112218aa5054683aa",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}
