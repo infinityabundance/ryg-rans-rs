@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "alias/alias-encode/PRIME_RESIDUE/256B/iter",
+  "backend_requested": "alias-encode",
+  "backend_executed": "alias-encode",
+  "verification_passed": true,
+  "input_sha256": "e0c7515e5f425fab621f0c5a43f1786cff945532b3202b4946bddc9dfbc4c04f",
+  "output_sha256": "e0c7515e5f425fab621f0c5a43f1786cff945532b3202b4946bddc9dfbc4c04f",
+  "reference_output_sha256": "e0c7515e5f425fab621f0c5a43f1786cff945532b3202b4946bddc9dfbc4c04f",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

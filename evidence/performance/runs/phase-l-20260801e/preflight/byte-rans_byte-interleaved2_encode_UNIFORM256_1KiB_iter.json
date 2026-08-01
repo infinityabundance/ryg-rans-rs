@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "byte-rans/byte-interleaved2/encode/UNIFORM256/1KiB/iter",
+  "backend_requested": "byte-interleaved2",
+  "backend_executed": "byte-interleaved2",
+  "verification_passed": true,
+  "input_sha256": "845e0bf145efeac1ccd6e819d15d0a49b7059f7c52d97fa4654850036bb24e17",
+  "output_sha256": "845e0bf145efeac1ccd6e819d15d0a49b7059f7c52d97fa4654850036bb24e17",
+  "reference_output_sha256": "845e0bf145efeac1ccd6e819d15d0a49b7059f7c52d97fa4654850036bb24e17",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

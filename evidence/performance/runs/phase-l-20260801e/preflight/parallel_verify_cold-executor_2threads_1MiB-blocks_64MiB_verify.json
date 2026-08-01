@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "parallel/verify/cold-executor/2threads/1MiB-blocks/64MiB/verify",
+  "backend_requested": "parallel-auto",
+  "backend_executed": "parallel-auto",
+  "verification_passed": true,
+  "input_sha256": "7461d47cebfb7d521c5629ebcc42b3721b03edbd5446298da87e0218334be677",
+  "output_sha256": "7461d47cebfb7d521c5629ebcc42b3721b03edbd5446298da87e0218334be677",
+  "reference_output_sha256": "7461d47cebfb7d521c5629ebcc42b3721b03edbd5446298da87e0218334be677",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 2,
+  "threads_effective": 2,
+  "block_count": 64,
+  "queue_capacity": 64,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

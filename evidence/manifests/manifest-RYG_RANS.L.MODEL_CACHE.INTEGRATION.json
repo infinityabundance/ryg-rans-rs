@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.MODEL_CACHE.INTEGRATION",
   "title": "ModelCache production integration (L.8)",
-  "implementation_commit": "0844f426ff6beff647d43f4937d4f65d392062a1",
+  "implementation_commit": "5457d81bc2bef742348a070594b06482235e768f",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "11 cases: 11 passed, 0 failed, 0 skipped",
   "cases": [
