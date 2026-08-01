@@ -456,6 +456,11 @@ services:
     command: >
       sh -c '
         set -e
+        # rustdoc execs its per-doctest harness binaries from $TMPDIR; the
+        # default /tmp is a noexec tmpfs in Docker, so point it at the exec-able
+        # target volume (same as the rust-stable job) or doctests fail silently.
+        export TMPDIR=/target/.doctest-tmp
+        mkdir -p "$$TMPDIR"
         echo "=== cargo test -p ryg-rans-rs-parallel ==="
         cargo test -p ryg-rans-rs-parallel 2>&1
         echo "=== cargo test --test phase_i_tests ==="
