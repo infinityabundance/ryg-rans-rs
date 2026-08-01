@@ -6,7 +6,82 @@
 
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use ryg_rans_rs_bench::common::corpus::{Corpus, ModelProfile};
+use ryg_rans_rs_bench::common::preflight::{
+    BenchmarkCaseStatus, BenchmarkPreflightRecord, emit_record,
+};
 use ryg_rans_rs_bench::common::verification;
+use sha2::Digest;
+use std::path::PathBuf;
+use std::sync::OnceLock;
+
+/// Run-local preflight directory from `RYG_RANS_PREFLIGHT_DIR`, read once.
+static PREFLIGHT_DIR: OnceLock<Option<PathBuf>> = OnceLock::new();
+
+fn preflight_dir() -> Option<PathBuf> {
+    PREFLIGHT_DIR
+        .get_or_init(|| {
+            std::env::var("RYG_RANS_PREFLIGHT_DIR")
+                .ok()
+                .map(PathBuf::from)
+        })
+        .clone()
+}
+
+fn sha256_hex(data: &[u8]) -> String {
+    let mut h = sha2::Sha256::new();
+    h.update(data);
+    let out = h.finalize();
+    let mut s = String::with_capacity(64);
+    for b in out {
+        use std::fmt::Write as _;
+        let _ = write!(s, "{:02x}", b);
+    }
+    s
+}
+
+/// Emit the preflight record for one case (before timing).  Failures are
+/// warnings only — the exporter rejects missing records later.
+fn emit(
+    benchmark_id: &str,
+    backend: &str,
+    input: &[u8],
+    output: &[u8],
+    reference: &[u8],
+    words: Option<usize>,
+    ref_words: Option<usize>,
+    states: Option<&[u32]>,
+    ref_states: Option<&[u32]>,
+) {
+    let Some(dir) = preflight_dir() else { return };
+    let final_states_sha256 = states.map(|s| sha256_hex(&states_le_bytes(s)));
+    let reference_final_states_sha256 = ref_states.map(|s| sha256_hex(&states_le_bytes(s)));
+    let record = BenchmarkPreflightRecord {
+        benchmark_id: benchmark_id.to_string(),
+        backend_requested: backend.to_string(),
+        backend_executed: backend.to_string(),
+        verification_passed: true,
+        input_sha256: sha256_hex(input),
+        output_sha256: sha256_hex(output),
+        reference_output_sha256: sha256_hex(reference),
+        words_consumed: words,
+        reference_words_consumed: ref_words,
+        final_states_sha256,
+        reference_final_states_sha256,
+        threads_requested: 1,
+        threads_effective: 1,
+        block_count: 1,
+        queue_capacity: 0,
+        allocation_mode: "into".to_string(),
+        status: BenchmarkCaseStatus::Passed,
+    };
+    if let Err(e) = emit_record(&dir, &record) {
+        eprintln!("WARN: preflight emit {}: {}", benchmark_id, e);
+    }
+}
+
+fn states_le_bytes(states: &[u32]) -> Vec<u8> {
+    states.iter().flat_map(|s| s.to_le_bytes()).collect()
+}
 
 fn avx2_available() -> bool {
     ryg_rans_rs_simd::backends::avx2_available_checked()
@@ -27,6 +102,17 @@ fn bench_uniform256_scalar(c: &mut Criterion) {
     assert_eq!(
         ref_out, corpus.data,
         "specialized uniform256 scalar preflight: output must match original"
+    );
+    emit(
+        "specialized/uniform256/scalar/into/UNIFORM256/1MiB/scalar-16way-uniform256-into",
+        "scalar-16way-uniform256",
+        &corpus.data,
+        &ref_out,
+        &corpus.data,
+        Some(_ref_report.words_consumed),
+        Some(_ref_report.words_consumed),
+        Some(&_ref_report.final_states),
+        Some(&_ref_report.final_states),
     );
 
     group.bench_function("scalar-16way-uniform256-into", |b| {
@@ -81,6 +167,17 @@ fn bench_uniform256_avx2(c: &mut Criterion) {
             &ref_report.final_states,
         );
         verification::assert_verified(&vr);
+        emit(
+            "specialized/uniform256/avx2/into/UNIFORM256/1MiB/avx2-tablefree-uniform256",
+            "avx2-uniform256",
+            &corpus.data,
+            &v_out,
+            &ref_out,
+            Some(v_rep.words_consumed),
+            Some(ref_report.words_consumed),
+            Some(&v_rep.final_states),
+            Some(&ref_report.final_states),
+        );
     }
 
     let mut group = c.benchmark_group("specialized/uniform256/avx2/into/UNIFORM256/1MiB");
