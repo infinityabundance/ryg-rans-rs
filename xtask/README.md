@@ -15,13 +15,14 @@
 3. [`check` — Pre-Release Gates](#check--pre-release-gates)
 4. [`seal` — The Authoritative Final Gate](#seal--the-authoritative-final-gate)
 5. [`performance-seal` — Performance Evidence](#performance-seal--performance-evidence)
-6. [`benchmark-run` — Phase L.18 (planned)](#benchmark-run--phase-l18-planned)
-7. [`docker` — The Docker VM Matrix](#docker--the-docker-vm-matrix)
-8. [Evidence Structure](#evidence-structure)
-9. [Evidence-Generation Workflow](#evidence-generation-workflow)
-10. [Current Limitations (L.15/L.18)](#current-limitations-l15l18)
-11. [Troubleshooting](#troubleshooting)
-12. [Versioning and Reading Order](#versioning-and-reading-order)
+6. [`benchmark-run` — The Benchmark Wrapper](#benchmark-run--the-benchmark-wrapper)
+7. [`courts-run` — Phase L Behavioural Courts](#courts-run--phase-l-behavioural-courts)
+8. [`docker` — The Docker VM Matrix](#docker--the-docker-vm-matrix)
+9. [Evidence Structure](#evidence-structure)
+10. [Evidence-Generation Workflow](#evidence-generation-workflow)
+11. [Current Limitations](#current-limitations)
+12. [Troubleshooting](#troubleshooting)
+13. [Versioning and Reading Order](#versioning-and-reading-order)
 
 ---
 
@@ -42,21 +43,23 @@ arithmetic crate.
 ## Command Inventory
 
 Every command in this table exists in `xtask/src/main.rs` today. Commands marked
-**not implemented** exit non-zero with an explicit message.
+**not implemented** exit non-zero with an explicit message — they never print
+success.
 
 | Command | Status | What it does |
 |---------|--------|--------------|
 | `cargo xtask gen` | ⚠️ not implemented | Documented as "Generate documentation"; exits 1. |
-| `cargo xtask check` | ✅ implemented | Pre-release smoke gates (no-FFI, no-upstream-source, forbid-unsafe, docs/drafts, core test count, docker matrix informational). |
+| `cargo xtask check` | ✅ implemented | Pre-release smoke gates (no-FFI, no-upstream-source, forbid-unsafe, docs/drafts, core test count, no-overclaim, docker matrix informational). |
 | `cargo xtask seal` | ✅ implemented | **The authoritative final gate** — see [below](#seal--the-authoritative-final-gate). |
 | `cargo xtask performance-seal [--criterion-dir D] [--run-dir D] [--implementation-commit H]` | ✅ implemented | Turns a Criterion tree into performance manifests, receipts, and index under the run directory. |
-| `cargo xtask benchmark-run ...` | 🚧 **planned, Phase L.18** | Does **not exist** in the current source. The Phase L.18 pipeline introduces a wrapper that runs the Criterion suite and captures preflight provenance at benchmark time (residuals L1-A…L1-N). Do not invoke it yet. |
+| `cargo xtask benchmark-run [--criterion-dir D] [--run-dir D] -- [cargo bench args]` | ✅ implemented | Provenance-bound benchmark wrapper — refuses a dirty tree, captures before/after metadata, runs the suite, writes `RUN_COMPLETE` only on full success. |
+| `cargo xtask courts-run [--implementation-commit H] [--only ID]` | ✅ implemented | Runs the fourteen Phase L behavioural courts, writes manifests/receipts, updates `evidence/index.json` + parity citations, regenerates the README table, and runs the full seal. |
 | `cargo xtask no-ffi` | ✅ implemented | Standalone FFI scan: `cargo tree -p ryg-rans-rs --invert -e no-dev`, rejects any FFI-keyworded dependency. |
 | `cargo xtask no-upstream-source` | ✅ implemented | Standalone scan of production crate `src/` trees for upstream-source inclusion patterns. |
-| `cargo xtask package-audit` | ⚠️ not implemented | Documented as "Verify cargo package"; exits 1. |
-| `cargo xtask residuals ...` | ⚠️ not implemented | Documented as "List/verify residuals"; exits 1. |
+| `cargo xtask no-overclaim` | ✅ implemented | Scans READMEs/docs/source for forbidden overclaim language (L.15). |
+| `cargo xtask package-audit` | ⚠️ not implemented | Documented as "Verify cargo package"; exits 1. (The seal's publication dry-run gate covers packaging.) |
+| `cargo xtask residuals ...` | ⚠️ not implemented | Documented as "List/verify residuals"; exits 1. (Residual accounting is enforced inside `seal`.) |
 | `cargo xtask docker [RUN_ID]` | ✅ implemented | Runs `docker/bootstrap-docker.sh` (passes `RUN_ID` through if given). |
-| `cargo xtask docker preflight` | ⚠️ note | The usage text lists `docker preflight`; the dispatcher currently treats any second argument as `RUN_ID`. Verify against the bootstrap script before relying on preflight. |
 
 ---
 
@@ -74,7 +77,8 @@ Every command in this table exists in `xtask/src/main.rs` today. Commands marked
    the actual count, fails below **50**.
 6. **no-ffi facade** — `crates/ryg-rans-rs/src/lib.rs` must contain
    `#![forbid(unsafe_code)]`.
-7. **Docker matrix** — checks `evidence/docker-matrix.json`; **informational in
+7. **no-overclaim** — the forbidden-phrase scan (L.15).
+8. **Docker matrix** — checks `evidence/docker-matrix.json`; **informational in
    `check`** (a failure is reported but does not block).
 
 `check` is a smoke gate, not the seal. Only `seal` is authoritative.
@@ -85,34 +89,47 @@ Every command in this table exists in `xtask/src/main.rs` today. Commands marked
 
 `cargo xtask seal` is the **single authoritative final gate**. No claim in the
 READMEs may be marked **Sealed** until this gate passes fully. It is designed to
-**never print success for a skipped verification**; the one tracked exception is
-noted below (L1-R / L20-A).
+**never print success for a skipped verification**: every check either verifies
+for real or reports that the artifact carries no verifiable field — it never
+prints "verified" after skipping.
 
-The gate currently runs, in order:
+The gate runs, in order:
 
 | # | Gate | What it checks |
 |---|------|----------------|
-| 0 | **Dirty-tree** | `git status --porcelain=v1`; rejects uncommitted changes to covered paths. Exempted: `evidence/`, `docs/`, `Cargo.lock`, `.gitignore`, any `*/README.md`, `README.md`, `xtask/README.md`. |
+| 0 | **Dirty-tree** | `git status --porcelain=v1`; rejects uncommitted changes to covered paths. Exempted: `evidence/`, `docs/`, `docs-src/models/parity.model.json`, `Cargo.lock`, `.gitignore`, any `*/README.md`, `README.md`, `xtask/README.md`. |
 | 1 | **Workspace check** | `cargo check --workspace` exits 0. |
 | 2 | **Core tests** | `cargo test -p ryg-rans-rs-core` passes. |
-| 3 | **Parity model valid** | `docs-src/models/parity.model.json` is well-formed JSON. |
-| 4 | **Upstream exists** | `docs-src/models/upstream.json` is present. |
-| 5 | **Claims have receipts** | Every claim with `behavior_status: "full"` cites a non-empty `receipt` ID. |
-| 5a | **Court path valid** | Each cited receipt's `court_path` matches its variant (`DIVISION`/`RECIPROCAL` for byte/r64, `DIVISION` for word). |
-| 5b | **Receipts exist + verdict** | Every cited `evidence/receipts/receipt-<id>.json` exists, has verdict `admitted_match`, `num_cases`/`case_count` > 0, a non-empty `manifest_sha256`, and `pairs_matched == pairs_compared`. |
-| 5c | **Index ↔ parity model** | Every index receipt is cited in the parity model and every cited receipt is in the index (bidirectional). |
-| 5d | **Receipt SHA-256** | Every index entry's `sha256` equals the SHA-256 of the receipt file; each receipt's `code_commit` is an ancestor of `HEAD`. |
-| 5e | **Manifest SHA-256** | Every manifest's SHA-256 equals the receipt's `manifest_sha256`. |
-| 5f | **Receipt self-hash** | ⚠️ **Currently skipped.** The code `continue`s past self-hash verification for all receipts (the Phase A-F vs Phase G harnesses serialize differently, so hashes are incompatible). The gate then prints "all receipt SHA-256 self-hashes verified" — this is exactly the defect tracked as **L1-R** (behavioural self-hash verification falsely reports success after skipping) and **L20-A** (the gate must never print success for skipped checks). Until L.20, do not treat the self-hash line as real verification. |
-| 5f′ | **Source freshness** | `git diff --name-only <earliest code_commit>..HEAD`; only `evidence/`, `docs/`, `docs-src/`, `xtask/`, `docker/`, `.cargo/`, `.gitignore`, root `Cargo.toml`/`Cargo.lock`, `README.md`, and crate `Cargo.toml` version bumps may differ. Oracle-crate source changes require a reseal. |
-| 6 | **Forbid unsafe** | `#![forbid(unsafe_code)]` present in core and casefile crate roots. |
-| 7 | **Docker matrix** | `evidence/docker-matrix.json`: schema ≥ 2, `run_id`, `git_commit`, `all_passed`, `job_count == 11`, every one of the 11 expected jobs (oracle-gcc, package-audit, msrv, cross-aarch64, rust-musl-build, sanitizers, rust-stable-tests, cross-court, miri, performance, parallel-stable) present with `exit_code == 0` and a non-empty `log_sha256`; `git_commit` must match the evidence index `code_commit`. |
+| 3 | **Workspace tests** | `cargo test --workspace` passes (L.20 gate 3). |
+| 4 | **Parity model valid** | `docs-src/models/parity.model.json` is well-formed JSON. |
+| 5 | **Upstream exists** | `docs-src/models/upstream.json` is present. |
+| 6 | **Claims have receipts** | Every claim with `behavior_status: "full"` cites a non-empty `receipt` ID. |
+| 7 | **Court path valid** | Each cited receipt's `court_path` matches its variant (`DIVISION`/`RECIPROCAL` for byte/r64, `DIVISION` for word). |
+| 8 | **Receipts exist + verdict** | Every cited `evidence/receipts/receipt-<id>.json` exists, has verdict `admitted_match`, `num_cases` > 0, non-empty `manifest_sha256`, `pairs_matched == pairs_compared`. |
+| 9 | **Phase L courts** | The parity model's `phase_l_courts` array equals the expected 14 IDs; every Phase L receipt has verdict `passed`, zero failed cases, a manifest hash, and an implementation commit that is an ancestor of HEAD. |
+| 10 | **Index ↔ parity model** | Every index receipt is cited in the parity model and every cited receipt is in the index (bidirectional). |
+| 11 | **Receipt SHA-256** | Every index entry's `sha256` equals the SHA-256 of the receipt file; each receipt's `code_commit` is an ancestor of `HEAD`. |
+| 12 | **Manifest SHA-256** | Every manifest's SHA-256 equals the receipt's `manifest_sha256`. |
+| 13 | **Receipt self-hash** | Phase L receipt self-hashes are verified with the typed struct (field order preserved, `receipt_sha256` emptied). Legacy oracle receipts (Phase A-G, two serialization schemes) are reported as "no verifiable canonical scheme" — never falsely verified (L1-R). |
+| 14 | **Source freshness** | `git diff --name-only <code_commit>..HEAD`; only `evidence/`, `docs/`, `docs-src/`, `xtask/`, `docker/`, `.cargo/`, `.gitignore`, root `Cargo.toml`/`Cargo.lock`, `README.md`, crate `Cargo.toml` version bumps, and the listed crate READMEs may differ. Oracle-crate source changes require a reseal. |
+| 15 | **Forbid unsafe** | `#![forbid(unsafe_code)]` in core and casefile crate roots. |
+| 16 | **Docker matrix** | `evidence/docker-matrix.json`: schema ≥ 2, `run_id`, `git_commit` (must prefix-match the evidence index `code_commit`), `all_passed`, `job_count == 11`, every expected job present with `exit_code == 0` and a non-empty `log_sha256`. |
+| 17 | **Performance evidence** | Top-level index (10 entries, exact set equality), active run dir, run-index SHA-256, run-manifest commit + Cargo.lock SHA-256 binding (L1-F), every receipt final-file + canonical self-hash, manifests, results JSON/CSV, host.json/commands.log hashes, raw Criterion archive, sealed verdicts, sample-count minimums, finite numerics, ordered confidence intervals, backend identity. |
+| 18 | **README evidence counts** | The README Evidence Status totals row matches the behavioural and performance indexes (generated, never hand-edited). |
+| 19 | **Unsafe ledger** | `cargo test -p ryg-rans-rs-simd --test unsafe_ledger` (bidirectional source↔ledger equality). |
+| 20 | **Disassembly courts** | `cargo test -p ryg-rans-rs-simd --test disasm_court`. |
+| 21 | **No unexpected binaries** | No `*.o/*.a/*.so/*.dylib/*.dll/*.exe/*.profraw/*.profdata/*.rlib/*.rmeta` outside `target/`/`evidence/`/`oracle/adapter`. |
+| 22 | **Crate version consistency** | All publishable crates share one version. |
+| 23 | **Cargo.lock consistency** | `Cargo.lock` is present and contains the workspace crates. |
+| 24 | **Overclaim language** | No forbidden overclaim phrase anywhere (L.15/L.20 gate 40). |
+| 25 | **Publication dry-run** | `cargo package -p <each publishable crate> --allow-dirty --no-verify` (L.20 gate 35). |
+| 26 | **Documentation links** | Markdown links in READMEs and `docs/` resolve (L.20 gate 36). |
+| 27 | **rustdoc warnings** | `cargo doc --workspace --no-deps` emits no warnings (L.20 gate 37). |
+| 28 | **README doctests** | `cargo test -p ryg-rans-rs --doc` passes (L.20 gate 38). |
+| 29 | **Public API inventory** | `docs/public-api/*.txt` exists for every publishable crate (L.20 gate 39). |
+| 30 | **Residual accounting** | Any `OPEN` residual in the ledger's L.19/L.20 sections blocks the seal (L.20 gate 28). |
 
-**Phase L.20** expands the seal gate to ~40 checks, including validating
-performance evidence end-to-end (top-level index, run index, receipt file hashes,
-canonical self-hashes, manifests, archive integrity, preflight records,
-backend/thread identity, README regeneration) — see the root README's seal table
-and residual **L1-Q / L20-A**.
+Any accumulated warning fails the command with a non-zero exit.
 
 ---
 
@@ -120,8 +137,8 @@ and residual **L1-Q / L20-A**.
 
 `cargo xtask performance-seal` converts a Criterion measurement tree into
 performance evidence. **It does not run benchmarks** — the Criterion suite runs
-first (via `cargo bench -p ryg-rans-rs-bench` today, via the planned
-`benchmark-run` wrapper in Phase L.18).
+first via `cargo xtask benchmark-run` (below), which also captures the preflight
+sidecar records this exporter joins against.
 
 ### Arguments
 
@@ -133,54 +150,107 @@ first (via `cargo bench -p ryg-rans-rs-bench` today, via the planned
 
 `run_id` is always the current git HEAD hash; `host_id` is `<hostname>-<arch>`.
 
-### What it does (15 steps)
+### What it does
 
-1. Verifies clean git state (dirty tree → warning, recorded).
+1. Verifies clean git state (dirty source tree → warning, recorded; evidence
+   paths are expected untracked).
 2. Collects host metadata (`/proc/cpuinfo`, SMT state, governor, rustc, Criterion
-   version, `RUSTFLAGS`) into a hashed JSON.
-3. Loads Criterion results via `ryg_rans_rs_bench::exporter::load_criterion_estimates`.
-4. Groups records into the **10 expected performance surfaces**
+   version, `RUSTFLAGS`) into a hashed JSON; hashes the exact run-dir
+   `host.json` file bytes when present (L1-H).
+3. Loads Criterion results via
+   `ryg_rans_rs_bench::exporter::load_criterion_estimates` — benchmark identity
+   comes from `benchmark.json` (`full_id`), sample counts from `sample.json`,
+   byte counts from `throughput.Bytes`/`Elements` (L1-B/L1-C/L18-D).
+4. Joins every Criterion estimate with its benchmark-run **preflight record**
+   (L1-D): missing, duplicate, or failed preflight is a hard error; backend
+   identity, output hashes, words-consumed, and final-state hashes come from
+   the preflight, never fabricated.
+5. Groups records into the **10 expected performance surfaces**
    (`RYG_RANS.PERF.BYTE`, `.R64`, `.WORD.SCALAR`, `.ALIAS`, `.SSE41.INTERLEAVED8`,
    `.AVX512VL.INTERLEAVED8`, `.AVX512.INTERLEAVED16`, `.PHASE_H`, `.PHASE_J.AVX2`,
    `.PHASE_I.PARALLEL`); unclassified IDs are warnings.
-5. Creates `<run-dir>/{manifests,receipts}`.
-6. Writes per-surface canonical `results.json`/`results.csv` (via
-   `exporter::export_summary`).
-7. Archives the Criterion tree to `<run-dir>/criterion.tar.zst` (zstd level 3).
-   Note: the current tar writer truncates names at 99 bytes — residual **L1-K**.
-8. Hashes every artifact. The **commands log is currently empty** (residual
-   **L1-G**).
-9. Writes one `PerformanceManifest` per surface (all cases, artifact hashes, host
-   metadata, `dirty_tree` flag).
-10. Writes one `PerformanceReceipt` per surface with a computed self-hash.
-11. Writes `<run-dir>/index.json` (`PerformanceIndex`: implementation commit,
-    run ID, host ID, receipt entries).
+6. Creates `<run-dir>/{manifests,receipts}` and writes per-surface canonical
+   `results.json`/`results.csv`.
+7. Archives the Criterion tree to `<run-dir>/criterion.tar.zst` with the `tar`
+   crate (PAX long-name support — paths are never truncated; L1-K).
+8. Hashes every artifact: the exact `commands.log` bytes (an empty or missing
+   commands log is a seal-visible defect, L1-G), the exact `host.json` bytes,
+   the archive, results, and each receipt's final file bytes.
+9. Writes one `PerformanceManifest` per surface (all cases, artifact hashes,
+   host metadata, `dirty_tree` flag).
+10. Writes one `PerformanceReceipt` per surface with typed verdicts
+    (`SealedMeasurement`/`SealedWithResiduals`/`Rejected`), a canonical
+    self-hash, and a final-file hash (L1-L/L1-M).
+11. Writes `<run-dir>/index.json` (`PerformanceIndex`).
 12. Validates set equality: expected IDs == receipt IDs == manifest IDs == index
-    IDs.
-13. Validates every receipt's `manifest_sha256` against the actual manifest hash.
-14. Verifies receipt self-hashes (zero the field, re-serialize, re-hash).
-15. Prints a per-surface summary table; **any accumulated warning fails the
-    command** (non-zero exit).
+    IDs, and every receipt's `manifest_sha256` against the actual manifest.
+13. Verifies receipt self-hashes for real (zero the field, re-serialize with the
+    typed struct, re-hash).
+14. Prints a per-surface summary table; **any accumulated warning fails the
+    command**.
 
 ---
 
-## `benchmark-run` — Phase L.18 (planned)
+## `benchmark-run` — The Benchmark Wrapper
 
-The **current source has no `benchmark-run` command**. Per `AGENTS.md` and the
-root README, Phase L.18 introduces it as the wrapper that runs the Criterion suite
-and captures benchmark-time provenance (backend requested/executed, input/output
-hashes, words consumed, final states, thread counts — the **preflight** channel
-that the current exporter lacks, residuals L1-A…L1-N). The planned invocation
-shape is:
+`cargo xtask benchmark-run` is the provenance-bound wrapper that executes the
+Criterion suite (residuals L1-E/L1-F). `performance-seal` consumes only runs it
+produced.
 
 ```sh
-cargo xtask benchmark-run --criterion-dir target/criterion \
-  --implementation-commit "$(git rev-parse HEAD)"
+RUSTFLAGS="-C target-cpu=native" cargo xtask benchmark-run \
+  --criterion-dir target/criterion \
+  --run-dir evidence/performance/runs/<run-id> \
+  -- --bench byte_rans --bench r64 --bench alias --bench scalar --bench sse41 \
+     --bench avx2 --bench avx512 --bench parallel --bench specialized
 ```
 
-followed by `cargo xtask performance-seal ...` and then `cargo xtask seal`.
-Until L.18 lands, the Phase K run (`evidence/performance/runs/phase-k-20260731-004044/`)
-remains archived as **superseded** evidence and no performance claim is Sealed.
+It:
+
+1. **Refuses a dirty tree** (any uncommitted change, including `evidence/`).
+2. Establishes a run identity and **clears/isolates the Criterion tree** so stale
+   measurements from earlier runs cannot leak into the export.
+3. Captures metadata **before compilation**: commit, tree SHA, `Cargo.lock`
+   SHA-256, rustc identity, `RUSTFLAGS`, bench args, timestamp; writes
+   `run-manifest.json`.
+4. Writes `host.json`, `cpuinfo.txt`, `rustc-vV.txt`, and `environment.json` as
+   artifacts (L1-H/L1-I/L1-J).
+5. Runs the bench suite with `RYG_RANS_PREFLIGHT_DIR` pointing at the run's
+   `preflight/` directory — every benchmark case emits a
+   `BenchmarkPreflightRecord` sidecar before timing (L1-D).
+6. Captures metadata **after execution**; refuses to proceed if the tree or
+   `Cargo.lock` changed materially during the run.
+7. Writes `commands.log` (workdir, command line, rustflags, preflight dir, start,
+   exit status, finish, post-run tree SHA) — never empty (L1-G).
+8. Writes `RUN_COMPLETE` **only after every benchmark finished successfully**.
+
+---
+
+## `courts-run` — Phase L Behavioural Courts
+
+`cargo xtask courts-run [--implementation-commit H] [--only ID]` executes the
+fourteen Phase L behavioural courts (real code paths, per-case verdicts):
+
+- `RYG_RANS.L.VERIFY.DECODED_HASH` — decoded-hash integrity matrix (L.2)
+- `RYG_RANS.L.INTEGRITY.STRICT` — strict vs compatibility integrity policy
+- `RYG_RANS.L.CANCEL.COMPLETENESS` — cancellation completeness counters (L.3)
+- `RYG_RANS.L.EXECUTOR.BOUNDED` — bounded live pipeline, input/output budgets (L.4)
+- `RYG_RANS.L.REORDER.ATOMIC_COMMIT` — atomic reorder commit, exhaustive perms (L.5)
+- `RYG_RANS.L.CONFIG.WIRING` — every `ParallelConfig` field observable (L.6)
+- `RYG_RANS.L.SCRATCH.INTEGRATION` — `WorkerScratch` in production (L.7)
+- `RYG_RANS.L.MODEL_CACHE.INTEGRATION` — `ModelCache` hits/eviction/equivalence (L.8)
+- `RYG_RANS.L.BACKEND.EXPLICIT` — exact backend semantics, format matrix (L.9)
+- `RYG_RANS.L.SSE41.UNSAFE_QUARANTINE` — ledger equality, target features (L.10)
+- `RYG_RANS.L.PERFORMANCE.EXPORT` — exporter canonical-identity correctness
+- `RYG_RANS.L.PERFORMANCE.ARCHIVE` — deterministic tar round-trip, traversal
+- `RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN` — dual receipt hashes, run index chain
+- `RYG_RANS.L.PUBLIC_API.REACHABILITY` — no disconnected public API (L.13)
+
+It writes `evidence/manifests/manifest-<id>.json` and
+`evidence/receipts/receipt-<id>.json` (typed verdicts, canonical self-hash),
+upserts `evidence/index.json`, updates the parity model `phase_l_courts`
+citations, regenerates the README Evidence Status table from the indexes, and
+then runs the full seal gate. It refuses a dirty source tree first.
 
 ---
 
@@ -191,8 +261,10 @@ remains archived as **superseded** evidence and no performance claim is Sealed.
 rust-stable-tests, rust-musl-build, package-audit, cross-court, miri, msrv,
 cross-aarch64, sanitizers, performance, parallel-stable), built from the
 Dockerfiles in `docker/dockerfiles/`. The run stamps
-`evidence/docker-matrix.json`, which the seal gate verifies (gate 7). The matrix
-is mandatory evidence: `seal` fails without a valid stamp.
+`evidence/docker-matrix.json`, which the seal gate verifies (gate 16). The matrix
+is mandatory evidence: `seal` fails without a valid stamp whose `git_commit`
+prefix-matches the evidence index `code_commit` — the matrix must run from the
+exact source commit that produced the evidence.
 
 ---
 
@@ -206,14 +278,20 @@ evidence/
 ├── manifests/
 │   └── manifest-<court_id>.json← all cases, streams, per-case verdicts
 ├── performance/
+│   ├── index.json              ← canonical top-level index (active run, run-index SHA-256, dual receipt hashes)
 │   └── runs/
 │       └── <run-id>/
 │           ├── index.json          ← PerformanceIndex
 │           ├── criterion.tar.zst   ← archived Criterion raw tree
 │           ├── manifests/          ← manifest-<PERF_ID>.json (10 surfaces)
 │           ├── receipts/           ← receipt-<PERF_ID>.json (10 surfaces)
+│           ├── preflight/          ← per-case BenchmarkPreflightRecord sidecars
+│           ├── run-manifest.json   ← before/after provenance (commit, tree, lock SHA, rustc, RUSTFLAGS)
+│           ├── host.json, cpuinfo.txt, rustc-vV.txt, environment.json
+│           ├── commands.log        ← execution-order command log (never empty)
+│           ├── RUN_COMPLETE        ← written only after full success
 │           └── RYG_RANS.PERF.*/    ← per-surface results.json / results.csv
-├── docker-matrix.json          ← 11-job matrix stamp (seal gate 7)
+├── docker-matrix.json          ← 11-job matrix stamp (seal gate 16)
 └── phase-l/
     ├── gap-ledger.md           ← every residual, severity, status, resolution commit
     ├── baseline/               ← Phase L.0 baseline metadata
@@ -221,9 +299,9 @@ evidence/
 ```
 
 Hash chains: the behavioural chain is `index → receipt (manifest_sha256) →
-manifest`; performance artifacts carry their own per-artifact SHA-256s and a
-receipt self-hash. The seal gate recomputes the behavioural index/receipt/manifest
-hashes and the performance pipeline recomputes artifact hashes at generation time.
+manifest`; performance artifacts carry their own per-artifact SHA-256s, a
+receipt canonical self-hash, and a final-file hash, joined through the run index
+to the canonical top-level index (L1-L/L1-P).
 
 ---
 
@@ -233,45 +311,54 @@ hashes and the performance pipeline recomputes artifact hashes at generation tim
 # 1. Build the oracle adapter (behavioural evidence)
 cd oracle/adapter && make
 
-# 2. Generate behavioural evidence (staging → atomic promotion on success)
+# 2. Generate behavioural evidence (128 oracle courts; merges, never replaces)
 RANS_EVIDENCE_DIR=evidence cargo run -p ryg-rans-rs-oracle -- \
-    oracle/adapter/rans_trace 12 42 20
+    oracle/adapter/rans_trace 12 42
 
-# 3. Run the Docker matrix (mandatory for seal)
+# 3. Generate the 16 AVX512 Phase G receipts (host must support AVX512)
+RUSTFLAGS="-C target-feature=+avx512f,+avx512vl,+avx512bw" \
+    cargo run --release -p ryg-rans-rs-oracle --bin run-phase-g -- \
+    oracle/adapter/rans_trace
+
+# 4. Run the Docker matrix (mandatory for seal; must run at the evidence commit)
 cargo xtask docker
 
-# 4. Performance evidence (Phase L.18 pipeline; benchmark-run is planned)
-RUSTFLAGS="-C target-cpu=native" cargo bench -p ryg-rans-rs-bench
+# 5. Performance evidence: provenance-bound benchmark run, then seal
+RUSTFLAGS="-C target-cpu=native" cargo xtask benchmark-run \
+  --criterion-dir target/criterion \
+  --run-dir evidence/performance/runs/<run-id> \
+  -- --bench byte_rans --bench r64 --bench alias --bench scalar --bench sse41 \
+     --bench avx2 --bench avx512 --bench parallel --bench specialized
 cargo xtask performance-seal --criterion-dir target/criterion \
   --run-dir evidence/performance/runs/<run-id> \
   --implementation-commit "$(git rev-parse HEAD)"
 
-# 5. The authoritative final gate — must pass fully before any "Sealed" claim
+# 6. Run the fourteen Phase L behavioural courts (also regenerates README)
+cargo xtask courts-run --implementation-commit "$(git rev-parse HEAD)"
+
+# 7. The authoritative final gate — must pass fully before any "Sealed" claim
 cargo xtask seal
 ```
 
-The seal gate is the single authoritative final gate (L.20 expands it to ~40
-checks); it must pass fully before any "Sealed" claim is made, and it never
-prints success for skipped verifications.
+The seal gate is the single authoritative final gate; it must pass fully before
+any "Sealed" claim is made, and it never prints success for skipped verifications.
 
 ---
 
-## Current Limitations (L.15/L.18)
+## Current Limitations
 
-1. **`benchmark-run` does not exist yet** — planned for Phase L.18; the Phase K
-   performance run is superseded (residuals L1-A…L1-S).
-2. **Behavioural receipt self-hash verification is skipped** in `seal` (L1-R /
-   L20-A) — see gate 5f above.
-3. **Commands log is empty** in `performance-seal` (L1-G); **host metadata is
-   hashed but not stored as an artifact** (L1-H); **CPU features are compile-time
-   cfg on the sealer binary** (L1-I); **RUSTFLAGS can be empty in manifests**
-   (L1-J); the **tar writer truncates 99-byte names** (L1-K); the **index sha256
-   conflates self-hash and file hash** (L1-L).
-4. **`seal` does not yet validate performance evidence** (L1-Q / L20-A).
-5. `gen`, `package-audit`, and `residuals` are documented but unimplemented.
-6. The `check` command's Docker-matrix check is informational only.
+1. `gen`, `package-audit`, and `residuals` are documented but unimplemented
+   (they exit non-zero with an explicit message). The seal gate covers packaging
+   (publication dry-run) and residual accounting internally.
+2. The `check` command's Docker-matrix check is informational only; the seal's
+   is mandatory.
+3. Legacy oracle behavioural receipts (Phase A-G) predate a single canonical
+   serialization scheme; the seal reports them as "no verifiable canonical
+   scheme" rather than verifying (L1-R) — Phase L court receipts ARE verified.
+4. Hardware performance counters (perf) are unavailable on the reference host;
+   component isolation uses software decomposition (L17-C, accepted).
 
-All of the above are tracked in
+All residuals are tracked in
 [`evidence/phase-l/gap-ledger.md`](../evidence/phase-l/gap-ledger.md) — residuals
 are never deleted; they are resolved or accepted.
 
@@ -281,14 +368,16 @@ are never deleted; they are resolved or accepted.
 
 | Symptom | Cause / Fix |
 |---------|-------------|
-| `seal` fails: `dirty working tree: uncommitted change to '...'` | Commit or stash changes to covered source files. READMEs, docs, evidence, Cargo.lock, and .gitignore are exempt. |
-| `seal` fails: `docker-matrix.json ... job_count=10 (expected 11)` | The matrix stamp is stale; rerun `cargo xtask docker` (11 services). |
-| `seal` fails: `docker-matrix.json not found` | The Docker matrix has not been run; `cargo xtask docker` is mandatory evidence. |
-| `seal` fails: `test count N is below expected minimum of 50` | `cargo test -p ryg-rans-rs-core -- --list` found fewer than 50 tests. |
+| `seal` fails: `dirty working tree: uncommitted change to '...'` | Commit or stash changes to covered source files. READMEs, docs, evidence, Cargo.lock, parity model, and .gitignore are exempt. |
+| `seal` fails: `docker-matrix.json ... job_count=10 (expected 11)` | The matrix stamp is stale; rerun `cargo xtask docker` (11 services) at the evidence commit. |
+| `seal` fails: `docker-matrix.json git_commit=... does not match evidence code_commit` | The Docker matrix must run from the exact source commit that produced the evidence (short SHA prefix match). Check out the evidence commit and re-run. |
+| `seal` fails: `run-manifest Cargo.lock SHA-256 ... does not match` | `Cargo.lock` changed after the benchmark run; re-run the benchmark suite at the sealed commit. |
 | `seal` fails: `receipt ... SHA-256 mismatch` | A receipt file was edited by hand or the index is stale. Regenerate evidence (files under `evidence/` are machine-generated — never hand-edit). |
 | `seal` fails: `source file changed after code_commit ...` | Covered source changed since the evidence commit; reseal or accept only via the allowlist. |
-| `performance-seal` fails with accumulated warnings | Any warning (empty surface, unclassified IDs, dirty tree, hash mismatch, missing archive) fails the command — fix the underlying run and retry. |
-| `error: gate not implemented: ...` | The command is one of `gen`, `package-audit`, `residuals` — intentionally unimplemented. |
+| `seal` fails: `open residuals in the L.19/L.20 sections` | Update the gap ledger: every residual this seal implements must be resolved (or explicitly accepted) before sealing. |
+| `performance-seal` fails with accumulated warnings | Any warning (empty surface, unclassified IDs, dirty tree, hash mismatch, missing archive, missing preflight) fails the command — fix the underlying run and retry. |
+| `benchmark-run` refuses a dirty tree | Commit or stash everything (including `evidence/`) before running; the wrapper requires a fully clean tree. |
+| `error: gate not implemented: ...` | The command is one of `gen`, `package-audit`, `residuals` — intentionally unimplemented (covered inside `seal`). |
 | `error: unknown command: ...` | Typo; see the usage text printed by `cargo xtask` with no arguments. |
 
 ---
@@ -309,4 +398,4 @@ are never deleted; they are resolved or accepted.
 
 ---
 
-*Part of the ryg-rans-rs project. Package version 0.1.0. Phase L.15 documentation pass.*
+*Part of the ryg-rans-rs project. Package version 0.1.0. Phase L.20 documentation pass.*

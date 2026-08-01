@@ -250,11 +250,11 @@ SSSE3 + SSE4.1 support, exactly as its documentation states.
   tests shown above (`cargo test -p ryg-rans-rs`).
 - The underlying surfaces carry the project evidence: the Phase K baseline of
   **144 behavioural receipts** across the core/SIMD surfaces (byte, R64,
-  word, alias, SSE4.1, AVX512VL.INTERLEAVED8, AVX512.INTERLEAVED16), with the
-  Phase L courts extending the total.  Performance receipts are being
-  re-sealed in Phase L.18 (the Phase K run is superseded — gap ledger
-  L1-A…L1-S); no performance claim is marked **Sealed** until the seal gate
-  passes.
+  word, alias, SSE4.1, AVX512VL.INTERLEAVED8, AVX512.INTERLEAVED16), extended
+  by the 14 Phase L behavioural courts (total 158, generated from
+  `evidence/index.json`, never hardcoded).  The ten performance receipts are
+  sealed from the active benchmark run (`evidence/performance/index.json`);
+  the Phase K performance run is superseded (gap ledger L1-A…L1-S).
 - Claim-check path: claim → producing code path (in `ryg-rans-rs-core` or
   `ryg-rans-rs-simd`) → court/test → receipt in `evidence/` → `cargo xtask
   seal`.

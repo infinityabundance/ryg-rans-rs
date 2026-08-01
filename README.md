@@ -2,7 +2,7 @@
 
 > **A native Rust forensic reconstruction of Fabian Giesen's public-domain `ryg_rans`**
 >
-> **144 sealed behavioural receipts · 10 performance receipts** across 7 algorithmic surfaces
+> **158 sealed behavioural receipts · 10 performance receipts** across 7 algorithmic surfaces
 >
 > **Phases A–G:** Byte rANS · 64-bit rANS · Word rANS · Alias method · SSE4.1 · AVX512VL · AVX512
 >
@@ -95,9 +95,10 @@ parity courts:
 | **Phase I — Parallel block engine** | **Bounded executor, fixed-block plan, ordered commit** | ✅ **Test-verified** |
 | **CLI** | **`ryg-rans` with 10 wired subcommands** | ✅ **Implemented** (20 CLI tests) |
 
-The behavioural counts above are the Phase K baseline of **144 receipts**; the
-Phase L courts extend the total, and the README table is regenerated from the
-evidence index by the seal machinery (never hand-edited).
+The behavioural counts above are the sealed totals: **158 receipts** (144
+oracle/upstream-parity courts + 14 Phase L behavioural courts); the README
+table is regenerated from the evidence index by the seal machinery (never
+hand-edited).
 
 ---
 
@@ -381,7 +382,7 @@ ryg-rans-rs-cli
 | **3. Fuzzing** | cargo-fuzz targets | Byte/R64/Word/Alias/AVX512 round-trip + malformed |
 | **4. Formal proofs** | Kani harnesses | Arithmetic correctness, bounds, inversion |
 | **5. Mask exhaustion** | All 256 (8-way) + 65536 (16-way) renorm masks | Separate test binary |
-| **6. Cross-decode courts** | C↔Rust bitstream comparison | 144 behavioural receipts |
+| **6. Cross-decode courts** | C↔Rust bitstream comparison | 144 oracle + 14 Phase L behavioural receipts |
 | **7. Unsafe ledger** | Every unsafe function documented | Bidirectional ledger↔source test + disassembly courts |
 | **8. Panic containment** | Worker panic isolation via catch_unwind | Parallel engine |
 | **9. Bounded queues** | Bounded job/result channels with live coordinator | Parallel engine |

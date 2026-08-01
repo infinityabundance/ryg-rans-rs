@@ -10,8 +10,10 @@ CLI.
 - Workspace: `core` (codec arithmetic, no_std), `simd` (SSE4.1/AVX2/AVX-512),
   `parallel` (bounded executor, reorder, cache, scratch), `cli` (`ryg-rans`
   binary), `oracle`, `casefile`, `bench` (Criterion), `xtask` (seal tooling).
-- Evidence: 144 behavioural receipts (Phase K baseline) + Phase L courts;
-  10 performance receipts; all bound through `evidence/` with SHA-256 chains.
+- Evidence: 158 behavioural receipts (144 oracle baseline + 14 Phase L
+  courts; generated from `evidence/index.json`) + 10 performance receipts
+  (sealed run, `evidence/performance/index.json`); all bound through
+  `evidence/` with SHA-256 chains.
 - Frozen invariants: bit-exact upstream parity, determinism, strict
   integrity, no silent backend substitution, no inert config fields.
 - Host: AMD Ryzen 7 9800X3D, 8 cores / 16 threads, Linux, rustc 1.96.0.
