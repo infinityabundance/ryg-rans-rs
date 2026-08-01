@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-07-29",
+  "last_updated": "2026-08-01",
   "surfaces": [
     {
       "id": "byte.division",
@@ -101,7 +101,9 @@
           "performance_status": "unsealed",
           "receipt": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12"
         }
-      ]
+      ],
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.BYTE"
     },
     {
       "id": "byte.reciprocal",
@@ -202,7 +204,9 @@
           "performance_status": "unsealed",
           "receipt": "RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12"
         }
-      ]
+      ],
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.BYTE"
     },
     {
       "id": "byte.interleaved",
@@ -307,7 +311,9 @@
           "performance_status": "unsealed",
           "receipt": "RYG_RANS.BYTE.RECIPROCAL.INTERLEAVED2.UNIFORM256.S12"
         }
-      ]
+      ],
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.BYTE"
     },
     {
       "id": "word.rANS",
@@ -420,7 +426,9 @@
           "performance_status": "unsealed",
           "receipt": "RYG_RANS.WORD.DIVISION.INTERLEAVED2.UNIFORM256.S12"
         }
-      ]
+      ],
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.WORD.SCALAR"
     },
     {
       "id": "rans64.division",
@@ -520,7 +528,9 @@
           "performance_status": "unsealed",
           "receipt": "RYG_RANS.R64.DIVISION.SINGLE_STATE.UNIFORM256.S12"
         }
-      ]
+      ],
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.R64"
     },
     {
       "id": "rans64.reciprocal",
@@ -622,7 +632,9 @@
           "performance_status": "unsealed",
           "receipt": "RYG_RANS.R64.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12"
         }
-      ]
+      ],
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.R64"
     },
     {
       "id": "rans64.interleaved",
@@ -727,14 +739,20 @@
           "performance_status": "unsealed",
           "receipt": "RYG_RANS.R64.RECIPROCAL.INTERLEAVED2.UNIFORM256.S12"
         }
-      ]
+      ],
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.R64"
     },
     {
       "id": "sse41.decoder",
       "name": "SSE4.1 SIMD decoder (8-way interleaved)",
       "implementation_status": "full",
       "upstream_file": "rans_word_sse41.h",
-      "functions": ["RansSimdDecSym", "RansSimdDecRenorm", "RansSimdDecInit"],
+      "functions": [
+        "RansSimdDecSym",
+        "RansSimdDecRenorm",
+        "RansSimdDecInit"
+      ],
       "claims": [
         {
           "profile": "INTERLEAVED8.UNIFORM256.S12",
@@ -785,14 +803,19 @@
           "receipt": "RYG_RANS.SIMD.INTERLEAVED8.LENGTH.BOUNDARY.S12"
         }
       ],
-      "notes": "8-way interleaved SIMD decoder. Requires SSSE3+SSE4.1 for SIMD path; falls back to scalar 8-way decode when features unavailable."
+      "notes": "8-way interleaved SIMD decoder. Requires SSSE3+SSE4.1 for SIMD path; falls back to scalar 8-way decode when features unavailable.",
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.SSE41.INTERLEAVED8"
     },
     {
       "id": "alias",
       "name": "Alias method (byte rANS + Vose alias table)",
       "implementation_status": "full",
       "upstream_file": "main_alias.cpp",
-      "functions": ["RansEncPutAlias", "RansDecGetAlias"],
+      "functions": [
+        "RansEncPutAlias",
+        "RansDecGetAlias"
+      ],
       "claims": [
         {
           "profile": "SINGLE_STATE.UNIFORM256.S12",
@@ -891,7 +914,9 @@
           "receipt": "RYG_RANS.ALIAS.INTERLEAVED2.LENGTH.BOUNDARY.S12"
         }
       ],
-      "notes": ""
+      "notes": "",
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.ALIAS"
     },
     {
       "id": "stats.normalize",
@@ -899,7 +924,8 @@
       "implementation_status": "scaffold",
       "upstream_file": "main.cpp",
       "claims": [],
-      "notes": ""
+      "notes": "",
+      "performance_status": "not_applicable"
     },
     {
       "id": "avx512vl.interleaved8.decoder",
@@ -960,7 +986,9 @@
           "receipt": "RYG_RANS.AVX512VL.INTERLEAVED8.LENGTH.BOUNDARY.S12"
         }
       ],
-      "notes": "Phase G sealed: 8 behavioral receipts with admitted_match verdict."
+      "notes": "Phase G sealed: 8 behavioral receipts with admitted_match verdict.",
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.AVX512VL.INTERLEAVED8"
     },
     {
       "id": "avx512.interleaved16.decoder",
@@ -1022,7 +1050,42 @@
           "receipt": "RYG_RANS.AVX512.INTERLEAVED16.LENGTH.BOUNDARY.S12"
         }
       ],
-      "notes": "Phase G sealed: 8 behavioral receipts with admitted_match verdict."
+      "notes": "Phase G sealed: 8 behavioral receipts with admitted_match verdict.",
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.AVX512.INTERLEAVED16"
+    },
+    {
+      "id": "phase_h.optimization",
+      "behavior_status": "test_verified",
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.PHASE_H",
+      "receipt": null
+    },
+    {
+      "id": "phase_j.avx2",
+      "behavior_status": "test_verified",
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.PHASE_J.AVX2",
+      "receipt": null
+    },
+    {
+      "id": "phase_i.parallel",
+      "behavior_status": "test_verified",
+      "performance_status": "sealed",
+      "performance_receipt": "RYG_RANS.PERF.PHASE_I.PARALLEL",
+      "receipt": null
     }
+  ],
+  "performance_receipts": [
+    "RYG_RANS.PERF.ALIAS",
+    "RYG_RANS.PERF.AVX512.INTERLEAVED16",
+    "RYG_RANS.PERF.AVX512VL.INTERLEAVED8",
+    "RYG_RANS.PERF.BYTE",
+    "RYG_RANS.PERF.PHASE_H",
+    "RYG_RANS.PERF.PHASE_I.PARALLEL",
+    "RYG_RANS.PERF.PHASE_J.AVX2",
+    "RYG_RANS.PERF.R64",
+    "RYG_RANS.PERF.SSE41.INTERLEAVED8",
+    "RYG_RANS.PERF.WORD.SCALAR"
   ]
 }
