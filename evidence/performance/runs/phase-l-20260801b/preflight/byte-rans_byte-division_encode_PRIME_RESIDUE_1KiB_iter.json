@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "byte-rans/byte-division/encode/PRIME_RESIDUE/1KiB/iter",
+  "backend_requested": "byte-division",
+  "backend_executed": "byte-division",
+  "verification_passed": true,
+  "input_sha256": "9fdf167fdd33930c2f069c87ec5e2b67fbd81d94ba877cd65f6f7aeed9bbc3f6",
+  "output_sha256": "9fdf167fdd33930c2f069c87ec5e2b67fbd81d94ba877cd65f6f7aeed9bbc3f6",
+  "reference_output_sha256": "9fdf167fdd33930c2f069c87ec5e2b67fbd81d94ba877cd65f6f7aeed9bbc3f6",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

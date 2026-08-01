@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "r64/r64-interleaved2/decode/SPARSE_17/1MiB/iter",
+  "backend_requested": "r64-interleaved2",
+  "backend_executed": "r64-interleaved2",
+  "verification_passed": true,
+  "input_sha256": "4c124c2ff42ffbf122dd9bf3c216818650da4e24ede1e36f1ca50624c805eadb",
+  "output_sha256": "4c124c2ff42ffbf122dd9bf3c216818650da4e24ede1e36f1ca50624c805eadb",
+  "reference_output_sha256": "4c124c2ff42ffbf122dd9bf3c216818650da4e24ede1e36f1ca50624c805eadb",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "sse41/sse41-8way/allocating/SKEWED_255_1/256KiB/sse41-8way",
+  "backend_requested": "sse41-8way",
+  "backend_executed": "sse41-8way",
+  "verification_passed": true,
+  "input_sha256": "794641f0e7b2b97b657e76714568c8593bed5c9d1a17ced03bfd4badf30790c4",
+  "output_sha256": "794641f0e7b2b97b657e76714568c8593bed5c9d1a17ced03bfd4badf30790c4",
+  "reference_output_sha256": "794641f0e7b2b97b657e76714568c8593bed5c9d1a17ced03bfd4badf30790c4",
+  "words_consumed": 2231,
+  "reference_words_consumed": 2231,
+  "final_states_sha256": "fa3c23aa41eba992bec041bdb2862489f519acb5340fb9d2c1c838d4304ad04b",
+  "reference_final_states_sha256": "fa3c23aa41eba992bec041bdb2862489f519acb5340fb9d2c1c838d4304ad04b",
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "allocating",
+  "status": "passed"
+}
