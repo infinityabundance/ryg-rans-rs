@@ -543,6 +543,13 @@ fn walk_dir(
             if path.to_string_lossy().contains("/change/") {
                 continue;
             }
+            // base/ holds the FIRST measurement of a case; new/ holds the
+            // latest.  When both exist (e.g. after a --test warmup run),
+            // the latest measurement is the evidence; base/ must not
+            // produce a duplicate ID.
+            if path.to_string_lossy().contains("/base/") {
+                continue;
+            }
             let record =
                 parse_estimate_file(&path, root, preflight_dir, metadata, runtime_features)?;
 
