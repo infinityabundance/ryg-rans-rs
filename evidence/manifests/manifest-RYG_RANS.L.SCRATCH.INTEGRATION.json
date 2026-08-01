@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.SCRATCH.INTEGRATION",
+  "title": "WorkerScratch / ScratchPool production integration (L.7)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "7 cases: 7 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "WorkerScratch::new(256, 4096) has nonzero initial capacities",
+      "expected": "nonzero",
+      "actual": "nonzero",
+      "verdict": "pass",
+      "residual_ids": [
+        "L7-A"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "reset clears lengths and retains capacities under max_retain",
+      "expected": "cleared_retained",
+      "actual": "cleared_retained",
+      "verdict": "pass",
+      "residual_ids": [
+        "L7-A"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "1 MiB buffer reset with max_retain=1024 shrinks to the bound",
+      "expected": "shrunk",
+      "actual": "shrunk",
+      "verdict": "pass",
+      "residual_ids": [
+        "L7-A"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "ScratchPool::new(4, ...) exposes all four worker slots",
+      "expected": "all_present",
+      "actual": "all_present",
+      "verdict": "pass",
+      "residual_ids": [
+        "L7-A"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "executor passes one exclusive scratch context per worker (stable pointer)",
+      "expected": "exclusive",
+      "actual": "exclusive",
+      "verdict": "pass",
+      "residual_ids": [
+        "L7-A"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "reset_all clears every slot",
+      "expected": "all_empty",
+      "actual": "all_empty",
+      "verdict": "pass",
+      "residual_ids": [
+        "L7-A"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "task error does not wedge the executor (later tasks still run)",
+      "expected": "continued",
+      "actual": "continued",
+      "verdict": "pass",
+      "residual_ids": [
+        "L7-A"
+      ]
+    }
+  ]
+}

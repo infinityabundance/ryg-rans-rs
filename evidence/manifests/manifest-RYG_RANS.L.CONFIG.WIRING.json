@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.CONFIG.WIRING",
+  "title": "ParallelConfig field-by-field wiring audit (L.6)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "12 cases: 12 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "threads: identical encoded bytes across 1/2/4/8 workers",
+      "expected": "deterministic",
+      "actual": "deterministic",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "max_in_flight_blocks = 1: bounded, no deadlock (complete or typed backpressure)",
+      "expected": "complete_or_backpressure",
+      "actual": "complete_or_backpressure",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "max_buffered_input_bytes = 0 rejects non-empty workload",
+      "expected": "ResourceLimit",
+      "actual": "ResourceLimit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "parallel_threshold_bytes = MAX forces sequential (effective=1); output identical",
+      "expected": "sequential_fallback",
+      "actual": "sequential_fallback",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "affinity = Compact: executes or returns a typed config error (never silent)",
+      "expected": "ok_or_typed",
+      "actual": "ok_or_typed",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "affinity = Explicit([usize::MAX]) → typed Config error",
+      "expected": "typed_config_error",
+      "actual": "typed_config_error",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "worker_stack_size = 256 KiB executes successfully",
+      "expected": "ok",
+      "actual": "ok",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "worker_stack_size = 4 KiB below platform minimum → typed Config error",
+      "expected": "typed_config_error",
+      "actual": "typed_config_error",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.009",
+      "input": "disable_simd = true → decoded backends are scalar-only",
+      "expected": "scalar_only",
+      "actual": "scalar_only",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.010",
+      "input": "disable_simd + Explicit(SIMD) → typed config conflict",
+      "expected": "typed_config_conflict",
+      "actual": "typed_config_conflict",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.011",
+      "input": "smt_policy = PhysicalOnly executes with 16 requested workers",
+      "expected": "ok",
+      "actual": "ok",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    },
+    {
+      "case_id": "CASE.012",
+      "input": "integrity_policy: Strict is default; two variants exist",
+      "expected": "policy_wired",
+      "actual": "policy_wired",
+      "verdict": "pass",
+      "residual_ids": [
+        "L6-A",
+        "L6-B",
+        "L6-C",
+        "L6-D",
+        "L6-E",
+        "L6-F",
+        "L6-G",
+        "L6-H",
+        "L6-I"
+      ]
+    }
+  ]
+}

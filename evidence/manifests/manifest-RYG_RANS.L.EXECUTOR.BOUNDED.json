@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.EXECUTOR.BOUNDED",
+  "title": "Bounded live executor pipeline (L.4)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "10 cases: 10 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "decode_with_sink over 16 blocks delivers every block in order",
+      "expected": "ordered_complete",
+      "actual": "ordered_complete",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "max_buffered_input_bytes = 1 rejects an encoded workload",
+      "expected": "ResourceLimit",
+      "actual": "ResourceLimit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "decode_with_sink enforces max_buffered_input_bytes",
+      "expected": "ResourceLimit",
+      "actual": "ResourceLimit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "max_buffered_output_bytes = 1 surfaces ResourceLimit from the reorder stage",
+      "expected": "ResourceLimit",
+      "actual": "ResourceLimit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "decode output identical across 1/2/4/8 workers",
+      "expected": "deterministic",
+      "actual": "deterministic",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "slow block 0 + 1999 fast RANS blocks: no deadlock (complete or typed backpressure)",
+      "expected": "complete_or_backpressure",
+      "actual": "complete_or_backpressure",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "sink observes every block exactly once",
+      "expected": "all_delivered",
+      "actual": "all_delivered",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "encode path enforces max_buffered_input_bytes",
+      "expected": "ResourceLimit",
+      "actual": "ResourceLimit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    },
+    {
+      "case_id": "CASE.009",
+      "input": "decode_blocks round-trips to the original input",
+      "expected": "roundtrip_ok",
+      "actual": "roundtrip_ok",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    },
+    {
+      "case_id": "CASE.010",
+      "input": "cancellation while output budget is saturated is typed, not a hang",
+      "expected": "terminated",
+      "actual": "terminated",
+      "verdict": "pass",
+      "residual_ids": [
+        "L4-A",
+        "L4-B",
+        "L4-C",
+        "L4-D",
+        "L4-E"
+      ]
+    }
+  ]
+}

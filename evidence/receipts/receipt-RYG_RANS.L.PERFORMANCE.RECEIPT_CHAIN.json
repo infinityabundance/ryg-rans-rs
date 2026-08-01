@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN",
+  "title": "Performance receipt hash chain (L.1-L)",
+  "verdict": "passed",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "num_cases": 9,
+  "cases_passed": 9,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "L1-L"
+  ],
+  "manifest_sha256": "686a963e6b9151ae5d68629884ef18bab4c441a532c4d86dfac138b5a59045b0",
+  "receipt_sha256": "3670b6c589ea1d32460a64969eabab2b9682f4f42214c0fca90653204bdfb27d",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 583c59f38921d290c515fa0c8eab5ab54cebce83 --only RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN"
+}

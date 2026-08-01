@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.INTEGRITY.STRICT",
+  "title": "Strict vs compatibility integrity policy (L.2)",
+  "verdict": "passed",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "num_cases": 11,
+  "cases_passed": 11,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 3,
+  "residual_ids": [
+    "L2-B",
+    "L2-C",
+    "L2-D"
+  ],
+  "manifest_sha256": "276e66acc6b413e867938dec42ab94691fb2e54c23ae0aed3bc2c77ff95925a3",
+  "receipt_sha256": "fdc12ace66655f19840c698af2b0404c6d6ba770cf4e7050eb8543c3c3213692",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 583c59f38921d290c515fa0c8eab5ab54cebce83 --only RYG_RANS.L.INTEGRITY.STRICT"
+}

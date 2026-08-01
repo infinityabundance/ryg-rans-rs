@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.PERFORMANCE.EXPORT",
+  "title": "Performance exporter correctness (L.1 / L.18)",
+  "verdict": "passed",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "num_cases": 10,
+  "cases_passed": 10,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 7,
+  "residual_ids": [
+    "L1-A",
+    "L1-B",
+    "L1-C",
+    "L1-D",
+    "L1-E",
+    "L1-F",
+    "L1-J"
+  ],
+  "manifest_sha256": "2901c0ecf9ef87b1e1c987c6c28abdf2f896a64ce41cd1bd515250ec54adab38",
+  "receipt_sha256": "c5363d51450aa2533e41803e628e81d8810ff95ac45264ea480cf2eacfc29cc4",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 583c59f38921d290c515fa0c8eab5ab54cebce83 --only RYG_RANS.L.PERFORMANCE.EXPORT"
+}

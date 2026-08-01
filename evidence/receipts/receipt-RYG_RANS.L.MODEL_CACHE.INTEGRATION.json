@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.MODEL_CACHE.INTEGRATION",
+  "title": "ModelCache production integration (L.8)",
+  "verdict": "passed",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "num_cases": 11,
+  "cases_passed": 11,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "L8-A"
+  ],
+  "manifest_sha256": "955070a1f9fcba1916901395e857c2c28e83d0ac9e0198d5c7e9e6dfe19713dd",
+  "receipt_sha256": "deb29e4e9256ef563bba1bdbd578eaa081bd2df5702f5fcd52ac9c0ad333e322",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 583c59f38921d290c515fa0c8eab5ab54cebce83 --only RYG_RANS.L.MODEL_CACHE.INTEGRATION"
+}

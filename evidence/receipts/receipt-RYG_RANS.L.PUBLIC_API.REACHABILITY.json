@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.PUBLIC_API.REACHABILITY",
+  "title": "Public API reachability and inventory (L.13)",
+  "verdict": "passed",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "num_cases": 6,
+  "cases_passed": 6,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "L13-A"
+  ],
+  "manifest_sha256": "51206cbdaad222754659848ca76ad28d27daf3a2bb2b8c7aa225ce7821dffbf5",
+  "receipt_sha256": "3bbed67f1bcc8367d234d019845dc2fc3471a9d89068cc5411366850f9136860",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 583c59f38921d290c515fa0c8eab5ab54cebce83 --only RYG_RANS.L.PUBLIC_API.REACHABILITY"
+}

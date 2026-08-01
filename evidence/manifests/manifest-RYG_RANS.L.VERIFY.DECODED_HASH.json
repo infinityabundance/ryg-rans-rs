@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.VERIFY.DECODED_HASH",
+  "title": "Decoded-output integrity verification (L.2)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "15 cases: 15 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "clean payload + matching decoded hash",
+      "expected": "verified",
+      "actual": "verified",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "clean payload + zero decoded hash under Strict",
+      "expected": "DecodedHashMissing",
+      "actual": "DecodedHashMissing",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "clean payload + zero decoded hash under AllowLegacyUnsetDecodedHash",
+      "expected": "verified_unset",
+      "actual": "verified_unset",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "clean payload + mismatched nonzero decoded hash under Strict",
+      "expected": "DecodedHashMismatch",
+      "actual": "DecodedHashMismatch",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "corrupted payload byte",
+      "expected": "payload_failure",
+      "actual": "payload_failure",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "intact payload + corrupted model bytes (L.2 court: model corruption must not pass)",
+      "expected": "failed",
+      "actual": "failed",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "truncated payload — decode fails before output hash",
+      "expected": "not_verified",
+      "actual": "not_verified",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "RAW decode rule (decoded == payload) with matching stored decoded hash",
+      "expected": "verified",
+      "actual": "verified",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.009",
+      "input": "RAW block with a mismatched nonzero stored decoded hash is detected",
+      "expected": "DecodedHashMismatch",
+      "actual": "DecodedHashMismatch",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.010",
+      "input": "RLE decode rule (single-symbol fill) with matching stored decoded hash",
+      "expected": "verified",
+      "actual": "verified",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.011",
+      "input": "one bad block (decoded hash) among three good blocks",
+      "expected": "only_block_1_fails",
+      "actual": "only_block_1_fails",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.012",
+      "input": "two bad blocks (0 and 2) — lowest index is canonical",
+      "expected": "block_0_canonical",
+      "actual": "block_0_canonical",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.013",
+      "input": "same corrupted block verified via scalar-only and auto backends",
+      "expected": "same_verdict",
+      "actual": "same_verdict",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.014",
+      "input": "CLI verify on a container with a mismatched decoded hash",
+      "expected": "exit_code_5",
+      "actual": "exit_code_5",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.015",
+      "input": "report counts: Match (clean) + Unset (legacy zero) separated",
+      "expected": "match=1 unset=1",
+      "actual": "match=1 unset=1",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-A",
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    }
+  ]
+}

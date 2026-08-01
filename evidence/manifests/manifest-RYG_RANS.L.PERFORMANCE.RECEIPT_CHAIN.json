@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN",
+  "title": "Performance receipt hash chain (L.1-L)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "9 cases: 9 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "top-level performance index entries",
+      "expected": "10",
+      "actual": "10",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-L"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "active run evidence/performance/runs/phase-l-20260801d has a parseable run index",
+      "expected": "present",
+      "actual": "present",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-L"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "top-level run_index_sha256 equals SHA-256 of the run index file",
+      "expected": "matches",
+      "actual": "matches",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-L"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "all ten receipt final-file hashes AND canonical self-hashes verify",
+      "expected": "all_verify",
+      "actual": "all_verify",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-L"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "all receipts share the index implementation_commit",
+      "expected": "uniform",
+      "actual": "uniform",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-L"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "every receipt's manifest_sha256 matches its manifest file",
+      "expected": "all_match",
+      "actual": "all_match",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-L"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "expected performance ID set equals index ID set",
+      "expected": "set_equal",
+      "actual": "set_equal",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-L"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "raw Criterion archive (criterion.tar.zst) present in the run dir",
+      "expected": "present",
+      "actual": "present",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-L"
+      ]
+    },
+    {
+      "case_id": "CASE.009",
+      "input": "results.json / results.csv / host / commands artifacts hash-verify",
+      "expected": "all_verify",
+      "actual": "all_verify",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-L"
+      ]
+    }
+  ]
+}

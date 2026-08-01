@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.CANCEL.COMPLETENESS",
+  "title": "Cancellation completeness and public cancellation APIs (L.3)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "12 cases: 12 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "CancellationToken new/cancel/is_cancelled/check",
+      "expected": "ok",
+      "actual": "ok",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "cancel before submission begins",
+      "expected": "Cancelled{completed=0,expected=8}",
+      "actual": "Cancelled{completed=0,expected=8}",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "cancel during execution (64 tasks, 4 workers)",
+      "expected": "Cancelled{completed<64,expected=64}",
+      "actual": "Cancelled{completed<64,expected=64}",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.004.1",
+      "input": "no cancellation, 1 workers",
+      "expected": "complete",
+      "actual": "complete",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.004.2",
+      "input": "no cancellation, 2 workers",
+      "expected": "complete",
+      "actual": "complete",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.004.4",
+      "input": "no cancellation, 4 workers",
+      "expected": "complete",
+      "actual": "complete",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.004.8",
+      "input": "no cancellation, 8 workers",
+      "expected": "complete",
+      "actual": "complete",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.004.16",
+      "input": "no cancellation, 16 workers",
+      "expected": "complete",
+      "actual": "complete",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "ExecutorReport counters: declared/submitted/started/completed/skipped",
+      "expected": "counters_consistent",
+      "actual": "counters_consistent",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "worker panic contained",
+      "expected": "WorkerPanic",
+      "actual": "WorkerPanic",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "concurrent worker panic + cancellation terminates with typed error",
+      "expected": "terminated",
+      "actual": "terminated",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "long-running task cancelled mid-flight never yields short Ok",
+      "expected": "not_short_ok",
+      "actual": "not_short_ok",
+      "verdict": "pass",
+      "residual_ids": [
+        "L3-A",
+        "L3-B",
+        "L3-C",
+        "L3-D"
+      ]
+    }
+  ]
+}

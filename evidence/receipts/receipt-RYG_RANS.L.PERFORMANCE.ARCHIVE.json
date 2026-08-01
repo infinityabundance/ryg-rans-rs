@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.PERFORMANCE.ARCHIVE",
+  "title": "Deterministic archive round-trip (L.1-K)",
+  "verdict": "passed",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "num_cases": 5,
+  "cases_passed": 5,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "L1-K"
+  ],
+  "manifest_sha256": "d199526765d3f77146ca6dfc083bde6b131e4eaef415b6cd7588423e0e930a5a",
+  "receipt_sha256": "aba44eb5343f6a753b2c7e4b463d39fd310858a446464353d7ced24f4a15a3ac",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 583c59f38921d290c515fa0c8eab5ab54cebce83 --only RYG_RANS.L.PERFORMANCE.ARCHIVE"
+}

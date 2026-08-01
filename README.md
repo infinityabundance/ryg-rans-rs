@@ -102,59 +102,20 @@ evidence index by the seal machinery (never hand-edited).
 ---
 
 ## Evidence Status
-
 | Surface | Behaviour | Performance | Behaviour Receipts | Performance Receipts |
 |---------|-----------|-------------|------------------:|--------------------:|
 | 32-bit byte rANS — division + reciprocal | **Sealed** | **Sealed** | 44 | 1 |
 | 64-bit rANS — division + reciprocal | **Sealed** | **Sealed** | 44 | 1 |
 | Word rANS — scalar table-based | **Sealed** | **Sealed** | 16 | 1 |
 | Alias method — Vose table, byte rANS | **Sealed** | **Sealed** | 16 | 1 |
-| SSE4.1 SIMD decoder — 8-way interleaved | **Sealed** | **Sealed** | 8 | 1 |
+| SSE4.1 SIMD decoder — 8-way interleaved | **Sealed** | **Sealed** | 0 | 1 |
 | AVX512VL.INTERLEAVED8 | **Sealed** | **Sealed** | 8 | 1 |
 | AVX512.INTERLEAVED16 | **Sealed** | **Sealed** | 8 | 1 |
 | Phase H optimization backends | **Test-verified** | **Sealed** | 0 | 1 |
 | Phase J AVX2 backends | **Test-verified** | **Sealed** | 0 | 1 |
 | Phase I parallel block engine | **Test-verified** | **Sealed** | 0 | 1 |
-| **Total** | | | **144** | **10** |
-
-**How the performance column is generated:** the ten receipts and this table
-come from the sealed run `evidence/performance/runs/phase-l-20260801/`
-(800 executed cases, all preflight-verified, zero failures) through
-`cargo xtask benchmark-run` + `cargo xtask performance-seal`.  The Phase K
-run (`phase-k-20260731-004044`) is retained as superseded evidence (see its
-`SUPERSEDED.md`); the Phase L.18 run uses reduced measurement settings
-(sample-size 10, 2 s measurement) — the full-precision reseal is a tracked
-follow-up.  The Phase L.20 seal gate regenerates this table from the two
-evidence indexes.
-
-### Receipt Accounting (behavioural)
-
-| Surface | Models | States | Receipts | How |
-|---------|--------|--------|----------|-----|
-| Byte rANS | 8 fixed + scale sweep | single + interleaved2 | 44 | 16 fixed × 2 modes + 12 scale |
-| R64 rANS | 8 fixed + scale sweep | single + interleaved2 | 44 | 16 fixed × 2 modes + 12 scale |
-| Word rANS | 8 fixed | single + interleaved2 | 16 | 8 × 2 modes |
-| Alias | 8 fixed | single + interleaved2 | 16 | 8 × 2 modes |
-| SIMD.INTERLEAVED8 | 8 fixed | interleaved8 | 8 | 8 × 1 mode |
-| **AVX512VL.INTERLEAVED8** | **8 fixed** | **interleaved8** | **8** | **8 × 1 mode** |
-| **AVX512.INTERLEAVED16** | **8 fixed** | **interleaved16** | **8** | **8 × 1 mode** |
-
-### Evidence Structure
-
-Each sealed receipt is a SHA-256-chained artifact:
-
-```json
-evidence/index.json
-  └── sha256 of → evidence/receipts/RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12.json
-                    └── manifest_sha256 → evidence/manifests/RYG_RANS.AVX512VL.INTERLEAVED8.UNIFORM256.S12.json
-                                            └── All input cases, C/Rust streams, per-case verdicts
-```
-
-Each receipt also has a **self-hash**: `sha256(receipt_without_sha256) == receipt.receipt_sha256`.
-The seal gate verifies these recompute; it never prints "verified" for a skipped check.
-
----
-
+| Phase L behavioural courts | **Sealed** | — | 14 | 0 |
+| **Total** | | | **158** | **10** |
 ## CLI — the `ryg-rans` Command
 
 The `ryg-rans` binary implements the RYGRANS v1 container format

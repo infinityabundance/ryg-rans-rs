@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.SSE41.UNSAFE_QUARANTINE",
+  "title": "SSE unsafe quarantine and machine-verified ledger (L.10)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "7 cases: 7 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "unsafe-ledger.toml parses with unsafe_functions entries",
+      "expected": "parsed",
+      "actual": "parsed",
+      "verdict": "pass",
+      "residual_ids": [
+        "L10-A",
+        "L10-B"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "every ledger entry exists in the source (no stale entries)",
+      "expected": "all_present",
+      "actual": "all_present",
+      "verdict": "pass",
+      "residual_ids": [
+        "L10-A",
+        "L10-B"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "every source unsafe fn is listed in the ledger (no undocumented unsafe)",
+      "expected": "all_listed",
+      "actual": "all_listed",
+      "verdict": "pass",
+      "residual_ids": [
+        "L10-A",
+        "L10-B"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "ledger target_features exactly match source #[target_feature] attributes",
+      "expected": "exact",
+      "actual": "exact",
+      "verdict": "pass",
+      "residual_ids": [
+        "L10-A",
+        "L10-B"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "SSE helpers carry their own exact #[target_feature] attributes (sym: sse4.1; renorm: ssse3+sse4.1)",
+      "expected": "locally_gated",
+      "actual": "locally_gated",
+      "verdict": "pass",
+      "residual_ids": [
+        "L10-A",
+        "L10-B"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "ledger contains feature-gated kernel entries",
+      "expected": "gated>0",
+      "actual": "gated>0",
+      "verdict": "pass",
+      "residual_ids": [
+        "L10-A",
+        "L10-B"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "every ledger entry documents its # Safety contract",
+      "expected": "all_documented",
+      "actual": "all_documented",
+      "verdict": "pass",
+      "residual_ids": [
+        "L10-A",
+        "L10-B"
+      ]
+    }
+  ]
+}

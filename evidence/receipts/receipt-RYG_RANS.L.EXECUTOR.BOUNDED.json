@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.EXECUTOR.BOUNDED",
+  "title": "Bounded live executor pipeline (L.4)",
+  "verdict": "passed",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "num_cases": 10,
+  "cases_passed": 10,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 5,
+  "residual_ids": [
+    "L4-A",
+    "L4-B",
+    "L4-C",
+    "L4-D",
+    "L4-E"
+  ],
+  "manifest_sha256": "acc6f9b80d6415e3f60c6d7bda6eaa59db28106511a3516745204707e51fc3f7",
+  "receipt_sha256": "d5f184328f3d86ddaa3b509bd9b272b412b2193f32a77cae7980cc9542b655dc",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 583c59f38921d290c515fa0c8eab5ab54cebce83 --only RYG_RANS.L.EXECUTOR.BOUNDED"
+}

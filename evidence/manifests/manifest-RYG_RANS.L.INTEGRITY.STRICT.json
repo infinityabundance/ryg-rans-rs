@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.INTEGRITY.STRICT",
+  "title": "Strict vs compatibility integrity policy (L.2)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "11 cases: 11 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "IntegrityPolicy::default()",
+      "expected": "Strict",
+      "actual": "Strict",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "Strict + zero decoded hash",
+      "expected": "DecodedHashMissing",
+      "actual": "DecodedHashMissing",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "Strict + mismatched nonzero decoded hash",
+      "expected": "DecodedHashMismatch",
+      "actual": "DecodedHashMismatch",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "Strict + matching nonzero decoded hash",
+      "expected": "verified",
+      "actual": "verified",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "AllowLegacyUnsetDecodedHash + zero decoded hash (Unset, not a failure)",
+      "expected": "verified_unset",
+      "actual": "verified_unset",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "AllowLegacyUnsetDecodedHash + nonzero mismatched decoded hash still fails",
+      "expected": "DecodedHashMismatch",
+      "actual": "DecodedHashMismatch",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "ParallelConfig::default() integrity policy",
+      "expected": "Strict",
+      "actual": "Strict",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "HashVerification states observed across clean + unset blocks",
+      "expected": "Match,Unset",
+      "actual": "Match,Unset",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.009",
+      "input": "mismatched block decoded-hash state",
+      "expected": "Mismatch",
+      "actual": "Mismatch",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.010",
+      "input": "decode path returns typed DecodedHashMissing (not generic Codec)",
+      "expected": "DecodedHashMissing",
+      "actual": "DecodedHashMissing",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    },
+    {
+      "case_id": "CASE.011",
+      "input": "corrupted payload fails via payload hash, not decoded hash",
+      "expected": "payload_failure",
+      "actual": "payload_failure",
+      "verdict": "pass",
+      "residual_ids": [
+        "L2-B",
+        "L2-C",
+        "L2-D"
+      ]
+    }
+  ]
+}

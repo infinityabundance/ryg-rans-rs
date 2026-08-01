@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.MODEL_CACHE.INTEGRATION",
+  "title": "ModelCache production integration (L.8)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "11 cases: 11 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "insert then get returns the inserted value",
+      "expected": "hit",
+      "actual": "hit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "different model hash misses",
+      "expected": "miss",
+      "actual": "miss",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "same model hash + different codec_id misses",
+      "expected": "miss",
+      "actual": "miss",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "same model hash + different scale_bits misses",
+      "expected": "miss",
+      "actual": "miss",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "FIFO eviction by count (max_entries=3, 4th insert evicts oldest)",
+      "expected": "fifo",
+      "actual": "fifo",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "byte budget (max_total_bytes=10) bounds resident entries",
+      "expected": "bounded",
+      "actual": "bounded",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "two 60-byte entries under a 100-byte budget (second evicts first)",
+      "expected": "bounded",
+      "actual": "bounded",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "corrupt model builder returns None → cached_model_artifacts returns None",
+      "expected": "none",
+      "actual": "none",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.009",
+      "input": "valid uniform256 model cached and served identically",
+      "expected": "served",
+      "actual": "served",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.010",
+      "input": "decode output identical with cold vs warm model cache (cache-equivalence)",
+      "expected": "equivalent",
+      "actual": "equivalent",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    },
+    {
+      "case_id": "CASE.011",
+      "input": "plan_cache_key is stable per (codec, scale, model) and differs by codec",
+      "expected": "stable",
+      "actual": "stable",
+      "verdict": "pass",
+      "residual_ids": [
+        "L8-A"
+      ]
+    }
+  ]
+}

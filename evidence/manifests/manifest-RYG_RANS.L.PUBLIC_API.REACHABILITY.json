@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.PUBLIC_API.REACHABILITY",
+  "title": "Public API reachability and inventory (L.13)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "6 cases: 6 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "docs/public-api inventory exists and is non-empty",
+      "expected": "present",
+      "actual": "present",
+      "verdict": "pass",
+      "residual_ids": [
+        "L13-A"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "parallel.txt items parse as public-api lines (1914/1914 well-formed)",
+      "expected": "well_formed",
+      "actual": "well_formed",
+      "verdict": "pass",
+      "residual_ids": [
+        "L13-A"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "removed L.13 types absent from the parallel public API",
+      "expected": "absent",
+      "actual": "absent",
+      "verdict": "pass",
+      "residual_ids": [
+        "L13-A"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "all production-facing Phase L types are exported (parallel.txt)",
+      "expected": "all_present",
+      "actual": "all_present",
+      "verdict": "pass",
+      "residual_ids": [
+        "L13-A"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "core.txt and simd.txt inventories contain the algorithmic surfaces",
+      "expected": "present",
+      "actual": "present",
+      "verdict": "pass",
+      "residual_ids": [
+        "L13-A"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "config policy types (AffinityPolicy, SmtPolicy) exported",
+      "expected": "exported",
+      "actual": "exported",
+      "verdict": "pass",
+      "residual_ids": [
+        "L13-A"
+      ]
+    }
+  ]
+}

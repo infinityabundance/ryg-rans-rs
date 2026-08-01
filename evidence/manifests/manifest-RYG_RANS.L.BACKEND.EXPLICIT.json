@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.BACKEND.EXPLICIT",
+  "title": "Exact backend semantics and format compatibility (L.9)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "11 cases: 11 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "Explicit(Sse41Interleaved8) on codec 7 executes exactly or typed error",
+      "expected": "exact_or_unavailable",
+      "actual": "exact_or_unavailable",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "Explicit 8-way backend on a codec-8 (16-way) block → BackendFormatMismatch",
+      "expected": "format_mismatch",
+      "actual": "format_mismatch",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "Explicit 16-way backend on a codec-7 (8-way) block → BackendFormatMismatch",
+      "expected": "format_mismatch",
+      "actual": "format_mismatch",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "Explicit(Scalar16) on codec 8 executes exactly",
+      "expected": "exact",
+      "actual": "exact",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "create_decode_plan(Explicit(Avx512Batch4)) → BackendRequiresBatchContext",
+      "expected": "batch_context",
+      "actual": "batch_context",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "Explicit(RawCopy) on a RANS block → BackendFormatMismatch",
+      "expected": "format_mismatch",
+      "actual": "format_mismatch",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "Explicit(Uniform256TableFree16) on a non-uniform model → BackendFormatMismatch",
+      "expected": "format_mismatch",
+      "actual": "format_mismatch",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "Explicit(Uniform256TableFree16) on a valid uniform256 model → plan",
+      "expected": "planned",
+      "actual": "planned",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.009",
+      "input": "disable_simd=true + Explicit(SIMD) → BackendUnavailable (config conflict)",
+      "expected": "unavailable",
+      "actual": "unavailable",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.010",
+      "input": "ModelAware on uniform256 model selects the table-free kernel",
+      "expected": "Uniform256TableFree16",
+      "actual": "Uniform256TableFree16",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    },
+    {
+      "case_id": "CASE.011",
+      "input": "Portable policy selects scalar even for uniform256",
+      "expected": "scalar",
+      "actual": "scalar",
+      "verdict": "pass",
+      "residual_ids": [
+        "L9-A",
+        "L9-B",
+        "L9-C"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.CANCEL.COMPLETENESS",
+  "title": "Cancellation completeness and public cancellation APIs (L.3)",
+  "verdict": "passed",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "num_cases": 12,
+  "cases_passed": 12,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 4,
+  "residual_ids": [
+    "L3-A",
+    "L3-B",
+    "L3-C",
+    "L3-D"
+  ],
+  "manifest_sha256": "66871b860e205daaad5298eeb592abdd29ba2ef239876b6aab963410e06a0cc4",
+  "receipt_sha256": "2d2df6da248c76d18ad8cf3ef9a4355afb314fa6ae21d5a326eb5184ba06e347",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 583c59f38921d290c515fa0c8eab5ab54cebce83 --only RYG_RANS.L.CANCEL.COMPLETENESS"
+}

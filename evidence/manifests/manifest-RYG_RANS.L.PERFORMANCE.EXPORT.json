@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.PERFORMANCE.EXPORT",
+  "title": "Performance exporter correctness (L.1 / L.18)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "10 cases: 10 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "exporter reads benchmark.json identity + real sample count from sample.json",
+      "expected": "canonical",
+      "actual": "canonical",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "parallel tier thread counts parsed from the benchmark ID (16 threads)",
+      "expected": "16/16",
+      "actual": "16/16",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "NaN timing estimates rejected by the exporter",
+      "expected": "rejected",
+      "actual": "rejected",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "negative median rejected",
+      "expected": "rejected",
+      "actual": "rejected",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "dirty working tree rejected by the exporter",
+      "expected": "rejected",
+      "actual": "rejected",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "every record stamps the metadata git_commit uniformly (seal compares it)",
+      "expected": "bound",
+      "actual": "bound",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "duplicate full_id across estimate dirs rejected",
+      "expected": "rejected",
+      "actual": "rejected",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "zero sample count (empty sample.json) rejected",
+      "expected": "rejected",
+      "actual": "rejected",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    },
+    {
+      "case_id": "CASE.009",
+      "input": "records sorted deterministically by benchmark_id",
+      "expected": "sorted",
+      "actual": "sorted",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    },
+    {
+      "case_id": "CASE.010",
+      "input": "export_summary writes JSON + CSV with non-empty hashes",
+      "expected": "exported",
+      "actual": "exported",
+      "verdict": "pass",
+      "residual_ids": [
+        "L1-A",
+        "L1-B",
+        "L1-C",
+        "L1-D",
+        "L1-E",
+        "L1-F",
+        "L1-J"
+      ]
+    }
+  ]
+}

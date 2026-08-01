@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.BACKEND.EXPLICIT",
+  "title": "Exact backend semantics and format compatibility (L.9)",
+  "verdict": "passed",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "num_cases": 11,
+  "cases_passed": 11,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 3,
+  "residual_ids": [
+    "L9-A",
+    "L9-B",
+    "L9-C"
+  ],
+  "manifest_sha256": "90dadcac4716e41486228006ded1a9d468a46f1273c20492e8f60e36871d38e4",
+  "receipt_sha256": "2544095f2bf1380177d0c8ffec6ae70acdd7e3d4d9a886d11fcdee6c4d14ff77",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 583c59f38921d290c515fa0c8eab5ab54cebce83 --only RYG_RANS.L.BACKEND.EXPLICIT"
+}

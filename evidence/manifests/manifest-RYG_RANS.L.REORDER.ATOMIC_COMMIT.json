@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.L.REORDER.ATOMIC_COMMIT",
+  "title": "ReorderBuffer atomic commit (L.5)",
+  "implementation_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "11 cases: 11 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "in-order insert 0..8 commits each immediately",
+      "expected": "ascending_complete",
+      "actual": "ascending_complete",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "insert 3,2,1 then 0 → atomic commit chain 0..=3",
+      "expected": "atomic_chain",
+      "actual": "atomic_chain",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "exhaustive permutation property: every permutation of 0..7 (5040 perms)",
+      "expected": "all_permutations_commit_ascending",
+      "actual": "all_permutations_commit_ascending",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "64 deterministic random permutations of 0..12 commit to [0..12)",
+      "expected": "sampled_ok",
+      "actual": "sampled_ok",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "duplicate insert of index 1",
+      "expected": "OutputCommit",
+      "actual": "OutputCommit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "stale insert of already-committed index 0",
+      "expected": "OutputCommit",
+      "actual": "OutputCommit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.007",
+      "input": "gap at 0..3 closes when 0 arrives; 4 and 5 ride along",
+      "expected": "gap_closed_ascending",
+      "actual": "gap_closed_ascending",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.008",
+      "input": "count limit (max_blocks=2) with 3 buffered items",
+      "expected": "ResourceLimit",
+      "actual": "ResourceLimit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.009",
+      "input": "byte limit (max_bytes=10) exceeded by 6+4+1 buffered items",
+      "expected": "ResourceLimit",
+      "actual": "ResourceLimit",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.010",
+      "input": "buffered_bytes decreases by committed sizes after chain commit",
+      "expected": "exact",
+      "actual": "exact",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    },
+    {
+      "case_id": "CASE.011",
+      "input": "next_expected advances through the commit frontier (0 → 1 → 4)",
+      "expected": "frontier_ok",
+      "actual": "frontier_ok",
+      "verdict": "pass",
+      "residual_ids": [
+        "L5-A",
+        "L5-B"
+      ]
+    }
+  ]
+}

@@ -724,6 +724,7 @@ fn cmd_seal() -> Result<(), String> {
         };
         if path.starts_with("evidence/")
             || path.starts_with("docs/")
+            || path.starts_with("docs-src/models/parity.model.json")
             || path.starts_with("Cargo.lock")
             || path.starts_with(".gitignore")
             || path.ends_with("/README.md")

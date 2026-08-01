@@ -1,5 +1,6 @@
 {
   "code_commit": "b3c8158368b337c0fd11fdd620c1a18858d26c55",
+  "evidence_commit": "583c59f38921d290c515fa0c8eab5ab54cebce83",
   "receipts": [
     {
       "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12",
@@ -576,6 +577,62 @@
     {
       "court_id": "RYG_RANS.AVX512.INTERLEAVED16.LENGTH.BOUNDARY.S12",
       "sha256": "ae656335fb5f81c0bb9fab2e9afa75db18c009cdba1a0255f7d4994e0225037c"
+    },
+    {
+      "court_id": "RYG_RANS.L.VERIFY.DECODED_HASH",
+      "sha256": "f1b096d082f22909d7cd1d420758daf6a905cd6a357b62c53fe3471b213a0e78"
+    },
+    {
+      "court_id": "RYG_RANS.L.INTEGRITY.STRICT",
+      "sha256": "34d20566b4ddb03be8182b2cff710a2d958b76c080fad9236517a7a0c6e9e5f6"
+    },
+    {
+      "court_id": "RYG_RANS.L.CANCEL.COMPLETENESS",
+      "sha256": "61e2c849872dabc709322ae33ee1355998043730decf71a68d8b896a90b9b8b2"
+    },
+    {
+      "court_id": "RYG_RANS.L.EXECUTOR.BOUNDED",
+      "sha256": "0228bfba95f05bb3b6d4d43e3a6fc3ef02cf85c3e5254ed03b434f219e396c62"
+    },
+    {
+      "court_id": "RYG_RANS.L.REORDER.ATOMIC_COMMIT",
+      "sha256": "c5dde5b088ca3cfc1b8683206d08c966e8c5c9921c05f821768e8b83e9c746d7"
+    },
+    {
+      "court_id": "RYG_RANS.L.CONFIG.WIRING",
+      "sha256": "acf6bc8a4fd830809a2d641ad26d4003bb1288a408947b4b5d167d912e500382"
+    },
+    {
+      "court_id": "RYG_RANS.L.SCRATCH.INTEGRATION",
+      "sha256": "8717eca775ee9ce5e989322cfdfde2e7e004041162a54d76473e453ba492762e"
+    },
+    {
+      "court_id": "RYG_RANS.L.MODEL_CACHE.INTEGRATION",
+      "sha256": "daf516e0fabc0e32934224947d9f87eba8bc92001051d3f170ee598ed8f2d39d"
+    },
+    {
+      "court_id": "RYG_RANS.L.BACKEND.EXPLICIT",
+      "sha256": "4313618c20beaf5b12c1de1245ffe587e3e36ed0ce37761d8c6cf4aac0e36e6f"
+    },
+    {
+      "court_id": "RYG_RANS.L.SSE41.UNSAFE_QUARANTINE",
+      "sha256": "969c12cacf8b5ce1f97b16ff769569d6b637d474c3c3042602b8990a6a7d50d5"
+    },
+    {
+      "court_id": "RYG_RANS.L.PERFORMANCE.EXPORT",
+      "sha256": "43e4585f85fb602a6acabcaf33dac5dfb67bce63429f6a15967c4765c5b70971"
+    },
+    {
+      "court_id": "RYG_RANS.L.PERFORMANCE.ARCHIVE",
+      "sha256": "f821f8e7e7ec18dbddeffb7b93d4e5af9ecf2362088266ca052bac2f3a9d89fc"
+    },
+    {
+      "court_id": "RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN",
+      "sha256": "e1d3ede3ede9688278032e887f56b807b545eb26bf012c1054a0a90ad297a2a4"
+    },
+    {
+      "court_id": "RYG_RANS.L.PUBLIC_API.REACHABILITY",
+      "sha256": "93916f539d7546410b12d93f40899c14cc0271bfb8c663c1a6b77a4c3d87f570"
     }
   ],
   "schema_version": 1
