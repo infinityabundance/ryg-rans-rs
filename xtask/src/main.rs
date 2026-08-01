@@ -919,41 +919,45 @@ const SURFACE_NAMES: &[&str] = &[
 /// directory names, so we check for `_` as the separator between the bench
 /// name and the group path.
 fn classify_benchmark_id(id: &str) -> Option<usize> {
-    // Split on `/iter` to get the tier portion of the ID
-    let tier = id.split("/iter").next().unwrap_or(id);
-
-    if tier.starts_with("byte-rans_") {
+    // Canonical (slash-separated) Criterion IDs, e.g.
+    // `byte-rans/byte-decode/SKEWED_255_1/1KiB/iter`.  The Phase K
+    // underscore-flattened forms are retained as a fallback.
+    if id.starts_with("byte-rans/") || id.starts_with("byte-rans_") {
         return Some(0); // BYTE
     }
-    if tier.starts_with("r64_") {
+    if id.starts_with("r64/") || id.starts_with("r64_") {
         return Some(1); // R64
     }
-    if tier.starts_with("scalar_") {
+    if id.starts_with("scalar/") || id.starts_with("scalar_") {
         return Some(2); // WORD.SCALAR
     }
-    if tier.starts_with("alias_") {
+    if id.starts_with("alias/") || id.starts_with("alias_") {
         return Some(3); // ALIAS
     }
-    if tier.starts_with("sse41_") {
+    if id.starts_with("sse41/") || id.starts_with("sse41_") {
         return Some(4); // SSE41.INTERLEAVED8
     }
-    if tier.starts_with("avx512_") {
-        // Filter by backend: 8-way → AVX512VL.INTERLEAVED8, 16-way → AVX512.INTERLEAVED16
-        if tier.contains("8way") || tier.contains("vl") || tier.contains("avx512vl") {
-            return Some(5); // AVX512VL.INTERLEAVED8
+    if id.starts_with("avx512/") || id.starts_with("avx512_") {
+        // Filter by backend: 16-way → AVX512.INTERLEAVED16, 8-way →
+        // AVX512VL.INTERLEAVED8.  Check the 16-way marker first so the
+        // `avx512-16way` ID never falls through to the 8-way bucket.
+        if id.contains("16way") {
+            return Some(6);
         }
-        if tier.contains("16way") || tier.contains("avx512") {
-            return Some(6); // AVX512.INTERLEAVED16
-        }
-        return Some(6);
+        return Some(5); // AVX512VL.INTERLEAVED8 (8-way / 2x8-on-16)
     }
-    if tier.starts_with("specialized_") {
+    if id.starts_with("specialized/") || id.starts_with("specialized_") {
         return Some(7); // PHASE_H
     }
-    if tier.starts_with("avx2_") || tier.starts_with("batch_") || tier.starts_with("dispatch_") {
+    if id.starts_with("avx2/")
+        || id.starts_with("avx2_")
+        || id.starts_with("batch/")
+        || id.starts_with("batch_")
+    {
         return Some(8); // PHASE_J.AVX2
     }
-    if tier.starts_with("parallel_") || tier.starts_with("block-engine_") {
+    if id.starts_with("parallel/") || id.starts_with("parallel_") || id.starts_with("block-engine/")
+    {
         return Some(9); // PHASE_I.PARALLEL
     }
     None
