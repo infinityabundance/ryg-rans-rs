@@ -1064,6 +1064,18 @@ fn cmd_benchmark_run(args: &[String]) -> Result<(), String> {
         ));
     }
 
+    // ---- 2.5 Isolate the criterion tree -------------------------------------
+    // Each evidence run owns its criterion tree; stale artifacts from
+    // earlier runs (e.g. Phase K baseline dirs) must not leak into the
+    // export (the exporter walks the whole tree and would otherwise find
+    // measurements with no preflight records).
+    if criterion_dir.exists() {
+        std::fs::remove_dir_all(&criterion_dir)
+            .map_err(|e| format!("clear {:?}: {}", criterion_dir, e))?;
+    }
+    std::fs::create_dir_all(&criterion_dir)
+        .map_err(|e| format!("create {:?}: {}", criterion_dir, e))?;
+
     // ---- 3. Capture metadata BEFORE compilation -----------------------------
     let tree_sha = git_tree_hash()?;
     let lock_sha = sha256_file(&std::path::Path::new("Cargo.lock"))?;
