@@ -74,7 +74,27 @@
 2. `docs/llm/index.md` — the operational checklists and hallucination
    catalogue.
 3. `docs/history/` — the concrete failure examples.
-4. `AGENTS.md` — the ground-truth rules the assistant is bound by.
+4. `AGENTS.md` — the ground-truth rules the assistant is bound to.
+
+---
+
+# Decade-later handover review (M.20)
+
+The questions a future custodian must be able to answer, and where this
+repository answers them.
+
+| Question | Answer lives in | Verified by |
+|----------|-----------------|-------------|
+| Could someone maintain this without me? | The papers, ADRs, history, module commentary, and the maintainer notes in this file | The documentation-inventory seal gate; the workspace test suite |
+| Could someone understand every design decision? | `docs/adr/` (15 decisions, each with context, alternatives, rejected alternatives, tradeoffs, evidence, future implications) | The ADR files exist (inventory gate); the decisions are cited from the code |
+| Could someone reproduce every benchmark? | `docs/papers/0005-performance-methodology.md` + `xtask benchmark-run` + the run directory artifacts (`run-manifest.json`, `commands.log`, `host.json`) | The performance-evidence seal gates (run-manifest binding, Cargo.lock SHA) |
+| Could someone regenerate every receipt? | `docs/papers/0006-evidence.md` + `docs/oracle-method.md` + the oracle/courts commands in `AGENTS.md` | The behavioural-receipt seal gates (file + canonical hashes) |
+| Could someone understand every invariant? | The frozen invariants in `AGENTS.md`, the invariant timeline in `docs/history/index.md`, the `# Safety` sections, the module commentary | The seal's freshness/ledger/unsafe gates |
+| Could someone know what was tried and rejected? | The ADR "Rejected alternatives" sections, the papers' alternatives sections, the history | Presence via the inventory gate; value via the docs |
+| Could someone know what is measured and what is not? | Every paper's honesty rules (esp. `0005` §6–§8) and the maintainer notes | The performance-evidence gates |
+
+If any answer were "no", the fix is to write more, not less — the
+knowledge-preservation contract of Phase M.
 
 ---
 
