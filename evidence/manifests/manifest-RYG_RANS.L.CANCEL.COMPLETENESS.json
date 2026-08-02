@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.CANCEL.COMPLETENESS",
   "title": "Cancellation completeness and public cancellation APIs (L.3)",
-  "implementation_commit": "c43d61625a2c926480a700f24aeecdeea649a698",
+  "implementation_commit": "d3e24065a93958f0ad5ff7f07124f3e12ff1f835",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "12 cases: 12 passed, 0 failed, 0 skipped",
   "cases": [
