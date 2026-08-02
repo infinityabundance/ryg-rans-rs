@@ -4,7 +4,7 @@
 > `#![no_std]` + `#![forbid(unsafe_code)]` — portable to embedded and Wasm targets.
 > Schema version 1 (`CASEFILE_SCHEMA_VERSION`). Zero rANS arithmetic.
 
-**Version: 0.4.0** · Schema v1 · 3 core types (+ std-gated performance types) · 1 test (doc test)
+**Version: 0.4.1** · Schema v1 · 3 core types (+ std-gated performance types) · 1 test (doc test)
 
 ---
 
@@ -448,4 +448,4 @@ With the `std` feature, performance artifacts can be serialized:
 
 **Further reading:** `docs/papers/0006-evidence.md` (the evidence system these types model), `docs/glossary.md` (receipt, manifest, residual, seal).
 
-*Part of the ryg-rans-rs project. Version 0.4.0. Phase M custodian documentation pass.*
+*Part of the ryg-rans-rs project. Version **0.4.1**. Phase M custodian documentation pass.*

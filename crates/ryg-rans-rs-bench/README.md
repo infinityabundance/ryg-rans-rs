@@ -5,7 +5,7 @@
 > plus the legacy byte/R64/alias surfaces and the Phase L.14 comparative court.
 > Deterministic corpora (8 model profiles, fixed seeds) and a verification-before-timing policy.
 
-**Version: 0.4.0** · `publish = false` (workspace-internal crate) · 16 tests
+**Version: 0.4.1** · `publish = false` (workspace-internal crate) · 16 tests
 
 ---
 
@@ -533,4 +533,4 @@ pub mod exporter;  // Criterion structured summary export (JSON + CSV)
 
 **Further reading:** `docs/papers/0005-performance-methodology.md` (how this suite measures and why), `docs/papers/0006-evidence.md` (the receipt chain), `docs/performance-method.md`, `evidence/performance/` (the sealed runs).
 
-*Part of the ryg-rans-rs project. Version 0.4.0. Phase M custodian documentation pass.*
+*Part of the ryg-rans-rs project. Version **0.4.1**. Phase M custodian documentation pass.*

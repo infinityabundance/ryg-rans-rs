@@ -5,7 +5,7 @@
 > (`oracle/adapter/rans_trace.cpp`) via subprocess, and generates the SHA-256-chained
 > behavioural evidence (receipts, manifests, index) under `evidence/`.
 
-**Version: 0.4.0** · 0 tests currently · evidence generation only
+**Version: 0.4.1** · 0 tests currently · evidence generation only
 
 ---
 
@@ -417,4 +417,4 @@ produces **no sealed measurements**.
 
 **Further reading:** `docs/oracle-method.md` (the court methodology), `docs/papers/0007-proof-philosophy.md` (what differential testing proves), `docs/papers/0006-evidence.md` (receipts), `docs/history/` (L19-B: the promote-merge fix).
 
-*Part of the ryg-rans-rs project. Version 0.4.0. Phase M custodian documentation pass.*
+*Part of the ryg-rans-rs project. Version **0.4.1**. Phase M custodian documentation pass.*
