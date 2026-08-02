@@ -15,9 +15,9 @@ members = [
 
 [workspace.dependencies]
 criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
-ryg-rans-rs-core = { version = "0.4.1", path = "crates/ryg-rans-rs-core" }
-ryg-rans-rs-simd = { version = "0.4.1", path = "crates/ryg-rans-rs-simd" }
-ryg-rans-rs-parallel = { version = "0.4.1", path = "crates/ryg-rans-rs-parallel" }
+ryg-rans-rs-core = { version = "0.5.0", path = "crates/ryg-rans-rs-core" }
+ryg-rans-rs-simd = { version = "0.5.0", path = "crates/ryg-rans-rs-simd" }
+ryg-rans-rs-parallel = { version = "0.5.0", path = "crates/ryg-rans-rs-parallel" }
 
 [workspace.package]
 repository = "https://github.com/infinityabundance/ryg-rans-rs"

@@ -8,7 +8,7 @@
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs-core)](https://crates.io/crates/ryg-rans-rs-core)
 [![docs.rs](https://img.shields.io/docsrs/ryg-rans-rs-core)](https://docs.rs/ryg-rans-rs-core/latest/ryg_rans_rs_core/)
 
-**Version: 0.4.1** (workspace) · 57 unit tests · 9 Kani proofs · 4 behaviour-sealed surfaces
+**Version: 0.5.0** (workspace) · 57 unit tests · 9 Kani proofs · 4 behaviour-sealed surfaces
 (120 of the project's 144 Phase-K behavioural receipts)
 
 ---
@@ -559,7 +559,7 @@ assert_eq!(decoded, symbols);
 
 ## Versioning
 
-`0.4.1` (workspace-wide). The crate follows the project's format invariants:
+`0.5.0` (workspace-wide). The crate follows the project's format invariants:
 
 - **Bit-exact stream parity with the pinned upstream `ryg_rans` revision** is frozen:
   any change that alters an encoded stream is a breaking format change and invalidates
@@ -585,4 +585,4 @@ assert_eq!(decoded, symbols);
 9. `docs/papers/0001-rans-design.md` and `docs/papers/0007-proof-philosophy.md` — the design and proof methodology; `docs/adr/0001` and `0002` — the format-contract and reciprocal decisions.
 ---
 
-*Part of the ryg-rans-rs project. Version **0.4.1**.*
+*Part of the ryg-rans-rs project. Version **0.5.0**.*

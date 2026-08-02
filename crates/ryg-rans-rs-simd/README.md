@@ -7,7 +7,7 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](../../LICENSE-APACHE)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs-simd)](https://crates.io/crates/ryg-rans-rs-simd)
 
-**Version: 0.4.1** (workspace) · default build: 27 tests (22 unit + 4 disassembly courts +
+**Version: 0.5.0** (workspace) · default build: 27 tests (22 unit + 4 disassembly courts +
 1 ledger test) · native build: 58 unit tests + 1 ignored (`--release` only) + courts ·
 43 ledgered `unsafe fn`
 
@@ -569,7 +569,7 @@ All function names above are verified against the current crate source
 
 ## Versioning
 
-`0.4.1` (workspace-wide). Format invariants that apply to every kernel in this crate:
+`0.5.0` (workspace-wide). Format invariants that apply to every kernel in this crate:
 
 - **Bit-exact stream parity** with the pinned upstream format: the 8-way and 16-way
   stream layouts are frozen by `docs/bitstream-contract.md`; any change to an encoded
@@ -597,4 +597,4 @@ All function names above are verified against the current crate source
 10. `docs/papers/0002-word-rans.md` and `docs/papers/0003-simd.md` — the table layout and kernel design; `docs/adr/0003` and `0011` — the scale-pin and unsafe-quarantine decisions.
 ---
 
-*Part of the ryg-rans-rs project. Version **0.4.1**.*
+*Part of the ryg-rans-rs project. Version **0.5.0**.*

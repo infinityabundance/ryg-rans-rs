@@ -74,3 +74,41 @@ overrides the default location.
 Every block record is `(source_id, source_sha256, offset, length,
 model_group, codec_id, scale_bits)`; the schedule hash covers the ordered
 records.
+
+## Model reuse — natural vs grouped (Phase O.13)
+
+Natural per-block histograms rarely produce byte-identical model
+encodings, so the workload distinguishes two modes explicitly and **never
+presents one as the other**:
+
+* **Natural model mode** (`model_group == u64::MAX` in the manifest):
+  each block derives its own model from its own bytes.  The cache reuse
+  is whatever occurs organically — measured and reported as the actual
+  model cardinality and hit rate, never engineered upward.
+
+* **Grouped model mode** (any other `model_group`): a model is derived
+  from a declared training region and reused for a deterministic group of
+  blocks.  The training region is public-corpus-derived (per
+  `derivation.toml`: `source[g % num_sources]`, bytes `[0,
+  training_region_bytes)`); the group assignment is deterministic; blocks
+  of one group are encoded with the group's model via
+  `ModelPolicy::External` (implemented in Phase O.13).  Results produced
+  in this mode are labeled `grouped-model` in every measurement that uses
+  them.
+
+Both modes are required by the workload: natural measures organic reuse;
+grouped exercises the intended application behavior (an application that
+reuses one model across many blocks).  Synthetic cache-friendly workloads
+are never presented as naturally-occurring behavior — the `unique`
+workload class exists precisely to prove cache overhead when no reuse
+exists, and the `public-rans-smoke` schedule mixes both modes so the
+honest organic rate is measurable.
+
+## Cache policy classes
+
+The derivation declares the cache budgets each schedule assumes
+(`[cache]`): `disabled` (zero capacity — the semantic baseline), `default`
+(64 entries / 16 MiB), and `hot_set`.  The benchmark harness (Phase
+O.14) additionally defines the disabled / cold / warm / hot-set / thrash /
+unique measurement classes; see `docs/performance/model-cache.md` for
+what each class proves and what it deliberately does not.
