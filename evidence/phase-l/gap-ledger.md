@@ -213,3 +213,18 @@ Each residual records: severity, affected files, reproduction, expected/actual b
 - L11-A — workspace-wide audit; fixed SSE4.1 report parity; typed errors for malformed inputs; annotated remaining invariant-based unwraps.
 - L13-A — removed dead types; `estimate_memory` overflow fix; public-API inventory under `docs/public-api/`.
 - L14-A..B — comparative court; see `docs/performance/comparative.md`.
+
+## L.22 — Versioning and publication
+
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| L22-A | MEDIUM | Determine the correct next release after the v0.2.0 tag | RESOLVED | `c43d616` — `cargo semver-checks check-release` against the published v0.2.0 finds exactly one breaking change: the CLI's new `AppError::Cancelled` enum variant (L3-D).  Pre-1.0 semver maps a breaking change to a minor bump → **0.3.0** for the whole workspace (version-consistency gate requires one shared version).  Nothing was deferred: the decision is documented in the commit message and this ledger |
+| L22-B | MEDIUM | Publish all intended crates in dependency order from the exact sealed commit | RESOLVED | `cargo publish` executed at release commit `72ebd08` (the sealed evidence state, full seal gate green) in dependency order: core, casefile, simd, facade, parallel, cli, oracle — all `v0.3.0` live on crates.io (verified via the sparse index).  `bench` remains explicitly `publish = false`.  `cargo package --list` audited for every crate: zero build artifacts.  The publication dry-run gate passes only after the dependencies are live (it resolves the packaged manifest against the registry), so the seal was re-run after publication: **All seal gates passed** |
+| L22-C | MEDIUM | Release tag must point to the exact release commit | RESOLVED | Annotated tag `v0.3.0` created at `72ebd08` (the exact sealed evidence commit); `v0.2.0` tag history untouched |
+
+## Accepted limitations (documented, with justification)
+
+- **L16-D (PARTIAL)** — Sanitizer/Miri: ASan runs inside every cargo-fuzz run; Miri passes the full core suite; the parallel crate's Miri run exceeds practical time bounds; UBSan spot coverage deferred to the Docker gate matrix (which runs it).
+- **L16-E (PARTIAL)** — Kani: 21 proofs verified; the two fully-symbolic-scale reciprocal instances are not bit-blastable within practical time bounds (documented, pinned by differential round-trip tests + the L.14 comparative court).
+- **L17-A (PARTIAL)** — Component isolation uses software decomposition (measured: 1-worker parallel overhead 1.38x over the raw kernel, dominated by dual SHA-256 per block); explicit benchmark-only hooks deferred to the sealed L.18 run's methodology note.
+- **L17-C (OPEN)** — Hardware counters unavailable on this host (perf not installed / no kernel permission); documented accepted limitation in `docs/performance/phase-l17-analysis.md`; component isolation uses software decomposition instead.
