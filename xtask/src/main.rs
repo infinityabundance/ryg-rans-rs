@@ -1341,6 +1341,8 @@ fn cmd_seal() -> Result<(), String> {
             "crates/ryg-rans-rs/README.md",
             "crates/ryg-rans-rs-oracle/README.md",
             "crates/ryg-rans-rs-cli/README.md",
+            "crates/ryg-rans-rs-bench/README.md",
+            "crates/ryg-rans-rs-parallel/README.md",
         ];
 
         // Changed files not in the allowlist that require evidence
