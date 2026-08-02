@@ -122,7 +122,10 @@ hand-edited).
 The `ryg-rans` binary implements the RYGRANS v1 container format
 (`docs/container-format-v1.md`) with stable exit codes, resource limits, and
 strict hash verification.  All subcommands are wired and integration-tested
-(15 end-to-end tests + 5 normalizer tests).
+(17 end-to-end tests + 5 normalizer tests + 1 proptest).  Long-running
+operations are cancellable from outside: SIGINT/SIGTERM and a `--timeout N`
+watchdog (fractional seconds) return the typed `Cancelled` error (exit 11) at
+the next block boundary instead of a hard kill.
 
 ### Subcommands
 
@@ -182,9 +185,12 @@ decoded-stream hash.
 | 8 | Parity or comparison mismatch |
 | 9 | Requested backend unavailable |
 | 10 | Internal invariant failure |
+| 11 | Operation cancelled (signal, timeout, or caller request) |
 
 Exit codes are stable once documented and are propagated verbatim by the
-binary (including code 6, which is reachable since Phase L.15).
+binary (including code 6, which is reachable since Phase L.15, and code 11,
+which is reachable since Phase L.3-D — SIGINT/SIGTERM or `--timeout` on
+`encode`, `decode`, and `verify`).
 
 ### Resource Limits
 
@@ -304,7 +310,7 @@ listed below.
 | [`ryg-rans-rs-simd`](./crates/ryg-rans-rs-simd) | 0.2.0 | ✅ Yes | ⚠️ Ledgered | SSE4.1 + AVX512VL + AVX512 decode kernels, scalar fallback; every `unsafe fn` in `unsafe-ledger.toml` |
 | [`ryg-rans-rs`](./crates/ryg-rans-rs) | 0.2.0 | ✅ Yes | ✅ Deny | Public facade — re-exports core + optional SIMD |
 | [`ryg-rans-rs-parallel`](./crates/ryg-rans-rs-parallel) | 0.2.0 | ❌ No | ✅ Forbid | **Phase I** — deterministic parallel block engine: bounded live executor, atomic reorder commit, scratch, model cache, exact backend planning (105 tests) |
-| [`ryg-rans-rs-cli`](./crates/ryg-rans-rs-cli) | 0.2.0 | ❌ No | ✅ Forbid | **`ryg-rans` binary** — 10 wired subcommands, RYGRANS v1 container, 10 stable exit codes, resource limits, strict integrity (20 tests) |
+| [`ryg-rans-rs-cli`](./crates/ryg-rans-rs-cli) | 0.2.0 | ❌ No | ⚠️ Signals-gated | **`ryg-rans` binary** — 10 wired subcommands, RYGRANS v1 container, 11 stable exit codes, SIGINT/SIGTERM/`--timeout` cancellation, resource limits, strict integrity (23 tests) |
 | [`ryg-rans-rs-bench`](./crates/ryg-rans-rs-bench) | 0.2.0 | ❌ No | ❌ No | **Criterion benchmark suite** — 9 tiers + legacy surfaces + Phase L.14 comparative court. `publish = false` |
 | [`ryg-rans-rs-oracle`](./crates/ryg-rans-rs-oracle) | 0.2.0 | ❌ No | ❌ No | Forensic court harness, evidence generation |
 | [`ryg-rans-rs-casefile`](./crates/ryg-rans-rs-casefile) | 0.2.0 | ✅ Yes | ❌ No | Evidence schema types — Casefile, Receipt, Residual |

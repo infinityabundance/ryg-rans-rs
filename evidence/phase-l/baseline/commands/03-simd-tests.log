@@ -1,0 +1,607 @@
+=== cargo test -p ryg-rans-rs-simd (portable) ===
+   Compiling ryg-rans-rs-core v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-core)
+   Compiling ryg-rans-rs-simd v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-simd)
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:255:5
+    |
+255 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:297:5
+    |
+297 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:438:5
+    |
+438 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:434:5
+    |
+434 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:435:5
+    |
+435 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:436:5
+    |
+436 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:459:5
+    |
+459 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:455:5
+    |
+455 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:456:5
+    |
+456 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:457:5
+    |
+457 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:487:5
+    |
+487 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:483:5
+    |
+483 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:484:5
+    |
+484 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:485:5
+    |
+485 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:506:5
+    |
+506 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:502:5
+    |
+502 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:503:5
+    |
+503 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:504:5
+    |
+504 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:534:5
+    |
+534 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:530:5
+    |
+530 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:531:5
+    |
+531 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:532:5
+    |
+532 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:553:5
+    |
+553 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:549:5
+    |
+549 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:550:5
+    |
+550 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:551:5
+    |
+551 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:578:5
+    |
+578 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:574:5
+    |
+574 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:575:5
+    |
+575 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:576:5
+    |
+576 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:602:5
+    |
+602 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:598:5
+    |
+598 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:599:5
+    |
+599 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:600:5
+    |
+600 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:678:5
+    |
+678 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:674:5
+    |
+674 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:675:5
+    |
+675 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:676:5
+    |
+676 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:702:5
+    |
+702 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:698:5
+    |
+698 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:699:5
+    |
+699 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:700:5
+    |
+700 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: function `avx2_renorm_mask_8way` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:254:11
+    |
+254 | unsafe fn avx2_renorm_mask_8way(states: __m256i) -> u8 {
+    |           ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `mask_to_blend_epi32` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:296:11
+    |
+296 | unsafe fn mask_to_blend_epi32(mask_u8: u8) -> __m256i {
+    |           ^^^^^^^^^^^^^^^^^^^
+
+warning: `ryg-rans-rs-simd` (lib) generated 44 warnings (run `cargo fix --lib -p ryg-rans-rs-simd` to apply 30 suggestions)
+warning: `ryg-rans-rs-simd` (lib test) generated 44 warnings (44 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_simd-bbc73610a773fa81)
+
+running 22 tests
+test avx2_renorm::tests::test_scalar_mask_matches_bits ... ok
+test avx2_renorm::tests::test_permutation_table_coverage ... ok
+test avx2_renorm::tests::test_signed_compare_trick_scalar ... ok
+test avx2_renorm::tests::test_scalar_exhaustive_256_masks ... ok
+test avx2_renorm::tests::test_permutation_table_deterministic ... ok
+test backends::tests::test_backend_labels ... ok
+test packed_table::tests::test_packed_table_field_extraction ... ok
+test packed_table::tests::test_packed_table_invalid_scale_bits ... ok
+test tests::test_simd_vs_scalar_roundtrip ... ok
+test tests::test_truncated_rejected ... ok
+test tests::test_skewed_renorm ... ok
+test tests::test_simd_all_lengths ... ok
+test backends::tests::test_scalar16_dispatch ... ok
+test backends::tests::test_scalar8_dispatch ... ok
+test packed_table::tests::test_interleaved16_truncated_rejected ... ok
+test packed_table::tests::test_interleaved16_tail_lengths ... ok
+test packed_table::tests::test_packed_table_equivalence ... ok
+test packed_table::tests::test_interleaved16_roundtrip ... ok
+test backends::tests::test_truncated_8way_rejected ... ok
+test packed_table::tests::test_state_lane_ordering ... ok
+test backends::tests::test_truncated_16way_rejected ... ok
+test packed_table::tests::test_packed_scalar_matches_existing_scalar ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ryg_rans_rs_simd
+
+running 1 test
+test crates/ryg-rans-rs-simd/src/backends.rs - backends::DecodeBackend::label (line 172) ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.04s; merged doctests compilation took 0.04s
+EXIT:0
+
+=== cargo test -p ryg-rans-rs-simd (native) ===
+   Compiling ryg-rans-rs-core v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-core)
+   Compiling ryg-rans-rs-simd v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-simd)
+warning: unused import: `decode_8way_packed_scalar_with_report`
+  --> crates/ryg-rans-rs-simd/src/malformed_input_tests.rs:11:22
+   |
+11 |     PackedWordTable, decode_8way_packed_scalar_with_report, decode_interleaved16_scalar,
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:255:5
+    |
+255 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:297:5
+    |
+297 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning[E0133]: call to unsafe function `core::arch::x86_64::_mm512_loadu_si512` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:789:21
+    |
+789 |     let mut state = _mm512_loadu_si512(init_array.as_ptr() as *const __m512i);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:752:1
+    |
+752 | / pub unsafe fn decode_interleaved16_avx512_kernel(
+753 | |     compressed: &[u16],
+754 | |     table: &PackedWordTable,
+755 | |     expected_len: usize,
+756 | | ) -> Result<(Vec<u8>, DecodeReport), &'static str> {
+    | |__________________________________________________^
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+    = note: `#[warn(unsafe_op_in_unsafe_fn)]` (part of `#[warn(rust_2024_compatibility)]`) on by default
+
+warning[E0133]: call to unsafe function `core::arch::x86_64::_mm512_i32gather_epi32` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:805:24
+    |
+805 |         let gathered = _mm512_i32gather_epi32(indices, table_ptr, 4);
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning[E0133]: call to unsafe function `core::arch::x86_64::_mm_storeu_si128` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:818:9
+    |
+818 |         _mm_storeu_si128(output.as_mut_ptr().add(i) as *mut __m128i, symbol_bytes);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning[E0133]: call to unsafe function `core::ptr::mut_ptr::<impl *mut T>::add` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:818:26
+    |
+818 |         _mm_storeu_si128(output.as_mut_ptr().add(i) as *mut __m128i, symbol_bytes);
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning[E0133]: call to unsafe function `core::mem::zeroed` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:839:40
+    |
+839 |             let mut lanes: [u32; 16] = core::mem::zeroed();
+    |                                        ^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning[E0133]: call to unsafe function `core::arch::x86_64::_mm512_storeu_si512` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:840:13
+    |
+840 |             _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, new_state);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning[E0133]: call to unsafe function `core::arch::x86_64::_mm512_loadu_si512` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:849:21
+    |
+849 |             state = _mm512_loadu_si512(lanes.as_ptr() as *const __m512i);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning[E0133]: call to unsafe function `core::mem::zeroed` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:859:36
+    |
+859 |         let mut lanes: [u32; 16] = core::mem::zeroed();
+    |                                    ^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning[E0133]: call to unsafe function `core::arch::x86_64::_mm512_storeu_si512` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:860:9
+    |
+860 |         _mm512_storeu_si512(lanes.as_mut_ptr() as *mut __m512i, state);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning[E0133]: call to unsafe function `core::arch::x86_64::_mm512_loadu_si512` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:876:17
+    |
+876 |         state = _mm512_loadu_si512(lanes.as_ptr() as *const __m512i);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning[E0133]: call to unsafe function `core::arch::x86_64::_mm512_storeu_si512` is unsafe and requires unsafe block
+   --> crates/ryg-rans-rs-simd/src/avx512.rs:881:5
+    |
+881 |     _mm512_storeu_si512(final_states.as_mut_ptr() as *mut __m512i, state);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/lib.rs:326:9
+    |
+326 |         unsafe { simd_decode_inner(compressed, tables, expected_len) }
+    |         ^^^^^^ unnecessary `unsafe` block
+
+warning: function `avx2_renorm_mask_8way` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:254:11
+    |
+254 | unsafe fn avx2_renorm_mask_8way(states: __m256i) -> u8 {
+    |           ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `mask_to_blend_epi32` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:296:11
+    |
+296 | unsafe fn mask_to_blend_epi32(mask_u8: u8) -> __m256i {
+    |           ^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `freqs`
+    --> crates/ryg-rans-rs-simd/src/avx512.rs:1731:14
+     |
+1731 |         let (freqs, cum, packed) = uniform_model();
+     |              ^^^^^ help: if this is intentional, prefix it with an underscore: `_freqs`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `cum`
+    --> crates/ryg-rans-rs-simd/src/avx512.rs:1731:21
+     |
+1731 |         let (freqs, cum, packed) = uniform_model();
+     |                     ^^^ help: if this is intentional, prefix it with an underscore: `_cum`
+
+For more information about this error, try `rustc --explain E0133`.
+warning: `ryg-rans-rs-simd` (lib) generated 16 warnings (run `cargo fix --lib -p ryg-rans-rs-simd` to apply 1 suggestion)
+warning: variable `rp` is assigned to, but never used
+   --> crates/ryg-rans-rs-simd/src/mask_tests.rs:136:21
+    |
+136 |                 let mut rp = 0usize;
+    |                     ^^^^^^
+    |
+    = note: consider using `_rp` instead
+
+warning: value assigned to `rp` is never read
+   --> crates/ryg-rans-rs-simd/src/mask_tests.rs:146:25
+    |
+146 |                         rp += 1;
+    |                         ^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `report`
+   --> crates/ryg-rans-rs-simd/src/optimization_tests.rs:237:17
+    |
+237 | ...   let report = decode_interleaved8_manual_gather_into(&cp, &pk, &mut poisoned).unwrap();
+    |           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_report`
+
+warning: unused variable: `report`
+   --> crates/ryg-rans-rs-simd/src/optimization_tests.rs:257:17
+    |
+257 | ...   let report = decode_interleaved16_manual_gather_into(&cp, &pk, &mut poisoned).unwrap();
+    |           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_report`
+
+warning: unused variable: `report`
+   --> crates/ryg-rans-rs-simd/src/optimization_tests.rs:280:17
+    |
+280 |             let report = decode_interleaved16_2x8_into(&cp, &pk, &mut poisoned).unwrap();
+    |                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_report`
+
+warning: unused variable: `report`
+   --> crates/ryg-rans-rs-simd/src/optimization_tests.rs:299:17
+    |
+299 | ...   let report = decode_interleaved16_uniform256_avx512_into(&cp, &mut poisoned).unwrap();
+    |           ^^^^^^ help: if this is intentional, prefix it with an underscore: `_report`
+
+warning: function `skewed_table` is never used
+  --> crates/ryg-rans-rs-simd/src/avx2_tests.rs:33:4
+   |
+33 | fn skewed_table() -> PackedWordTable {
+   |    ^^^^^^^^^^^^
+
+warning: `ryg-rans-rs-simd` (lib test) generated 26 warnings (16 duplicates) (run `cargo fix --lib -p ryg-rans-rs-simd --tests` to apply 7 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.45s
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_simd-715361ec819ac80f)
+
+running 59 tests
+test avx2_renorm::tests::test_scalar_mask_matches_bits ... ok
+test avx2_renorm::tests::test_permutation_table_coverage ... ok
+test avx2_renorm::tests::test_signed_compare_trick_scalar ... ok
+test avx2_renorm::tests::test_scalar_exhaustive_256_masks ... ok
+test avx2_renorm::tests::test_permutation_table_deterministic ... ok
+test avx2_tests::test_avx2_batch4_empty_jobs ... ok
+test avx2_tests::test_renorm_exact_input_succeeds ... ok
+test avx2_tests::test_renorm_one_word_short_fails ... ok
+test avx2_tests::test_renorm_exhaustive_256_masks ... ok
+test avx2_tests::test_avx2_hardware_gather_poison ... ok
+test avx2_tests::test_avx2_manual_gather_poison ... ok
+test avx2_tests::test_avx2_batch4_parity ... ok
+test backends::tests::test_backend_labels ... ok
+test avx2_tests::test_avx2_2x8_truncation ... ok
+test avx2_tests::test_avx2_2x8_all_tails ... ok
+test avx2_tests::test_avx2_batch4_multi_job ... ok
+test avx2_tests::test_avx2_2x8_poison ... ok
+test avx2_tests::test_avx2_manual_vs_hardware_gather_parity ... ok
+test avx512::tests::test_avx512_16way_equivalence ... ok
+test backends::tests::test_scalar16_dispatch ... ok
+test avx512::tests::test_avx512_16way_truncated_rejected ... ok
+test mask_tests::test_16way_exhaustive_simd_renorm ... ignored, Run with --release: 65536 iterations (approx 1-2 seconds)
+test avx512::tests::test_avx512_16way_all_tails ... ok
+test mask_tests::test_8way_exhaustive_simd_renorm ... ok
+test avx2_tests::test_avx2_uniform256_poison ... ok
+test avx512::tests::test_avx512vl8_equivalence_scalar ... ok
+test backends::tests::test_truncated_16way_rejected ... ok
+test backends::tests::test_scalar8_dispatch ... ok
+test malformed_input_tests::test_16way_final_state_parity ... ok
+test malformed_input_tests::test_16way_truncated_during_decode ... ok
+test backends::tests::test_truncated_8way_rejected ... ok
+test avx512::tests::test_avx512vl8_various_lengths ... ok
+test malformed_input_tests::test_avx512vl8_truncated_empty ... ok
+test malformed_input_tests::test_avx512vl8_truncated_partial_init ... ok
+test optimization_tests::into_2x8_writes_output ... ok
+test optimization_tests::batch1_rt ... ok
+test malformed_input_tests::test_16way_truncated_empty ... ok
+test packed_table::tests::test_packed_table_field_extraction ... ok
+test optimization_tests::into_mg8_writes_output ... ok
+test packed_table::tests::test_packed_table_invalid_scale_bits ... ok
+test malformed_input_tests::test_16way_truncated_partial_init ... ok
+test optimization_tests::into_mg16_writes_output ... ok
+test tests::test_simd_vs_scalar_roundtrip ... ok
+test tests::test_simd_all_lengths ... ok
+test tests::test_skewed_renorm ... ok
+test tests::test_truncated_rejected ... ok
+test malformed_input_tests::test_avx512vl8_truncated_during_decode ... ok
+test optimization_tests::into_tf16_writes_output ... ok
+test optimization_tests::mg8_rt ... ok
+test optimization_tests::mg16_rt ... ok
+test packed_table::tests::test_state_lane_ordering ... ok
+test optimization_tests::tf16_rt ... ok
+test packed_table::tests::test_interleaved16_truncated_rejected ... ok
+test packed_table::tests::test_interleaved16_roundtrip ... ok
+test optimization_tests::x2x8_rt ... ok
+test packed_table::tests::test_interleaved16_tail_lengths ... ok
+test packed_table::tests::test_packed_table_equivalence ... ok
+test packed_table::tests::test_packed_scalar_matches_existing_scalar ... ok
+test optimization_tests::batch_multi_job ... ok
+
+test result: ok. 58 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+   Doc-tests ryg_rans_rs_simd
+
+running 1 test
+test crates/ryg-rans-rs-simd/src/backends.rs - backends::DecodeBackend::label (line 172) ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.05s; merged doctests compilation took 0.04s
+EXIT:0

@@ -17,7 +17,7 @@ residual addressed; remainder tracked) · **OPEN** (not yet addressed).
 | ID | Severity | Issue | Status | Resolution |
 |----|----------|-------|--------|------------|
 | L0-A | LOW | Baseline metadata captured (commit, tree, rustc, cargo) | RESOLVED | `955ffe0` |
-| L0-B | MEDIUM | Baseline command outputs (check/test/smoke/seal logs) were not archived under `evidence/phase-l/baseline/` — only metadata files were saved | OPEN | Full command-log capture lands with the L.18 benchmark-run wrapper; baseline outputs will be regenerated from the frozen L.0 commit state and archived alongside the L.18 run |
+| L0-B | MEDIUM | Baseline command outputs (check/test/smoke/seal logs) were not archived under `evidence/phase-l/baseline/` — only metadata files were saved | RESOLVED | `evidence/phase-l/baseline/` now holds the full command outputs captured in a detached worktree at the frozen L.0 commit `7bbf4a25` (check, workspace tests, SIMD portable+native, parallel tests, fuzz check, performance-seal, seal — with exit statuses): the baseline seal gates FAILED (missing criterion dir; source-freshness violation on `benches/common/corpus.rs`) and the fuzz workspace did not build, recording exactly why Phase L exists; see `baseline/README.md` |
 
 ## L.1 — Phase K performance seal defects
 

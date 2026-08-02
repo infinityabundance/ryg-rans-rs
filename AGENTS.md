@@ -108,17 +108,23 @@ gate (L.20): it must pass fully before any "Sealed" claim is made.
 `avx2-2x8` · `avx2-uniform256` · `avx2-batch4` · `avx512vl-8way` ·
 `avx512-16way`.  `requested` and `executed` are always recorded separately.
 
-## Current limitations (as of Phase L.15)
+## Current limitations (as of Phase L.18, implementation commit 8401991)
 
 * CLI `encode` implements codecs byte-single, byte-interleaved2,
   r64-single, word-single; other codecs return a typed unsupported error
   (exit 6).  CLI `trace` supports byte-single blocks only.
 * CLI `decode` supports codecs 1, 2, 3, 5 and 7 (8-way via SIMD/scalar);
   codecs 4, 6, 8, 9, 10 return typed unsupported errors.
+* CLI cancellation is cooperative and block-granular: SIGINT/SIGTERM
+  (Unix, optional `signals` feature, on by default) and `--timeout N`
+  (fractional seconds) return the typed `Cancelled` error with exit code 11
+  at the next block boundary; the CLI does not asynchronously interrupt a
+  single in-flight block.
 * The `bench` subcommand is a live smoke measurement; the Criterion suite
   is the sealed measurement surface.
-* Performance evidence is being re-sealed in Phase L.18; the Phase K run
-  is superseded.
+* Performance evidence is re-sealed in Phase L.18 at implementation commit
+  `8401991` (run `phase-l-20260802a`, 800 cases × 100 samples); the Phase K
+  run is superseded (see `evidence/performance/superseded/`).
 
 ## How to verify claims rather than trusting prose
 

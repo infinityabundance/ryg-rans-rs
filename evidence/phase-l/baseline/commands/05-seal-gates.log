@@ -1,0 +1,2075 @@
+=== cargo xtask performance-seal (baseline) ===
+   Compiling clap_builder v4.6.2
+   Compiling syn v3.0.3
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:255:5
+    |
+255 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:297:5
+    |
+297 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:438:5
+    |
+438 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:434:5
+    |
+434 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:435:5
+    |
+435 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:436:5
+    |
+436 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:459:5
+    |
+459 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:455:5
+    |
+455 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:456:5
+    |
+456 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:457:5
+    |
+457 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:487:5
+    |
+487 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:483:5
+    |
+483 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:484:5
+    |
+484 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:485:5
+    |
+485 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:506:5
+    |
+506 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:502:5
+    |
+502 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:503:5
+    |
+503 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:504:5
+    |
+504 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:534:5
+    |
+534 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:530:5
+    |
+530 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:531:5
+    |
+531 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:532:5
+    |
+532 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:553:5
+    |
+553 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:549:5
+    |
+549 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:550:5
+    |
+550 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:551:5
+    |
+551 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:578:5
+    |
+578 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:574:5
+    |
+574 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:575:5
+    |
+575 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:576:5
+    |
+576 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:602:5
+    |
+602 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:598:5
+    |
+598 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:599:5
+    |
+599 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:600:5
+    |
+600 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:678:5
+    |
+678 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:674:5
+    |
+674 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:675:5
+    |
+675 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:676:5
+    |
+676 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:702:5
+    |
+702 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:698:5
+    |
+698 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:699:5
+    |
+699 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:700:5
+    |
+700 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: function `avx2_renorm_mask_8way` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:254:11
+    |
+254 | unsafe fn avx2_renorm_mask_8way(states: __m256i) -> u8 {
+    |           ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `mask_to_blend_epi32` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:296:11
+    |
+296 | unsafe fn mask_to_blend_epi32(mask_u8: u8) -> __m256i {
+    |           ^^^^^^^^^^^^^^^^^^^
+
+warning: `ryg-rans-rs-simd` (lib) generated 44 warnings (run `cargo fix --lib -p ryg-rans-rs-simd` to apply 30 suggestions)
+   Compiling serde_derive v1.0.229
+   Compiling clap v4.6.4
+   Compiling serde v1.0.229
+   Compiling ciborium v0.2.2
+   Compiling tinytemplate v1.2.1
+   Compiling ryg-rans-rs-parallel v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-parallel)
+   Compiling ryg-rans-rs-casefile v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-casefile)
+warning: unused import: `ryg_rans_rs_simd::backends::DecodeError`
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:785:9
+    |
+785 |     use ryg_rans_rs_simd::backends::DecodeError;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e`
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:271:73
+    |
+271 |     let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    |                                                                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `cpu_has_avx512`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:109:5
+    |
+109 |     cpu_has_avx512: bool,
+    |     ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx512`
+
+warning: unused variable: `cpu_has_avx512vl`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:110:5
+    |
+110 |     cpu_has_avx512vl: bool,
+    |     ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx512vl`
+
+warning: unused variable: `cpu_has_avx2`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:111:5
+    |
+111 |     cpu_has_avx2: bool,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx2`
+
+   Compiling criterion v0.5.1
+warning: unused variable: `e`
+   --> crates/ryg-rans-rs-parallel/src/verify.rs:263:73
+    |
+263 |     let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    |                                                                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: function `scalar8_fallback` is never used
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:590:4
+    |
+590 | fn scalar8_fallback(
+    |    ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `decode_16way_pure_scalar` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1201:4
+     |
+1201 | fn decode_16way_pure_scalar(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `decode_8way_pure_scalar` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1288:4
+     |
+1288 | fn decode_8way_pure_scalar(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_symbol_from_freqs` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1372:4
+     |
+1372 | fn find_symbol_from_freqs(freqs: &[u32], slot: usize) -> u8 {
+     |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `decode_8way_from_freqs` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1407:4
+     |
+1407 | fn decode_8way_from_freqs(
+     |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `max_retain` is never read
+  --> crates/ryg-rans-rs-parallel/src/scratch.rs:88:5
+   |
+76 | pub struct WorkerScratch {
+   |            ------------- field in this struct
+...
+88 |     max_retain: usize,
+   |     ^^^^^^^^^^
+   |
+   = note: `WorkerScratch` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: `ryg-rans-rs-parallel` (lib) generated 12 warnings (run `cargo fix --lib -p ryg-rans-rs-parallel` to apply 6 suggestions)
+   Compiling ryg-rans-rs-bench v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-bench)
+warning: variable does not need to be mutable
+  --> crates/ryg-rans-rs-bench/src/common/metadata.rs:51:13
+   |
+51 |         let mut features = Vec::new();
+   |             ----^^^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> crates/ryg-rans-rs-bench/src/exporter.rs:533:17
+    |
+533 |             let mut record = parse_estimate_file(&path, root, metadata, runtime_features)?;
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: `ryg-rans-rs-bench` (lib) generated 2 warnings (run `cargo fix --lib -p ryg-rans-rs-bench` to apply 2 suggestions)
+   Compiling xtask v0.1.0 (/tmp/ryg-baseline/xtask)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.39s
+     Running `target/debug/xtask performance-seal`
+performance-seal: step 1 — verifying clean Git state...
+  git status: clean
+performance-seal: step 2 — collecting host metadata...
+  CPU: AMD Ryzen 7 9800X3D 8-Core Processor
+  OS: linux x86_64
+  rustc: rustc 1.96.0 (ac68faa20 2026-05-25)
+  Criterion: 0.5.1
+  SMT: true
+  governor: performance
+performance-seal: step 3 — loading Criterion results from "target/criterion"...
+FAIL: performance-seal: Criterion directory does not exist: "target/criterion"
+EXIT:1
+
+=== cargo xtask seal (baseline) ===
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:255:5
+    |
+255 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:297:5
+    |
+297 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:438:5
+    |
+438 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:434:5
+    |
+434 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:435:5
+    |
+435 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:436:5
+    |
+436 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:459:5
+    |
+459 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:455:5
+    |
+455 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:456:5
+    |
+456 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:457:5
+    |
+457 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:487:5
+    |
+487 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:483:5
+    |
+483 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:484:5
+    |
+484 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:485:5
+    |
+485 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:506:5
+    |
+506 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:502:5
+    |
+502 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:503:5
+    |
+503 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:504:5
+    |
+504 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:534:5
+    |
+534 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:530:5
+    |
+530 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:531:5
+    |
+531 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:532:5
+    |
+532 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:553:5
+    |
+553 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:549:5
+    |
+549 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:550:5
+    |
+550 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:551:5
+    |
+551 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:578:5
+    |
+578 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:574:5
+    |
+574 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:575:5
+    |
+575 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:576:5
+    |
+576 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:602:5
+    |
+602 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:598:5
+    |
+598 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:599:5
+    |
+599 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:600:5
+    |
+600 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:678:5
+    |
+678 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:674:5
+    |
+674 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:675:5
+    |
+675 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:676:5
+    |
+676 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:702:5
+    |
+702 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:698:5
+    |
+698 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:699:5
+    |
+699 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:700:5
+    |
+700 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: function `avx2_renorm_mask_8way` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:254:11
+    |
+254 | unsafe fn avx2_renorm_mask_8way(states: __m256i) -> u8 {
+    |           ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `mask_to_blend_epi32` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:296:11
+    |
+296 | unsafe fn mask_to_blend_epi32(mask_u8: u8) -> __m256i {
+    |           ^^^^^^^^^^^^^^^^^^^
+
+warning: `ryg-rans-rs-simd` (lib) generated 44 warnings (run `cargo fix --lib -p ryg-rans-rs-simd` to apply 30 suggestions)
+warning: unused import: `ryg_rans_rs_simd::backends::DecodeError`
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:785:9
+    |
+785 |     use ryg_rans_rs_simd::backends::DecodeError;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e`
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:271:73
+    |
+271 |     let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    |                                                                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `cpu_has_avx512`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:109:5
+    |
+109 |     cpu_has_avx512: bool,
+    |     ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx512`
+
+warning: unused variable: `cpu_has_avx512vl`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:110:5
+    |
+110 |     cpu_has_avx512vl: bool,
+    |     ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx512vl`
+
+warning: unused variable: `cpu_has_avx2`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:111:5
+    |
+111 |     cpu_has_avx2: bool,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx2`
+
+warning: unused variable: `e`
+   --> crates/ryg-rans-rs-parallel/src/verify.rs:263:73
+    |
+263 |     let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    |                                                                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: function `scalar8_fallback` is never used
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:590:4
+    |
+590 | fn scalar8_fallback(
+    |    ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `decode_16way_pure_scalar` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1201:4
+     |
+1201 | fn decode_16way_pure_scalar(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `decode_8way_pure_scalar` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1288:4
+     |
+1288 | fn decode_8way_pure_scalar(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_symbol_from_freqs` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1372:4
+     |
+1372 | fn find_symbol_from_freqs(freqs: &[u32], slot: usize) -> u8 {
+     |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `decode_8way_from_freqs` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1407:4
+     |
+1407 | fn decode_8way_from_freqs(
+     |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `max_retain` is never read
+  --> crates/ryg-rans-rs-parallel/src/scratch.rs:88:5
+   |
+76 | pub struct WorkerScratch {
+   |            ------------- field in this struct
+...
+88 |     max_retain: usize,
+   |     ^^^^^^^^^^
+   |
+   = note: `WorkerScratch` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: `ryg-rans-rs-parallel` (lib) generated 12 warnings (run `cargo fix --lib -p ryg-rans-rs-parallel` to apply 6 suggestions)
+warning: variable does not need to be mutable
+  --> crates/ryg-rans-rs-bench/src/common/metadata.rs:51:13
+   |
+51 |         let mut features = Vec::new();
+   |             ----^^^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> crates/ryg-rans-rs-bench/src/exporter.rs:533:17
+    |
+533 |             let mut record = parse_estimate_file(&path, root, metadata, runtime_features)?;
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: `ryg-rans-rs-bench` (lib) generated 2 warnings (run `cargo fix --lib -p ryg-rans-rs-bench` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/xtask seal`
+Checking: dirty-tree gate...
+  dirty-tree gate: working tree is clean for covered sources
+Checking: cargo check --workspace...
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:255:5
+    |
+255 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:297:5
+    |
+297 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:438:5
+    |
+438 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:434:5
+    |
+434 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:435:5
+    |
+435 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:436:5
+    |
+436 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:459:5
+    |
+459 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:455:5
+    |
+455 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:456:5
+    |
+456 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:457:5
+    |
+457 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:487:5
+    |
+487 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:483:5
+    |
+483 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:484:5
+    |
+484 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:485:5
+    |
+485 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:506:5
+    |
+506 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:502:5
+    |
+502 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:503:5
+    |
+503 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:504:5
+    |
+504 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:534:5
+    |
+534 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:530:5
+    |
+530 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:531:5
+    |
+531 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:532:5
+    |
+532 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:553:5
+    |
+553 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:549:5
+    |
+549 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:550:5
+    |
+550 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:551:5
+    |
+551 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:578:5
+    |
+578 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:574:5
+    |
+574 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:575:5
+    |
+575 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:576:5
+    |
+576 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:602:5
+    |
+602 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:598:5
+    |
+598 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:599:5
+    |
+599 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:600:5
+    |
+600 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:678:5
+    |
+678 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:674:5
+    |
+674 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:675:5
+    |
+675 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:676:5
+    |
+676 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:702:5
+    |
+702 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:698:5
+    |
+698 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:699:5
+    |
+699 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:700:5
+    |
+700 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: function `avx2_renorm_mask_8way` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:254:11
+    |
+254 | unsafe fn avx2_renorm_mask_8way(states: __m256i) -> u8 {
+    |           ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `mask_to_blend_epi32` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:296:11
+    |
+296 | unsafe fn mask_to_blend_epi32(mask_u8: u8) -> __m256i {
+    |           ^^^^^^^^^^^^^^^^^^^
+
+warning: `ryg-rans-rs-simd` (lib) generated 44 warnings (run `cargo fix --lib -p ryg-rans-rs-simd` to apply 30 suggestions)
+warning: unused import: `ryg_rans_rs_simd::backends::DecodeError`
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:785:9
+    |
+785 |     use ryg_rans_rs_simd::backends::DecodeError;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e`
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:271:73
+    |
+271 |     let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    |                                                                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `cpu_has_avx512`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:109:5
+    |
+109 |     cpu_has_avx512: bool,
+    |     ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx512`
+
+warning: unused variable: `cpu_has_avx512vl`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:110:5
+    |
+110 |     cpu_has_avx512vl: bool,
+    |     ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx512vl`
+
+warning: unused variable: `cpu_has_avx2`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:111:5
+    |
+111 |     cpu_has_avx2: bool,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx2`
+
+warning: unused variable: `e`
+   --> crates/ryg-rans-rs-parallel/src/verify.rs:263:73
+    |
+263 |     let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    |                                                                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: function `scalar8_fallback` is never used
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:590:4
+    |
+590 | fn scalar8_fallback(
+    |    ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `decode_16way_pure_scalar` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1201:4
+     |
+1201 | fn decode_16way_pure_scalar(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `decode_8way_pure_scalar` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1288:4
+     |
+1288 | fn decode_8way_pure_scalar(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_symbol_from_freqs` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1372:4
+     |
+1372 | fn find_symbol_from_freqs(freqs: &[u32], slot: usize) -> u8 {
+     |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `decode_8way_from_freqs` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1407:4
+     |
+1407 | fn decode_8way_from_freqs(
+     |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `max_retain` is never read
+  --> crates/ryg-rans-rs-parallel/src/scratch.rs:88:5
+   |
+76 | pub struct WorkerScratch {
+   |            ------------- field in this struct
+...
+88 |     max_retain: usize,
+   |     ^^^^^^^^^^
+   |
+   = note: `WorkerScratch` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: `ryg-rans-rs-parallel` (lib) generated 12 warnings (run `cargo fix --lib -p ryg-rans-rs-parallel` to apply 6 suggestions)
+warning: unused import: `ryg_rans_rs_casefile as casefile`
+  --> crates/ryg-rans-rs-oracle/src/phase_g.rs:10:5
+   |
+10 | use ryg_rans_rs_casefile as casefile;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `DecodeResult`, `decode_interleaved16_scalar`, and `decode_interleaved8_scalar`
+  --> crates/ryg-rans-rs-oracle/src/phase_g.rs:12:20
+   |
+12 |     DecodeBackend, DecodeResult, decode_interleaved8_avx512vl, decode_interleaved8_scalar,
+   |                    ^^^^^^^^^^^^                                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+13 |     decode_interleaved16_avx512, decode_interleaved16_scalar,
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::collections::BTreeMap`
+  --> crates/ryg-rans-rs-oracle/src/phase_g.rs:22:5
+   |
+22 | use std::collections::BTreeMap;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unexpected `cfg` condition value: `std`
+   --> crates/ryg-rans-rs-oracle/src/phase_g.rs:663:56
+    |
+663 |                 #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+    |                                                        ^^^^^^^^^^^^^^^ help: remove the condition
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unused import: `decode_simd_8way`
+  --> crates/ryg-rans-rs-oracle/src/lib.rs:10:74
+   |
+10 |     RansWordTables as SimdTables, build_word_tables, decode_8way_scalar, decode_simd_8way,
+   |                                                                          ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^                      ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |                                               ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1233 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1277 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |                                   ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^                                ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+...
+1315 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^                   ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^                      ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |                              ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1357 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^                      ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |                                               ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1395 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |                                   ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1452 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |                                   ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^                                ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+...
+1537 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^                   ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |                                                 ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1593 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, and `rans_word_dec_sym`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^                 ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |                                ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1680 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordState`, `SliceBackwardWriter`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^                ^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^                ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |                                                                          ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1703 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, and `rans_word_dec_sym`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^                 ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |                                ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1750 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordState`, `SliceBackwardWriter`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^                ^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^                ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |                                                                          ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1807 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^                      ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^                 ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |                                                                       ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^                       ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1872 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |                                          ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^                                   ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1896 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^                      ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^                 ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |                                                                       ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^                       ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1920 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord16Writer`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordState`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_dec_advance`, `rans_byte_alias_enc_put`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, `rans_word_dec_sym`, `rans_word_enc_flush`, and `rans_word_enc_put`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^                                   ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+1960 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused imports: `ALIAS_LOG2_NSYMS`, `ALIAS_NSYMS`, `AliasTable`, `BackwardByteWriter`, `BackwardWord32Writer`, `ByteInterleavedDecoder`, `ByteInterleavedEncoder`, `ByteReader`, `ForwardReader`, `Rans64DecSymbol`, `Rans64EncSymbol`, `Rans64State`, `RansByteDecSymbol`, `RansByteEncSymbol`, `RansByteState`, `RansWordSlot`, `RansWordTables`, `SliceBackwardWriter`, `Word16Reader`, `Word32Reader`, `rans64_dec_advance_step`, `rans64_dec_advance_symbol_step`, `rans64_dec_advance_symbol`, `rans64_dec_advance`, `rans64_dec_get`, `rans64_dec_init`, `rans64_dec_renorm`, `rans64_enc_flush`, `rans64_enc_put_symbol`, `rans64_enc_put`, `rans_byte_alias_build_table`, `rans_byte_alias_dec_advance`, `rans_byte_alias_dec_get`, `rans_byte_alias_dec_renorm`, `rans_byte_alias_enc_put`, `rans_byte_alias_normalize_freqs`, `rans_byte_dec_advance_step`, `rans_byte_dec_advance_symbol_step`, `rans_byte_dec_advance_symbol`, `rans_byte_dec_advance`, `rans_byte_dec_get`, `rans_byte_dec_init`, `rans_byte_dec_renorm`, `rans_byte_enc_flush`, `rans_byte_enc_put_symbol`, `rans_byte_enc_put`, `rans_word_dec_init`, `rans_word_dec_renorm`, and `rans_word_dec_sym`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1207:13
+     |
+1207 |             ALIAS_LOG2_NSYMS, ALIAS_NSYMS, AliasTable, BackwardByteWriter, BackwardWord16Writer,
+     |             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1208 |             BackwardWord32Writer, ByteInterleavedDecoder, ByteInterleavedEncoder, ByteReader,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+1209 |             ForwardReader, Rans64DecSymbol, Rans64EncSymbol, Rans64State, RansByteDecSymbol,
+     |             ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1210 |             RansByteEncSymbol, RansByteState, RansWordSlot, RansWordState, RansWordTables,
+     |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^                 ^^^^^^^^^^^^^^
+1211 |             SliceBackwardWriter, Word16Reader, Word32Reader, rans_byte_alias_build_table,
+     |             ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1212 |             rans_byte_alias_dec_advance, rans_byte_alias_dec_get, rans_byte_alias_dec_renorm,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1213 |             rans_byte_alias_enc_put, rans_byte_alias_normalize_freqs, rans_byte_dec_advance,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+1214 |             rans_byte_dec_advance_step, rans_byte_dec_advance_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1215 |             rans_byte_dec_advance_symbol_step, rans_byte_dec_get, rans_byte_dec_init,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+1216 |             rans_byte_dec_renorm, rans_byte_enc_flush, rans_byte_enc_put, rans_byte_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+1217 |             rans_word_dec_init, rans_word_dec_renorm, rans_word_dec_sym, rans_word_enc_flush,
+     |             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+1218 |             rans_word_enc_put, rans64_dec_advance, rans64_dec_advance_step,
+     |                                ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+1219 |             rans64_dec_advance_symbol, rans64_dec_advance_symbol_step, rans64_dec_get,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1220 |             rans64_dec_init, rans64_dec_renorm, rans64_enc_flush, rans64_enc_put,
+     |             ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+1221 |             rans64_enc_put_symbol,
+     |             ^^^^^^^^^^^^^^^^^^^^^
+...
+2443 |     use_core!();
+     |     ----------- in this macro invocation
+     |
+     = note: this warning originates in the macro `use_core` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused variable: `e`
+   --> crates/ryg-rans-rs-oracle/src/phase_g.rs:258:21
+    |
+258 |                 Err(e) => (String::new(), Vec::new(), false),
+    |                     ^ help: if this is intentional, prefix it with an underscore: `_e`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-oracle/src/phase_g.rs:662:13
+    |
+662 |             unsafe {
+    |             ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> crates/ryg-rans-rs-oracle/src/phase_g.rs:659:13
+    |
+659 |         let mut twx8_self_decode = false;
+    |             ----^^^^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> crates/ryg-rans-rs-oracle/src/phase_g.rs:660:13
+    |
+660 |         let mut twx8_scalar_agree = false;
+    |             ----^^^^^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `case_seed`
+   --> crates/ryg-rans-rs-oracle/src/lib.rs:866:13
+    |
+866 |         let case_seed = seed.wrapping_add(case_idx as u64);
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_case_seed`
+
+warning: unused variable: `num_cases`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1172:5
+     |
+1172 |     num_cases: usize,
+     |     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_num_cases`
+
+warning: unused variable: `num_cases`
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1189:5
+     |
+1189 |     num_cases: usize,
+     |     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_num_cases`
+
+warning: variable does not need to be mutable
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1403:9
+     |
+1403 |     let mut enc_one = |state: &mut RansByteState,
+     |         ----^^^^^^^
+     |         |
+     |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:1544:9
+     |
+1544 |     let mut enc_one = |state: &mut Rans64State,
+     |         ----^^^^^^^
+     |         |
+     |         help: remove this `mut`
+
+warning: unreachable pattern
+    --> crates/ryg-rans-rs-oracle/src/lib.rs:2646:25
+     |
+2645 |                         Ok((s, _backend)) => s == input && dec == s,
+     |                         ----------------- matches all the relevant values
+2646 |                         Ok((s, _backend)) => s == input && dec == s,
+     |                         ^^^^^^^^^^^^^^^^^ no value can reach this
+     |
+     = note: `#[warn(unreachable_patterns)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `IntegrityError`
+ --> crates/ryg-rans-rs-cli/src/container/block.rs:7:43
+  |
+7 | use crate::error::{AppError, FormatError, IntegrityError};
+  |                                           ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `Digest` and `Sha256`
+ --> crates/ryg-rans-rs-cli/src/container/footer.rs:5:12
+  |
+5 | use sha2::{Digest, Sha256};
+  |            ^^^^^^  ^^^^^^
+
+warning: unused import: `crate::container::MAGIC`
+ --> crates/ryg-rans-rs-cli/src/container/writer.rs:3:5
+  |
+3 | use crate::container::MAGIC;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+  --> crates/ryg-rans-rs-cli/src/error.rs:14:5
+   |
+14 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused imports: `FormatError`, `InternalInvariantError`, and `IoError`
+  --> crates/ryg-rans-rs-cli/src/lib.rs:21:13
+   |
+21 | use error::{FormatError, InternalInvariantError, IoError};
+   |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^
+
+warning: unused import: `Generator`
+   --> crates/ryg-rans-rs-cli/src/lib.rs:515:25
+    |
+515 |     use clap_complete::{Generator, generate};
+    |                         ^^^^^^^^^
+
+warning: `ryg-rans-rs-oracle` (lib) generated 32 warnings (run `cargo fix --lib -p ryg-rans-rs-oracle` to apply 29 suggestions)
+warning: `ryg-rans-rs-cli` (lib) generated 6 warnings (run `cargo fix --lib -p ryg-rans-rs-cli` to apply 6 suggestions)
+warning: unused imports: `backends::DecodeBackend` and `self`
+  --> crates/ryg-rans-rs-oracle/src/bin/perf.rs:24:5
+   |
+24 |     backends::DecodeBackend,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+...
+27 |         self, PackedWordTable, decode_8way_packed_scalar, decode_8way_packed_scalar_with_rep...
+   |         ^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unexpected `cfg` condition value: `std`
+   --> crates/ryg-rans-rs-oracle/src/bin/perf.rs:488:52
+    |
+488 |             #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+    |                                                    ^^^^^^^^^^^^^^^ help: remove the condition
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `std`
+   --> crates/ryg-rans-rs-oracle/src/bin/perf.rs:510:56
+    |
+510 |             #[cfg(not(any(target_feature = "avx512bw", feature = "std")))]
+    |                                                        ^^^^^^^^^^^^^^^ help: remove the condition
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> crates/ryg-rans-rs-oracle/src/bin/perf.rs:811:52
+    |
+811 |             #[cfg(any(target_feature = "avx512bw", feature = "std"))]
+    |                                                    ^^^^^^^^^^^^^^^ help: remove the condition
+    |
+    = note: no expected values for `feature`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unused variable: `scalar16_ok`
+   --> crates/ryg-rans-rs-oracle/src/bin/perf.rs:304:17
+    |
+304 |             let scalar16_ok = scalar16_output == input;
+    |                 ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_scalar16_ok`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `n_iter`
+   --> crates/ryg-rans-rs-oracle/src/bin/perf.rs:307:17
+    |
+307 |             let n_iter = (100_000_000u64 / size.max(1) as u64).max(20).min(500_000);
+    |                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_n_iter`
+
+warning: unused variable: `uniform_tf_ok`
+   --> crates/ryg-rans-rs-oracle/src/bin/perf.rs:511:17
+    |
+511 |             let uniform_tf_ok = false;
+    |                 ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_uniform_tf_ok`
+
+warning: unused imports: `CaseManifest`, `CourtConfig`, and `Receipt`
+ --> crates/ryg-rans-rs-oracle/src/main.rs:1:26
+  |
+1 | use ryg_rans_rs_oracle::{CaseManifest, CourtConfig, CourtPath, ModelProfile, Receipt};
+  |                          ^^^^^^^^^^^^  ^^^^^^^^^^^                           ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::path::Path`
+ --> crates/ryg-rans-rs-oracle/src/main.rs:2:5
+  |
+2 | use std::path::Path;
+  |     ^^^^^^^^^^^^^^^
+
+warning: `ryg-rans-rs-oracle` (bin "perf") generated 7 warnings (run `cargo fix --bin "perf" -p ryg-rans-rs-oracle` to apply 4 suggestions)
+warning: `ryg-rans-rs-oracle` (bin "ryg-rans-rs-oracle") generated 2 warnings (run `cargo fix --bin "ryg-rans-rs-oracle" -p ryg-rans-rs-oracle` to apply 2 suggestions)
+warning: variable does not need to be mutable
+  --> crates/ryg-rans-rs-bench/src/common/metadata.rs:51:13
+   |
+51 |         let mut features = Vec::new();
+   |             ----^^^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> crates/ryg-rans-rs-bench/src/exporter.rs:533:17
+    |
+533 |             let mut record = parse_estimate_file(&path, root, metadata, runtime_features)?;
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: `ryg-rans-rs-bench` (lib) generated 2 warnings (run `cargo fix --lib -p ryg-rans-rs-bench` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+  cargo check --workspace: passed
+Checking: cargo test -p ryg-rans-rs-core...
+  cargo test -p ryg-rans-rs-core: passed
+Checking: docs-src/models/parity.model.json...
+  docs-src/models/parity.model.json: valid JSON
+Checking: docs-src/models/upstream.json...
+  docs-src/models/upstream.json: exists
+Checking: full claims have receipts...
+  full claims: all have receipts
+Checking: court path is valid for variant...
+  all court paths valid for their variant
+Checking: receipt files exist on disk...
+  all cited receipts: present and verified
+Checking: every index receipt cited in parity model...
+  all 144 index receipts cited in parity model
+  all 144 parity-cited receipts present in index
+  index entries: 144
+Checking: evidence index...
+  index entries: 144
+Checking: receipt SHA-256 hashes...
+  all receipt SHA-256 hashes verified
+Checking: manifest SHA-256 hashes...
+  all manifest SHA-256 hashes verified
+Checking: receipt SHA-256 self-hashes...
+  all receipt SHA-256 self-hashes verified
+Checking: source freshness...
+FAIL: seal: source file changed after code_commit 628108f31e5dd87ed7214de026d5d0943d4a5f22: benches/common/corpus.rs (not in allowed list)
+EXIT:1

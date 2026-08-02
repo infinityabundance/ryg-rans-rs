@@ -1,10 +1,11 @@
 # ryg-rans-rs-cli
 
 > **The `ryg-rans` command — rANS entropy coding tool.**  
-> **Version 0.2.0** (workspace) · **Phase L.15: fully wired** · **20 integration tests**  
+> **Version 0.2.0** (workspace) · **Phase L.15: fully wired** · **23 tests**  
 > Versioned block-streaming container format (RYGRANS v1) · SHA-256 integrity
 > verification · resource-bounded, deterministic, non-panicking · 10
-> subcommands · 10 stable exit codes · 5 shell completions.
+> subcommands · 11 stable exit codes · SIGINT/SIGTERM/`--timeout` cancellation
+> · 5 shell completions.
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs-cli)](https://crates.io/crates/ryg-rans-rs-cli)
@@ -42,10 +43,14 @@ are never collapsed to 1).
 
 All **10 subcommands are wired and integration-tested** (Phase L.15, commit
 0fa5936): `encode`, `decode`, `inspect`, `verify`, `model`, `trace`,
-`compare`, `bench`, `capabilities`, `completions`.  The crate is
-`#![forbid(unsafe_code)]` — all SIMD acceleration is reached through safe
-facade APIs (`ryg-rans-rs-simd`'s safe `decode_simd_8way`, which uses the
-SIMD kernel when compiled with `sse4.1` and a scalar reference otherwise).
+`compare`, `bench`, `capabilities`, `completions`.  The default build is
+`#![cfg_attr(not(feature = "signals"), forbid(unsafe_code))]`: the optional
+`signals` feature (on by default) installs SIGINT/SIGTERM handlers via
+`libc::signal` — the only `unsafe` in the crate — while `--no-default-
+features` builds stay fully `forbid(unsafe_code)`.  All SIMD acceleration is
+reached through safe facade APIs (`ryg-rans-rs-simd`'s safe
+`decode_simd_8way`, which uses the SIMD kernel when compiled with `sse4.1`
+and a scalar reference otherwise).
 
 Design principles:
 
@@ -60,6 +65,13 @@ Design principles:
    container.  No timestamps, no random identifiers, no host-dependent values.
 5. **No silent fallback** — unsupported codecs and explicit backend requests
    return a typed error (exit 6), never a different code path.
+6. **Cooperative external cancellation** — SIGINT/SIGTERM (Unix, `signals`
+   feature) and `--timeout N` (fractional seconds, all platforms) cancel
+   `encode`/`decode`/`verify` at the next block boundary with the typed
+   `Cancelled` error (exit 11).  Cancellation is polled once per block, so a
+   pending signal or expired watchdog is observed promptly and surfaces on
+   the same typed error path as every other failure — never a silent partial
+   success, never the signal default action.
 
 ---
 
@@ -77,8 +89,13 @@ Design principles:
   byte-interleaved2 (default), r64-single, word-single.  Decode implements
   codecs 1, 2, 3, 5 and 7 (8-way via SIMD/scalar); codecs 4, 6, 8, 9, 10
   return a typed unsupported error (exit 6).
-- **Does not handle SIGINT/SIGTERM cancellation.**  Signal-handling wiring is
-  tracked as residual L3-D in the gap ledger (OPEN).
+- **Does not silently truncate on cancellation.**  SIGINT/SIGTERM (Unix,
+  `signals` feature, default on) and `--timeout N` cancel at a block
+  boundary with the typed `Cancelled` error and exit code 11; the partial
+  output file is left in place and the error names the trigger (signal vs
+  timeout).  Disable the feature with `--no-default-features` to keep the
+  crate fully `forbid(unsafe_code)` (timeout cancellation still works — it
+  is pure `std`).
 - **Does not benchmark for the record.**  `bench` is a live smoke
   measurement; the Criterion suite in `ryg-rans-rs-bench` is the sealed
   measurement surface.
@@ -169,6 +186,7 @@ since Phase L.15):
 | 8 | Parity or comparison mismatch | Arithmetic paths diverge, backends disagree, models differ |
 | 9 | Requested backend unavailable | e.g. `compare backends` on a container with no 8-way blocks |
 | 10 | Internal invariant failure | Invariant violation (bug) |
+| 11 | Operation cancelled (signal, timeout, or caller request) | SIGINT/SIGTERM (Unix) or `--timeout N` on `encode`/`decode`/`verify`; stderr names the trigger |
 
 ---
 
@@ -270,7 +288,8 @@ container/
   reader.rs                → ContainerReader: streaming parser with full validation
   writer.rs                → ContainerWriter: streaming serializer with hashing
 error.rs                   → AppError: 11 typed variants with structured context
-exit.rs                    → 10 stable exit codes + error_to_exit_code
+exit.rs                    → 11 stable exit codes + error_to_exit_code
+signal.rs                  → CancellationGuard: SIGINT/SIGTERM handlers + timeout watchdog
 limits.rs                  → Limits: central resource bounds, size parsing
 ```
 
@@ -288,8 +307,9 @@ Dependencies: `ryg-rans-rs` (facade), `ryg-rans-rs-core` (`std`),
 
 | Claim | Evidence |
 |-------|----------|
-| All 10 subcommands wired, exit codes and stream behavior correct | 20 integration tests in `tests/cli.rs` (end-to-end via `CARGO_BIN_EXE_ryg-rans`) + `tests/model_normalizer.rs`; run with `cargo test -p ryg-rans-rs-cli` |
-| Codec behavior, container format, hash semantics | The same code paths are exercised by the project's court/evidence pipeline (Phase L.19 courts OPEN) and pinned by `docs/container-format-v1.md` / `docs/bitstream-contract.md` |
+| All 10 subcommands wired, exit codes and stream behavior correct | 23 tests (17 end-to-end integration tests in `tests/cli.rs` via `CARGO_BIN_EXE_ryg-rans`, incl. real-SIGINT and `--timeout` cancellation; 5 normalizer tests; 1 proptest); run with `cargo test -p ryg-rans-rs-cli` |
+| Codec behavior, container format, hash semantics | The same code paths are exercised by the project's court/evidence pipeline (Phase L.19 courts sealed, 14 receipts) and pinned by `docs/container-format-v1.md` / `docs/bitstream-contract.md` |
+| Cancellation semantics (SIGINT/SIGTERM/timeout → exit 11) | L3-D integration tests: real `kill(2)` SIGINT delivery and `--timeout 0.3` on a 64 MiB multi-block container, both asserting exit code 11 and the `cancelled:` stderr line; sealed by `cargo xtask seal` (Docker matrix `rust-stable-tests` runs the same suite) |
 | Performance | Not sealed here: the Criterion suite in `ryg-rans-rs-bench` is the measurement surface; the Phase K run is superseded (gap ledger L1-A…L1-S) and Phase L.18 re-seals.  No performance claim is marked **Sealed**. |
 
 Claim-check path: find the claim in this README → find the producing code
@@ -330,7 +350,10 @@ Honest, current (Phase L.15):
   uniform / external modes → typed error (exit 6).
 - **`--arithmetic` is not selectable** on encode; the reciprocal fast path is
   always used (`--arithmetic` accepts only `auto`).
-- **No signal handling** (SIGINT/SIGTERM/timeout) — gap ledger L3-D, OPEN.
+- **Cancellation is cooperative and block-granular.**  SIGINT/SIGTERM and
+  `--timeout` are observed between blocks, so a cancellation takes effect at
+  the next block boundary; a single in-flight block finishes first.  The
+  exit code is 11 and the stderr line names the trigger.
 - **`bench` results are smoke numbers**, not sealed measurements.
 
 ---

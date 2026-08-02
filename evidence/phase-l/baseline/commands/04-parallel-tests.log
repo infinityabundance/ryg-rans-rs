@@ -1,0 +1,517 @@
+=== cargo test -p ryg-rans-rs-parallel ===
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling ryg-rans-rs-core v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-core)
+   Compiling ryg-rans-rs-simd v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-simd)
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:255:5
+    |
+255 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:297:5
+    |
+297 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:438:5
+    |
+438 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:434:5
+    |
+434 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:435:5
+    |
+435 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:436:5
+    |
+436 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:459:5
+    |
+459 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:455:5
+    |
+455 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:456:5
+    |
+456 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:457:5
+    |
+457 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:487:5
+    |
+487 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:483:5
+    |
+483 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:484:5
+    |
+484 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:485:5
+    |
+485 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:506:5
+    |
+506 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:502:5
+    |
+502 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:503:5
+    |
+503 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:504:5
+    |
+504 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:534:5
+    |
+534 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:530:5
+    |
+530 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:531:5
+    |
+531 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:532:5
+    |
+532 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:553:5
+    |
+553 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:549:5
+    |
+549 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:550:5
+    |
+550 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:551:5
+    |
+551 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:578:5
+    |
+578 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:574:5
+    |
+574 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:575:5
+    |
+575 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:576:5
+    |
+576 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:602:5
+    |
+602 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:598:5
+    |
+598 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:599:5
+    |
+599 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:600:5
+    |
+600 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:678:5
+    |
+678 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:674:5
+    |
+674 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:675:5
+    |
+675 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `output`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:676:5
+    |
+676 |     output: &mut [u8],
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_output`
+
+warning: unnecessary `unsafe` block
+   --> crates/ryg-rans-rs-simd/src/backends.rs:702:5
+    |
+702 |     unsafe {
+    |     ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `compressed`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:698:5
+    |
+698 |     compressed: &[u16],
+    |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_compressed`
+
+warning: unused variable: `table`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:699:5
+    |
+699 |     table: &PackedWordTable,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `expected_len`
+   --> crates/ryg-rans-rs-simd/src/backends.rs:700:5
+    |
+700 |     expected_len: usize,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_len`
+
+warning: function `avx2_renorm_mask_8way` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:254:11
+    |
+254 | unsafe fn avx2_renorm_mask_8way(states: __m256i) -> u8 {
+    |           ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `mask_to_blend_epi32` is never used
+   --> crates/ryg-rans-rs-simd/src/avx2.rs:296:11
+    |
+296 | unsafe fn mask_to_blend_epi32(mask_u8: u8) -> __m256i {
+    |           ^^^^^^^^^^^^^^^^^^^
+
+warning: `ryg-rans-rs-simd` (lib) generated 44 warnings (run `cargo fix --lib -p ryg-rans-rs-simd` to apply 30 suggestions)
+   Compiling syn v3.0.3
+   Compiling serde_json v1.0.151
+   Compiling serde_derive v1.0.229
+   Compiling ryg-rans-rs-parallel v0.1.30 (/tmp/ryg-baseline/crates/ryg-rans-rs-parallel)
+warning: unused import: `ryg_rans_rs_simd::backends::DecodeError`
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:785:9
+    |
+785 |     use ryg_rans_rs_simd::backends::DecodeError;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e`
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:271:73
+    |
+271 |     let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    |                                                                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `cpu_has_avx512`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:109:5
+    |
+109 |     cpu_has_avx512: bool,
+    |     ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx512`
+
+warning: unused variable: `cpu_has_avx512vl`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:110:5
+    |
+110 |     cpu_has_avx512vl: bool,
+    |     ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx512vl`
+
+warning: unused variable: `cpu_has_avx2`
+   --> crates/ryg-rans-rs-parallel/src/decode_plan.rs:111:5
+    |
+111 |     cpu_has_avx2: bool,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_has_avx2`
+
+warning: unused variable: `e`
+   --> crates/ryg-rans-rs-parallel/src/verify.rs:263:73
+    |
+263 |     let (header, _model_offset) = parse_block_header(data, bi).map_err(|e| BlockError {
+    |                                                                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: function `scalar8_fallback` is never used
+   --> crates/ryg-rans-rs-parallel/src/decode.rs:590:4
+    |
+590 | fn scalar8_fallback(
+    |    ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `decode_16way_pure_scalar` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1201:4
+     |
+1201 | fn decode_16way_pure_scalar(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `decode_8way_pure_scalar` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1288:4
+     |
+1288 | fn decode_8way_pure_scalar(
+     |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_symbol_from_freqs` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1372:4
+     |
+1372 | fn find_symbol_from_freqs(freqs: &[u32], slot: usize) -> u8 {
+     |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `decode_8way_from_freqs` is never used
+    --> crates/ryg-rans-rs-parallel/src/decode.rs:1407:4
+     |
+1407 | fn decode_8way_from_freqs(
+     |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `max_retain` is never read
+  --> crates/ryg-rans-rs-parallel/src/scratch.rs:88:5
+   |
+76 | pub struct WorkerScratch {
+   |            ------------- field in this struct
+...
+88 |     max_retain: usize,
+   |     ^^^^^^^^^^
+   |
+   = note: `WorkerScratch` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: variable does not need to be mutable
+   --> crates/ryg-rans-rs-parallel/src/reorder.rs:409:13
+    |
+409 |         let mut buf: ReorderBuffer<TestResult> = ReorderBuffer::new(16, 65536);
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ryg-rans-rs-parallel` (lib) generated 12 warnings (run `cargo fix --lib -p ryg-rans-rs-parallel` to apply 6 suggestions)
+warning: unexpected `cfg` condition name: `loom`
+  --> crates/ryg-rans-rs-parallel/tests/loom_tests.rs:15:8
+   |
+15 | #![cfg(loom)]
+   |        ^^^^
+   |
+   = help: expected names are: `docsrs`, `feature`, and `test` and 31 more
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(loom)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: `ryg-rans-rs-parallel` (test "loom_tests") generated 1 warning
+warning: function `uniform256` is never used
+  --> crates/ryg-rans-rs-parallel/tests/phase_i_tests.rs:18:4
+   |
+18 | fn uniform256() -> Vec<u8> {
+   |    ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `THREAD_COUNTS` is never used
+   --> crates/ryg-rans-rs-parallel/tests/phase_i_tests.rs:304:7
+    |
+304 | const THREAD_COUNTS: &[usize] = &[1, 2, 4, 8, 16];
+    |       ^^^^^^^^^^^^^
+
+warning: `ryg-rans-rs-parallel` (lib test) generated 13 warnings (12 duplicates) (run `cargo fix --lib -p ryg-rans-rs-parallel --tests` to apply 1 suggestion)
+warning: `ryg-rans-rs-parallel` (test "phase_i_tests") generated 2 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.09s
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_parallel-6d694b82fa90d3ac)
+
+running 56 tests
+test cache::tests::test_cache_hit ... ok
+test cache::tests::test_cache_miss ... ok
+test cache::tests::test_clear ... ok
+test cache::tests::test_eviction ... ok
+test cancellation::tests::test_cancel ... ok
+test cancellation::tests::test_not_cancelled_by_default ... ok
+test cancellation::tests::test_cancel_from_another_thread ... ok
+test decode_plan::tests::test_model_aware_uniform256 ... ok
+test decode_plan::tests::test_explicit_avx2_plan ... ok
+test decode_plan::tests::test_portable_plan ... ok
+test decode_plan::tests::test_explicit_backend ... ok
+test decode_plan::tests::test_scalar8_plan ... ok
+test executor::tests::test_empty_tasks ... ok
+test decode_plan::tests::test_uniform256_detection ... ok
+test decode_plan::tests::test_scalar_auto ... ok
+test decode_plan::tests::test_skewed_not_uniform ... ok
+test executor::tests::test_single_task ... ok
+test plan::tests::test_coverage ... ok
+test plan::tests::test_no_gaps ... ok
+test plan::tests::test_empty ... ok
+test executor::tests::test_multiple_tasks ... ok
+test decode::tests::test_rejects_truncated_block ... ok
+test plan::tests::test_version ... ok
+test executor::tests::test_multiple_workers ... ok
+test reorder::tests::test_buffer_full ... ok
+test decode::tests::test_rejects_corrupt_payload_hash ... ok
+test plan::tests::test_single ... ok
+test executor::tests::test_worker_panic_containment ... ok
+test reorder::tests::test_sequential_insert ... ok
+test reorder::tests::test_reverse_order ... ok
+test reorder::tests::test_empty_buffer ... ok
+test schedule::tests::test_deterministic_scheduler ... ok
+test reorder::tests::test_duplicate_rejected ... ok
+test reorder::tests::test_out_of_order_insert ... ok
+test schedule::tests::test_even_first ... ok
+test schedule::tests::test_forward_schedule ... ok
+test schedule::tests::test_odd_first ... ok
+test schedule::tests::test_random_seeded_deterministic ... ok
+test schedule::tests::test_reverse_schedule ... ok
+test schedule::tests::test_slow_early ... ok
+test scratch::tests::test_pool ... ok
+test scratch::tests::test_scratch_creation ... ok
+test scratch::tests::test_scratch_reset ... ok
+test decode::tests::test_deterministic ... ok
+test verify::tests::test_verify_corrupt_payload ... ok
+test verify::tests::test_verify_truncated_block ... ok
+test decode::tests::test_roundtrip_uniform256 ... ok
+test decode::tests::test_empty_input_roundtrip ... ok
+test decode::tests::test_roundtrip_nonuniform ... ok
+test decode::tests::test_roundtrip_multiple_blocks ... ok
+test decode::tests::test_rejects_zero_hash ... ok
+test decode::tests::test_rejects_corrupt_decoded_hash ... ok
+test verify::tests::test_verify_clean_block ... ok
+test verify::tests::test_verify_multiple_blocks ... ok
+test executor::tests::test_external_cancellation ... ok
+test decode::tests::test_parallel_determinism ... ok
+
+test result: ok. 56 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/loom_tests.rs (target/debug/deps/loom_tests-59018c44ef7289e6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/phase_i_tests.rs (target/debug/deps/phase_i_tests-c5c8f4e5668b17b0)
+
+running 13 tests
+test test_cancellation_before_start ... ok
+test test_worker_panic_lowest_index_error ... ok
+test test_minimal_queue ... ok
+test test_worker_panic_contained ... ok
+test test_executor_external_cancellation ... ok
+test test_external_cancellation_16_threads ... ok
+test test_multi_block_roundtrip ... ok
+test test_worker_count_clamped_to_block_count ... ok
+test test_determinism_1_vs_2_threads ... ok
+test test_encode_determinism_1_4_8_16_threads ... ok
+test test_error_selection_8_16_threads ... ok
+test test_decode_determinism_1_4_8_16_threads ... ok
+test test_verify_determinism_1_4_8_16_threads ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+   Doc-tests ryg_rans_rs_parallel
+
+running 13 tests
+test crates/ryg-rans-rs-parallel/src/cancellation.rs - cancellation::CancellationToken (line 68) ... ignored
+test crates/ryg-rans-rs-parallel/src/cancellation.rs - cancellation::CancellationToken::check (line 141) ... ignored
+test crates/ryg-rans-rs-parallel/src/decode.rs - decode::ParallelDecoder (line 1505) ... ignored
+test crates/ryg-rans-rs-parallel/src/error.rs - error::CanonicalErrorTracker (line 267) ... ignored
+test crates/ryg-rans-rs-parallel/src/reorder.rs - reorder::ReorderBuffer<T>::drain_ready (line 253) ... ignored
+test crates/ryg-rans-rs-parallel/src/resource.rs - resource::estimate_memory (line 109) ... ignored
+test crates/ryg-rans-rs-parallel/src/schedule.rs - schedule (line 42) ... ignored
+test crates/ryg-rans-rs-parallel/src/schedule.rs - schedule::DelaySchedule (line 105) ... ignored
+test crates/ryg-rans-rs-parallel/src/schedule.rs - schedule::DeterministicScheduler (line 252) ... ignored
+test crates/ryg-rans-rs-parallel/src/scratch.rs - scratch::WorkerScratch::reset (line 126) ... ignored
+test crates/ryg-rans-rs-parallel/src/verify.rs - verify (line 44) ... ignored
+test crates/ryg-rans-rs-parallel/src/verify.rs - verify::BlockVerificationResult (line 150) ... ignored
+test crates/ryg-rans-rs-parallel/src/verify.rs - verify::ParallelVerifier (line 351) ... ignored
+
+test result: ok. 0 passed; 0 failed; 13 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.05s; merged doctests compilation took 0.05s
+EXIT:0
