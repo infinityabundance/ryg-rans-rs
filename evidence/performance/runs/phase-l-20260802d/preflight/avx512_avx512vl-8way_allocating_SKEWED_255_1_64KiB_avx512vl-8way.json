@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "avx512/avx512vl-8way/allocating/SKEWED_255_1/64KiB/avx512vl-8way",
+  "backend_requested": "avx512vl-8way",
+  "backend_executed": "avx512vl-8way",
+  "verification_passed": true,
+  "input_sha256": "c1c1f47761705c037ca31217b87a1284b5b466f4b0f0afe4993bdf9e41fe58cd",
+  "output_sha256": "c1c1f47761705c037ca31217b87a1284b5b466f4b0f0afe4993bdf9e41fe58cd",
+  "reference_output_sha256": "c1c1f47761705c037ca31217b87a1284b5b466f4b0f0afe4993bdf9e41fe58cd",
+  "words_consumed": 443,
+  "reference_words_consumed": 443,
+  "final_states_sha256": "aee50e55556a68f584be79bfd2b22062ca4ffdab75d6657945ab54f5687aa8dc",
+  "reference_final_states_sha256": "aee50e55556a68f584be79bfd2b22062ca4ffdab75d6657945ab54f5687aa8dc",
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "allocating",
+  "status": "passed"
+}

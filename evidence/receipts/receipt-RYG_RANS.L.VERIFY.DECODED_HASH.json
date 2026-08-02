@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.VERIFY.DECODED_HASH",
   "title": "Decoded-output integrity verification (L.2)",
   "verdict": "passed",
-  "implementation_commit": "d3e24065a93958f0ad5ff7f07124f3e12ff1f835",
-  "evidence_commit": "d3e24065a93958f0ad5ff7f07124f3e12ff1f835",
+  "implementation_commit": "50eaaeee664cf714cf1cc4fb1697de31f0749017",
+  "evidence_commit": "50eaaeee664cf714cf1cc4fb1697de31f0749017",
   "num_cases": 15,
   "cases_passed": 15,
   "cases_failed": 0,
@@ -16,7 +16,7 @@
     "L2-C",
     "L2-D"
   ],
-  "manifest_sha256": "a8dee9a76e9db38ade591b26c038eeafea227c26bddd472e0439aa78f816fd73",
-  "receipt_sha256": "dbf1da7aa0191b8df8594daf3afb0bdcf559234d28ea8e00d557443f15a73b53",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit d3e24065a93958f0ad5ff7f07124f3e12ff1f835 --only RYG_RANS.L.VERIFY.DECODED_HASH"
+  "manifest_sha256": "abf0c5d0cc02e32dc2daa91cfe5b26610a5d36b893db69ed2c634824f22527c9",
+  "receipt_sha256": "cbb894898178fddaded323253f00799c328eb457ab3c4b1f3cff372b33cefb8b",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 50eaaeee664cf714cf1cc4fb1697de31f0749017 --only RYG_RANS.L.VERIFY.DECODED_HASH"
 }

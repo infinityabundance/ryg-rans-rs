@@ -9,13 +9,13 @@
   "num_cases": 20,
   "verdict": "admitted_match",
   "upstream_commit": "c9d162d996fd600315af9ae8eb89d832576cb32d",
-  "code_commit": "d3e24065a93958f0ad5ff7f07124f3e12ff1f835",
+  "code_commit": "50eaaeee664cf714cf1cc4fb1697de31f0749017",
   "pairs_compared": 100,
   "pairs_matched": 100,
   "residual_count": 0,
   "residual_ids": [],
   "manifest_sha256": "af7eedec7ac582d55130d66717973a643ca5a30d5a279247fb92856f1c520f9a",
-  "receipt_sha256": "2c7f9c0813801f993900c9ec364b34afdb2f1506b212408b583f271a3f8c3e0e",
+  "receipt_sha256": "9b704c7a16a6e41259524b41a632294789c2e559114479c87bc7c4049fbab822",
   "reproduction_command": "cargo run -p ryg-rans-rs-oracle -- oracle/adapter/rans_trace 12 42 20",
   "oracle_compiler": "g++ -O3"
 }
