@@ -55,6 +55,7 @@ pub fn cmd_workload(args: &[String]) -> Result<(), String> {
         "derive" => workload_derive(&spec_dir, &name),
         "stress" => cmd_workload_stress(&spec_dir, &name, &args[2..]),
         "soak" => cmd_workload_soak(&spec_dir, &name),
+        "policy-sim" => cmd_workload_policy_sim(&name),
         other => Err(format!("unknown workload subcommand: {}", other)),
     }
 }
@@ -953,9 +954,7 @@ pub fn cmd_workload_stress(_spec_dir: &Path, name: &str, args: &[String]) -> Res
             }
             "--workers" => {
                 i += 1;
-                workers_override = args
-                    .get(i)
-                    .and_then(|s| s.parse::<usize>().ok());
+                workers_override = args.get(i).and_then(|s| s.parse::<usize>().ok());
             }
             "--simd-off" => simd_off = true,
             other => return Err(format!("unknown stress option: {}", other)),
@@ -984,7 +983,14 @@ pub fn cmd_workload_stress(_spec_dir: &Path, name: &str, args: &[String]) -> Res
         None => vec![1, 2, 4, 8, 16, 32],
     };
     let block_sizes: [usize; 2] = [4096, 1048576];
-    let modes: [&str; 6] = ["cold-single", "warm-single", "hot-set", "thrash", "unique", "mixed"];
+    let modes: [&str; 6] = [
+        "cold-single",
+        "warm-single",
+        "hot-set",
+        "thrash",
+        "unique",
+        "mixed",
+    ];
 
     let mut total_cases = 0usize;
     let mut total_blocks = 0u64;
@@ -1001,7 +1007,11 @@ pub fn cmd_workload_stress(_spec_dir: &Path, name: &str, args: &[String]) -> Res
                     w,
                     size,
                     simd_off,
-                    if schedule.is_empty() { None } else { Some(schedule.as_str()) },
+                    if schedule.is_empty() {
+                        None
+                    } else {
+                        Some(schedule.as_str())
+                    },
                 );
                 match result {
                     Ok(stats) => {
@@ -1022,7 +1032,10 @@ pub fn cmd_workload_stress(_spec_dir: &Path, name: &str, args: &[String]) -> Res
                     }
                     Err(e) => {
                         failures.push(format!("{} w={} size={}: {}", mode, w, size, e));
-                        println!("  stress {:>10} w={:>2} size={:>7} : FAILED — {}", mode, w, size, e);
+                        println!(
+                            "  stress {:>10} w={:>2} size={:>7} : FAILED — {}",
+                            mode, w, size, e
+                        );
                     }
                 }
             }
@@ -1083,11 +1096,7 @@ fn run_stress_case(
             if p.is_file() {
                 let len = std::fs::metadata(&p).map(|m| m.len()).unwrap_or(0);
                 if len >= 2 * block_size as u64 {
-                    files.push((
-                        e.file_name().to_string_lossy().to_string(),
-                        p,
-                        len,
-                    ));
+                    files.push((e.file_name().to_string_lossy().to_string(), p, len));
                 }
             } else if p.is_dir() {
                 if let Ok(rd2) = std::fs::read_dir(&p) {
@@ -1096,11 +1105,7 @@ fn run_stress_case(
                         if p2.is_file() {
                             let len = std::fs::metadata(&p2).map(|m| m.len()).unwrap_or(0);
                             if len >= 2 * block_size as u64 {
-                                files.push((
-                                    e2.file_name().to_string_lossy().to_string(),
-                                    p2,
-                                    len,
-                                ));
+                                files.push((e2.file_name().to_string_lossy().to_string(), p2, len));
                             }
                         }
                     }
@@ -1124,12 +1129,22 @@ fn run_stress_case(
     // per-block histogram models are identical within a pattern — the
     // grouped-model reuse is real and labeled (Phase O.13).
     let patterns: Vec<Vec<u8>> = match mode {
-        "cold-single" | "warm-single" => (0..1).map(|p| pattern_bytes(p as u64, block_size)).collect(),
-        "hot-set" => (0..16).map(|p| pattern_bytes(p as u64, block_size)).collect(),
-        "thrash" => (0..65).map(|p| pattern_bytes(p as u64, block_size)).collect(),
-        "unique" => (0..256).map(|p| pattern_bytes(p as u64 + 1, block_size)).collect(),
+        "cold-single" | "warm-single" => (0..1)
+            .map(|p| pattern_bytes(p as u64, block_size))
+            .collect(),
+        "hot-set" => (0..16)
+            .map(|p| pattern_bytes(p as u64, block_size))
+            .collect(),
+        "thrash" => (0..65)
+            .map(|p| pattern_bytes(p as u64, block_size))
+            .collect(),
+        "unique" => (0..256)
+            .map(|p| pattern_bytes(p as u64 + 1, block_size))
+            .collect(),
         "mixed" => {
-            let mut v = (0..4).map(|p| pattern_bytes(p as u64, block_size)).collect::<Vec<_>>();
+            let mut v = (0..4)
+                .map(|p| pattern_bytes(p as u64, block_size))
+                .collect::<Vec<_>>();
             v.extend((0..12).map(|p| pattern_bytes(p as u64 + 1000, block_size)));
             v
         }
@@ -1180,9 +1195,8 @@ fn run_stress_case(
         max_buffered_input_bytes: 1 << 30,
         ..Default::default()
     };
-    let enc =
-        ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(encode_jobs, &enc_cfg)
-            .map_err(|e| format!("encode: {:?}", e))?;
+    let enc = ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(encode_jobs, &enc_cfg)
+        .map_err(|e| format!("encode: {:?}", e))?;
     let decode_jobs: Vec<DecodeBlockJob> = enc
         .blocks
         .into_iter()
@@ -1374,8 +1388,8 @@ pub fn cmd_workload_soak(spec_dir: &Path, name: &str) -> Result<(), String> {
 
     for round in 0..rounds {
         let pattern_base: u64 = match round % 3 {
-            0 => 0,          // hot set A (patterns 0..5)
-            1 => 100,        // hot set B (patterns 100..105)
+            0 => 0,                      // hot set A (patterns 0..5)
+            1 => 100,                    // hot set B (patterns 100..105)
             _ => 1000 + round * 7 % 256, // shifting set
         };
         let n = 32usize;
@@ -1392,13 +1406,16 @@ pub fn cmd_workload_soak(spec_dir: &Path, name: &str) -> Result<(), String> {
                 12,
             ));
         }
-        let enc = ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(jobs, &ParallelConfig {
-            threads: ThreadCount::Exact(std::num::NonZeroUsize::new(4).unwrap()),
-            parallel_threshold_bytes: 0,
-            max_buffered_output_bytes: 1 << 30,
-            max_buffered_input_bytes: 1 << 30,
-            ..Default::default()
-        })
+        let enc = ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(
+            jobs,
+            &ParallelConfig {
+                threads: ThreadCount::Exact(std::num::NonZeroUsize::new(4).unwrap()),
+                parallel_threshold_bytes: 0,
+                max_buffered_output_bytes: 1 << 30,
+                max_buffered_input_bytes: 1 << 30,
+                ..Default::default()
+            },
+        )
         .map_err(|e| format!("soak encode round {}: {:?}", round, e))?;
         let djobs: Vec<DecodeBlockJob> = enc
             .blocks
@@ -1417,19 +1434,28 @@ pub fn cmd_workload_soak(spec_dir: &Path, name: &str) -> Result<(), String> {
         duplicate_builds += m_post
             .builds_started
             .saturating_sub(m_pre.builds_started)
-            .saturating_sub(m_post.builds_completed + m_post.build_failures - (m_pre.builds_completed + m_pre.build_failures));
+            .saturating_sub(
+                m_post.builds_completed + m_post.build_failures
+                    - (m_pre.builds_completed + m_pre.build_failures),
+            );
 
         // ---- Periodic invariant checks (every 16 rounds) --------------------
         if round % 16 == 15 {
             let m = cache.metrics();
             if m.builds_completed + m.build_failures > m.builds_started {
-                return Err(format!("soak round {}: build accounting invariant violated", round));
+                return Err(format!(
+                    "soak round {}: build accounting invariant violated",
+                    round
+                ));
             }
             if m.current_entries > 64 || m.current_bytes > 16 * 1024 * 1024 {
                 return Err(format!("soak round {}: capacity bound violated", round));
             }
             if m.hits + m.misses != m.lookups {
-                return Err(format!("soak round {}: hit/miss sum invariant violated", round));
+                return Err(format!(
+                    "soak round {}: hit/miss sum invariant violated",
+                    round
+                ));
             }
             println!(
                 "  soak round {:>3}: {} blocks, {} MiB, cache entries={} bytes={} hits={} builds={}",
@@ -1473,5 +1499,188 @@ pub fn cmd_workload_soak(spec_dir: &Path, name: &str) -> Result<(), String> {
         m.current_bytes,
     );
     let _ = spec_dir;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Eviction-policy shadow simulation (Phase O.17)
+// ---------------------------------------------------------------------------
+
+/// A cache-resident key plus its accounted size for the shadow simulation.
+/// The accounted size is the measured artifact cost (~17 KiB: 1 KiB
+/// frequencies + 16 KiB packed table + overhead); using a uniform size per
+/// artifact keeps entry-hit and byte-hit analyses comparable, which is
+/// exactly the production situation (every admitted artifact is one built
+/// packed table).
+const ARTIFACT_ACCOUNTED_BYTES: u64 = 17_472;
+
+/// Simulated cache policy outcome for one schedule at one capacity.
+#[derive(Debug, Clone, Copy, Default)]
+struct SimOutcome {
+    hits: u64,
+    misses: u64,
+    evictions: u64,
+    byte_hits: u64,
+    byte_total: u64,
+}
+
+impl SimOutcome {
+    fn hit_rate(&self) -> f64 {
+        let total = self.hits + self.misses;
+        if total == 0 {
+            0.0
+        } else {
+            self.hits as f64 / total as f64
+        }
+    }
+
+    fn byte_hit_rate(&self) -> f64 {
+        if self.byte_total == 0 {
+            0.0
+        } else {
+            self.byte_hits as f64 / self.byte_total as f64
+        }
+    }
+}
+
+/// Deterministic FIFO cache simulation (the production policy).
+fn simulate_fifo(keys: &[u64], capacity: usize) -> SimOutcome {
+    let mut queue: std::collections::VecDeque<u64> = std::collections::VecDeque::new();
+    let mut resident: std::collections::HashSet<u64> = std::collections::HashSet::new();
+    let mut o = SimOutcome::default();
+    for &k in keys {
+        if resident.contains(&k) {
+            o.hits += 1;
+            o.byte_hits += ARTIFACT_ACCOUNTED_BYTES;
+        } else {
+            o.misses += 1;
+            if resident.len() >= capacity {
+                if let Some(ev) = queue.pop_front() {
+                    resident.remove(&ev);
+                    o.evictions += 1;
+                }
+            }
+            resident.insert(k);
+            queue.push_back(k);
+        }
+        o.byte_total += ARTIFACT_ACCOUNTED_BYTES;
+    }
+    o
+}
+
+/// Deterministic LRU cache simulation (the shadow candidate).
+fn simulate_lru(keys: &[u64], capacity: usize) -> SimOutcome {
+    use std::collections::HashMap;
+    let mut map: HashMap<u64, u64> = HashMap::new(); // key -> last-use seq
+    let mut clock: u64 = 0;
+    let mut o = SimOutcome::default();
+    for &k in keys {
+        clock += 1;
+        if map.contains_key(&k) {
+            o.hits += 1;
+            o.byte_hits += ARTIFACT_ACCOUNTED_BYTES;
+            map.insert(k, clock);
+        } else {
+            o.misses += 1;
+            if map.len() >= capacity {
+                // Evict the least-recently-used key.
+                let lru = *map
+                    .iter()
+                    .min_by_key(|&(_, &s)| s)
+                    .map(|(k, _)| k)
+                    .unwrap_or(&k);
+                map.remove(&lru);
+                o.evictions += 1;
+            }
+            map.insert(k, clock);
+        }
+        o.byte_total += ARTIFACT_ACCOUNTED_BYTES;
+    }
+    o
+}
+
+/// `cargo xtask workload policy-sim public-rans-v1` — FIFO vs LRU shadow
+/// simulation over the derived schedules (Phase O.17).
+///
+/// The production cache is FIFO (ADR-0016).  This command simulates the
+/// deterministic model-key sequences of every derived schedule against
+/// FIFO and LRU at several capacities and reports hit/byte-hit rates and
+/// eviction counts.  The production policy changes only if the evidence
+/// shows a material end-to-end benefit for another policy (ADR-0017
+/// records the decision).
+///
+/// The model key of a block is its `(model_group, codec_id, scale_bits)`
+/// identity: in grouped mode all blocks of one group share one artifact;
+/// natural-mode blocks (`model_group == u64::MAX`) are unique by
+/// construction and are therefore always misses under both policies (they
+/// are included in the totals — honest, not hidden).
+///
+/// The byte dimension uses the measured uniform artifact size; entry-cap
+/// capacities are chosen around the production 64-entry default.
+pub fn cmd_workload_policy_sim(name: &str) -> Result<(), String> {
+    let root = cache_root(name)?;
+    let manifest_path = root.join("derived").join(format!("{}.manifest.json", name));
+    let manifest_raw = std::fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("read {}: {}", manifest_path.display(), e))?;
+    let manifest: ryg_rans_rs_casefile::WorkloadManifest =
+        serde_json::from_str(&manifest_raw).map_err(|e| format!("parse manifest: {}", e))?;
+
+    let capacities: [usize; 4] = [16, 64, 256, 1024];
+    println!(
+        "policy-sim: FIFO (production) vs LRU (candidate) over the {} derived schedules\n",
+        manifest.schedules.len()
+    );
+
+    for schedule in &manifest.schedules {
+        // Deterministic model-key sequence: grouped blocks share
+        // (group, codec, scale); natural blocks are unique.
+        let mut keys: Vec<u64> = Vec::with_capacity(schedule.blocks.len());
+        let mut natural = 0u64;
+        for b in &schedule.blocks {
+            if b.model_group == u64::MAX {
+                // A unique per-block identity: use the high bit so no two
+                // natural blocks collide (each is its own model).
+                keys.push(u64::MAX - b.block_index);
+                natural += 1;
+            } else {
+                keys.push((b.model_group << 16) | (b.codec_id as u64) << 8 | b.scale_bits as u64);
+            }
+        }
+        // Distinct grouped-model cardinality.
+        let distinct: std::collections::BTreeSet<u64> =
+            keys.iter().copied().filter(|k| *k != u64::MAX).collect();
+        println!(
+            "schedule {}: {} blocks, {} distinct grouped models, {} natural blocks",
+            schedule.name,
+            schedule.blocks.len(),
+            distinct.len(),
+            natural
+        );
+        println!(
+            "{:<10} {:<10} {:<12} {:<12} {:<12} {:<14} {:<14}",
+            "capacity", "policy", "hits", "misses", "evictions", "hit_rate", "byte_hit_rate"
+        );
+        for &cap in &capacities {
+            for (pol, sim) in [
+                ("FIFO", simulate_fifo(&keys, cap)),
+                ("LRU", simulate_lru(&keys, cap)),
+            ] {
+                println!(
+                    "{:<10} {:<10} {:<12} {:<12} {:<12} {:<14.4} {:<14.4}",
+                    cap,
+                    pol,
+                    sim.hits,
+                    sim.misses,
+                    sim.evictions,
+                    sim.hit_rate(),
+                    sim.byte_hit_rate()
+                );
+            }
+        }
+        println!();
+    }
+    println!(
+        "policy-sim complete — the production policy remains FIFO unless this evidence shows a material benefit for LRU (see ADR-0017)"
+    );
     Ok(())
 }
