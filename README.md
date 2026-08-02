@@ -12,6 +12,8 @@
 >
 > **Phase L:** strict decoded-hash integrity · live bounded pipeline · exact backend semantics · machine-verified unsafe ledger · fully wired CLI
 >
+> **Phase M/N:** custodian documentation · navigation · knowledge architecture · technical publications
+>
 > **Nine-tier Criterion benchmark suite** — scalar · SSE4.1 · AVX2 · AVX-512 · specialized · batch · parallel · block-engine · dispatch
 >
 > **Eleven-service Docker VM matrix** verifies every build, test, oracle, court, and audit
@@ -19,6 +21,41 @@
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-stable)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)
 [![Crates.io](https://img.shields.io/crates/v/ryg-rans-rs)](https://crates.io/crates/ryg-rans-rs)
 [![docs.rs](https://img.shields.io/docsrs/ryg-rans-rs)](https://docs.rs/ryg-rans-rs/latest/ryg_rans_rs/)
+
+---
+
+## What This Repository Is (N.16 identity)
+
+This is not merely "a Rust implementation of rANS".  It is five artifacts
+in one tree, each claim below linking to the evidence:
+
+| Identity | Where it lives | How it is verified |
+|----------|----------------|--------------------|
+| **A production-capable implementation** | the crates in `crates/`, the CLI | the workspace test suite; the Docker matrix; the seal |
+| **A long-term implementation reference** | `docs/papers/`, `docs/adr/`, the module/function/section/line commentary | the documentation-inventory and documentation-links seal gates |
+| **A reproducible verification corpus** | `evidence/` — 158 behavioural + 10 performance receipts, manifests, indexes | every receipt's file and canonical hash verified by the seal |
+| **A benchmark corpus** | `crates/ryg-rans-rs-bench/`, `evidence/performance/` (run `phase-l-20260802e`, 800 cases × 100 samples) | the performance-evidence gates (run-manifest binding, preflight join, throughput derivation) |
+| **An educational resource** | `docs/education.md`, `docs/navigation/` (guides, maps, paths) | the navigation-completeness gates (N.14/N.21) |
+| **A case study in evidence-backed LLM-assisted systems engineering** | `docs/papers/0008`, `docs/llm/`, `docs/history/`, `docs/story/`, `docs/failures/` | the paper/article inventory gates |
+
+---
+
+## Entry Points (N.3 portal)
+
+* **I'm completely new** → [`docs/navigation/00-first-day.md`](docs/navigation/00-first-day.md)
+* **I'm evaluating the library** → [`docs/navigation/10-security-review.md`](docs/navigation/10-security-review.md) and [`docs/negative-capabilities.md`](docs/negative-capabilities.md)
+* **I want maximum performance** → [`docs/navigation/03-performance-engineer.md`](docs/navigation/03-performance-engineer.md)
+* **I want to understand rANS** → [`docs/papers/0001-rans-design.md`](docs/papers/0001-rans-design.md)
+* **I'm modifying SIMD** → [`docs/navigation/04-simd-engineer.md`](docs/navigation/04-simd-engineer.md)
+* **I'm modifying decode** → [`docs/navigation/05-parallel-engineer.md`](docs/navigation/05-parallel-engineer.md)
+* **I'm modifying the CLI** → [`docs/navigation/08-cli-engineer.md`](docs/navigation/08-cli-engineer.md)
+* **I'm modifying evidence generation** → [`docs/navigation/07-evidence-engineer.md`](docs/navigation/07-evidence-engineer.md)
+* **I'm reviewing safety** → [`docs/navigation/10-security-review.md`](docs/navigation/10-security-review.md)
+* **I'm contributing** → [`docs/contributing/`](docs/contributing/)
+
+Every reader starts at `docs/navigation/00-first-day.md`; the guides route
+from there.  The learning maps (`docs/navigation/maps/`) show dependency
+structure at a glance.
 
 ---
 
@@ -45,25 +82,32 @@
 ## Reading Order
 
 1. This README.
-2. [`docs/philosophy.md`](docs/philosophy.md) — the documentation constitution.
-3. [`docs/architecture.md`](docs/architecture.md)
-4. [`docs/layers.md`](docs/layers.md) — the layered documentation architecture.
-5. [`docs/bitstream-contract.md`](docs/bitstream-contract.md) — the pinned upstream stream formats.
-6. [`docs/container-format-v1.md`](docs/container-format-v1.md) — the RYGRANS v1 container.
-7. [`docs/glossary.md`](docs/glossary.md) — the exact project terminology; every document uses it.
-8. [`docs/unsafe-ledger.md`](docs/unsafe-ledger.md)
-9. [`docs/performance-method.md`](docs/performance-method.md)
-10. [`docs/residual-doctrine.md`](docs/residual-doctrine.md)
-11. [`docs/negative-capabilities.md`](docs/negative-capabilities.md)
-12. [`docs/oracle-method.md`](docs/oracle-method.md)
-13. [`docs/papers/`](docs/papers/) — the eight long-form design papers (rANS, word coder, SIMD, parallel engine, performance methodology, evidence, proof philosophy, LLM-assisted engineering).
-14. [`docs/adr/`](docs/adr/) — the architecture decision records.
-15. [`docs/history/`](docs/history/) — the chronological engineering record.
-16. [`docs/diagrams/`](docs/diagrams/) — the architecture diagrams.
-17. [`docs/education.md`](docs/education.md) — reading orders and future-maintainer notes.
-18. [`docs/llm/`](docs/llm/) — the LLM-assisted engineering operational record.
-19. [`AGENTS.md`](AGENTS.md) — ground truth for AI agents and contributors.
-20. The crate README for whichever crate you are changing.
+2. [`docs/navigation/00-first-day.md`](docs/navigation/00-first-day.md) — the one-hour orientation.
+3. [`docs/philosophy.md`](docs/philosophy.md) — the documentation constitution.
+4. [`docs/architecture.md`](docs/architecture.md)
+5. [`docs/layers.md`](docs/layers.md) — the layered documentation architecture.
+6. [`docs/bitstream-contract.md`](docs/bitstream-contract.md) — the pinned upstream stream formats.
+7. [`docs/container-format-v1.md`](docs/container-format-v1.md) — the RYGRANS v1 container.
+8. [`docs/glossary.md`](docs/glossary.md) — the exact project terminology; every document uses it.
+9. [`docs/unsafe-ledger.md`](docs/unsafe-ledger.md)
+10. [`docs/performance-method.md`](docs/performance-method.md)
+11. [`docs/residual-doctrine.md`](docs/residual-doctrine.md)
+12. [`docs/negative-capabilities.md`](docs/negative-capabilities.md)
+13. [`docs/oracle-method.md`](docs/oracle-method.md)
+14. [`docs/papers/`](docs/papers/) — the eight long-form design papers (rANS, word coder, SIMD, parallel engine, performance methodology, evidence, proof philosophy, LLM-assisted engineering).
+15. [`docs/articles/`](docs/articles/) — the standalone publishable articles.
+16. [`docs/adr/`](docs/adr/) — the architecture decision records.
+17. [`docs/history/`](docs/history/) — the chronological engineering record.
+18. [`docs/story/`](docs/story/) — the engineering story.
+19. [`docs/failures/`](docs/failures/) — the failure encyclopedia.
+20. [`docs/diagrams/`](docs/diagrams/) — the architecture diagrams.
+21. [`docs/atlas/`](docs/atlas/) — the architecture atlas.
+22. [`docs/education.md`](docs/education.md) — reading orders and future-maintainer notes.
+23. [`docs/navigation/`](docs/navigation/) — guides, maps, the knowledge graph, and search indexes.
+24. [`docs/llm/`](docs/llm/) — the LLM-assisted engineering operational record.
+25. [`docs/contributing/`](docs/contributing/) — contributor experience.
+26. [`AGENTS.md`](AGENTS.md) — ground truth for AI agents and contributors.
+27. The crate README for whichever crate you are changing.
 
 ---
 

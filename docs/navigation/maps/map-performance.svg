@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="596" viewBox="0 0 420 596">
+<style>text{font: 13px sans-serif; fill:#222} rect{fill:#eef2f7;stroke:#556;stroke-width:1.2;rx:6}</style>
+<rect x="20" y="10" width="380" height="46"/>
+<text x="210" y="40" text-anchor="middle">3-performance-engineer.md</text>
+<line x1="210" y1="56" x2="210" y2="69" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="69" x2="210" y2="82" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,86 215,86 210,82" fill="#556"/>
+<rect x="20" y="82" width="380" height="46"/>
+<text x="210" y="112" text-anchor="middle">papers/0005 methodology</text>
+<line x1="210" y1="128" x2="210" y2="141" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="141" x2="210" y2="154" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,158 215,158 210,154" fill="#556"/>
+<rect x="20" y="154" width="380" height="46"/>
+<text x="210" y="184" text-anchor="middle">phase-l17-analysis.md</text>
+<line x1="210" y1="200" x2="210" y2="213" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="213" x2="210" y2="226" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,230 215,230 210,226" fill="#556"/>
+<rect x="20" y="226" width="380" height="46"/>
+<text x="210" y="256" text-anchor="middle">comparative.md</text>
+<line x1="210" y1="272" x2="210" y2="285" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="285" x2="210" y2="298" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,302 215,302 210,298" fill="#556"/>
+<rect x="20" y="298" width="380" height="46"/>
+<text x="210" y="328" text-anchor="middle">adr/0010 capture</text>
+<line x1="210" y1="344" x2="210" y2="357" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="357" x2="210" y2="370" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,374 215,374 210,370" fill="#556"/>
+<rect x="20" y="370" width="380" height="46"/>
+<text x="210" y="400" text-anchor="middle">ryg-rans-rs-bench</text>
+<line x1="210" y1="416" x2="210" y2="429" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="429" x2="210" y2="442" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,446 215,446 210,442" fill="#556"/>
+<rect x="20" y="442" width="380" height="46"/>
+<text x="210" y="472" text-anchor="middle">evidence/performance/runs</text>
+<line x1="210" y1="488" x2="210" y2="501" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="501" x2="210" y2="514" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,518 215,518 210,514" fill="#556"/>
+<rect x="20" y="514" width="380" height="46"/>
+<text x="210" y="544" text-anchor="middle">10 performance receipts</text>
+</svg>

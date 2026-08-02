@@ -199,3 +199,68 @@ phase that ensures no engineering lesson above is ever lost.
 | L.9 | A requested backend executes exactly or returns a typed error |
 | L.19 | Evidence is never deleted; it is superseded with a reason |
 | L.20 | The seal is the single authoritative final gate and never lies about skipping |
+
+---
+
+# N.7 — Timelines
+
+## Evolution timeline (what shipped, when)
+
+| When | What | Where |
+|------|------|-------|
+| Phases A–G | the four codec surfaces + SSE4.1/AVX-512 kernels, scalar references | core, simd |
+| Phase H | Uniform256, Batch4, 2×8-on-16 backends | simd, parallel |
+| Phase I | the parallel block engine | parallel |
+| Phase J | the AVX2 tier | simd |
+| Phase K | the first (broken) performance pipeline | xtask, bench |
+| Phase L | the adversarial hardening (L.0–L.22) | all crates, xtask, evidence |
+| Post-L | the reopened-residual fixes (ModelCache, completeness) | parallel |
+| Phase M | custodian documentation (M.0–M.22) | docs, source commentary |
+| Phase N | navigation, knowledge architecture, publications (N.0–N.22) | docs/navigation, atlas, articles, failures, story |
+
+## Decision timeline (what was decided, when)
+
+| When | Decision | ADR |
+|------|----------|-----|
+| Phases A–G | reconstruct the pinned upstream bytes | 0001 |
+| Phases A–G | reciprocal fast path with exact bias | 0002 |
+| Phase G | word scale pinned at 12, packed table | 0003 |
+| Phase I | bounded live executor | 0004 |
+| Phase I | canonical lowest-index error | 0005 |
+| L.2 | strict integrity default | 0006 |
+| L.3 | completeness at the API boundary | 0007 |
+| L.9 | exact backend semantics | 0008 |
+| L.8 + re-open | cache the expensive artifact | 0009 |
+| L.18 | benchmark-time capture | 0010 |
+| L.10 | unsafe quarantine + ledger | 0011 |
+| L.22 | 0.3.0 version decision | 0012 |
+| L.6 | configuration discipline | 0013 |
+| L.5 | reorder atomic commit | 0014 |
+| L.7 | per-worker scratch | 0015 |
+
+## Receipt timeline (what was sealed, when)
+
+| When | Receipt set | Count |
+|------|-------------|-------|
+| Phases A–F | oracle courts: byte (44) + r64 (44) + word (16) + alias (16) | 120 |
+| Phases G–H | SIMD-family oracle courts: SSE4.1 `SIMD.INTERLEAVED8` (8) + `AVX512VL` (8) + `AVX512` (8) | +24 |
+| Phase L.19 | the fourteen Phase L courts | +14 |
+| Phase L.18 | the ten performance receipts (re-sealed at each implementation commit) | 10 |
+| current | total behavioural / performance | 158 / 10 |
+
+The 144 oracle/upstream-parity courts (120 + 24) plus the 14 Phase L
+courts make 158 behavioural receipts — the same breakdown the README
+evidence table reports, so the two documents cannot drift.
+
+The behavioural total is generated from `evidence/index.json`, never
+hardcoded.
+
+## Seal evolution
+
+| When | The seal gained |
+|------|-----------------|
+| Pre-L | a minimal `check` command |
+| L.1 | performance-evidence validation, run binding, no-false-verified |
+| L.20 | the 40-gate authoritative seal (dirty-tree → publication dry-run) |
+| M.19 | the custodian documentation inventory gate |
+| N.14/N.21 | the navigation/atlas/article/knowledge-graph completeness gates |

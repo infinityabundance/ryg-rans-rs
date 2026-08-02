@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="884" viewBox="0 0 420 884">
+<style>text{font: 13px sans-serif; fill:#222} rect{fill:#eef2f7;stroke:#556;stroke-width:1.2;rx:6}</style>
+<rect x="20" y="10" width="380" height="46"/>
+<text x="210" y="40" text-anchor="middle">Release</text>
+<line x1="210" y1="56" x2="210" y2="69" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="69" x2="210" y2="82" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,86 215,86 210,82" fill="#556"/>
+<rect x="20" y="82" width="380" height="46"/>
+<text x="210" y="112" text-anchor="middle">freeze implementation commit</text>
+<line x1="210" y1="128" x2="210" y2="141" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="141" x2="210" y2="154" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,158 215,158 210,154" fill="#556"/>
+<rect x="20" y="154" width="380" height="46"/>
+<text x="210" y="184" text-anchor="middle">benchmark-run</text>
+<line x1="210" y1="200" x2="210" y2="213" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="213" x2="210" y2="226" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,230 215,230 210,226" fill="#556"/>
+<rect x="20" y="226" width="380" height="46"/>
+<text x="210" y="256" text-anchor="middle">performance-seal</text>
+<line x1="210" y1="272" x2="210" y2="285" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="285" x2="210" y2="298" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,302 215,302 210,298" fill="#556"/>
+<rect x="20" y="298" width="380" height="46"/>
+<text x="210" y="328" text-anchor="middle">oracle + phase-g</text>
+<line x1="210" y1="344" x2="210" y2="357" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="357" x2="210" y2="370" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,374 215,374 210,370" fill="#556"/>
+<rect x="20" y="370" width="380" height="46"/>
+<text x="210" y="400" text-anchor="middle">courts-run</text>
+<line x1="210" y1="416" x2="210" y2="429" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="429" x2="210" y2="442" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,446 215,446 210,442" fill="#556"/>
+<rect x="20" y="442" width="380" height="46"/>
+<text x="210" y="472" text-anchor="middle">Docker matrix</text>
+<line x1="210" y1="488" x2="210" y2="501" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="501" x2="210" y2="514" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,518 215,518 210,514" fill="#556"/>
+<rect x="20" y="514" width="380" height="46"/>
+<text x="210" y="544" text-anchor="middle">full seal gate</text>
+<line x1="210" y1="560" x2="210" y2="573" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="573" x2="210" y2="586" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,590 215,590 210,586" fill="#556"/>
+<rect x="20" y="586" width="380" height="46"/>
+<text x="210" y="616" text-anchor="middle">cargo semver-checks</text>
+<line x1="210" y1="632" x2="210" y2="645" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="645" x2="210" y2="658" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,662 215,662 210,658" fill="#556"/>
+<rect x="20" y="658" width="380" height="46"/>
+<text x="210" y="688" text-anchor="middle">version bump</text>
+<line x1="210" y1="704" x2="210" y2="717" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="717" x2="210" y2="730" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,734 215,734 210,730" fill="#556"/>
+<rect x="20" y="730" width="380" height="46"/>
+<text x="210" y="760" text-anchor="middle">cargo publish order</text>
+<line x1="210" y1="776" x2="210" y2="789" stroke="#556" stroke-width="1.2"/>
+<line x1="210" y1="789" x2="210" y2="802" stroke="#556" stroke-width="1.2"/>
+<polygon points="205,806 215,806 210,802" fill="#556"/>
+<rect x="20" y="802" width="380" height="46"/>
+<text x="210" y="832" text-anchor="middle">release tag</text>
+</svg>

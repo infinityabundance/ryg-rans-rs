@@ -1490,6 +1490,173 @@ fn cmd_seal() -> Result<(), String> {
     println!("Checking: custodian documentation inventory (Phase M)...");
     check_documentation_inventory()?;
 
+    // 23. Navigation and knowledge-architecture inventory (Phase N.14/N.21):
+    // the navigation layer — guides, maps (mermaid + SVG), knowledge graph,
+    // ADR explorer, reading paths, commentary guide, atlas, articles, story,
+    // failures, contributing, search indexes, and the README identity
+    // section — must be complete.  The seal fails if navigation degrades.
+    println!("Checking: navigation and knowledge architecture (Phase N)...");
+    check_navigation_inventory()?;
+
+    Ok(())
+}
+
+/// Navigation and knowledge-architecture inventory (Phase N.14/N.21):
+/// every artifact of the navigation layer must exist.  The Phase N
+/// contract is that the corpus is navigable at every depth; a missing
+/// guide, map, atlas chapter, or article is a broken entry point.
+fn check_navigation_inventory() -> Result<(), String> {
+    let required: &[&str] = &[
+        // N.0/N.4/N.9/N.11/N.13
+        "docs/navigation/inventory.md",
+        "docs/navigation/knowledge-graph.md",
+        "docs/navigation/adrs-by-topic.md",
+        "docs/navigation/commentary.md",
+        "docs/navigation/reading-paths.md",
+        // N.1 guides
+        "docs/navigation/00-first-day.md",
+        "docs/navigation/01-first-week.md",
+        "docs/navigation/02-maintainer-path.md",
+        "docs/navigation/03-performance-engineer.md",
+        "docs/navigation/04-simd-engineer.md",
+        "docs/navigation/05-parallel-engineer.md",
+        "docs/navigation/06-oracle-engineer.md",
+        "docs/navigation/07-evidence-engineer.md",
+        "docs/navigation/08-cli-engineer.md",
+        "docs/navigation/09-llm-engineer.md",
+        "docs/navigation/10-security-review.md",
+        // N.2 maps (mermaid index + SVG versions)
+        "docs/navigation/maps/index.md",
+        "docs/navigation/maps/map-new-contributor.svg",
+        "docs/navigation/maps/map-simd.svg",
+        "docs/navigation/maps/map-parallel.svg",
+        "docs/navigation/maps/map-evidence.svg",
+        "docs/navigation/maps/map-performance.svg",
+        "docs/navigation/maps/map-container-cli.svg",
+        "docs/navigation/maps/map-release.svg",
+        "docs/navigation/maps/map-llm-workflow.svg",
+        // N.5 atlas
+        "docs/atlas/index.md",
+        "docs/atlas/atlas-01-repository.md",
+        "docs/atlas/atlas-02-encoding.md",
+        "docs/atlas/atlas-03-decoding.md",
+        "docs/atlas/atlas-04-model-lifecycle.md",
+        "docs/atlas/atlas-05-evidence-lifecycle.md",
+        "docs/atlas/atlas-06-performance-lifecycle.md",
+        "docs/atlas/atlas-07-release-lifecycle.md",
+        "docs/atlas/atlas-08-parallel-scheduler.md",
+        "docs/atlas/atlas-09-simd-hierarchy.md",
+        "docs/atlas/atlas-10-oracle.md",
+        "docs/atlas/atlas-11-cli.md",
+        // N.6 articles
+        "docs/articles/01-deterministic-parallel-pipeline.md",
+        "docs/articles/02-evidence-driven-verification.md",
+        "docs/articles/03-when-simd-is-slower.md",
+        "docs/articles/04-lessons-from-building-rans.md",
+        "docs/articles/05-implementation-reference.md",
+        "docs/articles/06-llm-assisted-engineering.md",
+        // N.7/N.8/N.10
+        "docs/history/index.md",
+        "docs/story/index.md",
+        "docs/failures/index.md",
+        // N.15/N.17
+        "docs/search/index.md",
+        "docs/contributing/index.md",
+    ];
+    let mut missing: Vec<String> = Vec::new();
+    for p in required {
+        if !std::path::Path::new(p).is_file() {
+            missing.push((*p).to_string());
+        }
+    }
+    if !missing.is_empty() {
+        return Err(format!(
+            "navigation inventory incomplete; missing: {:?}",
+            missing
+        ));
+    }
+    // N.16: the README must carry the repository-identity and entry-point
+    // sections (the portal contract).
+    let readme = std::fs::read_to_string("README.md").map_err(|e| format!("read README: {}", e))?;
+    for marker in [
+        "## What This Repository Is (N.16 identity)",
+        "## Entry Points (N.3 portal)",
+    ] {
+        if !readme.contains(marker) {
+            return Err(format!("README missing required portal marker: {}", marker));
+        }
+    }
+    // SVG well-formedness: every required .svg parses as XML.
+    for p in required {
+        if p.ends_with(".svg") {
+            let content = std::fs::read_to_string(p).map_err(|e| format!("read {}: {}", p, e))?;
+            if !content.trim_start().starts_with("<svg") || !content.contains("</svg>") {
+                return Err(format!("{} is not a well-formed SVG", p));
+            }
+        }
+    }
+    // N.21 content gates: presence alone is not completeness.  Every atlas
+    // chapter must carry a purpose line and at least one mermaid diagram;
+    // every guide must carry its purpose and prerequisites; every article
+    // must carry an abstract.  This keeps the navigation layer honest: an
+    // empty file that merely exists would otherwise satisfy the inventory.
+    let mut bad: Vec<String> = Vec::new();
+    for p in required {
+        let content = std::fs::read_to_string(p).map_err(|e| format!("read {}: {}", p, e))?;
+        let path = std::path::Path::new(p);
+        let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+        let parent = path.parent().and_then(|s| s.to_str()).unwrap_or("");
+        // Guides live directly under docs/navigation/ and are named
+        // NN-slug.md (00-first-day.md .. 10-security-review.md); the
+        // digit-prefix + parent-dir test is exact — no other artifact
+        // matches it.
+        let is_guide = parent == "docs/navigation"
+            && name.len() >= 3
+            && name.as_bytes().get(0).map_or(false, |b| b.is_ascii_digit())
+            && name.as_bytes().get(1).map_or(false, |b| b.is_ascii_digit())
+            && name.as_bytes().get(2) == Some(&b'-')
+            && name.ends_with(".md");
+        // Articles live directly under docs/articles/ and are numbered
+        // NN-*.md.
+        let is_article = parent == "docs/articles"
+            && name.len() >= 3
+            && name.as_bytes().get(0).map_or(false, |b| b.is_ascii_digit())
+            && name.as_bytes().get(1).map_or(false, |b| b.is_ascii_digit())
+            && name.as_bytes().get(2) == Some(&b'-')
+            && name.ends_with(".md");
+        // Atlas chapters are named atlas-NN-*.md.
+        let is_atlas = name.starts_with("atlas-") && name.ends_with(".md");
+        if is_atlas {
+            if !content.contains("**Purpose:**") {
+                bad.push(format!("{}: atlas chapter missing '**Purpose:**'", p));
+            }
+            if !content.contains("```mermaid") {
+                bad.push(format!("{}: atlas chapter missing a mermaid diagram", p));
+            }
+        }
+        if is_guide {
+            if !content.contains("**Purpose:**") || !content.contains("**Prerequisites:**") {
+                bad.push(format!(
+                    "{}: guide missing '**Purpose:**' or '**Prerequisites:**'",
+                    p
+                ));
+            }
+        }
+        if is_article && !content.contains("## Abstract") {
+            bad.push(format!("{}: article missing '## Abstract'", p));
+        }
+    }
+    if !bad.is_empty() {
+        return Err(format!(
+            "navigation content gates failed ({}):\n{}",
+            bad.len(),
+            bad.join("\n")
+        ));
+    }
+    println!(
+        "  {} navigation artifacts present; README portal, SVG maps, atlas diagrams, guide and article content verified",
+        required.len()
+    );
     Ok(())
 }
 
