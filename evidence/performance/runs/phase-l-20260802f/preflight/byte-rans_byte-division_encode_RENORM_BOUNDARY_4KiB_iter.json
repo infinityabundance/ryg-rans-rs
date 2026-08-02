@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "byte-rans/byte-division/encode/RENORM_BOUNDARY/4KiB/iter",
+  "backend_requested": "byte-division",
+  "backend_executed": "byte-division",
+  "verification_passed": true,
+  "input_sha256": "40c7b3e8b09cc8c2e4f813f301c1e7a46bb4cd7c14b3d22eb1a141ba23544c3a",
+  "output_sha256": "40c7b3e8b09cc8c2e4f813f301c1e7a46bb4cd7c14b3d22eb1a141ba23544c3a",
+  "reference_output_sha256": "40c7b3e8b09cc8c2e4f813f301c1e7a46bb4cd7c14b3d22eb1a141ba23544c3a",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}
