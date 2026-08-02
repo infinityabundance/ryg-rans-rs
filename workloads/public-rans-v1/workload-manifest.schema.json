@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Public rANS Workload Manifest (public-rans-v1)",
+  "description": "Deterministic derived rANS workload: ordered block records over hash-pinned public corpus sources (Phase O.10/O.11).",
+  "type": "object",
+  "required": ["workload", "version", "derivation_policy_sha256", "source_hashes_sha256", "schedules", "created_at"],
+  "properties": {
+    "workload": { "type": "string", "const": "public-rans-v1" },
+    "version": { "type": "string" },
+    "derivation_policy_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "source_hashes_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "created_at": { "type": "string" },
+    "schedules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/schedule" }
+    }
+  },
+  "$defs": {
+    "block": {
+      "type": "object",
+      "required": ["block_index", "source_id", "source_sha256", "offset", "length", "model_group", "codec_id", "scale_bits"],
+      "properties": {
+        "block_index": { "type": "integer", "minimum": 0 },
+        "source_id": { "type": "string" },
+        "source_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "offset": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 1 },
+        "model_group": { "type": "integer", "minimum": 0 },
+        "codec_id": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "scale_bits": { "type": "integer", "minimum": 1, "maximum": 31 }
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "required": ["name", "logical_bytes", "block_count", "blocks", "schedule_sha256"],
+      "properties": {
+        "name": { "type": "string" },
+        "logical_bytes": { "type": "integer", "minimum": 0 },
+        "block_count": { "type": "integer", "minimum": 0 },
+        "schedule_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "blocks": { "type": "array", "items": { "$ref": "#/$defs/block" } }
+      }
+    }
+  }
+}

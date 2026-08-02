@@ -1,0 +1,214 @@
+# Public rANS Workload v1 — source records
+#
+# Every source record pins: the official source page, the exact download
+# URL, the owner, the usage/license statement, the redistribution status,
+# and the expected hashes (archive + extracted files) in
+# `expected-source-hashes.json`.
+#
+# Retrieval date: 2026-08-02 (all records).
+#
+# Hash provenance:
+#   - enwik8/enwik9: cross-validated against the publisher's published MD5
+#     and SHA-1 (https://mattmahoney.net/dc/textdata.html) — byte-identical.
+#   - All other sources: SHA-256 measured at retrieval from the official
+#     endpoints below; the measurement is recorded here and the fetch tool
+#     re-verifies every archive against these values on every run.
+
+[workload]
+name = "public-rans-v1"
+version = "1"
+schema = "workload-manifest.schema.json"
+
+# ---------------------------------------------------------------------------
+# Canterbury family (https://corpus.canterbury.ac.nz)
+# ---------------------------------------------------------------------------
+
+[[source]]
+id = "canterbury-standard"
+family = "canterbury"
+purpose = "heterogeneous small files: text, source, spreadsheet, fax (ptt5), binary (sum)"
+official_page = "https://corpus.canterbury.ac.nz/descriptions/#cantrbry"
+url = "https://corpus.canterbury.ac.nz/resources/cantrbry.zip"
+owner = "Canterbury Corpus project (University of Canterbury; Ross Arnold, Tim Bell)"
+license = "free for research and evaluation; see https://corpus.canterbury.ac.nz/faq.html"
+redistribution = "permitted (public corpus; no redistribution restriction stated)"
+retrieval_date = "2026-08-02"
+extraction = "zip"
+
+[[source]]
+id = "canterbury-artificial"
+family = "canterbury"
+purpose = "pathological artificial inputs: single letters, repetition, alphabet runs, random"
+official_page = "https://corpus.canterbury.ac.nz/descriptions/#artificl"
+url = "https://corpus.canterbury.ac.nz/resources/artificl.tar.gz"
+owner = "Canterbury Corpus project"
+license = "free for research and evaluation"
+redistribution = "permitted (public corpus)"
+retrieval_date = "2026-08-02"
+extraction = "tar.gz"
+
+[[source]]
+id = "canterbury-large"
+family = "canterbury"
+purpose = "medium sustained inputs: E.coli (DNA), bible.txt, world192.txt"
+official_page = "https://corpus.canterbury.ac.nz/descriptions/#large"
+url = "https://corpus.canterbury.ac.nz/resources/large.zip"
+owner = "Canterbury Corpus project"
+license = "free for research and evaluation; underlying texts carry their own copyrights (bible: public domain translations; world192: CIA World Factbook, public domain; E.coli: GenBank, public domain)"
+redistribution = "permitted (public corpus)"
+retrieval_date = "2026-08-02"
+extraction = "zip"
+
+# ---------------------------------------------------------------------------
+# Large Text Compression Benchmark (https://mattmahoney.net/dc)
+# ---------------------------------------------------------------------------
+
+[[source]]
+id = "enwik8"
+family = "ltcb"
+purpose = "standardized 100 MB sustained text/XML workload (first 10^8 bytes of a fixed Wikipedia XML dump)"
+official_page = "https://mattmahoney.net/dc/text.html"
+url = "https://mattmahoney.net/dc/enwik8.zip"
+owner = "Matt Mahoney (public domain benchmark data)"
+license = "public domain (benchmark data; source dump is a fixed snapshot of Wikipedia content, CC BY-SA)"
+redistribution = "permitted (published zip is the benchmark artifact itself)"
+retrieval_date = "2026-08-02"
+extraction = "zip"
+note = "extracted enwik8 (100,000,000 bytes) cross-validated: SHA-1 57b8363b814821dc9d47aa4d41f58733519076b2, MD5 a1fa5ffddb56f4953e226637dabbb36a (published on the official page)"
+
+[[source]]
+id = "enwik9"
+family = "ltcb"
+purpose = "standardized 1 GB sustained text/XML workload (first 10^9 bytes of the same dump)"
+official_page = "https://mattmahoney.net/dc/text.html"
+url = "https://mattmahoney.net/dc/enwik9.zip"
+owner = "Matt Mahoney (public domain benchmark data)"
+license = "public domain (benchmark data)"
+redistribution = "permitted (published zip is the benchmark artifact itself)"
+retrieval_date = "2026-08-02"
+extraction = "zip"
+note = "extracted enwik9 (1,000,000,000 bytes) cross-validated: SHA-1 2996e86fb978f93cca8f566cc56998923e7fe581, MD5 e206c3450ac99950df65bf70ef61a12d (published on the official page)"
+
+# ---------------------------------------------------------------------------
+# Pizza & Chili texts (https://pizzachili.dcc.uchile.cl)
+# ---------------------------------------------------------------------------
+
+[[source]]
+id = "pc-dna-50mb"
+family = "pizzachili"
+purpose = "DNA: tiny alphabet (4-15 symbols), highly repetitive structure"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/dna/dna.50MB.gz"
+owner = "Pizza&Chili Corpus project (P. Ferragina, G. Navarro, et al.)"
+license = "free for research and academic use (see site terms); source data from GenBank"
+redistribution = "uncertain — download only via `cargo xtask workload fetch`; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"
+
+[[source]]
+id = "pc-dna-100mb"
+family = "pizzachili"
+purpose = "DNA 100 MB prefix (increasing-size experiments)"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/dna/dna.100MB.gz"
+owner = "Pizza&Chili Corpus project"
+license = "free for research and academic use"
+redistribution = "uncertain — download only via xtask; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"
+
+[[source]]
+id = "pc-dna-200mb"
+family = "pizzachili"
+purpose = "DNA 200 MB prefix"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/dna/dna.200MB.gz"
+owner = "Pizza&Chili Corpus project"
+license = "free for research and academic use"
+redistribution = "uncertain — download only via xtask; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"
+
+[[source]]
+id = "pc-english-50mb"
+family = "pizzachili"
+purpose = "English text (Gutenberg-derived): ASCII text, natural language distribution"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/nlang/english.50MB.gz"
+owner = "Pizza&Chili Corpus project; source text from Project Gutenberg"
+license = "free for research and academic use"
+redistribution = "uncertain — download only via xtask; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"
+
+[[source]]
+id = "pc-english-200mb"
+family = "pizzachili"
+purpose = "English text 200 MB prefix"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/nlang/english.200MB.gz"
+owner = "Pizza&Chili Corpus project"
+license = "free for research and academic use"
+redistribution = "uncertain — download only via xtask; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"
+
+[[source]]
+id = "pc-english-1024mb"
+family = "pizzachili"
+purpose = "English text 1 GiB prefix — the sustained large-scale workload"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/nlang/english.1024MB.gz"
+owner = "Pizza&Chili Corpus project"
+license = "free for research and academic use"
+redistribution = "uncertain — download only via xtask; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"
+
+[[source]]
+id = "pc-xml-50mb"
+family = "pizzachili"
+purpose = "XML (DBLP bibliography): structured markup, mixed text/tag distribution"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/xml/dblp.xml.50MB.gz"
+owner = "Pizza&Chili Corpus project; source data from the DBLP database (Michael Ley)"
+license = "free for research and academic use"
+redistribution = "uncertain — download only via xtask; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"
+
+[[source]]
+id = "pc-proteins-50mb"
+family = "pizzachili"
+purpose = "Proteins (SwissProt): 20-26 symbol alphabet, biological sequence data"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/protein/proteins.50MB.gz"
+owner = "Pizza&Chili Corpus project; source data from UniProt/SwissProt"
+license = "free for research and academic use"
+redistribution = "uncertain — download only via xtask; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"
+
+[[source]]
+id = "pc-sources-50mb"
+family = "pizzachili"
+purpose = "Source code (linux kernel + gcc): mixed identifiers, ASCII punctuation"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/code/sources.50MB.gz"
+owner = "Pizza&Chili Corpus project; source data from kernel.org and gnu.org"
+license = "free for research and academic use"
+redistribution = "uncertain — download only via xtask; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"
+
+[[source]]
+id = "pc-pitches-50mb"
+family = "pizzachili"
+purpose = "Music (MIDI pitches): tiny alphabet (20 symbols), pseudo-repetitive"
+official_page = "https://pizzachili.dcc.uchile.cl/texts.html"
+url = "https://pizzachili.dcc.uchile.cl/texts/music/pitches.50MB.gz"
+owner = "Pizza&Chili Corpus project"
+license = "free for research and academic use"
+redistribution = "uncertain — download only via xtask; do not redistribute"
+retrieval_date = "2026-08-02"
+extraction = "gz"

@@ -400,3 +400,78 @@ pub struct PhaseLCourtReceipt {
     /// Command that reproduces this court.
     pub reproduction_command: String,
 }
+
+// ---------------------------------------------------------------------------
+// Public rANS workload v1 — deterministic workload manifest types (Phase O.10)
+// ---------------------------------------------------------------------------
+
+/// One logical block of a derived public rANS workload (Phase O.10/O.11).
+///
+/// A block is a *slice* of a hash-pinned public corpus source — never a copy
+/// of the bytes.  The combination of `source_id`, `source_sha256`, `offset`,
+/// and `length` identifies the exact byte range; `model_group` selects the
+/// model-reuse schedule (a model derived from a declared training region is
+/// reused for every block in the group — Phase O.13 grouped-model mode);
+/// `codec_id`/`scale_bits` fix the encoding surface.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct WorkloadBlock {
+    /// Ordinal position in the schedule (0-based).
+    pub block_index: u64,
+    /// Which pinned source record this slice comes from
+    /// (see `workloads/public-rans-v1/sources.toml`).
+    pub source_id: String,
+    /// SHA-256 of the *extracted* source file this slice references.
+    pub source_sha256: String,
+    /// Byte offset of the slice within the extracted source file.
+    pub offset: u64,
+    /// Slice length in bytes.
+    pub length: u64,
+    /// Model group: blocks sharing a group reuse one model (grouped-model
+    /// mode).  `u64::MAX` marks natural per-block models.
+    pub model_group: u64,
+    /// Codec ID (7 = 8-way word, 8 = 16-way word, ...).
+    pub codec_id: u16,
+    /// rANS precision (scale bits).
+    pub scale_bits: u8,
+}
+
+/// One named schedule of a derived workload.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct WorkloadSchedule {
+    /// Schedule name (e.g. `public-rans-smoke`).
+    pub name: String,
+    /// Total logical bytes (sum of block lengths; may exceed physical bytes
+    /// for schedules that deliberately reuse source regions).
+    pub logical_bytes: u64,
+    /// Number of blocks in the schedule.
+    pub block_count: u64,
+    /// The ordered block records.
+    pub blocks: Vec<WorkloadBlock>,
+    /// SHA-256 of the canonical serialization of `blocks` (the ordered
+    /// schedule hash — Phase O.11).
+    pub schedule_sha256: String,
+}
+
+/// The derived workload manifest: schedules plus the identity chain back to
+/// the pinned sources and the derivation policy.
+#[cfg(feature = "std")]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct WorkloadManifest {
+    /// Workload name (`public-rans-v1`).
+    pub workload: String,
+    /// Workload version.
+    pub version: String,
+    /// SHA-256 of the canonical `derivation.toml` bytes (the derivation
+    /// policy identity — Phase O.11: workload identity = source hashes +
+    /// derivation manifest hash).
+    pub derivation_policy_sha256: String,
+    /// SHA-256 of the canonical `expected-source-hashes.json` bytes (the
+    /// pinned source identity).
+    pub source_hashes_sha256: String,
+    /// The named schedules.
+    pub schedules: Vec<WorkloadSchedule>,
+    /// ISO-8601 creation timestamp (UTC).
+    pub created_at: String,
+}

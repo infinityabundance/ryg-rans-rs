@@ -1,0 +1,93 @@
+# Public rANS Workload v1 — derivation policy
+#
+# This file is the deterministic derivation policy.  Its canonical bytes are
+# hashed (`derivation_policy_sha256`) into every derived workload manifest,
+# so the workload identity is: pinned source hashes (expected-source-hashes.
+# json) + this policy (Phase O.11).
+#
+# The policy declares *how* to slice, not the slices themselves: the
+# `derive` command expands this policy into ordered `WorkloadBlock` records
+# deterministically (same policy + same source hashes → same schedule hash).
+
+[workload]
+name = "public-rans-v1"
+version = "1"
+
+[codec]
+# 8-way word codec for short/medium blocks, 16-way for long sustained runs.
+codec_8way = 7
+codec_16way = 8
+scale_bits = 12
+
+[models]
+# "grouped": every block in a model group reuses one model trained on the
+# group's declared training region.  Training region for group g:
+# source[g % num_sources], bytes [0, training_region_bytes).
+# "natural": every block derives its own model from its own bytes
+# (model_group = u64::MAX in the manifest).
+training_region_bytes = 4096
+
+[block_sizes]
+# The block-size matrix.  `smoke` additionally exercises legal boundary
+# sizes (threshold - 1 / threshold / threshold + 1) around each power of two.
+kib = 1024
+mib = 1048576
+matrix = [1024, 4096, 16384, 65536, 262144, 1048576, 4194304]
+boundaries = [[4095, 4096, 4097], [16383, 16384, 16385], [65535, 65536, 65537], [262143, 262144, 262145], [1048575, 1048576, 1048577], [4194303, 4194304, 4194305]]
+
+[cache]
+# Cache policy classes exercised by the workload (Phase O.12).
+disabled = { max_entries = 0, max_total_bytes = 0 }
+default = { max_entries = 64, max_total_bytes = 16777216 }
+hot_set = { max_entries = 64, max_total_bytes = 16777216 }
+
+[threads]
+# Worker schedule for stress/soak (Phase O.18).
+schedule = [1, 2, 4, 8, 16, 32]
+
+# ---------------------------------------------------------------------------
+# Named schedules (Phase O.11)
+# ---------------------------------------------------------------------------
+
+[schedules.smoke]
+name = "public-rans-smoke"
+logical_bytes_target = 4194304
+sources = ["canterbury-standard", "canterbury-artificial", "canterbury-large", "enwik8", "pc-dna-50mb", "pc-english-50mb", "pc-xml-50mb", "pc-proteins-50mb", "pc-sources-50mb", "pc-pitches-50mb"]
+# Every block size in the matrix plus the boundary triples, then repeat.
+use_boundaries = true
+model_groups = 8
+natural_mode_blocks = 16
+codecs = [7, 8]
+
+[schedules.one_gib]
+name = "public-rans-1g"
+logical_bytes_target = 1073741824
+sources = ["enwik8", "pc-english-1024mb", "pc-dna-200mb", "pc-english-200mb"]
+block_sizes = [65536, 262144, 1048576, 4194304]
+model_groups = 16
+natural_mode_blocks = 64
+codecs = [8]
+
+[schedules.mixed_16g]
+name = "public-rans-mixed-16g"
+logical_bytes_target = 17179869184
+# 16 passes over a deterministic 1 GiB composition of slices; each pass
+# advances the slice offsets so the same source regions are never repeated
+# at the same position (deliberate source-region reuse — the schedule is
+# logical, never materialized).
+passes = 16
+pass_sources = ["enwik9", "pc-english-1024mb", "pc-dna-200mb", "pc-proteins-50mb", "pc-sources-50mb", "pc-xml-50mb", "pc-pitches-50mb"]
+pass_block_size = 262144
+pass_model_groups = 32
+codecs = [8]
+
+[schedules.stress_64g]
+name = "public-rans-stress-64g"
+logical_bytes_target = 68719476736
+# 4 rotations of the mixed-16g composition with different offset bases and
+# group assignments (worst-case FIFO churn + phase-shift behavior).
+rotations = 4
+rotation_sources = ["enwik9", "pc-english-1024mb", "pc-dna-200mb", "pc-dna-100mb", "pc-english-200mb", "pc-proteins-50mb", "pc-sources-50mb", "pc-xml-50mb", "pc-pitches-50mb"]
+rotation_block_size = 1048576
+rotation_model_groups = 64
+codecs = [8]

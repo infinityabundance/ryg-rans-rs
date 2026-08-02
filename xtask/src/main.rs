@@ -1,5 +1,7 @@
 use std::process::Command;
 
+mod workload;
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
@@ -102,6 +104,13 @@ fn main() {
                 std::process::exit(1);
             }
             println!("benchmark-run completed.");
+        }
+        "workload" => {
+            if let Err(e) = workload::cmd_workload(&args[2..]) {
+                eprintln!("FAIL: workload: {}", e);
+                std::process::exit(1);
+            }
+            println!("workload command completed.");
         }
         "courts-run" => {
             if let Err(e) = cmd_courts_run(&args[2..]) {
