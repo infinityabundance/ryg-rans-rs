@@ -902,6 +902,25 @@ impl ParallelEncoder {
 
         let block_count = jobs.len();
 
+        // ---- 0-based contiguous index validation ----------------------------
+        // The reorder buffer commits results in ascending index order
+        // starting at 0; a job set whose indices are not exactly `0..bc`
+        // would leave the buffer waiting forever for a missing index and
+        // surface as a misleading `IncompleteExecution`.  The indices are a
+        // caller contract (the planner assigns them), so a violation is a
+        // typed `Config` error — never a silent hang or an internal-bug
+        // error.
+        {
+            let mut idxs: Vec<u64> = jobs.iter().map(|j| j.block_index).collect();
+            idxs.sort_unstable();
+            if idxs.iter().enumerate().any(|(i, &v)| v != i as u64) {
+                return Err(ParallelError::Config(format!(
+                    "encode block indices must be a 0-based contiguous set of {} blocks",
+                    block_count
+                )));
+            }
+        }
+
         // ---- max_buffered_input_bytes enforcement (encode) ----
         let input_bytes: u64 = jobs.iter().map(|j| j.data.len() as u64).sum();
         if input_bytes > config.max_buffered_input_bytes {

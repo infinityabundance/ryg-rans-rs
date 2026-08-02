@@ -1484,6 +1484,23 @@ impl ParallelDecoder {
         }
         let bc = jobs.len();
 
+        // ---- 0-based contiguous index validation ----------------------------
+        // Same reorder contract as the encode path: the block indices must
+        // be exactly `0..bc`.  A container that yields non-contiguous
+        // indices (malformed input) is rejected with a typed `Config` error
+        // instead of hanging the reorder buffer or surfacing as
+        // `IncompleteExecution`.
+        {
+            let mut idxs: Vec<u64> = jobs.iter().map(|j| j.block_index).collect();
+            idxs.sort_unstable();
+            if idxs.iter().enumerate().any(|(i, &v)| v != i as u64) {
+                return Err(ParallelError::Config(format!(
+                    "decode block indices must be a 0-based contiguous set of {} blocks",
+                    bc
+                )));
+            }
+        }
+
         // ---- max_buffered_input_bytes enforcement ----
         // Checked BEFORE the sequential threshold so the budget is enforced
         // on every path (parallel and sequential).
