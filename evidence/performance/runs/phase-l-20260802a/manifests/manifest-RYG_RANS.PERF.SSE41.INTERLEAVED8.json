@@ -2,8 +2,8 @@
   "schema_version": 1,
   "performance_id": "RYG_RANS.PERF.SSE41.INTERLEAVED8",
   "surface": "SSE4.1 SIMD — interleaved8",
-  "implementation_commit": "8401991",
-  "run_id": "84019910d8868b03c6f38b9e8cc607ada713c4fc",
+  "implementation_commit": "84019910d8868b03c6f38b9e8cc607ada713c4fc",
+  "run_id": "842dd169d5ff5b9f3a5738d9dbb2ba4e39b09a2a",
   "host_id": "vanir-x86_64",
   "benchmark_cases": [
     {
@@ -30,12 +30,12 @@
   ],
   "artifact_hashes": {
     "criterion_archive_sha256": "879651d3bbf106e87dc8e635a742c9bac2c2342a3d5516e01d1fa4fa5ab08c80",
-    "results_json_sha256": "bdef54d52d39ea56df236fa52edac72c0cd5dd2fe0e5f73fb83e6395299d30ab",
-    "results_csv_sha256": "6f74634739a6e38cb162b6c508d9ab9f6efad3c40487672d8df58736614a3675",
+    "results_json_sha256": "0b3338598e4ad24f21deb41d141aee979f8a021c12b0b8993f78c1853feb14a3",
+    "results_csv_sha256": "afa437c9ed3573f73fb9931dc9c9566afec6e8357c59ef478e3cf01198ca67bf",
     "host_metadata_sha256": "9b5be6acbb1a0596a05d5c741e5bce1db01ad91936603dda8fdafe5714ec2a77",
     "commands_log_sha256": "73da9f9c351b394024afe9256ff1c36db63b7c4dce0a9e9e5cbe01fc30a75558"
   },
-  "command": "target/debug/xtask performance-seal --criterion-dir target/criterion --run-dir evidence/performance/runs/phase-l-20260802a --implementation-commit 8401991",
+  "command": "target/debug/xtask performance-seal --criterion-dir target/criterion --run-dir evidence/performance/runs/phase-l-20260802a --implementation-commit 84019910d8868b03c6f38b9e8cc607ada713c4fc",
   "rustflags": "",
   "criterion_version": "0.5.1",
   "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",

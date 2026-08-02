@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.SCRATCH.INTEGRATION",
   "title": "WorkerScratch / ScratchPool production integration (L.7)",
   "verdict": "passed",
-  "implementation_commit": "8401991",
-  "evidence_commit": "84019910d8868b03c6f38b9e8cc607ada713c4fc",
+  "implementation_commit": "84019910d8868b03c6f38b9e8cc607ada713c4fc",
+  "evidence_commit": "842dd169d5ff5b9f3a5738d9dbb2ba4e39b09a2a",
   "num_cases": 7,
   "cases_passed": 7,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "L7-A"
   ],
-  "manifest_sha256": "eacdeebfb7d8766b3a02c90c8842b4bc31eab7667a4ed2dc7b0265afbb249639",
-  "receipt_sha256": "033bfc79a4b7a1ca22b578816a6e56ff81ebb33f19b093a6238173792e445ee3",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 8401991 --only RYG_RANS.L.SCRATCH.INTEGRATION"
+  "manifest_sha256": "caf226201408d653a3ebd73c694868eaf982f4086a29ff569b1532cffd0577ed",
+  "receipt_sha256": "7de3ff1fb6eeeb4b0591d0eecab0264680e043c1cf9cc12f23d56b076cb4be50",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 84019910d8868b03c6f38b9e8cc607ada713c4fc --only RYG_RANS.L.SCRATCH.INTEGRATION"
 }

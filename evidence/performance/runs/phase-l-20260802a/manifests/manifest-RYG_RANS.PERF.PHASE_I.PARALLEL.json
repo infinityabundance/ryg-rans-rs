@@ -2,8 +2,8 @@
   "schema_version": 1,
   "performance_id": "RYG_RANS.PERF.PHASE_I.PARALLEL",
   "surface": "Phase I parallel block engine",
-  "implementation_commit": "8401991",
-  "run_id": "84019910d8868b03c6f38b9e8cc607ada713c4fc",
+  "implementation_commit": "84019910d8868b03c6f38b9e8cc607ada713c4fc",
+  "run_id": "842dd169d5ff5b9f3a5738d9dbb2ba4e39b09a2a",
   "host_id": "vanir-x86_64",
   "benchmark_cases": [
     {
@@ -429,12 +429,12 @@
   ],
   "artifact_hashes": {
     "criterion_archive_sha256": "879651d3bbf106e87dc8e635a742c9bac2c2342a3d5516e01d1fa4fa5ab08c80",
-    "results_json_sha256": "5f311a80db14c8ddb0fcbfab0c95fcff2c42c146aa860d92779c1c38972f648d",
-    "results_csv_sha256": "53c26cd572161b3b04548f833b918ac8c0dd1a9cf0e4c58d3ef420719aaa02a3",
+    "results_json_sha256": "9f3ebc6078cb81807c6a8e2327b6ff38f7e3e2713586fafe52a7952d13c43376",
+    "results_csv_sha256": "20d973bd12420f11da3e8dab48566a1c8c84bc10eb9220914eb7c481c73b1f25",
     "host_metadata_sha256": "9b5be6acbb1a0596a05d5c741e5bce1db01ad91936603dda8fdafe5714ec2a77",
     "commands_log_sha256": "73da9f9c351b394024afe9256ff1c36db63b7c4dce0a9e9e5cbe01fc30a75558"
   },
-  "command": "target/debug/xtask performance-seal --criterion-dir target/criterion --run-dir evidence/performance/runs/phase-l-20260802a --implementation-commit 8401991",
+  "command": "target/debug/xtask performance-seal --criterion-dir target/criterion --run-dir evidence/performance/runs/phase-l-20260802a --implementation-commit 84019910d8868b03c6f38b9e8cc607ada713c4fc",
   "rustflags": "",
   "criterion_version": "0.5.1",
   "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
