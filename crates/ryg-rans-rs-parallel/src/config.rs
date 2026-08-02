@@ -512,14 +512,31 @@ pub enum HashVerification {
 /// | Policy | Compression | Memory | Speed | Use case |
 /// |--------|-------------|--------|-------|----------|
 /// | `PerBlock` | Best | Highest | Slowest | Heterogeneous data, per-block specialisation |
-/// | `Uniform` | Good (for similar data) | Shared | Fast | Many similar blocks (e.g., sensor data) |
-/// | `External` | Caller-dependent | External | Fastest | Pre-analysed data, streaming |
-/// | `Global` | Good | Single model | Fast | Homogeneous data, single histogram |
+/// | `External` | Caller-dependent | Per-job 1 KiB | Fastest | Pre-analysed data, grouped-model reuse |
+///
+/// # Historical note (Phase O.13)
+///
+/// Up to v0.4.1 this enum documented four policies (`PerBlock`, `Uniform`,
+/// `External`, `Global`), but the encoder only ever implemented `PerBlock`:
+/// every other variant was **inert** — no production call path read the
+/// field, no test exercised it, and the documented behaviours could not
+/// actually be expressed (`Uniform` described a reference-block index that
+/// the API could not supply; `Global` needed cross-block coordination that
+/// a per-job field cannot express).  The Phase O workload work needed real
+/// grouped-model encoding, so the policy was redesigned honestly:
+///
+/// * `PerBlock` — kept, unchanged.
+/// * `External { model }` — implemented: the encoder validates and uses the
+///   caller-supplied 1024-byte raw frequency model (natural vs grouped
+///   model modes, Phase O.13).
+/// * `Uniform` / `Global` — **removed**: unimplementable as designed; an
+///   auditor cannot tell whether a documented-but-inert field is a future
+///   feature or a forgotten one (residual `ENCODE.MODEL_POLICY.1`).
 ///
 /// The model policy interacts with the `BackendPolicy`: a `Uniform256`
 /// model enables the table-free 16-way decode kernel, which is ~2×
 /// faster than the general scalar path.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModelPolicy {
     /// Each block constructs its own frequency model from its raw data.
     ///
@@ -527,29 +544,22 @@ pub enum ModelPolicy {
     /// but requires per-block histogram construction, which is expensive
     /// for small blocks.
     PerBlock,
-    /// All blocks share one frequency model derived from a single
-    /// reference block.
+    /// Encode with one caller-supplied raw frequency model.
     ///
-    /// The reference block index is specified externally.  All other
-    /// blocks reuse its model, saving histogram time.  Best when
-    /// blocks contain similar data (e.g., consecutive frames in a
-    /// video stream).
-    Uniform,
-    /// Use an externally supplied model for all blocks.
+    /// The model must be exactly 1024 bytes — 256 × u32 LE — and its
+    /// frequencies must sum to `1 << scale_bits`.  The encoder validates
+    /// both and rejects the job with a typed `Model` error otherwise.
+    /// Because a zero-frequency symbol would divide by zero in the rANS
+    /// kernel, a job whose data contains a symbol with frequency 0 in the
+    /// supplied model is also rejected (typed error — never a panic).
     ///
-    /// The model is provided by the caller and must be validated
-    /// before use.  This is the fastest path — no histogram work
-    /// at all — and is appropriate when the data distribution is
-    /// known a priori.
-    External,
-    /// Construct a single global model via deterministic histogram
-    /// merge across all blocks.
-    ///
-    /// Each block computes its own histogram; then all histograms
-    /// are merged deterministically.  This produces a single model
-    /// that approximates the global distribution.  The merge order
-    /// is fixed (ascending block index) to ensure determinism.
-    Global,
+    /// This is the grouped-model mode of Phase O.13: a model trained on a
+    /// declared training region is reused for a deterministic group of
+    /// blocks, so decode-side artifact reuse is real and measurable.
+    External {
+        /// The 1024-byte raw frequency model (`model_encoding = 0`).
+        model: Vec<u8>,
+    },
 }
 
 /// Codec selection policy — determines which rANS variant to use.

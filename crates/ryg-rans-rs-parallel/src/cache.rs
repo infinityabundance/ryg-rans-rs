@@ -372,6 +372,22 @@ impl<T> ModelCache<T> {
         (self.entry_evictions, self.byte_evictions)
     }
 
+    /// Snapshot the retained entries as `(key, accounted_bytes)` pairs
+    /// (Phase O.1 ground truth for courts and soak runs).
+    ///
+    /// Available in tests and with the `cache-timing` feature so an
+    /// *external* verifier (court, proptest shadow model, soak loop) can
+    /// recompute the retained byte sum independently and compare it with
+    /// [`ModelCache::current_bytes`] — the exact-accounting cross-check the
+    /// mission requires.  Production decode never needs it.
+    #[cfg(any(test, feature = "cache-timing"))]
+    pub fn retained_entries(&self) -> Vec<(ModelCacheKey, u64)> {
+        self.map
+            .iter()
+            .map(|(k, e)| (k.clone(), e.accounted_bytes))
+            .collect()
+    }
+
     /// Insert or replace an entry (Phase O.1/O.2/O.3).
     ///
     /// # Semantics
@@ -824,6 +840,92 @@ impl ModelCacheMetricsSnapshot {
 }
 
 // ---------------------------------------------------------------------------
+// Timing instrumentation (Phase O.16) — behind `cache-timing`
+// ---------------------------------------------------------------------------
+
+/// Cumulative timing snapshot for contention analysis (Phase O.16).
+///
+/// Only available with the `cache-timing` feature.  The counters are
+/// best-effort *diagnostics*: they live in atomic cells outside the
+/// cache-state mutex (so recording them can never deadlock or perturb the
+/// very lock they measure) and production code must never depend on them
+/// for correctness.  They are monotonic since cache construction;
+/// `ModelArtifactCache::clear` deliberately does NOT reset them (clear
+/// resets behavior counters; timing stays cumulative so a soak run can
+/// still see whole-run contention).
+///
+/// # What each counter means
+///
+/// * `lock_acquires` / `lock_wait_ns` — the cache-state mutex acquisition
+///   attempts routed through [`ModelArtifactCache::lock_state`] and the
+///   cumulative time spent blocked acquiring it.  This is the "lookup lock
+///   wait time" of O.16: if it grows with worker count, the global mutex is
+///   the serialization point.
+/// * `artifact_builds` / `artifact_build_ns` — the single-flight builder
+///   closure executions and their cumulative duration (run OUTSIDE the
+///   mutex, so this is not lock time).
+/// * `single_flight_waits` / `single_flight_wait_ns` — callers that
+///   registered as waiters and the cumulative time they spent on the
+///   condition variable before waking (hit, failure-retry, or cancellation).
+/// * `lookup_calls` / `lookup_ns` — every `get_or_build` call and its total
+///   duration (the caller-visible latency, including lock + build + wait).
+#[cfg(all(feature = "cache-timing", not(loom)))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ModelCacheTimingSnapshot {
+    /// Successful (non-poisoned) `lock_state` acquisitions.
+    pub lock_acquires: u64,
+    /// Cumulative nanoseconds blocked acquiring the cache-state mutex.
+    pub lock_wait_ns: u64,
+    /// Builder closure invocations (single-flight builder role).
+    pub artifact_builds: u64,
+    /// Cumulative nanoseconds inside builder closures.
+    pub artifact_build_ns: u64,
+    /// Callers that waited for an in-progress same-key build.
+    pub single_flight_waits: u64,
+    /// Cumulative nanoseconds spent on the condvar as a waiter.
+    pub single_flight_wait_ns: u64,
+    /// `get_or_build` invocations.
+    pub lookup_calls: u64,
+    /// Cumulative nanoseconds across every `get_or_build` invocation.
+    pub lookup_ns: u64,
+}
+
+/// Atomic timing cells owned by the cache, outside the mutex (Phase O.16).
+///
+/// `std::sync::atomic` is deliberate: under `--cfg loom` this type is
+/// compiled out (`not(loom)`), so the loom build never carries `Instant`
+/// or std atomics that loom cannot model.
+#[cfg(all(feature = "cache-timing", not(loom)))]
+#[derive(Debug, Default)]
+struct ModelArtifactCacheTiming {
+    lock_acquires: std::sync::atomic::AtomicU64,
+    lock_wait_ns: std::sync::atomic::AtomicU64,
+    artifact_builds: std::sync::atomic::AtomicU64,
+    artifact_build_ns: std::sync::atomic::AtomicU64,
+    single_flight_waits: std::sync::atomic::AtomicU64,
+    single_flight_wait_ns: std::sync::atomic::AtomicU64,
+    lookup_calls: std::sync::atomic::AtomicU64,
+    lookup_ns: std::sync::atomic::AtomicU64,
+}
+
+#[cfg(all(feature = "cache-timing", not(loom)))]
+impl ModelArtifactCacheTiming {
+    fn snapshot(&self) -> ModelCacheTimingSnapshot {
+        use std::sync::atomic::Ordering;
+        ModelCacheTimingSnapshot {
+            lock_acquires: self.lock_acquires.load(Ordering::Relaxed),
+            lock_wait_ns: self.lock_wait_ns.load(Ordering::Relaxed),
+            artifact_builds: self.artifact_builds.load(Ordering::Relaxed),
+            artifact_build_ns: self.artifact_build_ns.load(Ordering::Relaxed),
+            single_flight_waits: self.single_flight_waits.load(Ordering::Relaxed),
+            single_flight_wait_ns: self.single_flight_wait_ns.load(Ordering::Relaxed),
+            lookup_calls: self.lookup_calls.load(Ordering::Relaxed),
+            lookup_ns: self.lookup_ns.load(Ordering::Relaxed),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // The explicitly owned cache with single-flight construction
 // ---------------------------------------------------------------------------
 
@@ -883,6 +985,9 @@ struct CacheState {
 pub struct ModelArtifactCache {
     state: Mutex<CacheState>,
     wake: Condvar,
+    /// Contention timing cells (Phase O.16), outside the mutex.
+    #[cfg(all(feature = "cache-timing", not(loom)))]
+    timing: ModelArtifactCacheTiming,
 }
 
 /// How often a waiting caller re-checks the cache state when no notification
@@ -904,6 +1009,8 @@ impl ModelArtifactCache {
                 metrics: ModelCacheMetricsSnapshot::default(),
             }),
             wake: Condvar::new(),
+            #[cfg(all(feature = "cache-timing", not(loom)))]
+            timing: ModelArtifactCacheTiming::default(),
         })
     }
 
@@ -948,6 +1055,36 @@ impl ModelArtifactCache {
     /// and builds directly (same constructor).  It is never reported as a
     /// model error.
     pub fn get_or_build(
+        &self,
+        codec_id: u16,
+        scale_bits: u8,
+        model_data: &[u8],
+        cancel: Option<&CancellationToken>,
+        build: impl FnOnce() -> Result<BuiltModelArtifacts, ModelArtifactBuildError>,
+    ) -> Result<Arc<ValidatedModelArtifacts>, ModelArtifactBuildError> {
+        #[cfg(all(feature = "cache-timing", not(loom)))]
+        {
+            use std::sync::atomic::Ordering as AOrd;
+            let t0 = std::time::Instant::now();
+            let r = self.get_or_build_inner(codec_id, scale_bits, model_data, cancel, build);
+            self.timing.lookup_calls.fetch_add(1, AOrd::Relaxed);
+            self.timing
+                .lookup_ns
+                .fetch_add(t0.elapsed().as_nanos() as u64, AOrd::Relaxed);
+            return r;
+        }
+        #[cfg(not(all(feature = "cache-timing", not(loom))))]
+        {
+            self.get_or_build_inner(codec_id, scale_bits, model_data, cancel, build)
+        }
+    }
+
+    /// The single-flight implementation (Phase O.5).
+    ///
+    /// See [`ModelArtifactCache::get_or_build`] for the full contract; the
+    /// public wrapper only adds the O.16 timing envelope so the inner
+    /// control flow stays free of instrumentation.
+    fn get_or_build_inner(
         &self,
         codec_id: u16,
         scale_bits: u8,
@@ -1012,6 +1149,18 @@ impl ModelArtifactCache {
                     // ---- Build OUTSIDE the lock (O.5 requirement) ---------
                     // The builder may panic; catch it so no permanent
                     // Building state survives.
+                    #[cfg(all(feature = "cache-timing", not(loom)))]
+                    let built = {
+                        use std::sync::atomic::Ordering as AOrd;
+                        let bt = std::time::Instant::now();
+                        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(build));
+                        self.timing.artifact_builds.fetch_add(1, AOrd::Relaxed);
+                        self.timing
+                            .artifact_build_ns
+                            .fetch_add(bt.elapsed().as_nanos() as u64, AOrd::Relaxed);
+                        r
+                    };
+                    #[cfg(not(all(feature = "cache-timing", not(loom))))]
                     let built = std::panic::catch_unwind(std::panic::AssertUnwindSafe(build));
 
                     // ---- Publish under the lock -----------------------------
@@ -1117,6 +1266,8 @@ impl ModelArtifactCache {
                 std::collections::hash_map::Entry::Occupied(mut o) => {
                     // Someone else is building (or already registered as a
                     // waiter).  Register as a waiter and wait on the condvar.
+                    #[cfg(all(feature = "cache-timing", not(loom)))]
+                    let wait_t0 = std::time::Instant::now();
                     let waiters = match o.get() {
                         KeyState::Building { waiters } => *waiters,
                     };
@@ -1128,6 +1279,15 @@ impl ModelArtifactCache {
                     let mut state = state;
 
                     // ---- Wait loop (releases the lock) ----------------------
+                    #[cfg(all(feature = "cache-timing", not(loom)))]
+                    let record_wait = |self_: &Self| {
+                        use std::sync::atomic::Ordering as AOrd;
+                        self_.timing.single_flight_waits.fetch_add(1, AOrd::Relaxed);
+                        self_
+                            .timing
+                            .single_flight_wait_ns
+                            .fetch_add(wait_t0.elapsed().as_nanos() as u64, AOrd::Relaxed);
+                    };
                     loop {
                         // Poison (unreachable in practice — critical sections
                         // are short and panic-free) abandons the wait: the
@@ -1137,6 +1297,8 @@ impl ModelArtifactCache {
                         let Some(g) =
                             crate::sync::wait_timeout(&self.wake, state, WAIT_POLL_INTERVAL)
                         else {
+                            #[cfg(all(feature = "cache-timing", not(loom)))]
+                            record_wait(self);
                             break;
                         };
                         state = g;
@@ -1145,6 +1307,8 @@ impl ModelArtifactCache {
                         if let Some(artifact) = state.ready.get(&key) {
                             self.finish_wait(&mut state, &key);
                             state.metrics.hits = state.metrics.hits.saturating_add(1);
+                            #[cfg(all(feature = "cache-timing", not(loom)))]
+                            record_wait(self);
                             return Ok(artifact);
                         }
                         if !state.in_flight.contains_key(&key) {
@@ -1152,10 +1316,14 @@ impl ModelArtifactCache {
                             // panic).  This waiter retries → becomes a
                             // builder via the outer loop (retry policy).
                             self.finish_wait(&mut state, &key);
+                            #[cfg(all(feature = "cache-timing", not(loom)))]
+                            record_wait(self);
                             break;
                         }
                         if cancel.is_some_and(|c| c.is_cancelled()) {
                             self.finish_wait(&mut state, &key);
+                            #[cfg(all(feature = "cache-timing", not(loom)))]
+                            record_wait(self);
                             return Err(ModelArtifactBuildError::Cancelled);
                         }
                     }
@@ -1193,9 +1361,26 @@ impl ModelArtifactCache {
     /// outside it), so poisoning is unreachable in practice; the bypass path
     /// exists so even that unreachable case cannot corrupt decode semantics.
     fn lock_state(&self) -> Result<crate::sync::MutexGuard<'_, CacheState>, ModelCacheError> {
-        self.state
-            .lock()
-            .map_err(|_| ModelCacheError::Synchronization)
+        #[cfg(all(feature = "cache-timing", not(loom)))]
+        {
+            use std::sync::atomic::Ordering as AOrd;
+            let wt = std::time::Instant::now();
+            let r = self
+                .state
+                .lock()
+                .map_err(|_| ModelCacheError::Synchronization);
+            self.timing.lock_acquires.fetch_add(1, AOrd::Relaxed);
+            self.timing
+                .lock_wait_ns
+                .fetch_add(wt.elapsed().as_nanos() as u64, AOrd::Relaxed);
+            return r;
+        }
+        #[cfg(not(all(feature = "cache-timing", not(loom))))]
+        {
+            self.state
+                .lock()
+                .map_err(|_| ModelCacheError::Synchronization)
+        }
     }
 
     /// Record an uncached-fallback diagnostic (cache unavailable path).
@@ -1214,10 +1399,28 @@ impl ModelArtifactCache {
         &self,
         build: impl FnOnce() -> Result<BuiltModelArtifacts, ModelArtifactBuildError>,
     ) -> Result<Arc<ValidatedModelArtifacts>, ModelArtifactBuildError> {
-        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(build)) {
-            Ok(Ok(b)) => Ok(Arc::new(b.artifacts)),
-            Ok(Err(e)) => Err(e),
-            Err(_) => Err(ModelArtifactBuildError::Panicked),
+        #[cfg(all(feature = "cache-timing", not(loom)))]
+        {
+            use std::sync::atomic::Ordering as AOrd;
+            let bt = std::time::Instant::now();
+            let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(build));
+            self.timing.artifact_builds.fetch_add(1, AOrd::Relaxed);
+            self.timing
+                .artifact_build_ns
+                .fetch_add(bt.elapsed().as_nanos() as u64, AOrd::Relaxed);
+            match r {
+                Ok(Ok(b)) => Ok(Arc::new(b.artifacts)),
+                Ok(Err(e)) => Err(e),
+                Err(_) => Err(ModelArtifactBuildError::Panicked),
+            }
+        }
+        #[cfg(not(all(feature = "cache-timing", not(loom))))]
+        {
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(build)) {
+                Ok(Ok(b)) => Ok(Arc::new(b.artifacts)),
+                Ok(Err(e)) => Err(e),
+                Err(_) => Err(ModelArtifactBuildError::Panicked),
+            }
         }
     }
 
@@ -1233,6 +1436,18 @@ impl ModelArtifactCache {
             Ok(g) => g.metrics,
             Err(_) => ModelCacheMetricsSnapshot::default(),
         }
+    }
+
+    /// Cumulative contention timing snapshot (Phase O.16).
+    ///
+    /// Only available with the `cache-timing` feature; see
+    /// [`ModelCacheTimingSnapshot`] for the counter semantics.  In builds
+    /// without the feature the method does not exist (there is no zero
+    /// snapshot to report — a caller that compiles timing reads is
+    /// statically told the feature is off).
+    #[cfg(all(feature = "cache-timing", not(loom)))]
+    pub fn timing(&self) -> ModelCacheTimingSnapshot {
+        self.timing.snapshot()
     }
 
     /// Reset the retained entries and the behavior counters.
@@ -1756,9 +1971,13 @@ fn cancelled_builder_yields_to_next_caller() {
         builds.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         build_validated_model_artifacts(7, 12, &[])
     };
-    let e = cache.get_or_build(7, 12, &[], Some(&cancelled), build_fn).err();
+    let e = cache
+        .get_or_build(7, 12, &[], Some(&cancelled), build_fn)
+        .err();
     assert_eq!(e, Some(ModelArtifactBuildError::Cancelled));
-    let a = cache.get_or_build(7, 12, &[], None, build_fn).expect("successor builds");
+    let a = cache
+        .get_or_build(7, 12, &[], None, build_fn)
+        .expect("successor builds");
     assert_eq!(a.freqs.len(), 256);
     assert_eq!(builds.load(std::sync::atomic::Ordering::SeqCst), 1);
     let m = cache.metrics();
@@ -1822,7 +2041,10 @@ fn cancelled_waiter_stops_waiting_build_completes() {
     assert_eq!(builds.load(std::sync::atomic::Ordering::SeqCst), 1);
     let m = cache.metrics();
     assert_eq!(m.builds_completed, 1);
-    assert_eq!(m.current_entries, 1, "the build is published for future callers");
+    assert_eq!(
+        m.current_entries, 1,
+        "the build is published for future callers"
+    );
 }
 
 // ---------------------------------------------------------------------------

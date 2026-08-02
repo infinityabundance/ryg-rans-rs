@@ -1375,10 +1375,7 @@ impl ParallelDecoder {
     pub fn new(config: ParallelConfig) -> Self {
         Self {
             config,
-            model_cache: crate::cache::ModelArtifactCache::bounded(
-                64,
-                16 * 1024 * 1024,
-            ),
+            model_cache: crate::cache::ModelArtifactCache::bounded(64, 16 * 1024 * 1024),
         }
     }
 
@@ -1391,7 +1388,10 @@ impl ParallelDecoder {
         config: ParallelConfig,
         model_cache: crate::sync::Arc<crate::cache::ModelArtifactCache>,
     ) -> Self {
-        Self { config, model_cache }
+        Self {
+            config,
+            model_cache,
+        }
     }
 
     /// The configuration this decoder executes with.
@@ -1734,8 +1734,13 @@ impl ParallelDecoder {
             })
             .collect();
 
-        let report: ExecutorReport<Result<DecodedBlockResult, BlockError>> =
-            run_tasks(tasks, wc, qc, self.config.worker_stack_size, external_cancel)?;
+        let report: ExecutorReport<Result<DecodedBlockResult, BlockError>> = run_tasks(
+            tasks,
+            wc,
+            qc,
+            self.config.worker_stack_size,
+            external_cancel,
+        )?;
 
         let effective_workers = report.effective_workers;
 
@@ -2021,6 +2026,158 @@ mod tests {
     }
 
     #[test]
+    fn test_external_model_roundtrip_and_reuse() {
+        // Phase O.13 grouped-model mode: train a model on one data block,
+        // reuse it to encode another block over the same alphabet, and prove
+        // the decode-side cache builds the artifact exactly once.
+        let train = nonuniform_data();
+        let train_job = EncodeBlockJob::new(
+            0,
+            train.clone(),
+            CodecPolicy::Auto,
+            crate::config::ModelPolicy::PerBlock,
+            12,
+        );
+        let train_enc = encode_single_block(train_job).expect("train encode");
+        // The trained model bytes are the block's embedded 1024-byte model.
+        let model = train_enc.block[104..104 + 1024].to_vec();
+
+        // A second block over the same symbol support encoded with the
+        // external model.  nonuniform_data cycles all 256 symbols, so every
+        // symbol in the new block has a non-zero trained frequency.
+        let d2 = nonuniform_data();
+        let j2 = EncodeBlockJob::new(
+            1,
+            d2.clone(),
+            CodecPolicy::Auto,
+            crate::config::ModelPolicy::External {
+                model: model.clone(),
+            },
+            12,
+        );
+        let e2 = encode_single_block(j2).expect("external encode");
+        // The external model must be embedded verbatim in the block.
+        assert_eq!(&e2.block[104..104 + 1024], model.as_slice());
+
+        let cache = test_cache();
+        let dec = decode_single_block(
+            &DecodeBlockJob {
+                block_index: 1,
+                block_data: e2.block,
+            },
+            &ParallelConfig::default(),
+            &cache,
+            None,
+        )
+        .expect("decode");
+        assert_eq!(dec.output, d2);
+        assert_eq!(cache.metrics().builds_started, 1);
+
+        // A second external-model block with the SAME model must hit the
+        // cache: exactly one artifact build across both decodes.
+        let j3 = EncodeBlockJob::new(
+            2,
+            d2.clone(),
+            CodecPolicy::Auto,
+            crate::config::ModelPolicy::External { model },
+            12,
+        );
+        let e3 = encode_single_block(j3).expect("external encode 2");
+        let _ = decode_single_block(
+            &DecodeBlockJob {
+                block_index: 2,
+                block_data: e3.block,
+            },
+            &ParallelConfig::default(),
+            &cache,
+            None,
+        )
+        .expect("decode 2");
+        let m = cache.metrics();
+        assert_eq!(
+            m.builds_started, 1,
+            "a shared external model must build the artifact exactly once"
+        );
+        assert_eq!(m.hits, 1);
+    }
+
+    #[test]
+    fn test_external_model_validation_errors() {
+        // Wrong model length → typed Model error.
+        let j = EncodeBlockJob::new(
+            0,
+            vec![b'a'; 64],
+            CodecPolicy::Auto,
+            crate::config::ModelPolicy::External {
+                model: vec![0u8; 100],
+            },
+            12,
+        );
+        assert!(matches!(
+            encode_single_block(j),
+            Err(BlockError {
+                kind: BlockErrorKind::Model,
+                ..
+            })
+        ));
+
+        // Wrong frequency sum (all zeros) → typed Model error.
+        let j = EncodeBlockJob::new(
+            0,
+            vec![b'a'; 64],
+            CodecPolicy::Auto,
+            crate::config::ModelPolicy::External {
+                model: vec![0u8; 1024],
+            },
+            12,
+        );
+        assert!(matches!(
+            encode_single_block(j),
+            Err(BlockError {
+                kind: BlockErrorKind::Model,
+                ..
+            })
+        ));
+
+        // A zero-frequency symbol present in the data would divide by zero
+        // in the rANS kernel; the encoder must reject the job, never panic.
+        let mut model = vec![0u8; 1024];
+        model[0..4].copy_from_slice(&4096u32.to_le_bytes()); // only symbol 0
+        let j = EncodeBlockJob::new(
+            0,
+            vec![b'b'; 64], // symbol 'b' has frequency 0 in the model
+            CodecPolicy::Auto,
+            crate::config::ModelPolicy::External { model },
+            12,
+        );
+        assert!(matches!(
+            encode_single_block(j),
+            Err(BlockError {
+                kind: BlockErrorKind::Model,
+                ..
+            })
+        ));
+
+        // Unsupported scale (>= 32) on the encode path: the checked-shift
+        // guard returns a typed Model error instead of a panic (encode-side
+        // mirror of the decode-side `checked_scale_total`).
+        let j = EncodeBlockJob::new(
+            0,
+            vec![b'a'; 64],
+            CodecPolicy::Auto,
+            crate::config::ModelPolicy::PerBlock,
+            32,
+        );
+        assert!(matches!(
+            encode_single_block(j),
+            Err(BlockError {
+                kind: BlockErrorKind::Model,
+                ..
+            })
+        ));
+    }
+
+    #[test]
     fn test_roundtrip_multiple_blocks() {
         let mut data = Vec::with_capacity(8192);
         for _ in 0..2 {
@@ -2056,7 +2213,9 @@ mod tests {
                 block_data: b.block.clone(),
             })
             .collect();
-        let dec = ParallelDecoder::new(cfg.clone()).decode_blocks(dj).expect("decode");
+        let dec = ParallelDecoder::new(cfg.clone())
+            .decode_blocks(dj)
+            .expect("decode");
         let mut full = Vec::new();
         for b in &dec.blocks {
             full.extend_from_slice(&b.output);
@@ -2316,7 +2475,9 @@ mod tests {
                 .collect()
         };
 
-        let dec1 = ParallelDecoder::new(cfg1.clone()).decode_blocks(jobs1).expect("decode 1t");
+        let dec1 = ParallelDecoder::new(cfg1.clone())
+            .decode_blocks(jobs1)
+            .expect("decode 1t");
         let mut full1 = Vec::new();
         for b in &dec1.blocks {
             full1.extend_from_slice(&b.output);

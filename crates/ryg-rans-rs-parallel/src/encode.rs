@@ -172,9 +172,17 @@ pub fn encode_single_block(job: EncodeBlockJob) -> Result<EncodedBlockResult, Bl
         CodecPolicy::Auto => CODEC_WORD_INTERLEAVED16,
     };
 
-    // Build frequency model from the input data
+    // Build frequency model from the input data (natural mode) or use the
+    // caller-supplied model (grouped mode, Phase O.13).  Both paths produce
+    // the same validated `(freqs, cum_freqs)` shape the codec kernels need,
+    // so the encode pipeline downstream is policy-independent.
     let scale_bits = job.scale_bits;
-    let (freqs, cum_freqs) = build_frequency_model(data, scale_bits)?;
+    let (freqs, cum_freqs) = match &job.model_policy {
+        ModelPolicy::PerBlock => build_frequency_model(data, scale_bits)?,
+        ModelPolicy::External { model } => {
+            build_external_model(model, data, scale_bits, job.block_index)?
+        }
+    };
 
     // Encode using the selected codec
     let encoded = match codec_id {
@@ -283,6 +291,66 @@ pub fn encode_single_block(job: EncodeBlockJob) -> Result<EncodedBlockResult, Bl
     })
 }
 
+/// Build the frequency model from a caller-supplied raw model (Phase O.13
+/// grouped-model mode).
+///
+/// # Validation (all failures are typed `BlockErrorKind::Model` — never a
+/// panic, even for untrusted caller input)
+///
+/// 1. `model.len() == 1024` (256 × u32 LE).
+/// 2. `scale_bits < 32` (checked shift; the block header only admits 1..=15
+///    on decode, but encode accepts caller input and must not panic on a
+///    shift of `>= 32`).
+/// 3. `sum(freqs) == 1 << scale_bits` (normalised total).
+/// 4. Every symbol present in `data` has a non-zero frequency — a
+///    zero-frequency symbol would divide by zero inside the rANS kernels.
+///
+/// Returns `(freqs, cum_freqs)` where `cum_freqs` is the checked cumulative
+/// sum (256 → 257 entries) matching the per-block path's contract.
+fn build_external_model(
+    model: &[u8],
+    data: &[u8],
+    scale_bits: u8,
+    block_index: u64,
+) -> Result<(Vec<u32>, Vec<u32>), BlockError> {
+    let model_err = || BlockError {
+        block_index,
+        kind: BlockErrorKind::Model,
+    };
+    if model.len() != 1024 {
+        return Err(model_err());
+    }
+    let total = u32::checked_shl(1u32, scale_bits as u32).ok_or_else(model_err)? as u64;
+    let mut freqs = Vec::with_capacity(256);
+    for c in model.chunks_exact(4) {
+        freqs.push(u32::from_le_bytes([c[0], c[1], c[2], c[3]]));
+    }
+    let sum: u64 = freqs.iter().map(|&f| f as u64).sum();
+    if sum != total {
+        return Err(model_err());
+    }
+    // A symbol in the data with frequency 0 in the model would trigger a
+    // division by zero inside the rANS kernels (the same guarantee the
+    // per-block normaliser makes: every observed symbol gets >= 1).
+    for &b in data {
+        if freqs[b as usize] == 0 {
+            return Err(model_err());
+        }
+    }
+    let mut cum = Vec::with_capacity(257);
+    cum.push(0u32);
+    for f in &freqs {
+        let next = cum
+            .last()
+            .copied()
+            .unwrap_or(0)
+            .checked_add(*f)
+            .ok_or_else(model_err)?;
+        cum.push(next);
+    }
+    Ok((freqs, cum))
+}
+
 /// Build frequency model from raw data.
 ///
 /// Counts byte frequencies (0–255) in the input, then normalises them
@@ -311,7 +379,15 @@ pub fn encode_single_block(job: EncodeBlockJob) -> Result<EncodedBlockResult, Bl
 /// - `Err(BlockError { kind: ResourceLimit })` if a single byte appears
 ///   more than `u32::MAX` times (practically impossible, but checked).
 fn build_frequency_model(data: &[u8], scale_bits: u8) -> Result<(Vec<u32>, Vec<u32>), BlockError> {
-    let total = 1u32 << scale_bits;
+    // Checked shift: `scale_bits` is caller-supplied on the encode path and
+    // an unchecked `1u32 << s` would panic for `s >= 32` in debug builds
+    // (and silently wrap in release).  The typed Model error is the
+    // canonical response to an unsupported scale (mirrors the decode-side
+    // `checked_scale_total`).
+    let total = u32::checked_shl(1u32, scale_bits as u32).ok_or(BlockError {
+        block_index: 0,
+        kind: BlockErrorKind::Model,
+    })?;
     let mut freqs = vec![0u32; 256];
     for &b in data {
         freqs[b as usize] = freqs[b as usize].checked_add(1).ok_or(BlockError {

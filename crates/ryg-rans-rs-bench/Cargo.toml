@@ -9,7 +9,11 @@ publish = false
 
 [dependencies]
 ryg-rans-rs-simd = { workspace = true, features = ["std"] }
-ryg-rans-rs-parallel = { workspace = true }
+# `cache-timing` exposes the O.16 contention instrumentation (lock wait,
+# single-flight wait, build time) and the invariant/retained-entry surface
+# the courts and the mode-proofing bench rely on.  It is a bench-crate-only
+# enablement: production consumers never get the timing atomics.
+ryg-rans-rs-parallel = { workspace = true, features = ["cache-timing"] }
 ryg-rans-rs-core = { workspace = true, features = ["std", "alloc"] }
 ryg-rans-rs-casefile = { version = "0.4.1", path = "../ryg-rans-rs-casefile", features = ["std"] }
 criterion = { workspace = true }
