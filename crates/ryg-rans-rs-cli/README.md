@@ -446,6 +446,7 @@ archive.rygr`); binary output to a terminal is refused unless `--force-tty`.
 5. `src/lib.rs`, then `ops/` and `container/` module docs.
 6. `evidence/phase-l/gap-ledger.md` — residuals touching the CLI (L.15).
 
+7. `docs/container-format-v1.md`; `docs/education.md` — maintainer notes for the CLI; `docs/adr/0006` — the strict-integrity default.
 ---
 
 *Part of the ryg-rans-rs project. Version 0.3.0. Phase L.*

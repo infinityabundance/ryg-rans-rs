@@ -412,4 +412,9 @@ produces **no sealed measurements**.
 
 ---
 
-*Part of the ryg-rans-rs project. Version 0.3.0. Phase L.15 documentation pass.*
+
+---
+
+**Further reading:** `docs/oracle-method.md` (the court methodology), `docs/papers/0007-proof-philosophy.md` (what differential testing proves), `docs/papers/0006-evidence.md` (receipts), `docs/history/` (L19-B: the promote-merge fix).
+
+*Part of the ryg-rans-rs project. Version 0.3.0. Phase M custodian documentation pass.*

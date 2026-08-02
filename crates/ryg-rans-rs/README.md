@@ -293,6 +293,7 @@ SSSE3 + SSE4.1 support, exactly as its documentation states.
 5. `docs/bitstream-contract.md` and `docs/container-format-v1.md`.
 6. `evidence/phase-l/gap-ledger.md`.
 
+7. `docs/papers/0001-rans-design.md` — the algorithm-level reference; `docs/glossary.md` — the exact terminology.
 ---
 
 *Part of the ryg-rans-rs project. Version 0.3.0. Phase L.*

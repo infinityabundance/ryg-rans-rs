@@ -398,4 +398,9 @@ are never deleted; they are resolved or accepted.
 
 ---
 
-*Part of the ryg-rans-rs project. Package version 0.1.0. Phase L.20 documentation pass.*
+
+---
+
+**Further reading:** `docs/papers/0005-performance-methodology.md` and `docs/papers/0006-evidence.md` (the pipeline this crate implements), `docs/adr/0010` (benchmark-time capture).
+
+*Part of the ryg-rans-rs project. Package version 0.1.0. Phase M custodian documentation pass.*

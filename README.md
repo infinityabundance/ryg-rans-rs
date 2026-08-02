@@ -45,17 +45,25 @@
 ## Reading Order
 
 1. This README.
-2. [`docs/architecture.md`](docs/architecture.md)
-3. [`docs/bitstream-contract.md`](docs/bitstream-contract.md) — the pinned upstream stream formats.
-4. [`docs/container-format-v1.md`](docs/container-format-v1.md) — the RYGRANS v1 container.
-5. [`docs/glossary.md`](docs/glossary.md) — the exact project terminology; every document uses it.
-6. [`docs/unsafe-ledger.md`](docs/unsafe-ledger.md)
-7. [`docs/performance-method.md`](docs/performance-method.md)
-8. [`docs/residual-doctrine.md`](docs/residual-doctrine.md)
-9. [`docs/negative-capabilities.md`](docs/negative-capabilities.md)
-10. [`docs/oracle-method.md`](docs/oracle-method.md)
-11. [`AGENTS.md`](AGENTS.md) — ground truth for AI agents and contributors.
-12. The crate README for whichever crate you are changing.
+2. [`docs/philosophy.md`](docs/philosophy.md) — the documentation constitution.
+3. [`docs/architecture.md`](docs/architecture.md)
+4. [`docs/layers.md`](docs/layers.md) — the layered documentation architecture.
+5. [`docs/bitstream-contract.md`](docs/bitstream-contract.md) — the pinned upstream stream formats.
+6. [`docs/container-format-v1.md`](docs/container-format-v1.md) — the RYGRANS v1 container.
+7. [`docs/glossary.md`](docs/glossary.md) — the exact project terminology; every document uses it.
+8. [`docs/unsafe-ledger.md`](docs/unsafe-ledger.md)
+9. [`docs/performance-method.md`](docs/performance-method.md)
+10. [`docs/residual-doctrine.md`](docs/residual-doctrine.md)
+11. [`docs/negative-capabilities.md`](docs/negative-capabilities.md)
+12. [`docs/oracle-method.md`](docs/oracle-method.md)
+13. [`docs/papers/`](docs/papers/) — the eight long-form design papers (rANS, word coder, SIMD, parallel engine, performance methodology, evidence, proof philosophy, LLM-assisted engineering).
+14. [`docs/adr/`](docs/adr/) — the architecture decision records.
+15. [`docs/history/`](docs/history/) — the chronological engineering record.
+16. [`docs/diagrams/`](docs/diagrams/) — the architecture diagrams.
+17. [`docs/education.md`](docs/education.md) — reading orders and future-maintainer notes.
+18. [`docs/llm/`](docs/llm/) — the LLM-assisted engineering operational record.
+19. [`AGENTS.md`](AGENTS.md) — ground truth for AI agents and contributors.
+20. The crate README for whichever crate you are changing.
 
 ---
 

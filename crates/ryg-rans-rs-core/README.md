@@ -582,6 +582,7 @@ assert_eq!(decoded, symbols);
 8. The [`ryg-rans-rs-simd`](../ryg-rans-rs-simd/README.md) README — how these surfaces
    are accelerated and how the packed table is built.
 
+9. `docs/papers/0001-rans-design.md` and `docs/papers/0007-proof-philosophy.md` — the design and proof methodology; `docs/adr/0001` and `0002` — the format-contract and reciprocal decisions.
 ---
 
 *Part of the ryg-rans-rs project. Version 0.3.0.*

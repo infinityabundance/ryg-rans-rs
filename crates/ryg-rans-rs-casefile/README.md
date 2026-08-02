@@ -443,4 +443,9 @@ With the `std` feature, performance artifacts can be serialized:
 
 ---
 
-*Part of the ryg-rans-rs project. Version 0.3.0. Phase L.15 documentation pass.*
+
+---
+
+**Further reading:** `docs/papers/0006-evidence.md` (the evidence system these types model), `docs/glossary.md` (receipt, manifest, residual, seal).
+
+*Part of the ryg-rans-rs project. Version 0.3.0. Phase M custodian documentation pass.*

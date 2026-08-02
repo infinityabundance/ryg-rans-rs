@@ -528,4 +528,9 @@ pub mod exporter;  // Criterion structured summary export (JSON + CSV)
 
 ---
 
-*Part of the ryg-rans-rs project. Version 0.3.0. Phase L.15 documentation pass.*
+
+---
+
+**Further reading:** `docs/papers/0005-performance-methodology.md` (how this suite measures and why), `docs/papers/0006-evidence.md` (the receipt chain), `docs/performance-method.md`, `evidence/performance/` (the sealed runs).
+
+*Part of the ryg-rans-rs project. Version 0.3.0. Phase M custodian documentation pass.*

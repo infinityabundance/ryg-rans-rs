@@ -594,6 +594,7 @@ All function names above are verified against the current crate source
    these kernels accelerate.
 9. `crates/ryg-rans-rs-simd/unsafe-ledger.toml` — the machine-verified unsafe inventory.
 
+10. `docs/papers/0002-word-rans.md` and `docs/papers/0003-simd.md` — the table layout and kernel design; `docs/adr/0003` and `0011` — the scale-pin and unsafe-quarantine decisions.
 ---
 
 *Part of the ryg-rans-rs project. Version 0.3.0.*

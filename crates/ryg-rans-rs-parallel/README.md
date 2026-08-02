@@ -822,6 +822,7 @@ println!("effective workers: {}", report.effective_workers);
 7. `docs/unsafe-ledger.md` and `crates/ryg-rans-rs-simd/unsafe-ledger.toml`.
 8. `docs/performance-method.md` and `docs/residual-doctrine.md`.
 
+7. `docs/papers/0004-parallel-engine.md`; `docs/adr/0004`, `0005`, `0007`, `0009`, `0013`, `0014`, `0015` — the engine's decision records; `docs/education.md` — parallel reading order and maintainer notes.
 ---
 
 *Part of the ryg-rans-rs project. Version 0.3.0. Phase L.*
