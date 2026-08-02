@@ -450,7 +450,7 @@ fn cmd_courts_run(args: &[String]) -> Result<(), String> {
     println!("  source tree clean");
 
     // ---- 2. Run the courts ------------------------------------------------
-    println!("courts-run: step 2 — running the fourteen Phase L courts...");
+    println!("courts-run: step 2 — running the Phase L and Phase O courts...");
     let evidence_commit = get_git_head_hash();
     let sealed =
         ryg_rans_rs_bench::courts::run_all_courts(&implementation_commit, &evidence_commit);
@@ -663,8 +663,9 @@ fn regenerate_readme_evidence_table() -> Result<(), String> {
          | AVX512.INTERLEAVED16 | **Sealed** | **Sealed** | {} | 1 |\n\
          | Phase H optimization backends | **Test-verified** | **Sealed** | 0 | 1 |\n\
          | Phase J AVX2 backends | **Test-verified** | **Sealed** | 0 | 1 |\n\
-         | Phase I parallel block engine | **Test-verified** | **Sealed** | 0 | 1 |\n\
-         | Phase L behavioural courts | **Sealed** | — | {} | 0 |\n\
+         | Phase I parallel block engine | **Test-verified** | **Sealed** | 0 | 1 |\
+         | Phase L behavioural courts | **Sealed** | — | {} | 0 |\
+         | Phase O cache courts | **Sealed** | **Sealed** | {} | 5 |\
          | **Total** | | | **{}** | **{}** |",
         byte_n,
         r64_n,
@@ -679,6 +680,15 @@ fn regenerate_readme_evidence_table() -> Result<(), String> {
                 e.get("court_id")
                     .and_then(|s| s.as_str())
                     .map(|id| id.starts_with("RYG_RANS.L."))
+                    .unwrap_or(false)
+            })
+            .count(),
+        receipts
+            .iter()
+            .filter(|e| {
+                e.get("court_id")
+                    .and_then(|s| s.as_str())
+                    .map(|id| id.starts_with("RYG_RANS.O."))
                     .unwrap_or(false)
             })
             .count(),
@@ -978,7 +988,7 @@ fn cmd_seal() -> Result<(), String> {
                 .collect()
         })
         .unwrap_or_default();
-    let expected_l_ids: [&str; 14] = [
+    let expected_l_ids: [&str; 23] = [
         "RYG_RANS.L.VERIFY.DECODED_HASH",
         "RYG_RANS.L.INTEGRITY.STRICT",
         "RYG_RANS.L.CANCEL.COMPLETENESS",
@@ -993,6 +1003,16 @@ fn cmd_seal() -> Result<(), String> {
         "RYG_RANS.L.PERFORMANCE.ARCHIVE",
         "RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN",
         "RYG_RANS.L.PUBLIC_API.REACHABILITY",
+        // Phase O cache courts (O.20).
+        "RYG_RANS.O.CACHE.EXACT_BYTES",
+        "RYG_RANS.O.CACHE.ZERO_CAPACITY",
+        "RYG_RANS.O.CACHE.OVERSIZED",
+        "RYG_RANS.O.CACHE.UNIQUE_KEYS",
+        "RYG_RANS.O.CACHE.SINGLE_FLIGHT",
+        "RYG_RANS.O.CACHE.FAILURE_EQUIVALENCE",
+        "RYG_RANS.O.CACHE.CANCELLATION",
+        "RYG_RANS.O.CACHE.METRICS",
+        "RYG_RANS.O.WORKLOAD.PUBLIC_RANS_V1",
     ];
     let expected_set: std::collections::BTreeSet<String> =
         expected_l_ids.iter().map(|s| s.to_string()).collect();
@@ -1729,9 +1749,9 @@ fn check_documentation_inventory() -> Result<(), String> {
     Ok(())
 }
 
-/// Residual accounting (L.20 gate 28): the Phase L gap ledger must not claim
-/// an OPEN residual for a gate this seal implements.  The L.19/L.20 rows are
-/// expected to be resolved once this gate passes.
+/// Residual accounting (L.20 gate 28 / O.20): the Phase L gap ledger must not
+/// claim an OPEN residual for a gate this seal implements.  The L.19/L.20 and
+/// Phase O sections are expected to be resolved once this gate passes.
 fn check_residual_accounting() -> Result<(), String> {
     let ledger = std::fs::read_to_string("evidence/phase-l/gap-ledger.md")
         .map_err(|e| format!("read gap-ledger.md: {}", e))?;
@@ -1758,7 +1778,32 @@ fn check_residual_accounting() -> Result<(), String> {
             open_in_late
         ));
     }
-    println!("  no open L.19/L.20 residuals");
+    // Phase O residuals must also be resolved before the cache seal can
+    // pass (O.20: "No active performance evidence residual remains
+    // unresolved").
+    let mut open_in_phase_o = Vec::new();
+    let mut in_phase_o = false;
+    for line in ledger.lines() {
+        if line.starts_with("## Phase O") {
+            in_phase_o = true;
+            continue;
+        }
+        if line.starts_with("## ") && in_phase_o {
+            break;
+        }
+        if in_phase_o && line.contains("| OPEN |") {
+            if let Some(id) = line.trim().split('|').nth(1) {
+                open_in_phase_o.push(id.trim().to_string());
+            }
+        }
+    }
+    if !open_in_phase_o.is_empty() {
+        return Err(format!(
+            "open residuals in the Phase O section block the seal: {:?}",
+            open_in_phase_o
+        ));
+    }
+    println!("  no open L.19/L.20/Phase-O residuals");
     Ok(())
 }
 
@@ -2064,9 +2109,9 @@ fn check_performance_evidence() -> Result<(), String> {
         .and_then(|r| r.as_array())
         .cloned()
         .unwrap_or_default();
-    if entries.len() != 10 {
+    if entries.len() != 15 {
         return Err(format!(
-            "performance top-level index has {} entries; expected 10",
+            "performance top-level index has {} entries; expected 15",
             entries.len()
         ));
     }
@@ -2317,7 +2362,7 @@ fn check_performance_evidence() -> Result<(), String> {
             }
         }
     }
-    println!("  performance evidence: 10 receipts, run index, manifests, artifacts all verified");
+    println!("  performance evidence: 15 receipts, run index, manifests, artifacts all verified");
     Ok(())
 }
 
@@ -2377,6 +2422,12 @@ const EXPECTED_PERF_IDS: &[&str] = &[
     "RYG_RANS.PERF.PHASE_H",
     "RYG_RANS.PERF.PHASE_J.AVX2",
     "RYG_RANS.PERF.PHASE_I.PARALLEL",
+    // Phase O cache evidence (O.20).
+    "RYG_RANS.PERF.CACHE.CONSTRUCTION",
+    "RYG_RANS.PERF.CACHE.CONCURRENCY",
+    "RYG_RANS.PERF.CACHE.COLD_WARM",
+    "RYG_RANS.PERF.CACHE.THRASH",
+    "RYG_RANS.PERF.CACHE.MIXED_PUBLIC",
 ];
 
 const SURFACE_NAMES: &[&str] = &[
@@ -2390,9 +2441,14 @@ const SURFACE_NAMES: &[&str] = &[
     "Phase H optimization backends",
     "Phase J AVX2 backends",
     "Phase I parallel block engine",
+    "Model cache — construction microbenchmarks",
+    "Model cache — concurrency microbenchmarks (single-flight, bypass, eviction)",
+    "Model cache — disabled/cold/warm end-to-end decode",
+    "Model cache — hot-set/thrash/unique end-to-end decode",
+    "Model cache — mixed public-corpus decode (natural + grouped)",
 ];
 
-/// Map a Criterion benchmark ID to a surface index (0..9).
+/// Map a Criterion benchmark ID to a surface index (0..14).
 ///
 /// Criterion 0.5 flattens `/` in benchmark group names to `_` when creating
 /// directory names, so we check for `_` as the separator between the bench
@@ -2438,6 +2494,25 @@ fn classify_benchmark_id(id: &str) -> Option<usize> {
     if id.starts_with("parallel/") || id.starts_with("parallel_") || id.starts_with("block-engine/")
     {
         return Some(9); // PHASE_I.PARALLEL
+    }
+    // Phase O model-cache surfaces (10..14).  The buckets are disjoint and
+    // complete over the `model_cache` bench's group hierarchy.
+    if id.starts_with("model_cache/construction") || id.starts_with("model_cache_construction") {
+        return Some(10); // CACHE.CONSTRUCTION
+    }
+    if id.starts_with("model_cache/ops") || id.starts_with("model_cache_ops") {
+        return Some(11); // CACHE.CONCURRENCY
+    }
+    if id.starts_with("model_cache/e2e") || id.starts_with("model_cache_e2e") {
+        for m in ["disabled", "cold", "warm"] {
+            if id.contains(&format!("/{}/", m)) || id.contains(&format!("_{}_", m)) {
+                return Some(12); // CACHE.COLD_WARM
+            }
+        }
+        return Some(13); // CACHE.THRASH (hot-set/thrash/unique)
+    }
+    if id.starts_with("model_cache/public") || id.starts_with("model_cache_public") {
+        return Some(14); // CACHE.MIXED_PUBLIC
     }
     None
 }
@@ -2622,6 +2697,28 @@ fn cmd_benchmark_run(args: &[String]) -> Result<(), String> {
         cmd.arg(a);
     }
     cmd.env("RYG_RANS_PREFLIGHT_DIR", &preflight_dir);
+    // The model_cache bench's public-corpus group measures real corpus
+    // slices only when a fetched, hash-verified workload cache is present.
+    // Wire the env when it exists; otherwise the group is skipped and the
+    // seal's MIXED_PUBLIC surface will fail with zero records (evidence
+    // runs must fetch first).
+    let workload_cache = std::path::PathBuf::from(std::env::var("HOME").unwrap_or_default())
+        .join(".cache/ryg-rans-rs/workloads/public-rans-v1");
+    let manifest_path = workload_cache.join("derived/public-rans-v1.manifest.json");
+    let source_cache = workload_cache.join("extracted");
+    if manifest_path.exists() && source_cache.is_dir() {
+        cmd.env("RYG_RANS_WORKLOAD_MANIFEST", &manifest_path);
+        cmd.env("RYG_RANS_SOURCE_CACHE", &source_cache);
+        println!(
+            "benchmark-run: public-corpus group enabled (workload cache at {})",
+            workload_cache.display()
+        );
+    } else {
+        println!(
+            "benchmark-run: workload cache not found at {} — model_cache public group skipped",
+            workload_cache.display()
+        );
+    }
     let mut commands_log = String::new();
     commands_log.push_str(&format!(
         "workdir: {}\n",
@@ -3072,13 +3169,13 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
     println!("  loaded {} benchmark records", records.len());
 
     // =========================================================================
-    // 4. Validate every expected benchmark surface (10 surfaces)
+    // 4. Validate every expected benchmark surface (15 surfaces)
     // =========================================================================
     println!("performance-seal: step 4 — grouping records into surfaces...");
 
-    // Group records by surface index. Surface index 0..9, plus a "misc" bucket.
+    // Group records by surface index. Surface index 0..14, plus a "misc" bucket.
     let mut surface_records: Vec<Vec<&ryg_rans_rs_bench::exporter::BenchRecord>> =
-        (0..10).map(|_| Vec::new()).collect();
+        (0..15).map(|_| Vec::new()).collect();
     let mut unclassified: Vec<&str> = Vec::new();
 
     for record in &records {
@@ -3202,7 +3299,7 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
     };
 
     // =========================================================================
-    // 9. Generate 10 performance manifests (one per surface)
+    // 9. Generate 15 performance manifests (one per surface)
     // =========================================================================
     println!("performance-seal: step 9 — generating performance manifests...");
     let mut manifest_sha256s: Vec<String> = Vec::new();
@@ -3286,7 +3383,7 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
     }
 
     // =========================================================================
-    // 10. Generate 10 performance receipts (one per surface)
+    // 10. Generate 15 performance receipts (one per surface)
     // =========================================================================
     println!("performance-seal: step 10 — generating performance receipts...");
     let mut receipt_sha256s: Vec<String> = Vec::new();

@@ -186,6 +186,7 @@ pub mod model_cache_integration;
 pub mod performance_archive;
 pub mod performance_export;
 pub mod performance_receipt_chain;
+pub mod phase_o_cache;
 pub mod public_api_reachability;
 pub mod reorder_atomic_commit;
 pub mod scratch_integration;
@@ -217,6 +218,16 @@ pub fn run_all_courts(
         performance_archive::court,
         performance_receipt_chain::court,
         public_api_reachability::court,
+        // Phase O cache courts (O.20).
+        phase_o_cache::court_exact_bytes,
+        phase_o_cache::court_zero_capacity,
+        phase_o_cache::court_oversized,
+        phase_o_cache::court_unique_keys,
+        phase_o_cache::court_single_flight,
+        phase_o_cache::court_failure_equivalence,
+        phase_o_cache::court_cancellation,
+        phase_o_cache::court_metrics,
+        phase_o_cache::court_workload_public_rans_v1,
     ];
     for court_fn in courts {
         let run = court_fn();
@@ -232,4 +243,39 @@ pub fn run_all_courts(
         ));
     }
     out
+}
+
+/// Execute every court and assert every executable case passes.
+///
+/// This makes the behavioural courts part of `cargo test --workspace`: a
+/// court whose guarantee regresses fails the test suite before evidence
+/// generation can even be attempted (the xtask courts-run command remains
+/// the evidence-producing path; this test is the fast feedback loop).
+#[cfg(test)]
+mod court_tests {
+    use super::*;
+
+    #[test]
+    fn every_court_passes() {
+        let sealed = run_all_courts("test", "test");
+        assert!(!sealed.is_empty(), "no courts registered");
+        let mut failures = Vec::new();
+        for (manifest, receipt) in &sealed {
+            if receipt.verdict != ryg_rans_rs_casefile::PhaseLCourtVerdict::Passed {
+                failures.push(format!(
+                    "{}: {:?} ({} passed / {} failed / {} skipped)",
+                    manifest.court_id,
+                    receipt.verdict,
+                    receipt.cases_passed,
+                    receipt.cases_failed,
+                    receipt.cases_skipped
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "court failures:\n{}",
+            failures.join("\n")
+        );
+    }
 }

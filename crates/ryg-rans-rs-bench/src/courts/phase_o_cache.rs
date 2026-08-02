@@ -64,17 +64,14 @@ fn key(seed: u8) -> ModelCacheKey {
 }
 
 /// Recompute the retained byte sum independently (the O.1 ground truth).
+///
+/// Sums the exact per-entry accounted sizes exposed by
+/// [`ModelCache::retained_entries`] — NOT the cache's own counter — so a
+/// drift in `current_bytes` is caught by the comparison at the call site.
 fn recomputed_bytes<T>(c: &ModelCache<T>) -> u64 {
-    let mut sum = 0u64;
-    // Probe every key 0..=255; a hit contributes its accounted size.  The
-    // exact sizes are recovered by re-inserting known values in the tests
-    // that use this helper; here we only verify the counter equals the sum
-    // of per-entry sizes as tracked by the cache's own Debug-free API:
-    // current_bytes() is the authoritative counter and the invariant check
-    // compares it against a full recomputation inside the cache.
-    let _ = c;
-    let _ = &mut sum;
-    c.current_bytes()
+    c.retained_entries()
+        .iter()
+        .fold(0u64, |acc, (_, bytes)| acc + bytes)
 }
 
 pub fn court_exact_bytes() -> CourtRun {
@@ -671,7 +668,13 @@ pub fn court_metrics() -> CourtRun {
 pub fn court_workload_public_rans_v1() -> CourtRun {
     use std::path::Path;
     let mut cases = Cases { cases: Vec::new() };
-    let spec = Path::new("workloads/public-rans-v1");
+    // Resolve the spec directory under both the workspace root (xtask
+    // invocation cwd) and the crate directory (cargo test invocation cwd).
+    let spec = if Path::new("workloads/public-rans-v1").is_dir() {
+        Path::new("workloads/public-rans-v1").to_path_buf()
+    } else {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../workloads/public-rans-v1")
+    };
 
     let sources_toml = std::fs::read_to_string(spec.join("sources.toml"));
     let hashes_json = std::fs::read_to_string(spec.join("expected-source-hashes.json"));
