@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.PUBLIC_API.REACHABILITY",
   "title": "Public API reachability and inventory (L.13)",
   "verdict": "passed",
-  "implementation_commit": "50eaaeee664cf714cf1cc4fb1697de31f0749017",
-  "evidence_commit": "50eaaeee664cf714cf1cc4fb1697de31f0749017",
+  "implementation_commit": "ee8fb0e19e20048b3145a179eb3567adfe4be734",
+  "evidence_commit": "ee8fb0e19e20048b3145a179eb3567adfe4be734",
   "num_cases": 6,
   "cases_passed": 6,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "L13-A"
   ],
-  "manifest_sha256": "113cc2bc4006d3fb86c72869d36564b086144cb9b68c20643fafc1e3c9f7fae7",
-  "receipt_sha256": "33c693cc06395966b13dea99714bb91725af8c1511221fe1874867309c5cb603",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 50eaaeee664cf714cf1cc4fb1697de31f0749017 --only RYG_RANS.L.PUBLIC_API.REACHABILITY"
+  "manifest_sha256": "baf5a5d6113abe4b523ee8fa9acdf535ea0bf044b501f10da0cd429dc7ce70b6",
+  "receipt_sha256": "26e9b135e8ead55633ee0b1471500d3a84bae2e089931acdbf3daa5e752cdab0",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit ee8fb0e19e20048b3145a179eb3567adfe4be734 --only RYG_RANS.L.PUBLIC_API.REACHABILITY"
 }

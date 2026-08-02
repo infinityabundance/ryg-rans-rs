@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "byte-rans/byte-interleaved2/encode/FREQ1_RESIDUAL/64KiB/iter",
+  "backend_requested": "byte-interleaved2",
+  "backend_executed": "byte-interleaved2",
+  "verification_passed": true,
+  "input_sha256": "a744ed8b110bfa7dcb6c188a22fb420c4f62f40725739436da4f4918638c8ccb",
+  "output_sha256": "a744ed8b110bfa7dcb6c188a22fb420c4f62f40725739436da4f4918638c8ccb",
+  "reference_output_sha256": "a744ed8b110bfa7dcb6c188a22fb420c4f62f40725739436da4f4918638c8ccb",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

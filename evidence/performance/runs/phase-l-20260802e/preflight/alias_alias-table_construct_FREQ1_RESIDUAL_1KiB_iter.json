@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "alias/alias-table/construct/FREQ1_RESIDUAL/1KiB/iter",
+  "backend_requested": "alias-table-construct",
+  "backend_executed": "alias-table-construct",
+  "verification_passed": true,
+  "input_sha256": "96078bad7603ec0241240e6c3df8135396900006cb19990a8fcb65f6c5b5da26",
+  "output_sha256": "96078bad7603ec0241240e6c3df8135396900006cb19990a8fcb65f6c5b5da26",
+  "reference_output_sha256": "96078bad7603ec0241240e6c3df8135396900006cb19990a8fcb65f6c5b5da26",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}
