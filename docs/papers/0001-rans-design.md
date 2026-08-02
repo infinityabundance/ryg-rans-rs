@@ -267,7 +267,8 @@ and lengths, and requires byte-identical encoded output and byte-identical
 decoded output (plus matching words-consumed/final-state reports where the
 Rust side exposes them).  The receipts in `evidence/receipts/` (court IDs
 `RYG_RANS.BYTE.*`, `RYG_RANS.R64.*`, `RYG_RANS.WORD.*`,
-`RYG_RANS.ALIAS.*`, `RYG_RANS.SSE41.*`, `RYG_RANS.AVX512*.*`) are the
+`RYG_RANS.ALIAS.*`, `RYG_RANS.SIMD.INTERLEAVED8.*` (the SSE4.1 8-way
+surface), `RYG_RANS.AVX512VL.*`, `RYG_RANS.AVX512.*`) are the
 sealed record.  The methodology is `docs/oracle-method.md`; the residual
 doctrine (`docs/residual-doctrine.md`) governs how a parity failure is
 recorded — never silently "fixed" in the docs.
@@ -286,7 +287,8 @@ For rANS specifically the chain is: the arithmetic in `ryg-rans-rs-core`
 → the byte-exact oracle receipts → the Kani proofs → the fuzz targets →
 the comparative court → the sealed performance run.  A claim (e.g. "byte
 rANS is bit-exact with upstream") is not true because this paper says so;
-it is true because the receipt `RYG_RANS.BYTE.RECIPROCAL.S12` exists, its
+it is true because the receipt `RYG_RANS.BYTE.RECIPROCAL.SINGLE_STATE.UNIFORM256.S12`
+exists, its
 hash verifies, and the seal gate passes.
 
 ## 12. Future work

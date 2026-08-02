@@ -39,8 +39,9 @@ semantic test, and no format-ownership burden.  Given up: the freedom to
 
 ## Evidence
 The oracle receipts `RYG_RANS.BYTE.*`, `RYG_RANS.R64.*`,
-`RYG_RANS.WORD.*`, `RYG_RANS.ALIAS.*`, `RYG_RANS.SSE41.*`,
-`RYG_RANS.AVX512*.*` in `evidence/receipts/`; `docs/oracle-method.md`.
+`RYG_RANS.WORD.*`, `RYG_RANS.ALIAS.*`, `RYG_RANS.SIMD.INTERLEAVED8.*`,
+`RYG_RANS.AVX512VL.*`, `RYG_RANS.AVX512.*` in `evidence/receipts/`;
+`docs/oracle-method.md`.
 
 ## Future implications
 A new codec surface (e.g. 128-bit rANS) would be a new format with its own

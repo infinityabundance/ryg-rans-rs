@@ -69,7 +69,8 @@
 //!
 //! ## Verification / Receipts / Tests
 //!
-//! Oracle receipts `RYG_RANS.SSE41.*`, `RYG_RANS.AVX512VL.*`,
+//! Oracle receipts `RYG_RANS.SIMD.INTERLEAVED8.*` (the SSE4.1 8-way surface),
+//! `RYG_RANS.AVX512VL.*`,
 //! `RYG_RANS.AVX512.*`; the unsafe-ledger equality test; the disassembly
 //! courts; the fuzz targets (`avx512vl8_roundtrip`, `avx512_16way_roundtrip`);
 //! the Phase L courts `RYG_RANS.L.SSE41.UNSAFE_QUARANTINE`.
