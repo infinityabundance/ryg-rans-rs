@@ -60,6 +60,7 @@
 
 use std::collections::VecDeque;
 use std::fmt;
+use std::sync::Arc;
 
 /// Key for uniquely identifying a frequency model in the cache.
 ///
@@ -81,8 +82,9 @@ use std::fmt;
 ///
 /// # Derivation
 ///
-/// The key is computed by `decode_plan::plan_cache_key()`.  It hashes the
-/// raw model data bytes as stored in the block header.
+/// The key is computed by [`ModelCacheKey::from_model`] (the single source
+/// of truth); [`crate::decode_plan::plan_cache_key`] delegates to it so
+/// every construction path hashes the same bytes in the same order.
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ModelCacheKey {
     /// SHA-256 hash of the serialised model data.
@@ -94,6 +96,22 @@ pub struct ModelCacheKey {
     pub scale_bits: u8,
     /// Codec identifier (7 = 8-way, 8 = 16-way, etc.).
     pub codec_id: u16,
+}
+
+impl ModelCacheKey {
+    /// Derive the cache key from the raw model bytes, scale bits, and codec.
+    ///
+    /// Hashes the exact model bytes stored in the block header — not a
+    /// parsed representation — so the key is byte-exact: any difference in
+    /// the serialised model produces a different key, and identical model
+    /// bytes (e.g. every Uniform256 block) produce the same key.
+    pub fn from_model(codec_id: u16, scale_bits: u8, model_data: &[u8]) -> Self {
+        Self {
+            model_sha256: crate::encode::sha256(model_data),
+            scale_bits,
+            codec_id,
+        }
+    }
 }
 
 /// A bounded, FIFO-evicted cache of validated model artefacts.
@@ -243,18 +261,36 @@ impl<T> ModelCache<T> {
 /// Model-derived artifacts that are safe to cache by model identity.
 ///
 /// The cached value deliberately separates **model-derived immutable
-/// artifacts** from **runtime backend selection**: the frequencies and
-/// uniform256 flag depend only on the model bytes + scale + codec, which
-/// is exactly the cache key.  Backend choice (which depends on runtime
-/// CPU capabilities, build features, and `disable_simd`) is made after
-/// the cache lookup, per block, so a cached artifact is never reused
-/// under incompatible execution conditions.
+/// artifacts** from **runtime backend selection**: the frequencies, the
+/// uniform256 flag, and the packed word table depend only on the model
+/// bytes + scale + codec, which is exactly the cache key.  Backend choice
+/// (which depends on runtime CPU capabilities, build features, and
+/// `disable_simd`) is made after the cache lookup, per block, so a cached
+/// artifact is never reused under incompatible execution conditions.
+///
+/// The `freqs` and (SIMD builds) `packed_table` fields are `Arc`-shared:
+/// a cache hit hands out a clone of the `Arc` (a refcount bump), so the
+/// expensive O(4096 × symbols) packed-table construction happens exactly
+/// once per unique model instead of once per block.  This is the source of
+/// the cache's throughput gain; without it the cache would only save a
+/// trivial 1 KiB frequency parse.
 #[derive(Debug, Clone)]
 pub struct ValidatedModelArtifacts {
-    /// Parsed 256 × u32 frequencies (validated sum == 1 << scale_bits).
-    pub freqs: Vec<u32>,
+    /// Parsed 256 × u32 frequencies (validated sum == 1 << scale_bits),
+    /// shared across blocks with the same model via `Arc`.
+    pub freqs: Arc<Vec<u32>>,
     /// Whether the model is the Uniform256 distribution.
     pub uniform256: bool,
+    /// 16 KiB packed word table (slot → (freq, bias, sym)), built once per
+    /// unique model and shared via `Arc`.
+    ///
+    /// `None` when the model is not a valid word-codec model (e.g.
+    /// `scale_bits != 12`, or a symbol with zero frequency): the decode
+    /// executor then fails with the same `Model` error it would have
+    /// produced building the table itself, so caching never changes error
+    /// identity.
+    #[cfg(feature = "simd")]
+    pub packed_table: Option<Arc<ryg_rans_rs_simd::packed_table::PackedWordTable>>,
 }
 
 /// Process-global shared model cache used by `decode_single_block`.
@@ -278,11 +314,7 @@ pub fn cached_model_artifacts(
     model_data: &[u8],
     build: impl FnOnce() -> Option<ValidatedModelArtifacts>,
 ) -> Option<ValidatedModelArtifacts> {
-    let key = ModelCacheKey {
-        model_sha256: crate::encode::sha256(model_data),
-        scale_bits,
-        codec_id,
-    };
+    let key = ModelCacheKey::from_model(codec_id, scale_bits, model_data);
     let cache = GLOBAL_MODEL_CACHE
         .get_or_init(|| std::sync::Mutex::new(ModelCache::new(64, 16 * 1024 * 1024)));
     {
@@ -294,7 +326,14 @@ pub fn cached_model_artifacts(
     // Build outside the lock so concurrent duplicate construction is
     // possible but cheap; the last insert wins deterministically.
     let artifacts = build()?;
-    let entry_bytes = (artifacts.freqs.len() * 4) as u64 + 64;
+    let mut entry_bytes = (artifacts.freqs.len() * 4) as u64 + 64;
+    #[cfg(feature = "simd")]
+    {
+        if let Some(t) = &artifacts.packed_table {
+            // 4096 packed u32 entries = 16 KiB per table.
+            entry_bytes += (t.as_slice().len() * std::mem::size_of::<u32>()) as u64;
+        }
+    }
     if let Ok(mut guard) = cache.lock() {
         guard.insert(key, artifacts.clone(), entry_bytes);
     }
@@ -377,9 +416,31 @@ mod tests {
     fn test_cached_model_artifacts_hit() {
         let uniform_bytes = [0u8; 256];
         let first = cached_model_artifacts(8, 12, &uniform_bytes, || {
+            // Uniform256 artifacts: freqs all 16 at scale 12; SIMD builds
+            // also carry a real packed table so the hit path is exercised
+            // with the shared table present (the production build closure
+            // does the same).
+            let freqs = vec![16u32; 256];
+            #[cfg(feature = "simd")]
+            let packed_table = {
+                let cum = {
+                    let mut c = Vec::with_capacity(257);
+                    c.push(0u32);
+                    for i in 0..256 {
+                        c.push(c[i] + freqs[i]);
+                    }
+                    c
+                };
+                let table =
+                    ryg_rans_rs_simd::packed_table::PackedWordTable::from_freqs(&freqs, &cum, 12)
+                        .expect("uniform model table");
+                Some(Arc::new(table))
+            };
             Some(ValidatedModelArtifacts {
-                freqs: vec![16; 256],
+                freqs: Arc::new(freqs),
                 uniform256: true,
+                #[cfg(feature = "simd")]
+                packed_table,
             })
         });
         // Second call must be served from the global cache: the build
@@ -389,7 +450,18 @@ mod tests {
         });
         assert!(first.is_some());
         assert!(second.is_some());
-        assert_eq!(first.unwrap().freqs, second.unwrap().freqs);
+        let f = first.unwrap();
+        let s = second.unwrap();
+        assert_eq!(f.freqs.as_slice(), s.freqs.as_slice());
+        // The cache returns Arc clones of the same allocation: a hit must
+        // share the artifact, not rebuild or deep-copy it (this is what
+        // makes the packed table reusable across blocks).
+        assert!(Arc::ptr_eq(&f.freqs, &s.freqs));
+        #[cfg(feature = "simd")]
+        match (&f.packed_table, &s.packed_table) {
+            (Some(a), Some(b)) => assert!(Arc::ptr_eq(a, b)),
+            _ => panic!("uniform model must carry a cached packed table"),
+        }
     }
 
     #[test]
@@ -399,6 +471,57 @@ mod tests {
         // result order-dependent.
         let miss_bytes = [1u8; 256];
         let result = cached_model_artifacts(8, 12, &miss_bytes, || None);
+        assert!(result.is_none());
+    }
+
+    #[cfg(feature = "simd")]
+    #[test]
+    fn test_cached_model_artifacts_carries_packed_table() {
+        // A valid Uniform256 model (256 × freq 16 @ scale 12) must produce
+        // cached artifacts whose packed table is present and correct: the
+        // table's slot 0 maps to symbol 0 with freq 16, bias 0.
+        let mut model = Vec::with_capacity(1024);
+        for _ in 0..256 {
+            model.extend_from_slice(&16u32.to_le_bytes());
+        }
+        let artifacts = cached_model_artifacts(8, 12, &model, || {
+            let freqs = vec![16u32; 256];
+            let cum = {
+                let mut c = Vec::with_capacity(257);
+                c.push(0u32);
+                for i in 0..256 {
+                    c.push(c[i] + freqs[i]);
+                }
+                c
+            };
+            let table =
+                ryg_rans_rs_simd::packed_table::PackedWordTable::from_freqs(&freqs, &cum, 12)
+                    .expect("uniform model table");
+            Some(ValidatedModelArtifacts {
+                freqs: Arc::new(freqs),
+                uniform256: true,
+                packed_table: Some(Arc::new(table)),
+            })
+        })
+        .expect("artifacts");
+        let table = artifacts.packed_table.expect("packed table present");
+        assert_eq!(table.as_slice().len(), 4096);
+        let first = table.as_slice()[0];
+        // slot 0 belongs to symbol 0; freq 16, bias 0.
+        assert_eq!(first.0 & 0x0fff, 16);
+        assert_eq!((first.0 >> 24) as u8, 0);
+    }
+
+    #[cfg(feature = "simd")]
+    #[test]
+    fn test_cached_model_artifacts_rejects_invalid_model() {
+        // A model whose frequencies do not sum to 1 << scale must be rejected
+        // by the cache (build returns None) and never cached.
+        let mut model = Vec::with_capacity(1024);
+        for i in 0..256 {
+            model.extend_from_slice(&(i as u32).to_le_bytes());
+        }
+        let result = cached_model_artifacts(8, 12, &model, || None);
         assert!(result.is_none());
     }
 }

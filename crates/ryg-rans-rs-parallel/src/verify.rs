@@ -548,8 +548,17 @@ impl ParallelVerifier {
             return Err(ParallelError::VerifyFailed(Box::new(c.clone())));
         }
 
+        // Phase L.3 completeness invariant at the API boundary: the doc
+        // contract promises `Cancelled` on partial cancellation and never
+        // `Ok` with fewer blocks verified than declared.  `results` holds
+        // exactly the per-block results collected; a short run must surface
+        // as `Cancelled`/`IncompleteExecution`, and `blocks_verified` below
+        // then honestly reflects what was actually verified.
+        let verified = results.len();
+        crate::error::check_completeness(report.cancelled, verified, block_count)?;
+
         Ok(ParallelVerificationReport {
-            blocks_verified: block_count as u64,
+            blocks_verified: verified as u64,
             payload_hash_ok: payload_ok,
             decoded_hash_ok: decoded_ok,
             decoded_hash_mismatch: decoded_mismatch,

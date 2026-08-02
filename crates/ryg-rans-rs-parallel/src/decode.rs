@@ -324,10 +324,16 @@ pub fn decode_single_block(
 
     // Parse frequency model from model_data — via the bounded model cache.
     // The cache is keyed by (model_sha256, scale_bits, codec_id) and stores
-    // validated immutable artifacts (freqs + uniform256 flag).  Backend
-    // selection happens AFTER the lookup, so a cached artifact is never
-    // reused under incompatible execution conditions.  A miss simply
-    // rebuilds the artifacts (always correct).
+    // validated immutable artifacts: the frequency vector, the uniform256
+    // flag, and (SIMD builds) the 16 KiB packed word table.  The packed
+    // table is the expensive artifact — its construction is O(4096 × symbols)
+    // — so building it once per unique model and sharing it across blocks
+    // via `Arc` is where the cache earns its throughput (L8 residual; the
+    // pre-fix cache stored only the cheap 1 KiB frequency parse, leaving the
+    // per-block table build untouched).  Backend selection happens AFTER the
+    // lookup, so a cached artifact is never reused under incompatible
+    // execution conditions.  A miss simply rebuilds the artifacts (always
+    // correct).
     let codec_id = header.codec_id;
     let scale = header.scale_bits;
     let artifacts = crate::cache::cached_model_artifacts(codec_id, scale, model_data, || {
@@ -358,17 +364,35 @@ pub fn decode_single_block(
         // Uniform256 detection: all frequencies == 16 at scale_bits == 12.
         let uniform256 = scale == 12 && freqs.iter().all(|&f| f == 16);
 
-        Some(crate::cache::ValidatedModelArtifacts { freqs, uniform256 })
+        // Build the packed word table once per unique model (SIMD builds).
+        // `None` here means the model cannot build a word table (scale != 12
+        // or a zero-frequency symbol): the executor fails with the identical
+        // `Model` error it would have produced building locally, so caching
+        // never changes error identity.
+        #[cfg(feature = "simd")]
+        let packed_table = {
+            let cum = build_cum_freqs(&freqs);
+            ryg_rans_rs_simd::packed_table::PackedWordTable::from_freqs(&freqs, &cum, scale as u32)
+                .ok()
+                .map(std::sync::Arc::new)
+        };
+
+        Some(crate::cache::ValidatedModelArtifacts {
+            freqs: std::sync::Arc::new(freqs),
+            uniform256,
+            #[cfg(feature = "simd")]
+            packed_table,
+        })
     })
     .ok_or(BlockError {
         block_index: bi,
         kind: BlockErrorKind::Model,
     })?;
 
-    let freqs = artifacts.freqs;
-    // `artifacts.uniform256` is available for future plan construction;
-    // the plan function currently re-detects it from model_data, which is
-    // a cheap scan and keeps create_decode_plan's signature stable.
+    // The artifacts are Arc-shared: `freqs` is the validated frequency
+    // vector and `packed_table` (SIMD builds) the shared 16 KiB word table.
+    // Both are passed by reference into the executor, which borrows the
+    // cached table instead of rebuilding it per block.
 
     // ----- Step 3: Extract and verify payload -----
     let payload_offset = model_end;
@@ -423,7 +447,7 @@ pub fn decode_single_block(
         bi,
     )?;
 
-    let executed = execute_decode_plan(&plan, payload, &freqs, ul, header.scale_bits, bi)?;
+    let executed = execute_decode_plan(&plan, payload, &artifacts, ul, header.scale_bits, bi)?;
 
     // ----- Step 7: Verify decoded hash -----
     let computed_decoded_hash = crate::encode::sha256(&executed.output);
@@ -688,7 +712,7 @@ fn build_cum_freqs(freqs: &[u32]) -> Vec<u32> {
 fn execute_decode_plan(
     plan: &DecodePlan,
     payload: &[u8],
-    freqs: &[u32],
+    artifacts: &crate::cache::ValidatedModelArtifacts,
     expected_len: usize,
     _scale_bits: u8,
     bi: u64,
@@ -718,27 +742,39 @@ fn execute_decode_plan(
         }
     }
 
-    /// Build a packed word table from frequencies (inner helper).
+    /// Obtain the packed word table for a decode plan.
     ///
-    /// Converts raw frequencies to a `PackedWordTable` via
-    /// `build_cum_freqs` + `PackedWordTable::from_freqs`.
-    ///
-    /// # Errors
-    ///
-    /// Returns `BlockErrorKind::Model` if the frequency table cannot be
-    /// constructed (e.g. invalid scale or frequency sum mismatch).
-    fn build_table(freqs: &[u32], scale: u32, bi: u64) -> Result<PackedWordTable, BlockError> {
+    /// The model cache builds the 16 KiB table once per unique model and
+    /// shares it across blocks via `Arc`; the common case here is a
+    /// `Cow::Borrowed` of that shared table — no per-block construction and
+    /// no clone, just a borrow of the cached allocation (this is where the
+    /// L8 cache earns its throughput).  The local-build fallback is
+    /// reachable only when the cache admitted the model without a table
+    /// (e.g. `scale_bits != 12`), in which case `PackedWordTable::from_freqs`
+    /// fails here exactly as it would have before caching, so the resulting
+    /// `Model` error is identical — caching never changes error identity.
+    fn decode_table<'a>(
+        artifacts: &'a crate::cache::ValidatedModelArtifacts,
+        scale: u32,
+        bi: u64,
+    ) -> Result<std::borrow::Cow<'a, PackedWordTable>, BlockError> {
+        use std::borrow::Cow;
+        if let Some(t) = &artifacts.packed_table {
+            return Ok(Cow::Borrowed(&**t));
+        }
+        let freqs = &artifacts.freqs;
         let cum = build_cum_freqs(freqs);
-        PackedWordTable::from_freqs(freqs, &cum, scale).map_err(|_| BlockError {
+        let table = PackedWordTable::from_freqs(freqs, &cum, scale).map_err(|_| BlockError {
             block_index: bi,
             kind: BlockErrorKind::Model,
-        })
+        })?;
+        Ok(Cow::Owned(table))
     }
 
     match plan {
         // ---- Scalar 16-way ----
         DecodePlan::Scalar16 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             let (out, report) =
                 decode_interleaved16_scalar(&words, &table, expected_len).map_err(|_| {
                     BlockError {
@@ -756,7 +792,7 @@ fn execute_decode_plan(
         }
         // ---- Scalar 8-way (using packed table for full report) ----
         DecodePlan::Scalar8 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             let (out, r8) = ryg_rans_rs_simd::packed_table::decode_8way_packed_scalar_with_report(
                 &words,
                 &table,
@@ -787,7 +823,11 @@ fn execute_decode_plan(
         // ---- SSE4.1 8-way ----
         DecodePlan::Sse41Interleaved8 { .. } => {
             // The SSE4.1 kernel operates on `RansWordTables` (slot +
-            // slot→sym slices); build them from the validated freqs.
+            // slot→sym slices); build them from the validated freqs.  These
+            // slices are small (4096 u32 each) and the backend is
+            // explicit-only, so they are rebuilt per block — the packed
+            // `PackedWordTable` used by the default paths is the cached one.
+            let freqs = &artifacts.freqs;
             let cum = build_cum_freqs(freqs);
             let (slots, slot2sym) = ryg_rans_rs_simd::build_word_tables(freqs, &cum, 12);
             let tables = ryg_rans_rs_simd::RansWordTables {
@@ -804,7 +844,7 @@ fn execute_decode_plan(
         }
         // ---- AVX2 manual-gather 8-way ----
         DecodePlan::Avx2ManualGather8 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             ryg_rans_rs_simd::backends::decode_interleaved8_avx2_manual_gather_checked(
                 &words,
                 &table,
@@ -815,7 +855,7 @@ fn execute_decode_plan(
         }
         // ---- AVX2 hardware-gather 8-way ----
         DecodePlan::Avx2HardwareGather8 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             ryg_rans_rs_simd::backends::decode_interleaved8_avx2_hardware_gather_checked(
                 &words,
                 &table,
@@ -826,7 +866,7 @@ fn execute_decode_plan(
         }
         // ---- AVX2 2x8 on 16-way ----
         DecodePlan::Avx2TwoBy8On16 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             ryg_rans_rs_simd::backends::decode_interleaved16_avx2_2x8_checked(
                 &words,
                 &table,
@@ -846,7 +886,7 @@ fn execute_decode_plan(
         }
         // ---- AVX-512VL interleaved 8-way ----
         DecodePlan::Avx512VlInterleaved8 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl_checked(
                 &words,
                 &table,
@@ -857,7 +897,7 @@ fn execute_decode_plan(
         }
         // ---- AVX-512 interleaved 16-way ----
         DecodePlan::Avx512Interleaved16 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             ryg_rans_rs_simd::backends::decode_interleaved16_avx512_checked(
                 &words,
                 &table,
@@ -868,7 +908,7 @@ fn execute_decode_plan(
         }
         // ---- AVX-512VL manual-gather 8-way ----
         DecodePlan::Avx512VlManualGather8 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             ryg_rans_rs_simd::backends::decode_interleaved8_avx512vl_manual_gather_checked(
                 &words,
                 &table,
@@ -879,7 +919,7 @@ fn execute_decode_plan(
         }
         // ---- AVX-512 manual-gather 16-way ----
         DecodePlan::Avx512ManualGather16 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             ryg_rans_rs_simd::backends::decode_interleaved16_avx512_manual_gather_checked(
                 &words,
                 &table,
@@ -890,7 +930,7 @@ fn execute_decode_plan(
         }
         // ---- AVX-512VL 2x8 on 16-way ----
         DecodePlan::Avx512Vl2x8 { .. } => {
-            let table = build_table(freqs, _scale_bits as u32, bi)?;
+            let table = decode_table(artifacts, _scale_bits as u32, bi)?;
             ryg_rans_rs_simd::backends::decode_interleaved16_avx512vl_2x8_checked(
                 &words,
                 &table,
@@ -920,7 +960,7 @@ fn execute_decode_plan(
 fn execute_decode_plan(
     plan: &DecodePlan,
     payload: &[u8],
-    freqs: &[u32],
+    artifacts: &crate::cache::ValidatedModelArtifacts,
     expected_len: usize,
     _scale_bits: u8,
     bi: u64,
@@ -929,6 +969,10 @@ fn execute_decode_plan(
         .chunks_exact(2)
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .collect();
+    // Non-SIMD builds decode straight from the validated frequency vector
+    // (per-symbol cumulative scan); there is no packed table to share, so
+    // the cached `freqs` Arc is the only artifact consumed.
+    let freqs = &artifacts.freqs;
 
     match plan {
         DecodePlan::Scalar16 { .. } => {
@@ -1439,6 +1483,11 @@ impl ParallelDecoder {
             let stream_hash = stream_hash_of(&ordered);
             let completed_blocks = ordered.len();
             let cancelled = report.cancelled;
+            // Phase L.3 completeness invariant at the API boundary: the
+            // executor enforces this internally, but the guarantee belongs
+            // to this public function — re-assert it so a short run can
+            // never return a successful `Ok`.
+            crate::error::check_completeness(cancelled, completed_blocks, bc)?;
             return Ok(OrderedDecodedBlocks {
                 blocks: ordered,
                 stream_hash,
@@ -1509,6 +1558,10 @@ impl ParallelDecoder {
         let stream_hash = stream_hash_of(&ordered);
         let completed_blocks = ordered.len();
         let cancelled = report.cancelled;
+        // Phase L.3 completeness invariant at the API boundary (see the
+        // sequential path above): cancellation with fewer than declared
+        // blocks surfaces as `Cancelled`, and any short `Ok` is impossible.
+        crate::error::check_completeness(cancelled, completed_blocks, bc)?;
         Ok(OrderedDecodedBlocks {
             blocks: ordered,
             stream_hash,
@@ -1684,6 +1737,11 @@ impl ParallelDecoder {
         stream_hash.copy_from_slice(&digest);
         let completed_blocks = ordered.len();
         let cancelled = report.cancelled;
+        // Phase L.3 completeness invariant at the API boundary: the doc
+        // contract promises `Cancelled` on partial cancellation and never
+        // `Ok` with fewer blocks than declared — enforce it here, not only
+        // inside the executor.
+        crate::error::check_completeness(cancelled, completed_blocks, bc)?;
         Ok(OrderedDecodedBlocks {
             blocks: ordered,
             stream_hash,
@@ -1811,6 +1869,12 @@ impl ParallelDecoder {
         if let Some(c) = et.lock().unwrap().canonical_error() {
             return Err(ParallelError::DecodeFailed(Box::new(c.clone())));
         }
+        // Phase L.3 completeness invariant at the sink boundary: the
+        // `ExecutorReport` returned here is the sink path's completion
+        // record.  `returned_results` counts every task whose result was
+        // delivered to the sink; a cancelled run that delivered fewer than
+        // declared must surface as `Cancelled`, never as a successful report.
+        crate::error::check_completeness(report.cancelled, report.returned_results, bc)?;
         Ok(report)
     }
 }
@@ -2307,8 +2371,17 @@ mod tests {
         // Parity with the packed-scalar 16-way decoder.
         let sc = decode_explicit(&block, BackendId::Scalar16).expect("scalar16");
         assert_eq!(sc.output, tf.output);
-        assert_eq!(sc.words_consumed, tf.words_consumed);
-        assert_eq!(sc.final_states, tf.final_states);
+        // Report parity (words_consumed / final_states) is a property of
+        // the stream, not the kernel, but it is only checkable when both
+        // kernels surface the report API.  The pure-scalar kernels of a
+        // non-SIMD build return the documented "report not available"
+        // convention (0/empty — see `execute_decode_plan`), so report
+        // parity is asserted only in SIMD builds where both sides report.
+        #[cfg(feature = "simd")]
+        {
+            assert_eq!(sc.words_consumed, tf.words_consumed);
+            assert_eq!(sc.final_states, tf.final_states);
+        }
     }
 
     #[test]
@@ -2594,5 +2667,181 @@ mod tests {
                 assert!(reference.is_some(), "trial {trial}: no backend executed");
             }
         }
+    }
+
+    // ---- Phase L.3: cancellation completeness at the public-API boundary ----
+    //
+    // The executor enforces the completeness invariant internally; these
+    // tests pin the guarantee at the `*_with_cancel` entry points so a
+    // regression in either layer fails loudly.  A pre-cancelled token is the
+    // deterministic worst case: zero blocks may complete, and the call must
+    // surface `Cancelled { completed: 0, expected: N }` — never a short `Ok`
+    // with `cancelled: true` tucked into the metadata.
+
+    fn sample_decode_jobs(count: usize) -> Vec<DecodeBlockJob> {
+        let data = nonuniform_data();
+        let mut jobs = Vec::with_capacity(count);
+        for i in 0..count {
+            let j = EncodeBlockJob::new(
+                i as u64,
+                data.clone(),
+                CodecPolicy::Auto,
+                crate::config::ModelPolicy::PerBlock,
+                12,
+            );
+            let e = encode_single_block(j).expect("encode");
+            jobs.push(DecodeBlockJob {
+                block_index: i as u64,
+                block_data: e.block,
+            });
+        }
+        jobs
+    }
+
+    #[test]
+    fn test_check_completeness_helper() {
+        // The boundary helper itself: cancellation-with-short → Cancelled;
+        // short-without-cancellation → IncompleteExecution; complete runs
+        // (cancelled or not) are Ok.
+        assert!(matches!(
+            crate::error::check_completeness(true, 3, 8),
+            Err(ParallelError::Cancelled {
+                completed: 3,
+                expected: 8
+            })
+        ));
+        assert!(matches!(
+            crate::error::check_completeness(false, 3, 8),
+            Err(ParallelError::IncompleteExecution {
+                completed: 3,
+                expected: 8
+            })
+        ));
+        assert!(crate::error::check_completeness(true, 8, 8).is_ok());
+        assert!(crate::error::check_completeness(false, 8, 8).is_ok());
+    }
+
+    #[test]
+    fn test_decode_blocks_with_cancel_pre_cancelled_sequential() {
+        // Sequential-threshold path (small input, default 1 MiB threshold):
+        // a pre-cancelled token must surface as Cancelled{0, 4}.
+        let jobs = sample_decode_jobs(4);
+        let ct = crate::cancellation::CancellationToken::new();
+        ct.cancel();
+        let r = ParallelDecoder::decode_blocks_with_cancel(
+            jobs,
+            &ParallelConfig::default(),
+            Some(crate::sync::Arc::new(ct)),
+        );
+        match r {
+            Err(ParallelError::Cancelled {
+                completed,
+                expected,
+            }) => {
+                assert_eq!(completed, 0);
+                assert_eq!(expected, 4);
+            }
+            other => panic!(
+                "expected Cancelled{{0,4}}, got {:?}",
+                other.map(|b| b.blocks.len())
+            ),
+        }
+    }
+
+    #[test]
+    fn test_decode_blocks_with_cancel_pre_cancelled_parallel() {
+        // Parallel path (threshold 0 forces the pool): same guarantee.
+        let jobs = sample_decode_jobs(8);
+        let ct = crate::cancellation::CancellationToken::new();
+        ct.cancel();
+        let cfg = ParallelConfig {
+            parallel_threshold_bytes: 0,
+            threads: crate::ThreadCount::Exact(std::num::NonZeroUsize::new(2).unwrap()),
+            ..Default::default()
+        };
+        let r =
+            ParallelDecoder::decode_blocks_with_cancel(jobs, &cfg, Some(crate::sync::Arc::new(ct)));
+        match r {
+            Err(ParallelError::Cancelled {
+                completed,
+                expected,
+            }) => {
+                assert_eq!(completed, 0);
+                assert_eq!(expected, 8);
+            }
+            other => panic!(
+                "expected Cancelled{{0,8}}, got {:?}",
+                other.map(|b| b.blocks.len())
+            ),
+        }
+    }
+
+    #[test]
+    fn test_decode_streaming_with_cancel_pre_cancelled() {
+        let jobs = sample_decode_jobs(4);
+        let ct = crate::cancellation::CancellationToken::new();
+        ct.cancel();
+        let cfg = ParallelConfig {
+            parallel_threshold_bytes: 0,
+            ..Default::default()
+        };
+        let r = ParallelDecoder::decode_streaming_with_cancel(
+            jobs,
+            &cfg,
+            Some(crate::sync::Arc::new(ct)),
+        );
+        match r {
+            Err(ParallelError::Cancelled {
+                completed,
+                expected,
+            }) => {
+                assert_eq!(completed, 0);
+                assert_eq!(expected, 4);
+            }
+            other => panic!(
+                "expected Cancelled{{0,4}}, got {:?}",
+                other.map(|b| b.blocks.len())
+            ),
+        }
+    }
+
+    #[test]
+    fn test_decode_with_sink_pre_cancelled() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let jobs = sample_decode_jobs(4);
+        let ct = crate::cancellation::CancellationToken::new();
+        ct.cancel();
+        let cfg = ParallelConfig {
+            parallel_threshold_bytes: 0,
+            ..Default::default()
+        };
+        // The sink closure must be `'static` (it runs on the coordinator
+        // thread inside `run_tasks_with_sink`), so count deliveries through
+        // an Arc'd atomic rather than a borrowed counter.
+        let delivered = std::sync::Arc::new(AtomicUsize::new(0));
+        let delivered_rc = delivered.clone();
+        let r = ParallelDecoder::decode_with_sink(
+            jobs,
+            &cfg,
+            Some(crate::sync::Arc::new(ct)),
+            move |_b| {
+                delivered_rc.fetch_add(1, Ordering::SeqCst);
+            },
+        );
+        match r {
+            Err(ParallelError::Cancelled {
+                completed,
+                expected,
+            }) => {
+                assert_eq!(completed, 0);
+                assert_eq!(expected, 4);
+            }
+            other => panic!("expected Cancelled{{0,4}}, got {:?}", other.map(|_| ())),
+        }
+        assert_eq!(
+            delivered.load(Ordering::SeqCst),
+            0,
+            "no block may reach the sink after pre-cancellation"
+        );
     }
 }

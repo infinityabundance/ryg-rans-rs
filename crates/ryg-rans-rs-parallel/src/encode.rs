@@ -861,6 +861,11 @@ impl ParallelEncoder {
             ordered_blocks.sort_by_key(|b| b.block_index);
             let completed_blocks = ordered_blocks.len();
             let cancelled = report.cancelled;
+            // Phase L.3 completeness invariant at the API boundary: the
+            // executor enforces this internally, but the guarantee belongs
+            // to this public function — re-assert it so a short run can
+            // never return a successful `Ok`.
+            crate::error::check_completeness(cancelled, completed_blocks, block_count)?;
             return Ok(OrderedEncodedBlocks {
                 blocks: ordered_blocks,
                 execution: crate::job::ExecutionMetadata {
@@ -928,6 +933,10 @@ impl ParallelEncoder {
         ordered_blocks.sort_by_key(|b| b.block_index);
         let completed_blocks = ordered_blocks.len();
         let cancelled = report.cancelled;
+        // Phase L.3 completeness invariant at the API boundary (see the
+        // sequential path above): cancellation with fewer than declared
+        // blocks surfaces as `Cancelled`, and any short `Ok` is impossible.
+        crate::error::check_completeness(cancelled, completed_blocks, block_count)?;
 
         Ok(OrderedEncodedBlocks {
             blocks: ordered_blocks,

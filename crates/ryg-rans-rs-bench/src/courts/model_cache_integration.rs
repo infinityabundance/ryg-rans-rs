@@ -23,10 +23,10 @@ use std::num::NonZeroUsize;
 pub fn court() -> CourtRun {
     let mut cases = Vec::new();
     let add = |cases: &mut Vec<CourtCase>,
-                   id: &str,
-                   input: &str,
-                   expected: &str,
-                   actual: Result<String, String>| {
+               id: &str,
+               input: &str,
+               expected: &str,
+               actual: Result<String, String>| {
         let actual_str = match &actual {
             Ok(a) => a.clone(),
             Err(e) => format!("ERROR: {}", e),
@@ -217,16 +217,40 @@ pub fn court() -> CourtRun {
         v
     };
     let build = || -> Option<ValidatedModelArtifacts> {
-        // Validate sum: 256 × 16 = 4096 == 1 << 12.
+        // Validate sum: 256 × 16 = 4096 == 1 << 12.  Build the full
+        // artifact exactly as the production decode path does: Arc-shared
+        // frequencies plus the 16 KiB packed word table (the expensive
+        // artifact the cache exists to share).
+        let freqs: Vec<u32> = vec![16u32; 256];
+        let cum = {
+            let mut c = Vec::with_capacity(257);
+            c.push(0u32);
+            for i in 0..256 {
+                c.push(c[i] + freqs[i]);
+            }
+            c
+        };
+        let table = ryg_rans_rs_simd::packed_table::PackedWordTable::from_freqs(&freqs, &cum, 12)
+            .expect("uniform model table");
         Some(ValidatedModelArtifacts {
-            freqs: vec![16u32; 256],
+            freqs: std::sync::Arc::new(freqs),
             uniform256: true,
+            packed_table: Some(std::sync::Arc::new(table)),
         })
     };
     let a1 = cached_model_artifacts(7, 12, &valid_model, build);
     let a2 = cached_model_artifacts(7, 12, &valid_model, build);
     let served = match (&a1, &a2) {
-        (Some(x), Some(y)) => x.freqs == y.freqs && x.uniform256,
+        // The hit must serve the identical shared allocations (Arc::ptr_eq
+        // on the freqs and the packed table), not rebuild or deep-copy.
+        (Some(x), Some(y)) => {
+            x.uniform256
+                && std::sync::Arc::ptr_eq(&x.freqs, &y.freqs)
+                && match (&x.packed_table, &y.packed_table) {
+                    (Some(a), Some(b)) => std::sync::Arc::ptr_eq(a, b),
+                    _ => false,
+                }
+        }
         _ => false,
     };
     add(

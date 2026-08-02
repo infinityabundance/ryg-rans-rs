@@ -383,13 +383,12 @@ pub fn create_decode_plan(
 }
 
 /// Compute a cache key for a decode plan.
+///
+/// Delegates to [`crate::cache::ModelCacheKey::from_model`] — the single
+/// source of truth for key derivation — so the plan-level helper and the
+/// production cache lookup can never diverge on what bytes they hash.
 pub fn plan_cache_key(codec_id: u16, scale_bits: u8, model_data: &[u8]) -> ModelCacheKey {
-    let model_sha256 = crate::encode::sha256(model_data);
-    ModelCacheKey {
-        model_sha256,
-        scale_bits,
-        codec_id,
-    }
+    ModelCacheKey::from_model(codec_id, scale_bits, model_data)
 }
 
 #[cfg(test)]

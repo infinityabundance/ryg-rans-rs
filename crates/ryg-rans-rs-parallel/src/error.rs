@@ -141,6 +141,44 @@ pub enum ParallelError {
     Internal(String),
 }
 
+/// Enforce the Phase L.3 completeness invariant at a public-API boundary.
+///
+/// Every `*_with_cancel` entry point promises that cancellation surfaces as
+/// [`ParallelError::Cancelled`] and that `Ok` is never returned with fewer
+/// results than declared.  The executor enforces the same invariant
+/// internally, but that enforcement is an implementation detail: this check
+/// re-asserts the guarantee at the exact place the public contract is made,
+/// so no future change to the executor or to a collector/reorder stage can
+/// silently turn a short run into a successful `Ok`.  Belt and suspenders by
+/// design — the second arm (`IncompleteExecution`) is unreachable while the
+/// executor contract holds and exists to fail loudly if it ever stops
+/// holding.
+///
+/// # Priority
+///
+/// Cancellation is checked first: when a run was cancelled and results are
+/// short, the caller must see `Cancelled` (with counts), never
+/// `IncompleteExecution` (which implies an internal bug).
+pub fn check_completeness(
+    cancelled: bool,
+    completed: usize,
+    expected: usize,
+) -> Result<(), ParallelError> {
+    if cancelled && completed != expected {
+        return Err(ParallelError::Cancelled {
+            completed,
+            expected,
+        });
+    }
+    if completed != expected {
+        return Err(ParallelError::IncompleteExecution {
+            completed,
+            expected,
+        });
+    }
+    Ok(())
+}
+
 /// Per-block error record with deterministic ordering properties.
 ///
 /// Together, `block_index` and `kind` form a total order:
