@@ -206,7 +206,7 @@ fn test_multi_block_roundtrip() {
             block_data: b.block.clone(),
         })
         .collect();
-    let dec = ParallelDecoder::decode_blocks(dj, &cfg).expect("decode");
+    let dec = ParallelDecoder::new(cfg.clone()).decode_blocks(dj).expect("decode");
     let mut full = Vec::new();
     for b in &dec.blocks {
         full.extend_from_slice(&b.output);
@@ -285,7 +285,7 @@ fn test_determinism_1_vs_2_threads() {
             block_data: b.block.clone(),
         })
         .collect();
-    let dec1 = ParallelDecoder::decode_blocks(dj1, &cfg1).expect("decode 1t");
+    let dec1 = ParallelDecoder::new(cfg1.clone()).decode_blocks(dj1).expect("decode 1t");
     let mut full1 = Vec::new();
     for b in &dec1.blocks {
         full1.extend_from_slice(&b.output);
@@ -354,7 +354,7 @@ fn test_decode_determinism_1_4_8_16_threads() {
         max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
         ..Default::default()
     };
-    let dec_1t = ParallelDecoder::decode_blocks(dj.clone(), &cfg_1t).expect("decode 1t");
+    let dec_1t = ParallelDecoder::new(cfg_1t.clone()).decode_blocks(dj.clone()).expect("decode 1t");
     let mut full_1t = Vec::new();
     for b in &dec_1t.blocks {
         full_1t.extend_from_slice(&b.output);
@@ -372,7 +372,7 @@ fn test_decode_determinism_1_4_8_16_threads() {
             ..Default::default()
         };
         let dec =
-            ParallelDecoder::decode_blocks(dj.clone(), &cfg).expect(&format!("decode {}t", tc));
+            ParallelDecoder::new(cfg.clone()).decode_blocks(dj.clone()).expect(&format!("decode {}t", tc));
 
         assert_eq!(
             dec.blocks.len(),
@@ -508,7 +508,7 @@ fn test_verify_determinism_1_4_8_16_threads() {
             ..Default::default()
         };
         let report =
-            ParallelVerifier::verify_blocks(vj.clone(), &cfg).expect(&format!("verify {}t", tc));
+            ParallelVerifier::new(cfg.clone()).verify_blocks(vj.clone()).expect(&format!("verify {}t", tc));
         assert_eq!(
             report.blocks_failed, 0,
             "verify {}t: blocks_failed must be 0",
@@ -567,7 +567,7 @@ fn test_error_selection_8_16_threads() {
     dj[0].block_data = tampered;
 
     // Decode with 8 threads — should get error from block 0
-    let result_8t = ParallelDecoder::decode_blocks(dj.clone(), &cfg);
+    let result_8t = ParallelDecoder::new(cfg.clone()).decode_blocks(dj.clone());
     match result_8t {
         Err(ParallelError::DecodeFailed(e)) => {
             assert_eq!(e.block_index, 0, "8t: canonical error must be from block 0");
@@ -581,7 +581,7 @@ fn test_error_selection_8_16_threads() {
         max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
         ..Default::default()
     };
-    let result_16t = ParallelDecoder::decode_blocks(dj.clone(), &cfg_16t);
+    let result_16t = ParallelDecoder::new(cfg_16t.clone()).decode_blocks(dj.clone());
     match result_16t {
         Err(ParallelError::DecodeFailed(e)) => {
             assert_eq!(
@@ -675,7 +675,7 @@ fn test_worker_count_clamped_to_block_count() {
             block_data: b.block.clone(),
         })
         .collect();
-    let dec = ParallelDecoder::decode_blocks(dj, &cfg_16).expect("decode with clamp");
+    let dec = ParallelDecoder::new(cfg_16.clone()).decode_blocks(dj).expect("decode with clamp");
     let mut full = Vec::new();
     for b in &dec.blocks {
         full.extend_from_slice(&b.output);
@@ -730,7 +730,7 @@ fn test_cancellation_completeness_decode() {
     cancel.cancel();
     assert!(cancel.is_cancelled());
 
-    let result = ParallelDecoder::decode_blocks_with_cancel(dj, &cfg, Some(cancel));
+    let result = ParallelDecoder::new(cfg.clone()).decode_blocks_with_cancel(dj, Some(cancel));
     match result {
         Err(ParallelError::Cancelled { expected, .. }) => {
             assert_eq!(expected, block_count, "must report all declared blocks");
@@ -784,7 +784,7 @@ fn test_cancellation_completeness_verify() {
     cancel.cancel();
     assert!(cancel.is_cancelled());
 
-    let result = ParallelVerifier::verify_blocks_with_cancel(vj, &cfg, Some(cancel));
+    let result = ParallelVerifier::new(cfg.clone()).verify_blocks_with_cancel(vj, Some(cancel));
     match result {
         Err(ParallelError::Cancelled { expected, .. }) => {
             assert_eq!(expected, block_count, "must report all declared blocks");
@@ -985,7 +985,7 @@ fn test_decode_with_sink_ordered() {
     // (Arc<Mutex<..>>) rather than a plain &mut reference.
     let collected: Arc<Mutex<Vec<DecodedBlockResult>>> = Arc::new(Mutex::new(Vec::new()));
     let sink_collected = collected.clone();
-    let report = ParallelDecoder::decode_with_sink(dj, &cfg, None, move |block| {
+    let report = ParallelDecoder::new(cfg.clone()).decode_with_sink(dj, None, move |block| {
         sink_collected.lock().unwrap().push(block);
     })
     .expect("decode_with_sink must succeed");
@@ -1046,7 +1046,7 @@ fn test_max_buffered_input_bytes_enforced() {
     };
     assert!(
         matches!(
-            ParallelDecoder::decode_blocks(dj, &tiny_cfg),
+            ParallelDecoder::new(tiny_cfg.clone()).decode_blocks(dj),
             Err(ParallelError::ResourceLimit(_))
         ),
         "decode must reject input exceeding max_buffered_input_bytes with ResourceLimit"
@@ -1131,7 +1131,7 @@ fn test_queue_depth_below_worker_count_no_spurious_limit() {
         })
         .collect();
     let got =
-        ParallelDecoder::decode_blocks(decode_jobs.clone(), &cfg).expect("decode must not limit");
+        ParallelDecoder::new(cfg.clone()).decode_blocks(decode_jobs.clone()).expect("decode must not limit");
     assert_eq!(got.blocks.len(), plan.block_count() as usize);
     let mut expected = Vec::new();
     for r in &plan.ranges {

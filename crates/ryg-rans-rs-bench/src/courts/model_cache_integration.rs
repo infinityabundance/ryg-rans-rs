@@ -14,9 +14,9 @@
 use super::{CourtCase, CourtRun};
 use ryg_rans_rs_casefile::PhaseLCaseVerdict;
 use ryg_rans_rs_parallel::{
-    DecodeBlockJob, EncodeBlockJob, FixedBlockPlan, ModelCache, ModelCacheKey, ModelPolicy,
-    ParallelConfig, ParallelDecoder, ParallelEncoder, ThreadCount, ValidatedModelArtifacts,
-    cached_model_artifacts, plan_cache_key,
+    DecodeBlockJob, EncodeBlockJob, FixedBlockPlan, ModelArtifactCache, ModelCache, ModelCacheKey,
+    ModelPolicy, ParallelConfig, ParallelDecoder, ParallelEncoder, ThreadCount,
+    build_validated_model_artifacts, plan_cache_key,
 };
 use std::num::NonZeroUsize;
 
@@ -52,8 +52,10 @@ pub fn court() -> CourtRun {
         scale_bits: 12,
         codec_id: 7,
     };
-    cache.insert(key.clone(), "plan_a".to_string(), 100);
-    let hit = cache.get(&key).map(|s| s.as_str()) == Some("plan_a");
+    cache
+        .insert(key.clone(), std::sync::Arc::new("plan_a".to_string()), 100)
+        .expect("insert");
+    let hit = cache.get(&key).is_some_and(|s| s.as_str() == "plan_a");
     add(
         &mut cases,
         "CASE.001",
@@ -130,11 +132,11 @@ pub fn court() -> CourtRun {
         scale_bits: 12,
         codec_id: 7,
     };
-    cache.insert(mk(1), 10, 1);
-    cache.insert(mk(2), 20, 1);
-    cache.insert(mk(3), 30, 1);
+    cache.insert(mk(1), std::sync::Arc::new(10), 1).unwrap();
+    cache.insert(mk(2), std::sync::Arc::new(20), 1).unwrap();
+    cache.insert(mk(3), std::sync::Arc::new(30), 1).unwrap();
     let before = cache.len();
-    cache.insert(mk(4), 40, 1); // evicts key 1
+    cache.insert(mk(4), std::sync::Arc::new(40), 1).unwrap(); // evicts key 1
     let evicted = cache.get(&mk(1)).is_none() && cache.get(&mk(4)).is_some();
     let count_ok = before == 3 && cache.len() == 3 && evicted;
     add(
@@ -151,10 +153,9 @@ pub fn court() -> CourtRun {
 
     // ---- Case 6: eviction by bytes -----------------------------------------
     let mut cache: ModelCache<u32> = ModelCache::new(16, 10);
-    cache.insert(mk(1), 10, 6);
-    cache.insert(mk(2), 20, 5);
-    let over = cache.insert(mk(3), 30, 5);
-    let _ = over;
+    cache.insert(mk(1), std::sync::Arc::new(10), 6).unwrap();
+    cache.insert(mk(2), std::sync::Arc::new(20), 5).unwrap();
+    cache.insert(mk(3), std::sync::Arc::new(30), 5).unwrap();
     // 6 + 5 exceeded the budget already; the third insert must have evicted
     // until it fit.  Bound: current_bytes <= 10 after eviction.
     let bounded = cache.len() <= 2;
@@ -172,8 +173,8 @@ pub fn court() -> CourtRun {
 
     // ---- Case 7: oversized single entry never exceeds the byte budget ------
     let mut cache: ModelCache<u32> = ModelCache::new(4, 100);
-    cache.insert(mk(1), 10, 60);
-    cache.insert(mk(2), 20, 60);
+    cache.insert(mk(1), std::sync::Arc::new(10), 60).unwrap();
+    cache.insert(mk(2), std::sync::Arc::new(20), 60).unwrap();
     let after = cache.len();
     add(
         &mut cases,
@@ -188,22 +189,29 @@ pub fn court() -> CourtRun {
     );
 
     // ---- Case 8: corrupt model is never cached -----------------------------
-    // `cached_model_artifacts` calls the builder; if the builder returns
-    // None (corrupt model), nothing is inserted and the function returns
-    // None — the decode path treats it as an invalid model.
+    // The canonical constructor rejects the model before any insertion; the
+    // cache never admits a corrupt model and the error class is
+    // block-independent (Phase O.6/O.7).
     let corrupt_model = vec![0xFFu8; 128]; // not a valid frequency model
-    let r = cached_model_artifacts(7, 12, &corrupt_model, || {
-        // Simulate validation failure: builder returns None.
-        None::<ValidatedModelArtifacts>
+    let corrupt_cache = ModelArtifactCache::bounded(8, 1 << 20);
+    let r = corrupt_cache.get_or_build(7, 12, &corrupt_model, None, || {
+        build_validated_model_artifacts(7, 12, &corrupt_model)
     });
     add(
         &mut cases,
         "CASE.008",
-        "corrupt model builder returns None → cached_model_artifacts returns None",
-        "none",
+        "corrupt model → typed build error, never admitted to the cache",
+        "error",
         match r {
-            None => Ok("none".to_string()),
-            Some(_) => Ok("cached".to_string()),
+            Err(_) => {
+                let m = corrupt_cache.metrics();
+                if m.current_entries == 0 && m.build_failures == 1 {
+                    Ok("error".to_string())
+                } else {
+                    Ok(format!("error_but_admitted entries={}", m.current_entries))
+                }
+            }
+            Ok(_) => Ok("cached".to_string()),
         },
     );
 
@@ -216,35 +224,17 @@ pub fn court() -> CourtRun {
         }
         v
     };
-    let build = || -> Option<ValidatedModelArtifacts> {
-        // Validate sum: 256 × 16 = 4096 == 1 << 12.  Build the full
-        // artifact exactly as the production decode path does: Arc-shared
-        // frequencies plus the 16 KiB packed word table (the expensive
-        // artifact the cache exists to share).
-        let freqs: Vec<u32> = vec![16u32; 256];
-        let cum = {
-            let mut c = Vec::with_capacity(257);
-            c.push(0u32);
-            for i in 0..256 {
-                c.push(c[i] + freqs[i]);
-            }
-            c
-        };
-        let table = ryg_rans_rs_simd::packed_table::PackedWordTable::from_freqs(&freqs, &cum, 12)
-            .expect("uniform model table");
-        Some(ValidatedModelArtifacts {
-            freqs: std::sync::Arc::new(freqs),
-            uniform256: true,
-            packed_table: Some(std::sync::Arc::new(table)),
-        })
-    };
-    let a1 = cached_model_artifacts(7, 12, &valid_model, build);
-    let a2 = cached_model_artifacts(7, 12, &valid_model, build);
+    let shared_cache = ModelArtifactCache::bounded(8, 1 << 20);
+    let build = || build_validated_model_artifacts(7, 12, &valid_model);
+    let a1 = shared_cache.get_or_build(7, 12, &valid_model, None, build);
+    let a2 = shared_cache.get_or_build(7, 12, &valid_model, None, build);
     let served = match (&a1, &a2) {
-        // The hit must serve the identical shared allocations (Arc::ptr_eq
-        // on the freqs and the packed table), not rebuild or deep-copy.
-        (Some(x), Some(y)) => {
+        // The hit must serve the identical shared allocation (Arc::ptr_eq on
+        // the outer artifact AND the inner freqs/table), not rebuild or
+        // deep-copy.  Single-flight guarantees exactly one build.
+        (Ok(x), Ok(y)) => {
             x.uniform256
+                && std::sync::Arc::ptr_eq(x, y)
                 && std::sync::Arc::ptr_eq(&x.freqs, &y.freqs)
                 && match (&x.packed_table, &y.packed_table) {
                     (Some(a), Some(b)) => std::sync::Arc::ptr_eq(a, b),
@@ -253,15 +243,19 @@ pub fn court() -> CourtRun {
         }
         _ => false,
     };
+    let single_build = shared_cache.metrics().builds_started == 1;
     add(
         &mut cases,
         "CASE.009",
         "valid uniform256 model cached and served identically",
         "served",
-        if served {
+        if served && single_build {
             Ok("served".to_string())
         } else {
-            Ok("not_served".to_string())
+            Ok(format!(
+                "not_served served={} single_build={}",
+                served, single_build
+            ))
         },
     );
 
@@ -314,8 +308,13 @@ pub fn court() -> CourtRun {
             block_data: b.block.clone(),
         })
         .collect();
+    // One decoder instance = one explicitly owned cache (Phase O.4).  The
+    // first decode is the cold miss; the second reuses the retained
+    // artifacts (warm hits) — the shared instance is what makes the
+    // comparison meaningful.
+    let decoder = ParallelDecoder::new(cfg.clone());
     let decode_to = |jobs: Vec<DecodeBlockJob>| -> Option<Vec<u8>> {
-        ParallelDecoder::decode_blocks(jobs, &cfg).ok().map(|dec| {
+        decoder.decode_blocks(jobs).ok().map(|dec| {
             let mut out = Vec::new();
             for b in &dec.blocks {
                 out.extend_from_slice(&b.output);
@@ -325,6 +324,10 @@ pub fn court() -> CourtRun {
     };
     let cold = decode_to(djobs.clone());
     let warm = decode_to(djobs.clone());
+    // The second decode must hit the cache (hits delta > 0) — the warm path
+    // demonstrably reused artifacts instead of rebuilding them.
+    let m = decoder.model_cache().metrics();
+    let warm_hit = m.hits > 0;
     let equivalent = match (&cold, &warm) {
         (Some(c), Some(w)) => c == w && c == &data,
         _ => false,
@@ -334,10 +337,10 @@ pub fn court() -> CourtRun {
         "CASE.010",
         "decode output identical with cold vs warm model cache (cache-equivalence)",
         "equivalent",
-        if equivalent {
+        if equivalent && warm_hit {
             Ok("equivalent".to_string())
         } else {
-            Ok("DIFFERENT".to_string())
+            Ok(format!("equivalent={} warm_hit={}", equivalent, warm_hit))
         },
     );
 

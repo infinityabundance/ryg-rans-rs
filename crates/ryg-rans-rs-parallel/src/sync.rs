@@ -43,6 +43,50 @@ pub use loom::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 #[cfg(not(loom))]
 pub use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
+/// Condition variable: `std::sync::Condvar` at runtime, `loom::sync::Condvar`
+/// under loom.  The model-artifact cache uses it for single-flight waiter
+/// notification (Phase O.5); the executor's loom queue already uses it
+/// directly.  `wait_timeout` is used by the cache so that cancelled waiters
+/// can stop polling without waiting indefinitely on a build that may be
+/// blocked behind a cancelled builder.
+#[cfg(loom)]
+pub use loom::sync::Condvar;
+#[cfg(not(loom))]
+pub use std::sync::Condvar;
+
+/// Mutex guard type matching the active build (`loom::sync::MutexGuard`
+/// under loom).  Named so cache code can spell its lock-guard type without a
+/// cfg split.
+#[cfg(loom)]
+pub type MutexGuard<'a, T> = loom::sync::MutexGuard<'a, T>;
+#[cfg(not(loom))]
+pub type MutexGuard<'a, T> = std::sync::MutexGuard<'a, T>;
+
+/// Timed condvar wait that normalizes the std/loom API difference.
+///
+/// Both `std::sync::Condvar::wait_timeout` and loom's return a `Result`
+/// (poison).  The model-artifact cache's waiter loop uses the timeout to
+/// poll its cancellation token.  Returns the re-acquired guard, or `None`
+/// when the associated mutex is poisoned (the cache then abandons the wait
+/// and bypasses — see `ModelArtifactCache::get_or_build`).
+#[cfg(not(loom))]
+pub fn wait_timeout<'a, T>(
+    cv: &Condvar,
+    guard: MutexGuard<'a, T>,
+    dur: std::time::Duration,
+) -> Option<MutexGuard<'a, T>> {
+    cv.wait_timeout(guard, dur).ok().map(|(g, _)| g)
+}
+
+#[cfg(loom)]
+pub fn wait_timeout<'a, T>(
+    cv: &Condvar,
+    guard: MutexGuard<'a, T>,
+    dur: std::time::Duration,
+) -> Option<MutexGuard<'a, T>> {
+    cv.wait_timeout(guard, dur).ok().map(|(g, _)| g)
+}
+
 /// Thread abstraction: `std::thread` at runtime, `loom::thread` under loom.
 #[cfg(loom)]
 pub mod thread {

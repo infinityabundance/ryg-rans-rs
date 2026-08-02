@@ -119,9 +119,8 @@ pub fn court() -> CourtRun {
     };
     let sink_out = Arc::new(std::sync::Mutex::new(Vec::new()));
     let sink_clone = sink_out.clone();
-    let r = ParallelDecoder::decode_with_sink(
+    let r = ParallelDecoder::new(sink_cfg.clone()).decode_with_sink(
         djobs.clone(),
-        &sink_cfg,
         None,
         move |block: ryg_rans_rs_parallel::DecodedBlockResult| {
             sink_clone.lock().unwrap().push(block);
@@ -167,7 +166,7 @@ pub fn court() -> CourtRun {
         parallel_threshold_bytes: 0,
         ..Default::default()
     };
-    let r = ParallelDecoder::decode_blocks(djobs.clone(), &tiny_cfg);
+    let r = ParallelDecoder::new(tiny_cfg.clone()).decode_blocks(djobs.clone());
     add(
         &mut cases,
         "CASE.002",
@@ -180,9 +179,8 @@ pub fn court() -> CourtRun {
     );
 
     // ---- Case 3: sink path also enforces max_buffered_input_bytes ---------
-    let r = ParallelDecoder::decode_with_sink(
+    let r = ParallelDecoder::new(tiny_cfg.clone()).decode_with_sink(
         djobs.clone(),
-        &tiny_cfg,
         None,
         |_b: ryg_rans_rs_parallel::DecodedBlockResult| {},
     );
@@ -209,7 +207,7 @@ pub fn court() -> CourtRun {
         parallel_threshold_bytes: 0,
         ..Default::default()
     };
-    let r = ParallelDecoder::decode_blocks(djobs.clone(), &out_cfg);
+    let r = ParallelDecoder::new(out_cfg.clone()).decode_blocks(djobs.clone());
     add(
         &mut cases,
         "CASE.004",
@@ -240,7 +238,7 @@ pub fn court() -> CourtRun {
             parallel_threshold_bytes: 0,
             ..Default::default()
         };
-        match ParallelDecoder::decode_blocks(djobs.clone(), &cfg) {
+        match ParallelDecoder::new(cfg.clone()).decode_blocks(djobs.clone()) {
             Ok(dec) => {
                 let mut out = Vec::new();
                 for b in &dec.blocks {
@@ -318,7 +316,7 @@ pub fn court() -> CourtRun {
         max_in_flight_blocks: NonZeroUsize::new(64).unwrap(),
         ..Default::default()
     };
-    let r = ParallelDecoder::decode_streaming(slow_jobs.clone(), &slow_cfg);
+    let r = ParallelDecoder::new(slow_cfg.clone()).decode_streaming(slow_jobs.clone());
     let slow_outcome = match &r {
         Ok(dec) => {
             if dec.blocks.len() == 2000 {
@@ -358,9 +356,8 @@ pub fn court() -> CourtRun {
     // count (bounded collection semantics — the sink, not the API, retains).
     let count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let count2 = count.clone();
-    let r = ParallelDecoder::decode_with_sink(
+    let r = ParallelDecoder::new(sink_cfg.clone()).decode_with_sink(
         djobs.clone(),
-        &sink_cfg,
         None,
         move |b: ryg_rans_rs_parallel::DecodedBlockResult| {
             let _ = b;
@@ -430,7 +427,7 @@ pub fn court() -> CourtRun {
         parallel_threshold_bytes: 0,
         ..Default::default()
     };
-    let r = ParallelDecoder::decode_blocks(djobs.clone(), &cfg9);
+    let r = ParallelDecoder::new(cfg9.clone()).decode_blocks(djobs.clone());
     let mut out = Vec::new();
     if let Ok(dec) = &r {
         for b in &dec.blocks {
@@ -457,7 +454,7 @@ pub fn court() -> CourtRun {
         c2.cancel();
     });
     let r =
-        ParallelDecoder::decode_blocks_with_cancel(djobs.clone(), &out_cfg, Some(cancel.clone()));
+        ParallelDecoder::new(out_cfg.clone()).decode_blocks_with_cancel(djobs.clone(), Some(cancel.clone()));
     canceller.join().unwrap();
     add(
         &mut cases,

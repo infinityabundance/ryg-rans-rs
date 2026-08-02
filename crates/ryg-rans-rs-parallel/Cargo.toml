@@ -28,6 +28,11 @@ proptest = "1"
 [features]
 default = ["simd"]
 simd = ["ryg-rans-rs-simd"]
+# Timing instrumentation for the model cache (lookup wait, single-flight
+# wait, build time, lock hold time).  Off by default: production builds pay
+# zero timing overhead.  Never enabled under loom builds (Instant is not
+# modelled).
+cache-timing = []
 # Enables Linux sched_setaffinity worker pinning (requires unsafe libc calls).
 # Off by default to preserve #![forbid(unsafe_code)] in default builds.
 affinity = ["dep:libc"]

@@ -228,3 +228,174 @@ fn loom_reorder_commit_ascending() {
         let _ = buf;
     });
 }
+
+// ---------------------------------------------------------------------------
+// Model artifact cache — single-flight courts (Phase O.5/O.9)
+// ---------------------------------------------------------------------------
+//
+// These models compile the REAL cache (`ModelArtifactCache`) against loom's
+// primitives via `crate::sync`.  Each model asserts the single-flight
+// contract: exactly one construction per concurrent same-key cold burst, no
+// permanent `Building` state after failure or panic, and identical artifacts
+// for every caller.
+//
+// Run with the same command as the executor courts:
+//   RUSTFLAGS="--cfg loom" cargo test -p ryg-rans-rs-parallel \
+//     --features loom --release --test loom_tests
+
+use ryg_rans_rs_parallel::{
+    ModelArtifactBuildError, ModelArtifactCache, build_validated_model_artifacts,
+};
+
+/// Two threads request the same cold key: exactly one build, both receive
+/// the same artifact.
+#[test]
+fn loom_cache_two_same_key_requests_one_build() {
+    loom::model(|| {
+        let cache = ModelArtifactCache::bounded(8, 1 << 20);
+        let builds = Arc::new(loom::sync::atomic::AtomicUsize::new(0));
+        let (c1, b1) = (cache.clone(), builds.clone());
+        let t1 = loom::thread::spawn(move || {
+            c1.get_or_build(7, 12, &[], None, || {
+                b1.fetch_add(1, loom::sync::atomic::Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+        });
+        let (c2, b2) = (cache.clone(), builds.clone());
+        let t2 = loom::thread::spawn(move || {
+            c2.get_or_build(7, 12, &[], None, || {
+                b2.fetch_add(1, loom::sync::atomic::Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+        });
+        let r1 = t1.join().expect("t1");
+        let r2 = t2.join().expect("t2");
+        let a1 = r1.expect("build ok");
+        let a2 = r2.expect("build ok");
+        assert_eq!(a1.freqs.len(), 256);
+        assert_eq!(a2.freqs.len(), 256);
+        assert!(Arc::ptr_eq(&a1, &a2), "single-flight shares one artifact");
+        assert_eq!(
+            builds.load(loom::sync::atomic::Ordering::SeqCst),
+            1,
+            "exactly one construction"
+        );
+    });
+}
+
+/// Two different cold keys built concurrently: two builds, no cross-talk.
+#[test]
+fn loom_cache_different_keys_two_builds() {
+    loom::model(|| {
+        let cache = ModelArtifactCache::bounded(8, 1 << 20);
+        let t1 = loom::thread::spawn({
+            let cache = cache.clone();
+            move || {
+                cache
+                    .get_or_build(7, 12, &[], None, || {
+                        build_validated_model_artifacts(7, 12, &[])
+                    })
+                    .expect("k1")
+            }
+        });
+        let t2 = loom::thread::spawn({
+            let cache = cache.clone();
+            move || {
+                cache
+                    .get_or_build(8, 12, &[], None, || {
+                        build_validated_model_artifacts(8, 12, &[])
+                    })
+                    .expect("k2")
+            }
+        });
+        let a1 = t1.join().expect("t1");
+        let a2 = t2.join().expect("t2");
+        assert_eq!(a1.freqs.len(), 256);
+        assert_eq!(a2.freqs.len(), 256);
+        let m = cache.metrics();
+        assert_eq!(m.insertions, 2, "two distinct keys admitted");
+        assert_eq!(m.builds_started, 2);
+    });
+}
+
+/// A failing build with waiters: every caller receives the same typed error,
+/// nothing is admitted, and a later retry succeeds (no abandoned state).
+#[test]
+fn loom_cache_build_failure_releases_waiters() {
+    loom::model(|| {
+        let cache = ModelArtifactCache::bounded(8, 1 << 20);
+        let bad = [0u8; 100];
+        let t1 = loom::thread::spawn({
+            let cache = cache.clone();
+            move || {
+                cache
+                    .get_or_build(7, 12, &bad, None, || {
+                        build_validated_model_artifacts(7, 12, &bad)
+                    })
+                    .err()
+            }
+        });
+        let t2 = loom::thread::spawn({
+            let cache = cache.clone();
+            move || {
+                cache
+                    .get_or_build(7, 12, &bad, None, || {
+                        build_validated_model_artifacts(7, 12, &bad)
+                    })
+                    .err()
+            }
+        });
+        let e1 = t1.join().expect("t1");
+        let e2 = t2.join().expect("t2");
+        assert_eq!(e1, Some(ModelArtifactBuildError::InvalidFrequencyCount));
+        assert_eq!(e2, Some(ModelArtifactBuildError::InvalidFrequencyCount));
+        // Retry with a valid model: the key must not be stuck.
+        let ok = cache
+            .get_or_build(7, 12, &[], None, || build_validated_model_artifacts(7, 12, &[]))
+            .expect("retry succeeds");
+        assert_eq!(ok.freqs.len(), 256);
+        let m = cache.metrics();
+        assert_eq!(m.current_entries, 1);
+    });
+}
+
+/// A builder panic with waiters: the panic is caught, converted to a typed
+/// error, no permanent `Building` state survives, and a retry succeeds.
+#[test]
+fn loom_cache_builder_panic_releases_waiters() {
+    loom::model(|| {
+        let cache = ModelArtifactCache::bounded(8, 1 << 20);
+        let t1 = loom::thread::spawn({
+            let cache = cache.clone();
+            move || {
+                cache
+                    .get_or_build(7, 12, &[], None, || {
+                        panic!("deliberate builder panic");
+                    })
+                    .err()
+            }
+        });
+        let t2 = loom::thread::spawn({
+            let cache = cache.clone();
+            move || {
+                cache
+                    .get_or_build(7, 12, &[], None, || {
+                        panic!("deliberate builder panic");
+                    })
+                    .err()
+            }
+        });
+        let e1 = t1.join().expect("t1");
+        let e2 = t2.join().expect("t2");
+        // Every caller sees the same typed panic class (retry may have made
+        // one of them a successful builder of the *same* panicking key — but
+        // the panicking closure never succeeds, so both must be errors).
+        assert_eq!(e1, Some(ModelArtifactBuildError::Panicked));
+        assert_eq!(e2, Some(ModelArtifactBuildError::Panicked));
+        // Retry with a working builder: no abandoned Building state.
+        let ok = cache
+            .get_or_build(7, 12, &[], None, || build_validated_model_artifacts(7, 12, &[]))
+            .expect("retry after panic succeeds");
+        assert_eq!(ok.freqs.len(), 256);
+    });
+}

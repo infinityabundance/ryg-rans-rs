@@ -144,7 +144,7 @@ pub fn court() -> CourtRun {
         parallel_threshold_bytes: 0,
         ..Default::default()
     };
-    let r = ParallelDecoder::decode_blocks(djobs7.clone(), &cfg_sse);
+    let r = ParallelDecoder::new(cfg_sse.clone()).decode_blocks(djobs7.clone());
     let sse_ok = match &r {
         Ok(dec) => dec
             .blocks
@@ -182,7 +182,7 @@ pub fn court() -> CourtRun {
         parallel_threshold_bytes: 0,
         ..Default::default()
     };
-    let r = ParallelDecoder::decode_blocks(djobs8.clone(), &cfg_wrong);
+    let r = ParallelDecoder::new(cfg_wrong.clone()).decode_blocks(djobs8.clone());
     let mismatch = match &r {
         Err(ryg_rans_rs_parallel::ParallelError::DecodeFailed(inner))
             if inner.kind == BlockErrorKind::BackendFormatMismatch =>
@@ -210,7 +210,7 @@ pub fn court() -> CourtRun {
         parallel_threshold_bytes: 0,
         ..Default::default()
     };
-    let r = ParallelDecoder::decode_blocks(djobs7.clone(), &cfg_wrong16);
+    let r = ParallelDecoder::new(cfg_wrong16.clone()).decode_blocks(djobs7.clone());
     let mismatch = match &r {
         Err(ryg_rans_rs_parallel::ParallelError::DecodeFailed(inner))
             if inner.kind == BlockErrorKind::BackendFormatMismatch =>
@@ -238,7 +238,7 @@ pub fn court() -> CourtRun {
         parallel_threshold_bytes: 0,
         ..Default::default()
     };
-    let r = ParallelDecoder::decode_blocks(djobs8.clone(), &cfg_s16);
+    let r = ParallelDecoder::new(cfg_s16.clone()).decode_blocks(djobs8.clone());
     let exact = match &r {
         Ok(dec) => dec
             .blocks

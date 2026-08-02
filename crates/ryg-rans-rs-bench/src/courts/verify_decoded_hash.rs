@@ -161,7 +161,7 @@ pub fn court() -> CourtRun {
         block_index: 0,
         block_data: clean.clone(),
     }];
-    let r = ParallelVerifier::verify_blocks(vj, &cfg);
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(vj);
     add(
         &mut cases,
         "CASE.001",
@@ -176,12 +176,11 @@ pub fn court() -> CourtRun {
 
     // ---- Case 2: zero decoded hash under Strict → DecodedHashMissing -----
     let zero_decoded = rebuild(payload_sha, [0u8; 32]);
-    let r = ParallelVerifier::verify_blocks(
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(
         vec![VerifyBlockJob {
             block_index: 0,
             block_data: zero_decoded.clone(),
-        }],
-        &cfg,
+        }]
     );
     add(
         &mut cases,
@@ -207,12 +206,11 @@ pub fn court() -> CourtRun {
         integrity_policy: IntegrityPolicy::AllowLegacyUnsetDecodedHash,
         ..Default::default()
     };
-    let r = ParallelVerifier::verify_blocks(
+    let r = ParallelVerifier::new(legacy_cfg.clone()).verify_blocks(
         vec![VerifyBlockJob {
             block_index: 0,
             block_data: zero_decoded.clone(),
-        }],
-        &legacy_cfg,
+        }]
     );
     add(
         &mut cases,
@@ -239,12 +237,11 @@ pub fn court() -> CourtRun {
     let mut wrong_decoded = [0u8; 32];
     wrong_decoded[0] = 0xAA;
     let mismatched = rebuild(payload_sha, wrong_decoded);
-    let r = ParallelVerifier::verify_blocks(
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(
         vec![VerifyBlockJob {
             block_index: 0,
             block_data: mismatched.clone(),
-        }],
-        &cfg,
+        }]
     );
     add(
         &mut cases,
@@ -268,12 +265,11 @@ pub fn court() -> CourtRun {
     let mut corrupted = clean.clone();
     let last = corrupted.len() - 1;
     corrupted[last] ^= 0xFF;
-    let r = ParallelVerifier::verify_blocks(
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(
         vec![VerifyBlockJob {
             block_index: 0,
             block_data: corrupted.clone(),
-        }],
-        &cfg,
+        }]
     );
     add(
         &mut cases,
@@ -308,12 +304,11 @@ pub fn court() -> CourtRun {
     if model_len > 0 {
         model_corrupt[104] ^= 0x01;
     }
-    let r = ParallelVerifier::verify_blocks(
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(
         vec![VerifyBlockJob {
             block_index: 0,
             block_data: model_corrupt.clone(),
-        }],
-        &cfg,
+        }]
     );
     let model_corrupt_outcome = match r {
         // Model corruption must make the block FAIL with a typed error — the
@@ -346,12 +341,11 @@ pub fn court() -> CourtRun {
     // will not match either, and decoded-hash must be NotComputed.
     let mut truncated = clean.clone();
     truncated.truncate(clean.len() - 4);
-    let r = ParallelVerifier::verify_blocks(
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(
         vec![VerifyBlockJob {
             block_index: 0,
             block_data: truncated.clone(),
-        }],
-        &cfg,
+        }]
     );
     add(
         &mut cases,
@@ -449,7 +443,7 @@ pub fn court() -> CourtRun {
     let mut b1 = vj[1].block_data.clone();
     b1[72] ^= 0x02;
     vj[1].block_data = b1;
-    let r = ParallelVerifier::verify_blocks(vj, &cfg);
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(vj);
     add(
         &mut cases,
         "CASE.011",
@@ -483,7 +477,7 @@ pub fn court() -> CourtRun {
     let mut b2 = vj2[2].block_data.clone();
     b2[72] ^= 0x04;
     vj2[2].block_data = b2;
-    let r = ParallelVerifier::verify_blocks(vj2, &cfg);
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(vj2);
     add(
         &mut cases,
         "CASE.012",
@@ -510,19 +504,17 @@ pub fn court() -> CourtRun {
         backend_policy: BackendPolicy::Explicit(BackendId::Scalar16),
         ..Default::default()
     };
-    let r_scalar = ParallelVerifier::verify_blocks(
+    let r_scalar = ParallelVerifier::new(scalar_cfg.clone()).verify_blocks(
         vec![VerifyBlockJob {
             block_index: 0,
             block_data: mismatched.clone(),
-        }],
-        &scalar_cfg,
+        }]
     );
-    let r_auto = ParallelVerifier::verify_blocks(
+    let r_auto = ParallelVerifier::new(cfg.clone()).verify_blocks(
         vec![VerifyBlockJob {
             block_index: 0,
             block_data: mismatched.clone(),
-        }],
-        &cfg,
+        }]
     );
     let scalar_kind = match &r_scalar {
         Err(ParallelError::VerifyFailed(inner)) => inner.kind.clone(),
@@ -570,7 +562,7 @@ pub fn court() -> CourtRun {
             block_data: rebuild_at(1, payload_sha, [0u8; 32]),
         },
     ];
-    let r = ParallelVerifier::verify_blocks(mixed, &mixed_cfg);
+    let r = ParallelVerifier::new(mixed_cfg.clone()).verify_blocks(mixed);
     add(
         &mut cases,
         "CASE.015",

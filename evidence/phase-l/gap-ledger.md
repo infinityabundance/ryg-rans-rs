@@ -240,3 +240,44 @@ Each residual records: severity, affected files, reproduction, expected/actual b
 | M1-B | MEDIUM | Documentation seal gate | RESOLVED | `5c3f9ee` — `check_documentation_inventory` (32 artifacts) added as seal gate 22; documentation links / rustdoc / doctests gates verify cross-links |
 | N1-A | MEDIUM | Phase N navigation and knowledge architecture (inventory, 11 guides, 8 maps in mermaid + SVG, knowledge graph, 11-chapter atlas, 6 articles, history timelines, story, failure encyclopedia, ADR explorer, commentary guide, reading paths, search indexes, contributing guides, README portal/identity) | RESOLVED | `a751c63` — seal gate 23 (`check_navigation_inventory`, 48 artifacts) with content gates (atlas purpose + mermaid, guide purpose/prerequisites, article abstract, SVG well-formedness); history receipt timeline corrected to the real families (120 oracle + 24 SIMD + 14 L = 158); contributing evidence-exceptions text now cites the actual source-freshness gate; docs/ and xtask/ are source-freshness allowlist entries, so the sealed evidence re-seals unchanged (run `phase-l-20260802e` binding verified) |
 | L22-E | MEDIUM | Release v0.4.1 (patch per semver-checks: Phase N changed docs and seal tooling only; all seven publishable crates report "no semver update required" against the published 0.4.0) | RESOLVED | `6264b53` (version decision) — full evidence regenerated at the 0.4.1 commit (run `phase-l-20260802f`, 800×100, 800 preflight records, 158 behavioural receipts at code_commit 6264b53, Docker matrix `ci-20260802-6264b53` 11/11); all seven crates published at 0.4.1 in dependency order (core, casefile, simd, facade, parallel, cli, oracle) from the sealed commit `b932143`; annotated tag `v0.4.1` at the sealed release commit; full seal gate green |
+
+## Phase O — audit record correction and residual ledger
+
+### Rejected finding (audit-method lesson)
+
+```text
+Original claim:
+ModelCache had no production construction, lookup, or insertion path.
+
+Disposition:
+Rejected as factually incorrect.
+
+Root cause:
+The audit searched for literal ModelCache type references but did not trace
+the cached_model_artifacts() wrapper used by decode.rs.
+
+Verified production path:
+decode_single_block
+→ cached_model_artifacts
+→ cache lookup
+→ miss construction
+→ insertion
+→ execute_decode_plan
+→ borrowed Arc<PackedWordTable>
+```
+
+Lesson: literal type-name reachability search is insufficient.  Trace
+wrapper functions and downstream artifact consumption.
+
+| ID | Severity | Issue | Status | Resolution |
+|----|----------|-------|--------|------------|
+| MODEL_CACHE.BOUND.1 | HIGH | Incorrect eviction byte accounting: insert() subtracts the *incoming* entry's size for every eviction, so `current_bytes` drifts whenever entry sizes differ | RESOLVED | `MODEL_CACHE.BOUND.1` fixed in the Phase O cache core — exact per-entry `accounted_bytes`; eviction subtracts the evicted entry's exact bytes; `invariant_check` recomputes the sum independently; mixed-size unit tests + shadow-model proptest; ADR-0016|
+| MODEL_CACHE.BOUND.2 | HIGH | Oversized entries exceed `max_total_bytes`: an entry larger than the whole budget evicts everything and is then retained, violating `current_bytes <= max_total_bytes` | RESOLVED | `MODEL_CACHE.BOUND.2` fixed in the Phase O cache core — `entry_bytes > max_total_bytes` → `RejectedOversized` with NO eviction; the artifact is still delivered for the current decode; ADR-0016|
+| MODEL_CACHE.BOUND.3 | HIGH | `max_entries == 0` still admits an entry (evict loop breaks on empty queue, then push_back runs) | RESOLVED | `MODEL_CACHE.BOUND.3` fixed in the Phase O cache core — `max_entries == 0 OR max_total_bytes == 0` → disabled; `RejectedDisabled`, nothing retained, `disabled_bypasses` metric; ADR-0016|
+| MODEL_CACHE.RACE.1 | HIGH | Concurrent cold misses duplicate expensive construction: the build runs outside the lock with no single-flight, so N cold same-key requests build the packed table N times | RESOLVED | `MODEL_CACHE.RACE.1` fixed in the Phase O cache core — per-key `Building` marker + condvar single-flight: N same-key cold requests → exactly one build (loom + real-thread courts); ADR-0016|
+| MODEL_CACHE.RACE.2 | HIGH | Duplicate keys can occupy multiple entries: insert() never checks for an existing key, so concurrent builders insert the same key twice | RESOLVED | `MODEL_CACHE.RACE.2` fixed in the Phase O cache core — HashMap keyed by `ModelCacheKey` + FIFO `VecDeque`; replacement removes the old entry first (exact subtraction); queue/map set equality tested; ADR-0016|
+| MODEL_CACHE.AVAILABILITY.1 | MEDIUM | Cache synchronization failure can become a false Model error: `cache.lock().ok()?` converts a poisoned lock into `None`, which decode maps to `BlockErrorKind::Model` | RESOLVED | `MODEL_CACHE.AVAILABILITY.1` fixed in the Phase O cache core — `ModelCacheError::Synchronization` → `uncached_fallbacks` metric + direct construction with the same canonical constructor; never mapped to a model error; ADR-0016|
+| MODEL_CACHE.METRICS.1 | MEDIUM | Production cache behavior is not observable: no lookups/hits/misses/builds/evictions/bytes counters exist | RESOLVED | `MODEL_CACHE.METRICS.1` fixed in the Phase O cache core — `ModelCacheMetricsSnapshot` (lookups/hits/misses/builds/coalesced/insertions/replacements/evictions/oversized/disabled/bypasses/current+peak entries+bytes) with O.8 invariants; ADR-0016|
+| MODEL_CACHE.CONTENTION.1 | MEDIUM | Global synchronization cost is unmeasured: the process-global Mutex cache has no lock-wait or hold-time instrumentation | RESOLVED | `MODEL_CACHE.CONTENTION.1` fixed in the Phase O cache core — ownership moved to `ModelArtifactCache` with short metadata-lock + outside-lock build; lock wait/hold timing behind the `cache-timing` feature; O.16 measures contention; ADR-0016|
+| MODEL_CACHE.PERF.1 | MEDIUM | Cold-versus-warm benefit is not isolated experimentally: the implicit process-global cache makes cold/warm benchmarking ambiguous | RESOLVED | `MODEL_CACHE.PERF.1` fixed in the Phase O cache core — explicit owner (ADR-0016) makes cold/warm measurement unambiguous: cold = fresh decoder, warm = reused instance; O.14 benchmarks measure both; ADR-0016|
+| MODEL_CACHE.WORKLOAD.1 | MEDIUM | No versioned public-corpus cache workload exists: no deterministic derivation from Canterbury/enwik/Pizza&Chili sources, no block-size/model-reuse schedules | OPEN | |

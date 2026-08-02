@@ -343,7 +343,7 @@ pub fn court() -> CourtRun {
             .collect(),
         Err(_) => Vec::new(),
     };
-    let r = ParallelDecoder::decode_blocks(djobs, &scalar_cfg);
+    let r = ParallelDecoder::new(scalar_cfg.clone()).decode_blocks(djobs);
     let simd_off = match &r {
         Ok(dec) => dec.blocks.iter().all(|b| !is_simd_backend(b.backend)),
         Err(_) => false,
@@ -382,12 +382,11 @@ pub fn court() -> CourtRun {
         parallel_threshold_bytes: 0,
         ..Default::default()
     };
-    let r = ParallelDecoder::decode_blocks(
+    let r = ParallelDecoder::new(conflict.clone()).decode_blocks(
         vec![DecodeBlockJob {
             block_index: 0,
             block_data: conflict_block,
-        }],
-        &conflict,
+        }]
     );
     let conflict_out = match &r {
         Err(ParallelError::DecodeFailed(inner))

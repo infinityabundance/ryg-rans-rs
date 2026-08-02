@@ -166,13 +166,14 @@ fn stream_hash_of(blocks: &[DecodedBlockResult]) -> [u8; 32] {
 
 /// A single decode task dispatched to the bounded executor.
 ///
-/// Wraps a `DecodeBlockJob` together with the `ParallelConfig` so that every
-/// worker thread carries its own copy of configuration (clone-on-dispatch).
-/// This avoids shared-mutable-state contention and allows the executor to
-/// treat tasks as fully independent units of work.
+/// Wraps a `DecodeBlockJob` together with the `ParallelConfig` and the
+/// explicitly owned model artifact cache so that every worker thread carries
+/// its own copy of configuration (clone-on-dispatch) and shares one cache
+/// instance (Phase O.4 — cache ownership is explicit, never process-global).
 struct DecodeTask {
     job: DecodeBlockJob,
     config: ParallelConfig,
+    model_cache: crate::sync::Arc<crate::cache::ModelArtifactCache>,
 }
 
 impl ExecutorTask for DecodeTask {
@@ -196,7 +197,7 @@ impl ExecutorTask for DecodeTask {
             block_index: self.job.block_index,
             kind: BlockErrorKind::Codec,
         })?;
-        decode_single_block(&self.job, &self.config)
+        decode_single_block(&self.job, &self.config, &self.model_cache, Some(cancel))
     }
 
     fn block_index(&self) -> Option<u64> {
@@ -281,6 +282,8 @@ impl ExecutorTask for DecodeTask {
 pub fn decode_single_block(
     job: &DecodeBlockJob,
     config: &ParallelConfig,
+    model_cache: &crate::cache::ModelArtifactCache,
+    cancel: Option<&CancellationToken>,
 ) -> Result<DecodedBlockResult, BlockError> {
     let data = &job.block_data;
     let bi = job.block_index;
@@ -336,58 +339,20 @@ pub fn decode_single_block(
     // correct).
     let codec_id = header.codec_id;
     let scale = header.scale_bits;
-    let artifacts = crate::cache::cached_model_artifacts(codec_id, scale, model_data, || {
-        let freqs: Vec<u32> = if model_len >= 1024 {
-            model_data
-                .chunks_exact(4)
-                .take(256)
-                .map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]]))
-                .collect()
-        } else {
-            // Zero model length — use uniform model
-            let total = 1u32 << scale;
-            let uniform_freq = total / 256;
-            vec![uniform_freq; 256]
-        };
-
-        if freqs.len() != 256 {
-            return None;
-        }
-
-        // Validate that frequencies sum to expected total
-        let expected_total = 1u32 << scale;
-        let sum: u64 = freqs.iter().map(|&f| f as u64).sum();
-        if sum != expected_total as u64 {
-            return None;
-        }
-
-        // Uniform256 detection: all frequencies == 16 at scale_bits == 12.
-        let uniform256 = scale == 12 && freqs.iter().all(|&f| f == 16);
-
-        // Build the packed word table once per unique model (SIMD builds).
-        // `None` here means the model cannot build a word table (scale != 12
-        // or a zero-frequency symbol): the executor fails with the identical
-        // `Model` error it would have produced building locally, so caching
-        // never changes error identity.
-        #[cfg(feature = "simd")]
-        let packed_table = {
-            let cum = build_cum_freqs(&freqs);
-            ryg_rans_rs_simd::packed_table::PackedWordTable::from_freqs(&freqs, &cum, scale as u32)
-                .ok()
-                .map(std::sync::Arc::new)
-        };
-
-        Some(crate::cache::ValidatedModelArtifacts {
-            freqs: std::sync::Arc::new(freqs),
-            uniform256,
-            #[cfg(feature = "simd")]
-            packed_table,
+    // Model artifacts come from the explicitly owned cache (Phase O.4).  The
+    // cache memoizes the single canonical constructor
+    // (build_validated_model_artifacts) so the expensive packed-table build
+    // happens once per unique model; a miss, a disabled cache, or a
+    // cache-internal failure all run the same constructor, so decode
+    // semantics never depend on the cache (Phase O.6 — cache failure is
+    // never reported as a malformed model).  The worker's cancellation token
+    // is passed so a cancelled waiter can stop waiting without corrupting
+    // the shared build (Phase O.5).
+    let artifacts = model_cache
+        .get_or_build(codec_id, scale, model_data, cancel, || {
+            crate::cache::build_validated_model_artifacts(codec_id, scale, model_data)
         })
-    })
-    .ok_or(BlockError {
-        block_index: bi,
-        kind: BlockErrorKind::Model,
-    })?;
+        .map_err(|e| map_model_build_error(e, bi))?;
 
     // The artifacts are Arc-shared: `freqs` is the validated frequency
     // vector and `packed_table` (SIMD builds) the shared 16 KiB word table.
@@ -496,6 +461,31 @@ pub fn decode_single_block(
         final_states: executed.final_states,
         elapsed_ns: None,
     })
+}
+
+/// Map a block-independent model artifact build error to a block-indexed
+/// `BlockError` (Phase O.5/O.7).
+///
+/// Model invalidity (count/sum/scale/table) is reported as `Model` — the
+/// same error class the uncached path produces, so caching never changes
+/// error identity.  A builder panic follows the project's canonical
+/// panic/error policy (`WorkerPanic` with the block index).  Cancellation is
+/// reported as `Codec` (the executor discards per-block errors on the
+/// cancelled path and surfaces `ParallelError::Cancelled` via the
+/// completeness invariant) — it is never a model error.
+fn map_model_build_error(e: crate::cache::ModelArtifactBuildError, bi: u64) -> BlockError {
+    let kind = match e {
+        crate::cache::ModelArtifactBuildError::InvalidFrequencyCount
+        | crate::cache::ModelArtifactBuildError::InvalidFrequencySum
+        | crate::cache::ModelArtifactBuildError::UnsupportedScale
+        | crate::cache::ModelArtifactBuildError::PackedTableConstruction => BlockErrorKind::Model,
+        crate::cache::ModelArtifactBuildError::Panicked => BlockErrorKind::WorkerPanic,
+        crate::cache::ModelArtifactBuildError::Cancelled => BlockErrorKind::Codec,
+    };
+    BlockError {
+        block_index: bi,
+        kind,
+    }
 }
 
 /// The result of executing a decode plan — the ground truth, not the plan.
@@ -1336,13 +1326,30 @@ fn find_symbol_from_freqs(freqs: &[u32], slot: usize) -> u8 {
 /// ## Usage
 ///
 /// ```ignore
-/// let decoded = ParallelDecoder::decode_blocks(jobs, &config)?;
+/// let decoder = ParallelDecoder::new(config);
+/// let decoded = decoder.decode_blocks(jobs)?;
 /// ```
 ///
 /// All decode jobs must have been produced by the encoder pipeline with the
 /// same `ParallelConfig` parameters (frequency model, codec policy, etc.)
 /// that will be used for decoding.
-pub struct ParallelDecoder;
+///
+/// # Explicit cache ownership (Phase O.4, ADR-0016)
+///
+/// A `ParallelDecoder` owns its [`ModelArtifactCache`] explicitly.  There is
+/// no process-global cache: cold runs construct a fresh decoder (hence a
+/// fresh cache), warm runs reuse one instance, tests inject tiny budgets,
+/// and applications isolate tenants.  [`ParallelDecoder::new`] creates the
+/// default bounded cache (64 entries, 16 MiB — the pre-Phase-O global
+/// defaults); [`ParallelDecoder::with_model_cache`] accepts a caller-owned
+/// cache (e.g. [`ModelArtifactCache::disabled`] for the semantic baseline,
+/// or a budgeted instance for measurement).
+pub struct ParallelDecoder {
+    /// The configuration for every decode issued through this decoder.
+    config: ParallelConfig,
+    /// The explicitly owned model artifact cache (Phase O.4).
+    model_cache: crate::sync::Arc<crate::cache::ModelArtifactCache>,
+}
 
 /// Reorder-buffer block bound for a parallel decode.
 ///
@@ -1359,6 +1366,47 @@ fn reorder_block_bound(config: &crate::config::ParallelConfig, workers: usize) -
 }
 
 impl ParallelDecoder {
+    /// Create a decoder with the default bounded model artifact cache
+    /// (64 entries, 16 MiB — the pre-Phase-O global defaults, now explicit).
+    ///
+    /// Each call creates a *fresh* cache instance: a cold decoder starts
+    /// cold.  Reuse the same decoder (or pass a shared cache via
+    /// [`Self::with_model_cache`]) for warm measurement.
+    pub fn new(config: ParallelConfig) -> Self {
+        Self {
+            config,
+            model_cache: crate::cache::ModelArtifactCache::bounded(
+                64,
+                16 * 1024 * 1024,
+            ),
+        }
+    }
+
+    /// Create a decoder with a caller-owned model artifact cache (Phase O.4).
+    ///
+    /// Use [`crate::cache::ModelArtifactCache::disabled`] for the semantic
+    /// baseline (direct construction, nothing retained) and a budgeted
+    /// instance for tests, tenant isolation, or controlled measurement.
+    pub fn with_model_cache(
+        config: ParallelConfig,
+        model_cache: crate::sync::Arc<crate::cache::ModelArtifactCache>,
+    ) -> Self {
+        Self { config, model_cache }
+    }
+
+    /// The configuration this decoder executes with.
+    pub fn config(&self) -> &ParallelConfig {
+        &self.config
+    }
+
+    /// The explicitly owned model artifact cache.
+    ///
+    /// Read [`crate::cache::ModelCacheMetricsSnapshot`] from it for
+    /// hit/miss/build/eviction observability (Phase O.8).
+    pub fn model_cache(&self) -> &crate::sync::Arc<crate::cache::ModelArtifactCache> {
+        &self.model_cache
+    }
+
     /// Decode all blocks in parallel and return them in ascending order.
     ///
     /// This method materialises all jobs into a `Vec` immediately, then
@@ -1401,10 +1449,10 @@ impl ParallelDecoder {
     /// same backend, independent of thread scheduling.
 
     pub fn decode_blocks(
+        &self,
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
-        config: &ParallelConfig,
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
-        Self::decode_blocks_with_cancel(blocks, config, None)
+        self.decode_blocks_with_cancel(blocks, None)
     }
 
     /// Decode all blocks in parallel with an optional external cancellation token.
@@ -1414,8 +1462,8 @@ impl ParallelDecoder {
     /// complete, returns [`ParallelError::Cancelled`] with completion counts.
     /// Never returns `Ok` with fewer blocks than declared.
     pub fn decode_blocks_with_cancel(
+        &self,
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
-        config: &ParallelConfig,
         external_cancel: Option<crate::sync::Arc<crate::cancellation::CancellationToken>>,
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
         let jobs: Vec<DecodeBlockJob> = blocks.into_iter().collect();
@@ -1440,10 +1488,10 @@ impl ParallelDecoder {
         // Checked BEFORE the sequential threshold so the budget is enforced
         // on every path (parallel and sequential).
         let input_bytes: u64 = jobs.iter().map(|j| j.block_data.len() as u64).sum();
-        if input_bytes > config.max_buffered_input_bytes {
+        if input_bytes > self.config.max_buffered_input_bytes {
             return Err(ParallelError::ResourceLimit(format!(
                 "max_buffered_input_bytes exceeded: {} > {}",
-                input_bytes, config.max_buffered_input_bytes
+                input_bytes, self.config.max_buffered_input_bytes
             )));
         }
 
@@ -1451,18 +1499,19 @@ impl ParallelDecoder {
         // Below the threshold, run the decode inline on the calling thread
         // without spawning a worker pool (thread spawn + queue overhead
         // exceeds any parallel gain for small inputs).
-        if input_bytes < config.parallel_threshold_bytes {
+        if input_bytes < self.config.parallel_threshold_bytes {
             let tasks: Vec<DecodeTask> = jobs
                 .into_iter()
                 .map(|j| DecodeTask {
                     job: j,
-                    config: config.clone(),
+                    config: self.config.clone(),
+                    model_cache: self.model_cache.clone(),
                 })
                 .collect();
             let report = crate::executor::run_tasks_sequential(tasks, external_cancel)?;
             let mut reorder = ReorderBuffer::new(
-                config.max_in_flight_blocks.get(),
-                config.max_buffered_output_bytes,
+                self.config.max_in_flight_blocks.get(),
+                self.config.max_buffered_output_bytes,
             );
             let mut ordered = Vec::with_capacity(bc);
             let mut et = crate::error::CanonicalErrorTracker::new();
@@ -1503,14 +1552,15 @@ impl ParallelDecoder {
             });
         }
 
-        let wc = crate::resource::effective_worker_count(config, bc)?;
-        let qc = config.max_in_flight_blocks.get().max(wc);
+        let wc = crate::resource::effective_worker_count(&self.config, bc)?;
+        let qc = self.config.max_in_flight_blocks.get().max(wc);
 
         let tasks: Vec<DecodeTask> = jobs
             .into_iter()
             .map(|j| DecodeTask {
                 job: j,
-                config: config.clone(),
+                config: self.config.clone(),
+                model_cache: self.model_cache.clone(),
             })
             .collect();
 
@@ -1522,16 +1572,16 @@ impl ParallelDecoder {
                 tasks,
                 wc,
                 qc,
-                config.worker_stack_size,
+                self.config.worker_stack_size,
                 external_cancel,
-                config.affinity.clone(),
+                self.config.affinity.clone(),
             )?;
 
         let effective_workers = report.effective_workers;
 
         let mut reorder = ReorderBuffer::new(
-            reorder_block_bound(config, effective_workers),
-            config.max_buffered_output_bytes,
+            reorder_block_bound(&self.config, effective_workers),
+            self.config.max_buffered_output_bytes,
         );
         let mut ordered = Vec::with_capacity(bc);
         let mut et = crate::error::CanonicalErrorTracker::new();
@@ -1624,10 +1674,10 @@ impl ParallelDecoder {
     /// cancellation if an error is detected in one block while others are
     /// still in flight.
     pub fn decode_streaming(
+        &self,
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
-        config: &ParallelConfig,
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
-        Self::decode_streaming_with_cancel(blocks, config, None)
+        self.decode_streaming_with_cancel(blocks, None)
     }
 
     /// Streaming decode with an optional external cancellation token.
@@ -1636,8 +1686,8 @@ impl ParallelDecoder {
     /// caller-owned [`CancellationToken`].  Never returns `Ok` with fewer
     /// blocks than declared.
     pub fn decode_streaming_with_cancel(
+        &self,
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
-        config: &ParallelConfig,
         external_cancel: Option<crate::sync::Arc<crate::cancellation::CancellationToken>>,
     ) -> Result<OrderedDecodedBlocks, ParallelError> {
         let jobs: Vec<DecodeBlockJob> = blocks.into_iter().collect();
@@ -1658,15 +1708,15 @@ impl ParallelDecoder {
         }
 
         let bc = jobs.len();
-        let wc = crate::resource::effective_worker_count(config, bc)?;
-        let qc = config.max_in_flight_blocks.get().max(wc);
+        let wc = crate::resource::effective_worker_count(&self.config, bc)?;
+        let qc = self.config.max_in_flight_blocks.get().max(wc);
 
         // ---- max_buffered_input_bytes enforcement (streaming) ----
         let input_bytes: u64 = jobs.iter().map(|j| j.block_data.len() as u64).sum();
-        if input_bytes > config.max_buffered_input_bytes {
+        if input_bytes > self.config.max_buffered_input_bytes {
             return Err(ParallelError::ResourceLimit(format!(
                 "max_buffered_input_bytes exceeded: {} > {}",
-                input_bytes, config.max_buffered_input_bytes
+                input_bytes, self.config.max_buffered_input_bytes
             )));
         }
 
@@ -1679,18 +1729,19 @@ impl ParallelDecoder {
             .into_iter()
             .map(|j| DecodeTask {
                 job: j,
-                config: config.clone(),
+                config: self.config.clone(),
+                model_cache: self.model_cache.clone(),
             })
             .collect();
 
         let report: ExecutorReport<Result<DecodedBlockResult, BlockError>> =
-            run_tasks(tasks, wc, qc, config.worker_stack_size, external_cancel)?;
+            run_tasks(tasks, wc, qc, self.config.worker_stack_size, external_cancel)?;
 
         let effective_workers = report.effective_workers;
 
         let mut reorder = ReorderBuffer::new(
-            reorder_block_bound(config, effective_workers),
-            config.max_buffered_output_bytes,
+            reorder_block_bound(&self.config, effective_workers),
+            self.config.max_buffered_output_bytes,
         );
         let mut ordered = Vec::with_capacity(bc);
         let mut et = crate::error::CanonicalErrorTracker::new();
@@ -1770,8 +1821,8 @@ impl ParallelDecoder {
     /// Returns [`ParallelError::Cancelled`] if cancelled before all blocks
     /// complete; never returns `Ok` with fewer blocks delivered to the sink.
     pub fn decode_with_sink<F>(
+        &self,
         blocks: impl IntoIterator<Item = DecodeBlockJob>,
-        config: &ParallelConfig,
         external_cancel: Option<crate::sync::Arc<crate::cancellation::CancellationToken>>,
         sink: F,
     ) -> Result<ExecutorReport<Result<DecodedBlockResult, BlockError>>, ParallelError>
@@ -1792,14 +1843,14 @@ impl ParallelDecoder {
                 |_r: Result<DecodedBlockResult, BlockError>| {},
             );
         }
-        let wc = crate::resource::effective_worker_count(config, bc)?;
-        let qc = config.max_in_flight_blocks.get().max(wc);
+        let wc = crate::resource::effective_worker_count(&self.config, bc)?;
+        let qc = self.config.max_in_flight_blocks.get().max(wc);
 
         let input_bytes: u64 = jobs.iter().map(|j| j.block_data.len() as u64).sum();
-        if input_bytes > config.max_buffered_input_bytes {
+        if input_bytes > self.config.max_buffered_input_bytes {
             return Err(ParallelError::ResourceLimit(format!(
                 "max_buffered_input_bytes exceeded: {} > {}",
-                input_bytes, config.max_buffered_input_bytes
+                input_bytes, self.config.max_buffered_input_bytes
             )));
         }
 
@@ -1807,7 +1858,8 @@ impl ParallelDecoder {
             .into_iter()
             .map(|j| DecodeTask {
                 job: j,
-                config: config.clone(),
+                config: self.config.clone(),
+                model_cache: self.model_cache.clone(),
             })
             .collect();
 
@@ -1816,8 +1868,8 @@ impl ParallelDecoder {
         // The sink closure runs on the coordinator thread and must be Send,
         // so share the reorder buffer and error tracker through Arc<Mutex>.
         let reorder = crate::sync::Arc::new(crate::sync::Mutex::new(ReorderBuffer::new(
-            reorder_block_bound(config, wc),
-            config.max_buffered_output_bytes,
+            reorder_block_bound(&self.config, wc),
+            self.config.max_buffered_output_bytes,
         )));
         let et = crate::sync::Arc::new(crate::sync::Mutex::new(
             crate::error::CanonicalErrorTracker::new(),
@@ -1831,7 +1883,7 @@ impl ParallelDecoder {
             tasks,
             wc,
             qc,
-            config.worker_stack_size,
+            self.config.worker_stack_size,
             external_cancel,
             move |result: Result<DecodedBlockResult, BlockError>| {
                 // Mutex-poisoning note (Phase L.12): these locks are held only
@@ -1913,6 +1965,11 @@ mod tests {
         d
     }
 
+    /// Fresh bounded cache for unit tests (explicit ownership, Phase O.4).
+    fn test_cache() -> crate::sync::Arc<crate::cache::ModelArtifactCache> {
+        crate::cache::ModelArtifactCache::bounded(16, 1 << 20)
+    }
+
     #[test]
     fn test_roundtrip_uniform256() {
         let d = uniform256();
@@ -1924,12 +1981,15 @@ mod tests {
             12,
         );
         let e = encode_single_block(j).expect("encode");
+        let cache = crate::cache::ModelArtifactCache::bounded(8, 1 << 20);
         let dec = decode_single_block(
             &DecodeBlockJob {
                 block_index: 0,
                 block_data: e.block,
             },
             &ParallelConfig::default(),
+            &cache,
+            None,
         )
         .expect("decode");
         assert_eq!(dec.output, d);
@@ -1946,12 +2006,15 @@ mod tests {
             12,
         );
         let e = encode_single_block(j).expect("encode");
+        let cache = crate::cache::ModelArtifactCache::bounded(8, 1 << 20);
         let dec = decode_single_block(
             &DecodeBlockJob {
                 block_index: 0,
                 block_data: e.block,
             },
             &ParallelConfig::default(),
+            &cache,
+            None,
         )
         .expect("decode");
         assert_eq!(dec.output, d);
@@ -1993,7 +2056,7 @@ mod tests {
                 block_data: b.block.clone(),
             })
             .collect();
-        let dec = ParallelDecoder::decode_blocks(dj, &cfg).expect("decode");
+        let dec = ParallelDecoder::new(cfg.clone()).decode_blocks(dj).expect("decode");
         let mut full = Vec::new();
         for b in &dec.blocks {
             full.extend_from_slice(&b.output);
@@ -2047,6 +2110,8 @@ mod tests {
                 block_data: tampered,
             },
             &ParallelConfig::default(), // Strict is the default
+            &test_cache(),
+            None,
         );
         match result {
             Err(BlockError {
@@ -2084,6 +2149,8 @@ mod tests {
                 block_data: tampered,
             },
             &cfg,
+            &test_cache(),
+            None,
         )
         .expect("decode with zero hash under legacy policy should succeed");
         assert!(
@@ -2115,6 +2182,8 @@ mod tests {
                 block_data: tampered,
             },
             &ParallelConfig::default(),
+            &test_cache(),
+            None,
         );
         match result {
             Err(BlockError {
@@ -2147,6 +2216,8 @@ mod tests {
                 block_data: tampered,
             },
             &ParallelConfig::default(),
+            &test_cache(),
+            None,
         );
         match result {
             Err(BlockError {
@@ -2177,6 +2248,8 @@ mod tests {
                 block_data: truncated,
             },
             &ParallelConfig::default(),
+            &test_cache(),
+            None,
         );
         assert!(result.is_err(), "truncated block must be rejected");
     }
@@ -2198,6 +2271,8 @@ mod tests {
                 block_data: e.block,
             },
             &ParallelConfig::default(),
+            &test_cache(),
+            None,
         )
         .expect("decode empty");
         assert_eq!(dec.output, d);
@@ -2241,7 +2316,7 @@ mod tests {
                 .collect()
         };
 
-        let dec1 = ParallelDecoder::decode_blocks(jobs1, &cfg1).expect("decode 1t");
+        let dec1 = ParallelDecoder::new(cfg1.clone()).decode_blocks(jobs1).expect("decode 1t");
         let mut full1 = Vec::new();
         for b in &dec1.blocks {
             full1.extend_from_slice(&b.output);
@@ -2279,6 +2354,8 @@ mod tests {
                 block_data: block.to_vec(),
             },
             &cfg,
+            &test_cache(),
+            None,
         )
     }
 
@@ -2353,6 +2430,8 @@ mod tests {
                 block_data: block.clone(),
             },
             &cfg,
+            &test_cache(),
+            None,
         )
         .expect("ModelAware decode of uniform256 must succeed");
         assert_eq!(tf.backend, BackendId::Uniform256TableFree16);
@@ -2475,6 +2554,8 @@ mod tests {
                 block_data: block,
             },
             &cfg,
+            &test_cache(),
+            None,
         )
         .expect_err("disable_simd + explicit SIMD must be a typed conflict");
         assert_eq!(e.kind, BlockErrorKind::BackendUnavailable);
@@ -2528,6 +2609,8 @@ mod tests {
                         block_data: truncated,
                     },
                     &ParallelConfig::default(),
+                    &test_cache(),
+                    None,
                 );
                 assert!(
                     r.is_err(),
@@ -2555,6 +2638,8 @@ mod tests {
                         block_data: mutated,
                     },
                     &ParallelConfig::default(),
+                    &test_cache(),
+                    None,
                 );
                 assert!(
                     r.is_err(),
@@ -2584,6 +2669,8 @@ mod tests {
                     block_data: mutated,
                 },
                 &ParallelConfig::default(),
+                &test_cache(),
+                None,
             );
             match r {
                 Err(_) => {} // typed rejection is the expected outcome
@@ -2728,11 +2815,8 @@ mod tests {
         let jobs = sample_decode_jobs(4);
         let ct = crate::cancellation::CancellationToken::new();
         ct.cancel();
-        let r = ParallelDecoder::decode_blocks_with_cancel(
-            jobs,
-            &ParallelConfig::default(),
-            Some(crate::sync::Arc::new(ct)),
-        );
+        let r = ParallelDecoder::new(ParallelConfig::default())
+            .decode_blocks_with_cancel(jobs, Some(crate::sync::Arc::new(ct)));
         match r {
             Err(ParallelError::Cancelled {
                 completed,
@@ -2759,8 +2843,8 @@ mod tests {
             threads: crate::ThreadCount::Exact(std::num::NonZeroUsize::new(2).unwrap()),
             ..Default::default()
         };
-        let r =
-            ParallelDecoder::decode_blocks_with_cancel(jobs, &cfg, Some(crate::sync::Arc::new(ct)));
+        let r = ParallelDecoder::new(cfg)
+            .decode_blocks_with_cancel(jobs, Some(crate::sync::Arc::new(ct)));
         match r {
             Err(ParallelError::Cancelled {
                 completed,
@@ -2785,11 +2869,8 @@ mod tests {
             parallel_threshold_bytes: 0,
             ..Default::default()
         };
-        let r = ParallelDecoder::decode_streaming_with_cancel(
-            jobs,
-            &cfg,
-            Some(crate::sync::Arc::new(ct)),
-        );
+        let r = ParallelDecoder::new(cfg)
+            .decode_streaming_with_cancel(jobs, Some(crate::sync::Arc::new(ct)));
         match r {
             Err(ParallelError::Cancelled {
                 completed,
@@ -2820,9 +2901,8 @@ mod tests {
         // an Arc'd atomic rather than a borrowed counter.
         let delivered = std::sync::Arc::new(AtomicUsize::new(0));
         let delivered_rc = delivered.clone();
-        let r = ParallelDecoder::decode_with_sink(
+        let r = ParallelDecoder::new(cfg).decode_with_sink(
             jobs,
-            &cfg,
             Some(crate::sync::Arc::new(ct)),
             move |_b| {
                 delivered_rc.fetch_add(1, Ordering::SeqCst);

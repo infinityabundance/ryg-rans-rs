@@ -147,13 +147,10 @@ pub fn court() -> CourtRun {
         threads: ThreadCount::Exact(NonZeroUsize::new(1).unwrap()),
         ..Default::default()
     };
-    let r = ParallelVerifier::verify_blocks(
-        vec![VerifyBlockJob {
-            block_index: 0,
-            block_data: zero_decoded.clone(),
-        }],
-        &cfg,
-    );
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(vec![VerifyBlockJob {
+        block_index: 0,
+        block_data: zero_decoded.clone(),
+    }]);
     add(
         &mut cases,
         "CASE.002",
@@ -170,13 +167,10 @@ pub fn court() -> CourtRun {
     );
 
     // ---- Case 3: Strict rejects mismatched nonzero decoded hash -----------
-    let r = ParallelVerifier::verify_blocks(
-        vec![VerifyBlockJob {
-            block_index: 0,
-            block_data: mismatched.clone(),
-        }],
-        &cfg,
-    );
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(vec![VerifyBlockJob {
+        block_index: 0,
+        block_data: mismatched.clone(),
+    }]);
     add(
         &mut cases,
         "CASE.003",
@@ -193,13 +187,10 @@ pub fn court() -> CourtRun {
     );
 
     // ---- Case 4: Strict passes matching nonzero decoded hash --------------
-    let r = ParallelVerifier::verify_blocks(
-        vec![VerifyBlockJob {
-            block_index: 0,
-            block_data: clean.clone(),
-        }],
-        &cfg,
-    );
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(vec![VerifyBlockJob {
+        block_index: 0,
+        block_data: clean.clone(),
+    }]);
     add(
         &mut cases,
         "CASE.004",
@@ -218,13 +209,10 @@ pub fn court() -> CourtRun {
         integrity_policy: IntegrityPolicy::AllowLegacyUnsetDecodedHash,
         ..Default::default()
     };
-    let r = ParallelVerifier::verify_blocks(
-        vec![VerifyBlockJob {
-            block_index: 0,
-            block_data: zero_decoded.clone(),
-        }],
-        &legacy_cfg,
-    );
+    let r = ParallelVerifier::new(legacy_cfg.clone()).verify_blocks(vec![VerifyBlockJob {
+        block_index: 0,
+        block_data: zero_decoded.clone(),
+    }]);
     add(
         &mut cases,
         "CASE.005",
@@ -247,13 +235,10 @@ pub fn court() -> CourtRun {
     );
 
     // ---- Case 6: legacy mode still rejects nonzero mismatch ---------------
-    let r = ParallelVerifier::verify_blocks(
-        vec![VerifyBlockJob {
-            block_index: 0,
-            block_data: mismatched.clone(),
-        }],
-        &legacy_cfg,
-    );
+    let r = ParallelVerifier::new(legacy_cfg.clone()).verify_blocks(vec![VerifyBlockJob {
+        block_index: 0,
+        block_data: mismatched.clone(),
+    }]);
     add(
         &mut cases,
         "CASE.006",
@@ -299,7 +284,7 @@ pub fn court() -> CourtRun {
             block_data: rebuild_at(1, header.payload_sha256, [0u8; 32]),
         },
     ];
-    let r = ParallelVerifier::verify_blocks(mixed, &legacy_cfg);
+    let r = ParallelVerifier::new(legacy_cfg.clone()).verify_blocks(mixed);
     let states = match r {
         Ok(report) => {
             let mut seen = std::collections::BTreeSet::new();
@@ -325,13 +310,10 @@ pub fn court() -> CourtRun {
     );
 
     // ---- Case 9: mismatched block also reports Mismatch state -------------
-    let r = ParallelVerifier::verify_blocks(
-        vec![VerifyBlockJob {
-            block_index: 0,
-            block_data: mismatched.clone(),
-        }],
-        &cfg,
-    );
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(vec![VerifyBlockJob {
+        block_index: 0,
+        block_data: mismatched.clone(),
+    }]);
     add(
         &mut cases,
         "CASE.009",
@@ -370,7 +352,8 @@ pub fn court() -> CourtRun {
         block_index: 0,
         block_data: zero_decoded.clone(),
     };
-    let r = decode_single_block(&dj, &cfg);
+    let cache = ryg_rans_rs_parallel::ModelArtifactCache::bounded(8, 1 << 20);
+    let r = decode_single_block(&dj, &cfg, &cache, None);
     add(
         &mut cases,
         "CASE.010",
@@ -388,13 +371,10 @@ pub fn court() -> CourtRun {
     let mut corrupt = clean.clone();
     let n = corrupt.len() - 1;
     corrupt[n] ^= 0x01;
-    let r = ParallelVerifier::verify_blocks(
-        vec![VerifyBlockJob {
-            block_index: 0,
-            block_data: corrupt,
-        }],
-        &cfg,
-    );
+    let r = ParallelVerifier::new(cfg.clone()).verify_blocks(vec![VerifyBlockJob {
+        block_index: 0,
+        block_data: corrupt,
+    }]);
     add(
         &mut cases,
         "CASE.011",

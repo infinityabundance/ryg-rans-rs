@@ -185,9 +185,13 @@ impl BufferSized for BlockVerificationResult {
 }
 
 /// A verify task submitted to the executor.
+///
+/// Carries the explicitly owned model artifact cache (Phase O.4) so
+/// verification decodes share the same cache instance as decode paths.
 struct VerifyTask {
     job: VerifyBlockJob,
     config: ParallelConfig,
+    model_cache: crate::sync::Arc<crate::cache::ModelArtifactCache>,
 }
 
 impl ExecutorTask for VerifyTask {
@@ -204,7 +208,7 @@ impl ExecutorTask for VerifyTask {
             kind: BlockErrorKind::Codec,
         })?;
 
-        verify_single_block(&self.job, &self.config)
+        verify_single_block(&self.job, &self.config, &self.model_cache)
     }
 
     fn block_index(&self) -> Option<u64> {
@@ -267,6 +271,7 @@ impl ExecutorTask for VerifyTask {
 fn verify_single_block(
     job: &VerifyBlockJob,
     config: &ParallelConfig,
+    model_cache: &crate::cache::ModelArtifactCache,
 ) -> Result<BlockVerificationResult, BlockError> {
     let data = &job.block_data;
     let bi = job.block_index;
@@ -308,7 +313,7 @@ fn verify_single_block(
         block_data: job.block_data.clone(),
     };
 
-    let decode_result = crate::decode::decode_single_block(&decode_job, config);
+    let decode_result = crate::decode::decode_single_block(&decode_job, config, model_cache, None);
     let backend = match &decode_result {
         Ok(decoded) => decoded.backend,
         Err(_) => crate::config::BackendId::Scalar16,
@@ -385,9 +390,43 @@ fn verify_single_block(
 ///     n => println!("{} blocks failed", n),
 /// }
 /// ```
-pub struct ParallelVerifier;
+pub struct ParallelVerifier {
+    /// The configuration for every verification issued through this verifier.
+    config: ParallelConfig,
+    /// The explicitly owned model artifact cache (Phase O.4).
+    model_cache: crate::sync::Arc<crate::cache::ModelArtifactCache>,
+}
 
 impl ParallelVerifier {
+    /// Create a verifier with the default bounded model artifact cache
+    /// (64 entries, 16 MiB — explicit ownership, never process-global).
+    pub fn new(config: ParallelConfig) -> Self {
+        Self {
+            config,
+            model_cache: crate::cache::ModelArtifactCache::bounded(64, 16 * 1024 * 1024),
+        }
+    }
+
+    /// Create a verifier with a caller-owned model artifact cache.
+    pub fn with_model_cache(
+        config: ParallelConfig,
+        model_cache: crate::sync::Arc<crate::cache::ModelArtifactCache>,
+    ) -> Self {
+        Self {
+            config,
+            model_cache,
+        }
+    }
+
+    /// The configuration this verifier executes with.
+    pub fn config(&self) -> &ParallelConfig {
+        &self.config
+    }
+
+    /// The explicitly owned model artifact cache.
+    pub fn model_cache(&self) -> &crate::sync::Arc<crate::cache::ModelArtifactCache> {
+        &self.model_cache
+    }
     /// Verify all blocks in parallel using the bounded executor.
     ///
     /// Each `VerifyBlockJob` is wrapped in a `VerifyTask`, submitted to
@@ -428,10 +467,10 @@ impl ParallelVerifier {
     /// - `Err(ParallelError::VerifyFailed)` if any block failed.  The
     ///   canonical error (lowest-index failure) is boxed inside.
     pub fn verify_blocks(
+        &self,
         blocks: impl IntoIterator<Item = VerifyBlockJob>,
-        config: &ParallelConfig,
     ) -> Result<ParallelVerificationReport, ParallelError> {
-        Self::verify_blocks_with_cancel(blocks, config, None)
+        self.verify_blocks_with_cancel(blocks, None)
     }
 
     /// Verify all blocks in parallel with an optional external cancellation token.
@@ -441,8 +480,8 @@ impl ParallelVerifier {
     /// complete, returns [`ParallelError::Cancelled`] with completion counts.
     /// Never returns `Ok` with fewer blocks verified than declared.
     pub fn verify_blocks_with_cancel(
+        &self,
         blocks: impl IntoIterator<Item = VerifyBlockJob>,
-        config: &ParallelConfig,
         external_cancel: Option<crate::sync::Arc<crate::cancellation::CancellationToken>>,
     ) -> Result<ParallelVerificationReport, ParallelError> {
         let jobs: Vec<VerifyBlockJob> = blocks.into_iter().collect();
@@ -462,13 +501,14 @@ impl ParallelVerifier {
         }
 
         let block_count = jobs.len();
-        let worker_count = crate::resource::effective_worker_count(config, block_count)?;
-        let queue_capacity = config.max_in_flight_blocks.get().max(worker_count);
+        let worker_count = crate::resource::effective_worker_count(&self.config, block_count)?;
+        let queue_capacity = self.config.max_in_flight_blocks.get().max(worker_count);
         let tasks: Vec<VerifyTask> = jobs
             .into_iter()
             .map(|j| VerifyTask {
                 job: j,
-                config: config.clone(),
+                config: self.config.clone(),
+                model_cache: self.model_cache.clone(),
             })
             .collect();
         let report: ExecutorReport<Result<BlockVerificationResult, BlockError>> =
@@ -476,9 +516,9 @@ impl ParallelVerifier {
                 tasks,
                 worker_count,
                 queue_capacity,
-                config.worker_stack_size,
+                self.config.worker_stack_size,
                 external_cancel,
-                config.affinity.clone(),
+                self.config.affinity.clone(),
             )?;
 
         let mut results = Vec::with_capacity(block_count);
@@ -601,14 +641,12 @@ mod tests {
         );
         let e = encode_single_block(j).expect("encode");
 
-        let report = ParallelVerifier::verify_blocks(
-            vec![VerifyBlockJob {
+        let report = ParallelVerifier::new(ParallelConfig::default())
+            .verify_blocks(vec![VerifyBlockJob {
                 block_index: 0,
                 block_data: e.block,
-            }],
-            &ParallelConfig::default(),
-        )
-        .expect("verify");
+            }])
+            .expect("verify");
         assert_eq!(report.blocks_failed, 0);
         assert!(report.payload_hash_ok >= 1);
     }
@@ -631,13 +669,11 @@ mod tests {
             e.block[payload_offset] ^= 0xFF;
         }
 
-        let report = ParallelVerifier::verify_blocks(
-            vec![VerifyBlockJob {
+        let report = ParallelVerifier::new(ParallelConfig::default())
+            .verify_blocks(vec![VerifyBlockJob {
                 block_index: 0,
                 block_data: e.block,
-            }],
-            &ParallelConfig::default(),
-        );
+            }]);
         match report {
             Err(ParallelError::VerifyFailed(_)) => {} // expected
             Ok(r) => assert!(r.blocks_failed > 0, "corrupt payload should fail"),
@@ -658,13 +694,11 @@ mod tests {
         let e = encode_single_block(j).expect("encode");
 
         let truncated = e.block[..50].to_vec();
-        let result = ParallelVerifier::verify_blocks(
-            vec![VerifyBlockJob {
+        let result = ParallelVerifier::new(ParallelConfig::default())
+            .verify_blocks(vec![VerifyBlockJob {
                 block_index: 0,
                 block_data: truncated,
-            }],
-            &ParallelConfig::default(),
-        );
+            }]);
         assert!(result.is_err(), "truncated block should fail verification");
     }
 
@@ -704,7 +738,8 @@ mod tests {
             })
             .collect();
 
-        let report = ParallelVerifier::verify_blocks(verify_jobs, &ParallelConfig::default())
+        let report = ParallelVerifier::new(ParallelConfig::default())
+            .verify_blocks(verify_jobs)
             .expect("verify");
         assert_eq!(report.blocks_failed, 0);
     }
@@ -729,14 +764,12 @@ mod tests {
         // Case 1: clean payload and matching decoded hash → passes.
         let d = uniform256();
         let block = encode_block(d.clone());
-        let report = ParallelVerifier::verify_blocks(
-            vec![VerifyBlockJob {
+        let report = ParallelVerifier::new(ParallelConfig::default())
+            .verify_blocks(vec![VerifyBlockJob {
                 block_index: 0,
                 block_data: block,
-            }],
-            &ParallelConfig::default(),
-        )
-        .expect("clean block must verify");
+            }])
+            .expect("clean block must verify");
         assert_eq!(report.blocks_failed, 0);
         assert_eq!(report.decoded_hash_ok, 1);
         assert_eq!(report.decoded_hash_mismatch, 0);
@@ -749,13 +782,11 @@ mod tests {
         let d = uniform256();
         let mut block = encode_block(d.clone());
         block[72..104].fill(0); // zero the decoded hash
-        let result = ParallelVerifier::verify_blocks(
-            vec![VerifyBlockJob {
+        let result = ParallelVerifier::new(ParallelConfig::default())
+            .verify_blocks(vec![VerifyBlockJob {
                 block_index: 0,
                 block_data: block,
-            }],
-            &ParallelConfig::default(), // Strict
-        );
+            }]); // Strict
         match result {
             Err(ParallelError::VerifyFailed(e)) => {
                 assert_eq!(e.kind, BlockErrorKind::DecodedHashMissing)
@@ -775,14 +806,12 @@ mod tests {
             integrity_policy: crate::config::IntegrityPolicy::AllowLegacyUnsetDecodedHash,
             ..Default::default()
         };
-        let report = ParallelVerifier::verify_blocks(
-            vec![VerifyBlockJob {
+        let report = ParallelVerifier::new(cfg)
+            .verify_blocks(vec![VerifyBlockJob {
                 block_index: 0,
                 block_data: block,
-            }],
-            &cfg,
-        )
-        .expect("legacy mode must not fail on unset hash");
+            }])
+            .expect("legacy mode must not fail on unset hash");
         assert_eq!(report.blocks_failed, 0);
         assert_eq!(report.decoded_hash_unset, 1);
         assert_eq!(report.decoded_hash_ok, 0);
@@ -805,13 +834,11 @@ mod tests {
                 integrity_policy: policy,
                 ..Default::default()
             };
-            let result = ParallelVerifier::verify_blocks(
-                vec![VerifyBlockJob {
+            let result = ParallelVerifier::new(cfg.clone())
+                .verify_blocks(vec![VerifyBlockJob {
                     block_index: 0,
                     block_data: block.clone(),
-                }],
-                &cfg,
-            );
+                }]);
             match result {
                 Err(ParallelError::VerifyFailed(e)) => {
                     assert_eq!(e.kind, BlockErrorKind::DecodedHashMismatch)
@@ -834,13 +861,11 @@ mod tests {
         if payload_offset < block.len() {
             block[payload_offset] ^= 0xFF;
         }
-        let result = ParallelVerifier::verify_blocks(
-            vec![VerifyBlockJob {
+        let result = ParallelVerifier::new(ParallelConfig::default())
+            .verify_blocks(vec![VerifyBlockJob {
                 block_index: 0,
                 block_data: block,
-            }],
-            &ParallelConfig::default(),
-        );
+            }]);
         assert!(result.is_err(), "corrupt payload must fail");
     }
 
@@ -854,13 +879,11 @@ mod tests {
         // Corrupt a model frequency byte (model starts at offset 104).
         block[104] ^= 0xFF;
         // The payload hash is intact (we only touched model bytes).
-        let result = ParallelVerifier::verify_blocks(
-            vec![VerifyBlockJob {
+        let result = ParallelVerifier::new(ParallelConfig::default())
+            .verify_blocks(vec![VerifyBlockJob {
                 block_index: 0,
                 block_data: block,
-            }],
-            &ParallelConfig::default(),
-        );
+            }]);
         // Either decode fails (model invalid) or the decoded output differs
         // from the stored hash — both must surface as a failure.
         assert!(
@@ -905,7 +928,7 @@ mod tests {
         // Corrupt the decoded hash of block 1.
         vj[1].block_data[72] ^= 0xFF;
 
-        let result = ParallelVerifier::verify_blocks(vj, &ParallelConfig::default());
+        let result = ParallelVerifier::new(ParallelConfig::default()).verify_blocks(vj);
         match result {
             Err(ParallelError::VerifyFailed(e)) => {
                 assert_eq!(e.block_index, 1, "canonical error must be block 1");
@@ -930,23 +953,20 @@ mod tests {
             integrity_policy: crate::config::IntegrityPolicy::AllowLegacyUnsetDecodedHash,
             ..Default::default()
         };
-        let report = ParallelVerifier::verify_blocks(
-            vec![
-                VerifyBlockJob {
-                    block_index: 0,
-                    block_data: b0,
-                },
-                VerifyBlockJob {
-                    block_index: 1,
-                    block_data: b1,
-                },
-                VerifyBlockJob {
-                    block_index: 2,
-                    block_data: b2,
-                },
-            ],
-            &cfg,
-        );
+        let report = ParallelVerifier::new(cfg).verify_blocks(vec![
+            VerifyBlockJob {
+                block_index: 0,
+                block_data: b0,
+            },
+            VerifyBlockJob {
+                block_index: 1,
+                block_data: b1,
+            },
+            VerifyBlockJob {
+                block_index: 2,
+                block_data: b2,
+            },
+        ]);
         // Block 2 is truncated → structural error → Err.
         assert!(report.is_err(), "truncated block must fail");
         let _ = b0;
