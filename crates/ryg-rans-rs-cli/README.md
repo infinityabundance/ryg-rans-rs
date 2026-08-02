@@ -1,7 +1,7 @@
 # ryg-rans-rs-cli
 
 > **The `ryg-rans` command — rANS entropy coding tool.**  
-> **Version 0.2.0** (workspace) · **Phase L.15: fully wired** · **23 tests**  
+> **Version 0.3.0** (workspace) · **Phase L.15: fully wired** · **23 tests**  
 > Versioned block-streaming container format (RYGRANS v1) · SHA-256 integrity
 > verification · resource-bounded, deterministic, non-panicking · 10
 > subcommands · 11 stable exit codes · SIGINT/SIGTERM/`--timeout` cancellation
@@ -428,7 +428,7 @@ archive.rygr`); binary output to a terminal is refused unless `--force-tty`.
 
 ## Versioning
 
-- Version **0.2.0**, shared with the workspace.  Binary name `ryg-rans`.
+- Version **0.3.0**, shared with the workspace.  Binary name `ryg-rans`.
 - Exit codes are stable once documented (`exit.rs`) — changing one is a
   breaking change for automation.
 - The RYGRANS v1 container format is pinned by `docs/container-format-v1.md`;
@@ -448,4 +448,4 @@ archive.rygr`); binary output to a terminal is refused unless `--force-tty`.
 
 ---
 
-*Part of the ryg-rans-rs project. Version 0.2.0. Phase L.*
+*Part of the ryg-rans-rs project. Version 0.3.0. Phase L.*

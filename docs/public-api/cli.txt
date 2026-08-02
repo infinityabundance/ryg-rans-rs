@@ -367,6 +367,7 @@ pub use ryg_rans_rs_cli::error::EncodeError
 pub use ryg_rans_rs_cli::error::ModelError
 pub enum ryg_rans_rs_cli::error::AppError
 pub ryg_rans_rs_cli::error::AppError::Backend(ryg_rans_rs_cli::error::BackendError)
+pub ryg_rans_rs_cli::error::AppError::Cancelled(ryg_rans_rs_cli::error::CancelledError)
 pub ryg_rans_rs_cli::error::AppError::Codec(ryg_rans_rs_cli::error::CodecError)
 pub ryg_rans_rs_cli::error::AppError::Comparison(ryg_rans_rs_cli::error::ComparisonError)
 pub ryg_rans_rs_cli::error::AppError::ExternalOracle(ryg_rans_rs_cli::error::OracleError)
@@ -475,6 +476,48 @@ impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::BackendError
 pub fn ryg_rans_rs_cli::error::BackendError::from(T) -> T
 impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::BackendError
 pub type ryg_rans_rs_cli::error::BackendError::Output = T
+pub struct ryg_rans_rs_cli::error::CancelledError
+pub ryg_rans_rs_cli::error::CancelledError::detail: alloc::string::String
+impl core::clone::Clone for ryg_rans_rs_cli::error::CancelledError
+pub fn ryg_rans_rs_cli::error::CancelledError::clone(&self) -> ryg_rans_rs_cli::error::CancelledError
+impl core::error::Error for ryg_rans_rs_cli::error::CancelledError
+impl core::fmt::Debug for ryg_rans_rs_cli::error::CancelledError
+pub fn ryg_rans_rs_cli::error::CancelledError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for ryg_rans_rs_cli::error::CancelledError
+pub fn ryg_rans_rs_cli::error::CancelledError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for ryg_rans_rs_cli::error::CancelledError
+impl core::marker::Send for ryg_rans_rs_cli::error::CancelledError
+impl core::marker::Sync for ryg_rans_rs_cli::error::CancelledError
+impl core::marker::Unpin for ryg_rans_rs_cli::error::CancelledError
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::error::CancelledError
+impl core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::error::CancelledError
+impl core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::error::CancelledError
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::error::CancelledError where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::error::CancelledError::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::error::CancelledError where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::error::CancelledError::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::error::CancelledError::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::error::CancelledError where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::error::CancelledError::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::error::CancelledError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for ryg_rans_rs_cli::error::CancelledError where T: core::clone::Clone
+pub type ryg_rans_rs_cli::error::CancelledError::Owned = T
+pub fn ryg_rans_rs_cli::error::CancelledError::clone_into(&self, &mut T)
+pub fn ryg_rans_rs_cli::error::CancelledError::to_owned(&self) -> T
+impl<T> alloc::string::ToString for ryg_rans_rs_cli::error::CancelledError where T: core::fmt::Display + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::CancelledError::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for ryg_rans_rs_cli::error::CancelledError where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::CancelledError::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::error::CancelledError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::CancelledError::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::error::CancelledError where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::error::CancelledError::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for ryg_rans_rs_cli::error::CancelledError where T: core::clone::Clone
+pub unsafe fn ryg_rans_rs_cli::error::CancelledError::clone_to_uninit(&self, *mut u8)
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::error::CancelledError
+pub fn ryg_rans_rs_cli::error::CancelledError::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::error::CancelledError
+pub type ryg_rans_rs_cli::error::CancelledError::Output = T
 pub struct ryg_rans_rs_cli::error::CodecError
 pub ryg_rans_rs_cli::error::CodecError::codec_id: core::option::Option<u16>
 pub ryg_rans_rs_cli::error::CodecError::detail: alloc::string::String
@@ -864,6 +907,7 @@ pub type ryg_rans_rs_cli::error::UnsupportedError::Output = T
 pub mod ryg_rans_rs_cli::exit
 pub mod ryg_rans_rs_cli::exit::codes
 pub const ryg_rans_rs_cli::exit::codes::BACKEND_UNAVAILABLE: i32
+pub const ryg_rans_rs_cli::exit::codes::CANCELLED: i32
 pub const ryg_rans_rs_cli::exit::codes::COMPARISON_MISMATCH: i32
 pub const ryg_rans_rs_cli::exit::codes::FORMAT_ERROR: i32
 pub const ryg_rans_rs_cli::exit::codes::INTEGRITY_ERROR: i32
@@ -1081,7 +1125,41 @@ pub fn ryg_rans_rs_cli::ops::decode_block(&ryg_rans_rs_cli::container::block::Bl
 pub fn ryg_rans_rs_cli::ops::decode_word_8way_scalar_explicit(usize, &[u8], &ryg_rans_rs_cli::container::model::FrequencyModel) -> core::result::Result<alloc::vec::Vec<u8>, ryg_rans_rs_cli::error::AppError>
 pub fn ryg_rans_rs_cli::ops::open_input(&str, u64) -> core::result::Result<alloc::boxed::Box<dyn alloc::io::read::Read>, ryg_rans_rs_cli::error::AppError>
 pub fn ryg_rans_rs_cli::ops::open_output(&str, bool, bool) -> core::result::Result<alloc::boxed::Box<dyn core::io::write::Write>, ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::ops::parse_timeout(&clap_builder::parser::matches::arg_matches::ArgMatches) -> core::result::Result<f64, ryg_rans_rs_cli::error::AppError>
 pub fn ryg_rans_rs_cli::ops::select_block(u16, u8, &[u8], bool) -> core::result::Result<ryg_rans_rs_cli::ops::BlockChoice, ryg_rans_rs_cli::error::AppError>
 pub fn ryg_rans_rs_cli::ops::sha256_hex(&[u8]) -> alloc::string::String
 pub fn ryg_rans_rs_cli::ops::walk_container<R: alloc::io::read::Read, F>(R, ryg_rans_rs_cli::limits::Limits, F) -> core::result::Result<ryg_rans_rs_cli::ops::DecodeOutcome, ryg_rans_rs_cli::error::AppError> where F: core::ops::function::FnMut(&ryg_rans_rs_cli::container::block::Block, &[u8]) -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub mod ryg_rans_rs_cli::signal
+pub struct ryg_rans_rs_cli::signal::CancellationGuard
+impl ryg_rans_rs_cli::signal::CancellationGuard
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::check() -> core::result::Result<(), ryg_rans_rs_cli::error::AppError>
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::install(f64) -> Self
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::is_cancelled() -> bool
+impl core::ops::drop::Drop for ryg_rans_rs_cli::signal::CancellationGuard
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::drop(&mut self)
+impl core::marker::Freeze for ryg_rans_rs_cli::signal::CancellationGuard
+impl core::marker::Send for ryg_rans_rs_cli::signal::CancellationGuard
+impl core::marker::Sync for ryg_rans_rs_cli::signal::CancellationGuard
+impl core::marker::Unpin for ryg_rans_rs_cli::signal::CancellationGuard
+impl core::marker::UnsafeUnpin for ryg_rans_rs_cli::signal::CancellationGuard
+impl !core::panic::unwind_safe::RefUnwindSafe for ryg_rans_rs_cli::signal::CancellationGuard
+impl !core::panic::unwind_safe::UnwindSafe for ryg_rans_rs_cli::signal::CancellationGuard
+impl<T, U> core::convert::Into<U> for ryg_rans_rs_cli::signal::CancellationGuard where U: core::convert::From<T>
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for ryg_rans_rs_cli::signal::CancellationGuard where U: core::convert::Into<T>
+pub type ryg_rans_rs_cli::signal::CancellationGuard::Error = core::convert::Infallible
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::try_from(U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for ryg_rans_rs_cli::signal::CancellationGuard where U: core::convert::TryFrom<T>
+pub type ryg_rans_rs_cli::signal::CancellationGuard::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for ryg_rans_rs_cli::signal::CancellationGuard where T: 'static + ?core::marker::Sized
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for ryg_rans_rs_cli::signal::CancellationGuard where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for ryg_rans_rs_cli::signal::CancellationGuard where T: ?core::marker::Sized
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for ryg_rans_rs_cli::signal::CancellationGuard
+pub fn ryg_rans_rs_cli::signal::CancellationGuard::from(T) -> T
+impl<T> typenum::type_operators::Same for ryg_rans_rs_cli::signal::CancellationGuard
+pub type ryg_rans_rs_cli::signal::CancellationGuard::Output = T
 pub fn ryg_rans_rs_cli::run(impl core::iter::traits::collect::IntoIterator<Item = std::ffi::os_str::OsString>, &mut dyn alloc::io::read::Read, &mut dyn core::io::write::Write, &mut dyn core::io::write::Write) -> i32

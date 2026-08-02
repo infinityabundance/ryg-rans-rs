@@ -384,7 +384,7 @@ are never deleted; they are resolved or accepted.
 
 ## Versioning and Reading Order
 
-- **Package version**: 0.1.0 (workspace crates are 0.2.0). Workspace-internal;
+- **Package version**: 0.1.0 (workspace crates are 0.3.0). Workspace-internal;
   never published.
 - **Reading order**: root [`README.md`](../README.md) →
   [`docs/architecture.md`](../docs/architecture.md) →
