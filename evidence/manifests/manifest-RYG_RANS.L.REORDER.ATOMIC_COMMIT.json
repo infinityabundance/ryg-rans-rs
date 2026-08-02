@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.REORDER.ATOMIC_COMMIT",
   "title": "ReorderBuffer atomic commit (L.5)",
-  "implementation_commit": "ee8fb0e19e20048b3145a179eb3567adfe4be734",
+  "implementation_commit": "6264b536da25ffbbeef0a5a704ff50898bf53407",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "11 cases: 11 passed, 0 failed, 0 skipped",
   "cases": [
