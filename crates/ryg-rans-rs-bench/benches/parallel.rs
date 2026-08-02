@@ -213,7 +213,7 @@ fn preflight_parallel(
 
     // Verify 1-thread decode first to establish the canonical parallel reference.
     let cfg_1t = config_for_threads(1);
-    let dec_1t = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(dj.clone(), &cfg_1t)
+    let dec_1t = ryg_rans_rs_parallel::ParallelDecoder::new(cfg_1t.clone()).decode_blocks(dj.clone())
         .expect("preflight decode 1t");
     assert_eq!(
         dec_1t.blocks.len(),
@@ -248,7 +248,7 @@ fn preflight_parallel(
         }
 
         let cfg = config_for_threads(tc);
-        let dec = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(dj.clone(), &cfg)
+        let dec = ryg_rans_rs_parallel::ParallelDecoder::new(cfg.clone()).decode_blocks(dj.clone())
             .expect(&format!("preflight decode {}t", tc));
 
         // Same block count
@@ -331,7 +331,7 @@ fn bench_parallel_decode_scaling(c: &mut Criterion) {
 
         // Preflight record: run the exact case decode once, verify parity, emit.
         let dec =
-            ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(decode_jobs.clone(), &config)
+            ryg_rans_rs_parallel::ParallelDecoder::new(config.clone()).decode_blocks(decode_jobs.clone())
                 .expect("parallel decode record preflight");
         let mut decoded = Vec::new();
         let mut words = 0usize;
@@ -370,7 +370,7 @@ fn bench_parallel_decode_scaling(c: &mut Criterion) {
                 || decode_jobs.clone(),
                 |jobs| {
                     black_box(
-                        ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(jobs, &config)
+                        ryg_rans_rs_parallel::ParallelDecoder::new(config.clone()).decode_blocks(jobs)
                             .expect("parallel decode benchmark failed"),
                     )
                 },
@@ -403,7 +403,7 @@ fn bench_parallel_decode_cold_16mb(c: &mut Criterion) {
 
         // Preflight record: run the exact case decode once, verify parity, emit.
         let dec =
-            ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(decode_jobs.clone(), &config)
+            ryg_rans_rs_parallel::ParallelDecoder::new(config.clone()).decode_blocks(decode_jobs.clone())
                 .expect("parallel decode cold record preflight");
         let mut decoded = Vec::new();
         let mut words = 0usize;
@@ -442,7 +442,7 @@ fn bench_parallel_decode_cold_16mb(c: &mut Criterion) {
                 || decode_jobs.clone(),
                 |jobs| {
                     black_box(
-                        ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(jobs, &config)
+                        ryg_rans_rs_parallel::ParallelDecoder::new(config.clone()).decode_blocks(jobs)
                             .expect("parallel decode benchmark failed"),
                     )
                 },
@@ -478,7 +478,7 @@ fn bench_parallel_verify_scaling(c: &mut Criterion) {
 
         // Preflight record: verify the exact case workload once, then emit.
         let vrep =
-            ryg_rans_rs_parallel::ParallelVerifier::verify_blocks(verify_jobs.clone(), &config)
+            ryg_rans_rs_parallel::ParallelVerifier::new(config.clone()).verify_blocks(verify_jobs.clone())
                 .expect("parallel verify record preflight");
         assert_eq!(
             vrep.blocks_failed, 0,
@@ -517,7 +517,7 @@ fn bench_parallel_verify_scaling(c: &mut Criterion) {
                 || verify_jobs.clone(),
                 |jobs| {
                     black_box(
-                        ryg_rans_rs_parallel::ParallelVerifier::verify_blocks(jobs, &config)
+                        ryg_rans_rs_parallel::ParallelVerifier::new(config.clone()).verify_blocks(jobs)
                             .expect("parallel verify benchmark failed"),
                     )
                 },
@@ -566,7 +566,8 @@ fn bench_parallel_encode_scaling(c: &mut Criterion) {
                 block_data: b.block.clone(),
             })
             .collect();
-        let dec = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(dj, &config_for_threads(4))
+        let dec = ryg_rans_rs_parallel::ParallelDecoder::new(config_for_threads(4))
+            .decode_blocks(dj)
             .expect(&format!("preflight decode after encode {}t", threads));
         let mut full = Vec::new();
         for b in &dec.blocks {
@@ -630,7 +631,8 @@ fn bench_parallel_encode_scaling(c: &mut Criterion) {
                 block_data: b.block.clone(),
             })
             .collect();
-        let dec = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(dj, &config_for_threads(4))
+        let dec = ryg_rans_rs_parallel::ParallelDecoder::new(config_for_threads(4))
+            .decode_blocks(dj)
             .expect("parallel encode record decode");
         let mut full = Vec::new();
         for b in &dec.blocks {

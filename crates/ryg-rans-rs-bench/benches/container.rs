@@ -86,7 +86,7 @@ fn preflight_block_engine(
 
     // Establish 1-thread canonical reference with full report fields
     let cfg_1t = config_for_threads(1);
-    let dec_1t = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(decode_jobs.clone(), &cfg_1t)
+    let dec_1t = ryg_rans_rs_parallel::ParallelDecoder::new(cfg_1t.clone()).decode_blocks(decode_jobs.clone())
         .expect("block-engine preflight decode 1t");
     let one_thread_outputs: Vec<Vec<u8>> = dec_1t.blocks.iter().map(|b| b.output.clone()).collect();
     let one_thread_backends: Vec<_> = dec_1t.blocks.iter().map(|b| b.backend).collect();
@@ -101,7 +101,7 @@ fn preflight_block_engine(
     // Verify every thread count against 1-thread reference
     for &tc in THREAD_COUNTS {
         let cfg = config_for_threads(tc);
-        let dec = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(decode_jobs.clone(), &cfg)
+        let dec = ryg_rans_rs_parallel::ParallelDecoder::new(cfg.clone()).decode_blocks(decode_jobs.clone())
             .expect(&format!("block-engine preflight decode {}t", tc));
 
         assert_eq!(
@@ -181,7 +181,7 @@ fn bench_block_engine_decode_scaling(c: &mut Criterion) {
                 || decode_jobs.clone(),
                 |jobs| {
                     black_box(
-                        ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(jobs, &cfg_decode)
+                        ryg_rans_rs_parallel::ParallelDecoder::new(cfg_decode.clone()).decode_blocks(jobs)
                             .expect("block-engine decode failed"),
                     )
                 },
@@ -214,7 +214,7 @@ fn bench_block_engine_decode_cold_16mb(c: &mut Criterion) {
                 || decode_jobs.clone(),
                 |jobs| {
                     black_box(
-                        ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(jobs, &cfg_decode)
+                        ryg_rans_rs_parallel::ParallelDecoder::new(cfg_decode.clone()).decode_blocks(jobs)
                             .expect("block-engine decode failed"),
                     )
                 },
@@ -291,7 +291,7 @@ fn bench_block_engine_verify_scaling(c: &mut Criterion) {
                 || verify_jobs.clone(),
                 |jobs| {
                     black_box(
-                        ryg_rans_rs_parallel::ParallelVerifier::verify_blocks(jobs, &cfg)
+                        ryg_rans_rs_parallel::ParallelVerifier::new(cfg.clone()).verify_blocks(jobs)
                             .expect("block-engine verify failed"),
                     )
                 },

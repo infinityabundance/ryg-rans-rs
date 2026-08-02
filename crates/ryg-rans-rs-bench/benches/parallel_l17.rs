@@ -69,15 +69,13 @@ fn preflight_jobs(total_size: usize, seed: u64) -> Vec<ryg_rans_rs_parallel::Dec
         .collect();
 
     // Reference decode with 1 thread; every other configuration must match.
-    let reference =
-        ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(decode_jobs.clone(), &config(1, 64))
-            .expect("reference decode");
+    let reference = ryg_rans_rs_parallel::ParallelDecoder::new(config(1, 64))
+        .decode_blocks(decode_jobs.clone())
+        .expect("reference decode");
     for &threads in THREAD_COUNTS {
-        let got = ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(
-            decode_jobs.clone(),
-            &config(threads, 64),
-        )
-        .expect("preflight decode");
+        let got = ryg_rans_rs_parallel::ParallelDecoder::new(config(threads, 64))
+            .decode_blocks(decode_jobs.clone())
+            .expect("preflight decode");
         assert_eq!(got.blocks.len(), reference.blocks.len());
         for (g, r) in got.blocks.iter().zip(reference.blocks.iter()) {
             assert_eq!(g.output_hash, r.output_hash, "output hash parity");
@@ -103,7 +101,7 @@ fn bench_queue_depth_sweep(c: &mut Criterion) {
                 || jobs.clone(),
                 |jobs| {
                     black_box(
-                        ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(jobs, &cfg)
+                        ryg_rans_rs_parallel::ParallelDecoder::new(cfg.clone()).decode_blocks(jobs)
                             .expect("queue-depth decode"),
                     )
                 },
@@ -140,7 +138,7 @@ fn bench_sequential_threshold_crossover(c: &mut Criterion) {
                     || jobs.clone(),
                     |jobs| {
                         black_box(
-                            ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(jobs, &cfg)
+                            ryg_rans_rs_parallel::ParallelDecoder::new(cfg.clone()).decode_blocks(jobs)
                                 .expect("threshold decode"),
                         )
                     },
@@ -168,7 +166,7 @@ fn bench_extended_256mb(c: &mut Criterion) {
                 || jobs.clone(),
                 |jobs| {
                     black_box(
-                        ryg_rans_rs_parallel::ParallelDecoder::decode_blocks(jobs, &cfg)
+                        ryg_rans_rs_parallel::ParallelDecoder::new(cfg.clone()).decode_blocks(jobs)
                             .expect("extended decode"),
                     )
                 },

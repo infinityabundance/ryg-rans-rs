@@ -80,6 +80,10 @@ name = "dispatch"
 harness = false
 
 [[bench]]
+name = "model_cache"
+harness = false
+
+[[bench]]
 name = "byte_rans"
 harness = false
 
