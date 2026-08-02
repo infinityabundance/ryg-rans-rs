@@ -84,7 +84,24 @@ Concrete failures from this project, each of which shaped the process:
    provably cannot fail.  Lesson: a check whose inputs are its own outputs
    proves nothing; binding must come from independent capture.
 
-The pattern across all six: **the agent produced plausible structure with
+7. **The literal-type-name reachability audit (Phase O).**  An audit
+   concluded "ModelCache has no production path" because it searched for
+   the literal type name and never traced the `cached_model_artifacts`
+   wrapper that decode uses.  The finding was rejected as factually
+   incorrect (recorded in the gap ledger as an audit-method lesson): the
+   cache was constructed, looked up, missed, inserted, and its `Arc`
+   artifact consumed.  Lesson: reachability is traced through wrappers and
+   downstream artifact consumption, not by grepping for a type name.
+
+8. **The audit finding that was actually right (Phase O).**  The same
+   audit's second claim — the cancellation doc comments promising what the
+   code did not enforce — was verified by tracing the functions to their
+   final returns, and the same failure class then recurred in *new*
+   documentation written while fixing it.  Lesson: the doc-comment-vs-code
+   gap is a recurring class, not a one-off; every guarantee sentence needs
+   a trace-to-return check, including guarantees written during the fix.
+
+The pattern across all eight: **the agent produced plausible structure with
 missing truth.**  Plausible structure is the failure mode to defend
 against, because it passes every local check while failing the global
 one.

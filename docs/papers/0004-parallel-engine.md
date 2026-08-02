@@ -115,15 +115,37 @@ reduces per-block allocation churn relative to per-task allocation.
 
 ## 7. Model cache: shared immutable artifacts
 
-`ModelCache` (Phase L.8) is a process-global, mutex-guarded, FIFO-evicted,
-count+byte-bounded cache keyed by `(model_sha256, scale_bits, codec_id)`.
-It stores the model-derived immutable artifacts — frequencies (Arc-shared)
-and the 16 KiB packed word table (Arc-shared) — and **never** the backend
-choice: backend selection happens after the lookup so a cached artifact is
-never reused under incompatible execution conditions.  A corrupt model is
-never admitted; a miss rebuilds (always correct); eviction is deterministic
-(FIFO).  This is a pure performance optimisation with no correctness
-dependence.
+Phase O replaced the Phase L.8 process-global cache with the explicitly
+owned `ModelArtifactCache` (ADR-0016): `ParallelDecoder` owns an
+`Arc<ModelArtifactCache>` created by `ParallelDecoder::new(config)` (fresh)
+or injected by `ParallelDecoder::with_model_cache(config, cache)`.  The
+core `ModelCache<T>` keeps exact accounting — `current_entries` and
+`current_bytes` equal the retained set after every public operation
+(per-entry `accounted_bytes`; two-phase inserts plan the eviction set
+before mutating; checked arithmetic).  Zero capacity disables; oversized
+entries are delivered for the current decode but never retained, and
+nothing useful is evicted to find out.
+
+Per-key single-flight (`Building` marker + condvar) guarantees N
+concurrent same-key cold requests perform exactly **one** construction;
+the build runs outside the cache-state lock (measured flat build time in
+worker count, `docs/performance/model-cache.md`).  A builder panic is
+caught (`Panicked`, never a permanent `Building` state); a cache-internal
+failure bypasses to the same canonical constructor and is never reported
+as a model error.  The single constructor
+`build_validated_model_artifacts` serves both the cached and uncached
+paths, so the two cannot drift.  Eviction is FIFO — kept on measured
+evidence (ADR-0017): at the production 64-entry capacity, the shadow
+simulation shows FIFO and LRU are identical on every derived public
+schedule.
+
+The cache stores the model-derived immutable artifacts — frequencies
+(Arc-shared) and the 16 KiB packed word table (Arc-shared) — and
+**never** the backend choice: backend selection happens after the lookup
+so a cached artifact is never reused under incompatible execution
+conditions.  A corrupt model is never admitted; a miss rebuilds (always
+correct); eviction is deterministic (FIFO).  This is a pure performance
+optimisation with no correctness dependence.
 
 ## 8. Integrity: strict by default
 

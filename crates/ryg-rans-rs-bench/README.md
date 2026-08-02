@@ -92,6 +92,7 @@ The crate is `publish = false` — workspace-internal, never published to crates
 | 11 | `r64` | `benches/r64.rs` | Legacy 64-bit rANS: division + reciprocal encode, decode, interleaved2. |
 | 12 | `alias` | `benches/alias.rs` | Legacy alias method: table construction, single + interleaved2 encode/decode. |
 | 13 | `comparative` | `benches/comparative.rs` | Phase L.14 court: Rust core vs upstream C via `ryg-rans-sys =1.2.0` FFI, same corpus/model/size; word comparison behind the `comparative-word-sse41` feature. |
+| 14 | `model_cache` | `benches/model_cache.rs` | Phase O: model artifact cache — construction microbenchmarks, cache-operation microbenchmarks (warm hit / cold miss / oversized bypass / disabled bypass / FIFO eviction / same-key single-flight), and end-to-end decode across the disabled/cold/warm/hot-set/thrash/unique classes × 6 sizes × 1–32 workers.  Every case emits a mode-proving preflight record before timing; a case whose metrics do not prove its mode is rejected.  With `RYG_RANS_WORKLOAD_MANIFEST` + `RYG_RANS_SOURCE_CACHE` set, an additional public-corpus group measures natural and grouped model modes on the real `public-rans-v1` smoke schedule. |
 
 ---
 

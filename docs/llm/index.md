@@ -58,6 +58,10 @@
 | "Verified" after skipping | Self-hash check skipped, success printed | The tool must say what it did |
 | Local optimisation, global destruction | Promote script renaming the whole evidence tree | Review what else the op touches |
 | Optimistic error-path coverage | Tests pass because error paths are never exercised | Demand negative tests (truncation, cancellation, panic) |
+| Literal-name reachability audit | "ModelCache has no production path" because the search never traced the wrapper that consumes it | Trace wrappers and downstream artifact consumption |
+| A "skew" that is identity | Bench data generator remapped symbols to themselves; only 9 of 16 models were distinct | Mode-proof preflights reject wrong cardinalities |
+| Exact assertions on scheduler-dependent metrics | Multi-worker thrash counts are interleaving-dependent; exact proofs failed | Worker-aware, data-driven proofs |
+| Documented API with no production path | `ModelPolicy::Uniform/Global/External` never read by the encoder | Reachability + observable-effect doctrine |
 
 ## 5. Review checklists
 

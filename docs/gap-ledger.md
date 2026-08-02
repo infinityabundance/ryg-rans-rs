@@ -115,3 +115,24 @@ Complete implementation:
 - `decode_8way_scalar` — Pure-Rust scalar reference
 
 **Performance**: Measured on Ryzen 7 9800X3D. Scalar 8-way is ~2.5× faster than SSE4.1 due to gather overhead. Full multi-profile, multi-size benchmarks available.
+
+## Model artifact cache (full, Phase O)
+
+**Status:** `full` — exact accounting, single-flight, explicit ownership, measured effectiveness.
+
+### What the cache does
+`ModelArtifactCache` (explicitly owned by `ParallelDecoder`) memoizes the
+validated immutable model artifacts — the 256-symbol frequency vector and
+(16 KiB) packed word table — keyed by `(model_sha256, scale_bits,
+codec_id)`.  Exact per-entry byte accounting; zero capacity disables;
+oversized entries are delivered but never retained; one retained entry per
+key; N concurrent same-key cold requests perform exactly one construction
+(single-flight); cache failure bypasses to the same canonical constructor
+and is never a model error.
+
+### Gap class
+None.  Measured: warm cache materially improves small-block decode, is
+neutral for large blocks, and unique-model streams are a net regression
+(`docs/performance/model-cache.md`); FIFO eviction retained on shadow
+simulation evidence (ADR-0017); 9 behavioural courts + 5 performance
+receipts pin the guarantees.

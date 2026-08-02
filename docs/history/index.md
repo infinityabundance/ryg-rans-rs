@@ -183,6 +183,47 @@ history, ADRs, diagrams, module/function/section/line commentary, the
 educational layer, and the documentation seal — the knowledge-preservation
 phase that ensures no engineering lesson above is ever lost.
 
+## Phase N — Navigation and knowledge architecture
+
+Entry-point guides, learning maps (mermaid + SVG), the knowledge graph,
+the architecture atlas, the six standalone articles, the failure
+encyclopedia, and the search indexes made the now-huge corpus navigable
+without reducing depth.
+
+## Phase O — Model cache correctness, public-corpus workloads, measured effectiveness
+
+The model cache was rebuilt from the ground up against an adversarial
+specification (O.1–O.22):
+
+* **Exact accounting** replaced approximate byte tracking (per-entry
+  `accounted_bytes`, two-phase inserts, checked arithmetic).
+* **Explicit ownership** replaced the process-global cache (ADR-0016):
+  `ParallelDecoder` owns an `Arc<ModelArtifactCache>`; cold/warm
+  benchmarking became unambiguous.
+* **Single-flight construction** replaced duplicate cold builds; builds
+  run outside the cache-state lock (measured flat build time in worker
+  count).
+* **The documented-but-inert `ModelPolicy` variants were removed or
+  implemented**: `External { model }` (grouped-model encoding, Phase
+  O.13); `Uniform`/`Global` were deleted as unimplementable
+  (`ENCODE.MODEL_POLICY.1`).
+* **Public-corpus workloads**: 15 pinned sources (Canterbury, enwik8/9,
+  Pizza & Chili) with hash-pinned identity, deterministic derivation
+  (smoke/1g/mixed-16g/stress-64g), natural-vs-grouped model honesty,
+  fetch/derive/stress/soak tooling.
+* **Measured effectiveness**: allocation and contention binaries, cold-
+  vs-warm Criterion benches with mode-proving preflight, FIFO-vs-LRU
+  shadow simulation (ADR-0017).  Honest conclusions: warm helps small
+  blocks, is neutral for large blocks, and unique models are a net
+  regression.
+
+Audit lessons recorded: the literal-type-name reachability audit was
+rejected (trace wrappers and artifact consumption); the doc-comment-vs-
+code class recurred in new cancellation documentation and was caught by
+re-tracing to the returns; the bench's "skew" generator was a no-op
+(F-13); the reorder buffer surfaced caller-contract violations as
+internal-bug errors (F-15).
+
 ---
 
 ## The invariant timeline (what was discovered, and when)

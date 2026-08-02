@@ -151,7 +151,7 @@ Output: [ block 0 ][ block 1 ][ block 2 ]...[ block N ]
 | `decode.rs` | `ParallelDecoder::decode_blocks`, `decode_blocks_with_cancel`, `decode_streaming`, `decode_streaming_with_cancel`, `decode_with_sink`, `decode_single_block`, `ExecutedDecode` |
 | `decode_plan.rs` | `DecodePlan`, `create_decode_plan`, `plan_cache_key` — exact-backend planning |
 | `verify.rs` | `ParallelVerifier::verify_blocks`, `verify_blocks_with_cancel`, `ParallelVerificationReport`, `BlockVerificationResult` |
-| `cache.rs` | `ModelCache<T>`, `ModelCacheKey`, `ValidatedModelArtifacts`, `cached_model_artifacts` |
+| `cache.rs` | `ModelCache<T>`, `ModelCacheKey`, `ValidatedModelArtifacts`, `ModelArtifactCache`, `build_validated_model_artifacts`, `ModelCacheMetricsSnapshot` |
 | `resource.rs` | `ParallelMemoryEstimate`, `estimate_memory`, `effective_worker_count` |
 | `scratch.rs` | `WorkerScratch`, `ScratchPool` — reusable per-worker buffers |
 | `affinity.rs` | `validate_affinity_policy`, `apply_worker_affinity` — Linux CPU pinning (`affinity` feature) |
@@ -367,23 +367,60 @@ via the pool.
 
 ---
 
-## ModelCache
+## ModelCache (Phase O — explicit ownership, single-flight)
 
-`ModelCache<T>` + `cached_model_artifacts` (`cache.rs`) cache validated,
+`ModelArtifactCache` + `ModelCache<T>` (`cache.rs`) cache validated,
 immutable model-derived decode artifacts.  The cache key is
-`ModelCacheKey { model_sha256, scale_bits, codec_id }` (SHA-256 of the exact
-model bytes plus the two discriminators).  Properties:
+`ModelCacheKey { model_sha256, scale_bits, codec_id }` (SHA-256 of the
+exact model bytes plus the two discriminators).  Properties:
 
-- **Bounded**: 64 entries / 16 MiB for the process-global cache
-  (`GLOBAL_MODEL_CACHE`, a `OnceLock<Mutex<ModelCache<ValidatedModelArtifacts>>>`).
-- **FIFO eviction** — deterministic, independent of access order.
-- **Correctness-independent**: a miss rebuilds the artifacts (always correct);
-  the cache is a pure performance optimisation.
+- **Explicitly owned** (ADR-0016): `ParallelDecoder::new(config)` creates a
+  fresh cache; `ParallelDecoder::with_model_cache(config, cache)` injects
+  a caller-owned one.  There is no process-global cache — cold/warm
+  benchmarking, tenant isolation, budget control, and test isolation are
+  all unambiguous because the owner is explicit.
+- **Exact accounting** (O.1): every retained entry carries its exact
+  `accounted_bytes`; `current_entries` / `current_bytes` equal the
+  retained set after every public operation (checked arithmetic;
+  two-phase insert plans evictions before mutating).
+- **Zero capacity disables** (O.2): `max_entries == 0` or
+  `max_total_bytes == 0` ⇒ no retention, no insertion, direct
+  construction (`disabled_bypasses` metric).
+- **Oversized entries are never retained** (O.2): an entry larger than the
+  budget is delivered for the current decode and rejected
+  (`RejectedOversized`), with **no eviction** of useful entries.
+- **One retained entry per key** (O.3): `HashMap` + FIFO `VecDeque` in set
+  equality; replacement removes the old entry first (exact bytes).
+- **Per-key single-flight** (O.5): N concurrent cold requests for one key
+  perform exactly one construction (builds run outside the cache-state
+  lock); a builder panic is caught and never leaves a permanent
+  `Building` state; cancelled waiters stop without corrupting the shared
+  build.
+- **Cache failure is transparent** (O.6): a synchronization or accounting
+  failure records `uncached_fallbacks` and builds directly with the same
+  canonical constructor (`build_validated_model_artifacts`) — it is never
+  reported as a malformed model.
+- **FIFO eviction** — deterministic, independent of access order; kept on
+  measured evidence (ADR-0017: FIFO and LRU are identical at the
+  production capacity on every derived public schedule).
+- **Correctness-independent**: a miss rebuilds the artifacts (always
+  correct); the cache is a pure performance optimisation.
 - **Corrupt models are never cached**: only artifacts validated
   (frequencies summing to `1 << scale_bits`, 256 entries) are inserted.
 - **Backend selection happens after the lookup**, per block, so a cached
   artifact is never reused under incompatible execution conditions
   (runtime CPU features, `disable_simd`).
+- **Observable behavior** (O.8): `ModelCacheMetricsSnapshot` reports
+  lookups/hits/misses/builds/coalesced waiters/insertions/replacements/
+  evictions/oversized/disabled/fallbacks/current+peak entries and bytes,
+  with the invariants `hits + misses == lookups` and `builds_completed +
+  build_failures <= builds_started`.  With the `cache-timing` feature,
+  `timing()` adds lock wait/hold, build, single-flight wait, and lookup
+  durations for contention analysis (O.16).
+
+Measured behavior (cold/warm/hot-set/thrash/unique/public classes) is
+reported in `docs/performance/model-cache.md`; the behavioural courts
+`RYG_RANS.O.CACHE.*` pin the guarantees.
 
 ---
 

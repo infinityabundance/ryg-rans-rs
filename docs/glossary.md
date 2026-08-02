@@ -94,6 +94,46 @@ meanings.  If a document uses a term differently, that document is wrong.
   completed, expected }` and can never return `Ok` with fewer blocks than
   declared.
 
+## Model cache (Phase O)
+
+* **Model artifact** — the validated, immutable decode inputs for one
+  model: the 256-symbol frequency vector, the Uniform256 flag, and (SIMD
+  builds) the 16 KiB packed word table.  Built by the single canonical
+  constructor `build_validated_model_artifacts`.
+* **ModelCacheKey** — `(model_sha256, scale_bits, codec_id)`: the byte-exact
+  identity of a model artifact.  Built by `ModelCacheKey::from_model`.
+* **ModelCache** — the exact-accounting FIFO core: `HashMap<Key, CacheEntry
+  { value: Arc<T>, accounted_bytes }>` + a FIFO `VecDeque` in set
+  equality.  `current_entries` and `current_bytes` are exact after every
+  public operation; `max_entries == 0` or `max_total_bytes == 0` disables
+  the cache.
+* **ModelArtifactCache** — the explicitly owned, thread-safe cache with
+  per-key single-flight construction (`Building` marker + condvar).  A
+  builder panic is caught (`Panicked`, never a permanent `Building`
+  state); a cache-internal failure bypasses to the same canonical
+  constructor and is never reported as a model error.
+* **Accounted bytes** — the exact per-entry byte cost tracked by the
+  cache (frequencies + packed table + fixed overhead), computed by the
+  canonical constructor so cached and uncached paths agree.
+* **Single-flight** — N concurrent same-key cold requests perform exactly
+  one construction; the N-1 waiters receive the same `Arc` artifact.
+* **CacheInsertOutcome** — the typed insertion verdict (`Inserted`,
+  `Replaced`, `RejectedDisabled`, `RejectedOversized { entry_bytes,
+  max_total_bytes }`); oversized entries are delivered for the current
+  decode but never retained, and nothing useful is evicted to find out.
+* **Disabled bypass** — a zero-capacity cache serving every request by
+  direct construction (the semantic baseline); counted by
+  `disabled_bypasses`.
+* **ModelCacheMetricsSnapshot** — the authoritative behavior counters
+  (lookups/hits/misses/builds/coalesced waiters/insertions/replacements/
+  evictions/oversized/disabled/fallbacks/current+peak entries and bytes)
+  with the invariants `hits + misses == lookups` and `builds_completed +
+  build_failures <= builds_started`.
+* **ModelPolicy** — the encode-side model construction policy: `PerBlock`
+  (natural mode) or `External { model }` (grouped mode, Phase O.13).  The
+  documented-but-inert `Uniform`/`Global` variants were removed in Phase O
+  (residual `ENCODE.MODEL_POLICY.1`).
+
 ## Configuration
 
 * **Worker count** — `requested_workers` (what the caller asked for) vs

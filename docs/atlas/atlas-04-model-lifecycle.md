@@ -5,7 +5,9 @@
 ```mermaid
 flowchart LR
     MB[model bytes] --> KEY[ModelCacheKey::from_model: sha256 + scale + codec]
-    KEY --> CACHE[cached_model_artifacts]
+    KEY --> CACHE[ModelArtifactCache: exact accounting, single-flight]
+    CACHE -->|miss| BUILD[build_validated_model_artifacts]
+    CACHE -->|hit| ARC[shared Arc<PackedWordTable>]
     CACHE -->|hit| ART[ValidatedModelArtifacts: freqs Arc + packed table Arc]
     CACHE -->|miss| BUILD[validate sum == 1<<scale, build 16KiB table]
     BUILD --> ART

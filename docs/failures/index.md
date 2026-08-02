@@ -197,6 +197,104 @@ tooling that exists to catch the class.
   round-trip.
 * **Future prevention:** the archive round-trip seal gate.
 
+## F-12 — The eviction byte-accounting drift
+
+* **Original assumption:** subtracting the *incoming* entry's size for
+  every eviction keeps `current_bytes` correct.
+* **Observed failure:** `current_bytes` drifts whenever entry sizes differ
+  (mixed-size insertions, evictions) — the counter silently diverged from
+  the retained set.
+* **Evidence:** residual `MODEL_CACHE.BOUND.1`; the mixed-size unit tests;
+  the shadow-model proptest.
+* **Root cause:** eviction subtracted the wrong entry's size; the counter
+  was approximate, not derived from the retained set.
+* **Fix:** exact per-entry `accounted_bytes`; eviction subtracts the
+  evicted entry's exact bytes; a two-phase insert plans the eviction set
+  before mutating; checked arithmetic everywhere.
+* **Invariant introduced:** `current_bytes == sum(retained accounted
+  sizes)` after every public operation, recomputed by an independent
+  verifier.
+* **Future prevention:** `invariant_check`, the proptest shadow model, and
+  the `RYG_RANS.O.CACHE.EXACT_BYTES` court.
+
+## F-13 — The no-op skew generator
+
+* **Original assumption:** a symbol-remap that maps a value to itself
+  skews the distribution.
+* **Observed failure:** the model-cache bench's hot-set mode produced only
+  9 distinct models from 16 intended skews; the mode proofs failed.
+* **Evidence:** the bench mode-proof failures; the probe counting distinct
+  embedded models.
+* **Root cause:** the remap condition `if s%256 == skew { skew }` was
+  identity — the data was pure xorshift for every skew, and the frequency
+  normalizer collapsed many histograms to the same table.
+* **Fix:** a dominant-symbol generator (50% of bytes) guarantees distinct
+  histograms per skew; unique mode uses per-block skews (plain xorshift
+  collapsed 32 streams to 17 models).
+* **Invariant introduced:** distinct skew ⇒ distinct normalized model;
+  same skew + same seed ⇒ byte-identical blocks.
+* **Future prevention:** the mode-proof preflight rejects any case whose
+  metrics do not prove its intended model cardinality.
+
+## F-14 — The inert ModelPolicy variants
+
+* **Original assumption:** documented enum variants (`Uniform`,
+  `External`, `Global`) were future features.
+* **Observed failure:** the encoder never read `model_policy`; `External`
+  could not even be expressed (no payload), `Uniform` referenced an index
+  the API cannot supply, `Global` needs cross-block coordination a
+  per-job field cannot express.  Every call site used `PerBlock`.
+* **Evidence:** residual `ENCODE.MODEL_POLICY.1`.
+* **Root cause:** documentation outran implementation; nothing forced the
+  connection.
+* **Fix:** redesigned to `PerBlock` + `External { model }` (implemented
+  and validated: length/sum/scale checks, zero-frequency-symbol
+  rejection); `Uniform`/`Global` removed as unimplementable.
+* **Invariant introduced:** every documented policy has a production call
+  path and an observable effect (Phase L.13 reachability doctrine).
+* **Future prevention:** the public-API reachability court and the
+  observable-effect doctrine.
+
+## F-15 — The reorder index trap
+
+* **Original assumption:** callers would always pass 0-based contiguous
+  block indices because "the planner assigns them".
+* **Observed failure:** a single-block encode at index 5 (and the
+  public-corpus bench's per-block encodes) surfaced as a misleading
+  `IncompleteExecution { completed: 0 }` — indistinguishable from an
+  internal bug.
+* **Evidence:** the probe reproducing the failure; the bench's training
+  encode at group-id indices.
+* **Root cause:** the reorder buffer commits ascending from index 0; a
+  missing predecessor is buffered forever; the completeness check then
+  reported an internal-bug error for a caller-contract violation.
+* **Fix:** both public boundaries validate that job indices are exactly
+  `0..bc` and return a typed `Config` error otherwise; the bench encodes
+  single blocks at index 0 and patches the header index (offset 8..16,
+  covered by no hash) to the schedule index.
+* **Invariant introduced:** a caller-obligation violation is a typed
+  error, never an internal-bug error or a hang.
+* **Future prevention:** the boundary validation plus the bench's
+  header-index patch.
+
+## F-16 — The scheduler-dependent mode proof
+
+* **Original assumption:** the cache's hit/miss/build counts for a
+  concurrent thrash case are deterministic.
+* **Observed failure:** multi-worker thrash proofs failed: eviction
+  interleaving between FIFO evictions and concurrent lookups makes the
+  counts scheduler-dependent.
+* **Evidence:** the bench mode-proof failures at 2+ workers.
+* **Root cause:** the proof asserted exact counts that only hold for
+  sequential (1-worker) execution.
+* **Fix:** exact proofs at 1 worker; deterministic bounds at N workers
+  (every distinct model built, ≥ 1 eviction, hits + builds == blocks);
+  the report documents which numbers are exact and which are
+  scheduler-dependent ranges.
+* **Invariant introduced:** output determinism is the invariant; cache
+  *metric* determinism under concurrency is not claimed.
+* **Future prevention:** mode proofs are data-driven and worker-aware.
+
 ---
 
 ## The failure classes (summary)
@@ -214,3 +312,8 @@ tooling that exists to catch the class.
 | Report diverges from execution | F-09 | report-parity courts |
 | Provenance describes the wrong time/place | F-10 | benchmark-time capture |
 | Serializer loses fidelity silently | F-11 | round-trip gates |
+| Accounting derived from the wrong value | F-12 | exact per-entry sizes + independent recompute |
+| "Skew" that is identity | F-13 | mode-proof preflights reject wrong cardinalities |
+| Documented API with no production path | F-14 | reachability doctrine + observable-effect doctrine |
+| Caller contract enforced as an internal bug | F-15 | typed boundary validation |
+| Exact assertions on scheduler-dependent metrics | F-16 | worker-aware, data-driven proofs |

@@ -95,6 +95,31 @@ the preflight says an AVX-512 kernel actually executed.
 * The ten sealed receipts (800 cases × 100 samples, run
   `phase-l-20260802b`) are the only "Sealed" performance claims; the CLI
   `bench` subcommand is a live smoke measurement and says so.
+* Phase O adds five cache receipts (`RYG_RANS.PERF.CACHE.*`) whose cases
+  must **prove their mode from cache metrics before timing** — a warm
+  case with `builds_started delta > 0` is rejected, a cold same-key case
+  with more than one build is rejected, a disabled case with any retained
+  entry is rejected (bench preflight mode proofs).  Cache claims are
+  never inferred from data shape; they are read from the instrumented
+  counters.
+
+## 6.1 The cache-methodology specifics (Phase O)
+
+* **Cold/warm isolation**: cold samples use a fresh cache instance per
+  sample (Criterion `iter_batched` setup); warm samples pre-populate and
+  verify the artifact outside the timed region and record pre-timing
+  metrics proving the artifact exists.  Clearing a global cache and
+  assuming cold is prohibited — there is no global cache (ADR-0016).
+* **Allocation and contention** are measured by dedicated binaries
+  (`model_cache_alloc`, `model_cache_contention`) behind an explicit
+  allocator / the `cache-timing` feature; production consumers never link
+  a diagnostic allocator and pay no timing overhead.
+* **Negative results are reported**: unique-model streams and thrash are
+  measured and reported as classes; `docs/performance/model-cache.md`
+  permits "warm is neutral for large blocks" and "unique models make
+  caching a net regression" conclusions.
+* **Eviction policy** is a measured decision: `cargo xtask workload
+  policy-sim` reproduces the FIFO-vs-LRU evidence (ADR-0017).
 
 ## 7. Common mistakes this methodology exists to prevent
 

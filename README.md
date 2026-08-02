@@ -145,12 +145,15 @@ parity courts:
 | **Phase H optimization backends** | **2×8-on-16 · manual gather · uniform256 table-free** | ✅ **Test-verified** |
 | **Phase J AVX2 backends** | **AVX2 portability tier** | ✅ **Test-verified** |
 | **Phase I — Parallel block engine** | **Bounded executor, fixed-block plan, ordered commit** | ✅ **Test-verified** |
+| **Phase O — Model artifact cache** | **Explicitly owned, exact-accounting, single-flight model cache + public-corpus workloads** | ✅ **Sealed** (9 behavioural courts + 5 performance receipts) |
 | **CLI** | **`ryg-rans` with 10 wired subcommands** | ✅ **Implemented** (20 CLI tests) |
 
 The behavioural counts above are the sealed totals: **158 receipts** (144
 oracle/upstream-parity courts + 14 Phase L behavioural courts); the README
 table is regenerated from the evidence index by the seal machinery (never
-hand-edited).
+hand-edited).  Phase O adds **9 behavioural courts** (`RYG_RANS.O.CACHE.*`,
+`RYG_RANS.O.WORKLOAD.PUBLIC_RANS_V1`) and **5 performance receipts**
+(`RYG_RANS.PERF.CACHE.*`) — see the Evidence Status table.
 
 ---
 
@@ -294,6 +297,18 @@ corpora (8 profiles, fixed seeds) and verify output parity before timing.
 | `dispatch` | `benches/dispatch.rs` | Runtime backend dispatch overhead, auto-selection latency |
 | `byte_rans` / `r64` / `alias` | legacy surfaces | Byte/R64/Alias division + reciprocal, interleaved2, model construction |
 | `comparative` | `benches/comparative.rs` | Phase L.14 same-host court vs upstream C via `ryg-rans-sys` (=1.2.0) |
+| `model_cache` | `benches/model_cache.rs` | Phase O model artifact cache: construction + cache-op microbenchmarks; end-to-end disabled/cold/warm/hot-set/thrash/unique decode × 6 sizes × 1–32 workers; public-corpus natural/grouped modes when the workload cache is present. Every case emits a mode-proving preflight record. |
+
+### Workloads (Phase O)
+
+The model-cache and cache-behavior benchmarks consume a deterministic,
+versioned **rANS workload derivation** from public corpora — Canterbury,
+enwik8/enwik9, and Pizza & Chili (15 pinned sources; hashes cross-validated
+with the publishers).  The corpus bytes are never committed; the pinned
+identity, rights record, derivation policy, and fetch/derive/stress/soak
+tooling are (`workloads/public-rans-v1/`).  `cargo xtask workload
+policy-sim` reproduces the FIFO-vs-LRU eviction evidence (ADR-0017).
+Measured cache behavior is reported in `docs/performance/model-cache.md`.
 
 ### Key Design Properties
 
