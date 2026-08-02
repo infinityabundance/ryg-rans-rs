@@ -22,3 +22,4 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 ureq = { version = "2", features = ["tls"] }
 ryg-rans-rs-bench = { path = "../crates/ryg-rans-rs-bench" }
 ryg-rans-rs-casefile = { path = "../crates/ryg-rans-rs-casefile", features = ["std"] }
+ryg-rans-rs-parallel = { path = "../crates/ryg-rans-rs-parallel" }

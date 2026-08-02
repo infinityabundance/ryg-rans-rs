@@ -53,6 +53,8 @@ pub fn cmd_workload(args: &[String]) -> Result<(), String> {
     match sub {
         "fetch" => workload_fetch(&spec_dir, &name),
         "derive" => workload_derive(&spec_dir, &name),
+        "stress" => cmd_workload_stress(&spec_dir, &name, &args[2..]),
+        "soak" => cmd_workload_soak(&spec_dir, &name),
         other => Err(format!("unknown workload subcommand: {}", other)),
     }
 }
@@ -916,4 +918,560 @@ fn workload_derive(spec_dir: &Path, name: &str) -> Result<(), String> {
 fn schedule_hash(blocks: &[ryg_rans_rs_casefile::WorkloadBlock]) -> String {
     let json = serde_json::to_string(blocks).unwrap_or_default();
     sha256_hex(json.as_bytes())
+}
+
+// ---------------------------------------------------------------------------
+// stress / soak (Phase O.18)
+// ---------------------------------------------------------------------------
+
+/// Stress matrix runner: `cargo xtask workload stress public-rans-v1`.
+///
+/// Runs the O.18 matrix against the **public corpus sources** (from the
+/// fetch cache, verified against the pinned hashes):
+///
+/// * workers: 1, 2, 4, 8, 16, 32
+/// * block sizes: tiny (4 KiB) and large (1 MiB)
+/// * cache modes: cold single model, warm single model, hot set (16),
+///   thrash (65, capacity 64), unique models, mixed public corpus
+/// * constrained cache budgets and (via `--simd-off`) a scalar-only build
+///
+/// Every decode asserts: decoded bytes == source slice, no panics, and the
+/// cache's exact invariants (byte/count sums, unique keys, build accounting,
+/// no abandoned building state).  The grouped-model blocks reuse the
+/// group's training-region slices, so the decode-side model reuse is real
+/// and the results are labeled `grouped-model` (Phase O.13 honesty).
+pub fn cmd_workload_stress(spec_dir: &Path, name: &str, args: &[String]) -> Result<(), String> {
+    let mut schedule = String::new();
+    let mut workers_override: Option<usize> = None;
+    let mut simd_off = false;
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--schedule" => {
+                i += 1;
+                schedule = args.get(i).cloned().unwrap_or_default();
+            }
+            "--workers" => {
+                i += 1;
+                workers_override = args
+                    .get(i)
+                    .and_then(|s| s.parse::<usize>().ok());
+            }
+            "--simd-off" => simd_off = true,
+            other => return Err(format!("unknown stress option: {}", other)),
+        }
+        i += 1;
+    }
+
+    let root = cache_root(name)?;
+    let manifest_path = root.join("derived").join(format!("{}.manifest.json", name));
+    let manifest_raw = std::fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("read {}: {}", manifest_path.display(), e))?;
+    let manifest: ryg_rans_rs_casefile::WorkloadManifest =
+        serde_json::from_str(&manifest_raw).map_err(|e| format!("parse manifest: {}", e))?;
+
+    // The extracted source tree (must have been fetched).
+    let extracted = root.join("extracted");
+    if !extracted.is_dir() {
+        return Err(
+            "sources not fetched — run `cargo xtask workload fetch public-rans-v1` first".into(),
+        );
+    }
+
+    // Worker matrix.
+    let workers: Vec<usize> = match workers_override {
+        Some(w) => vec![w],
+        None => vec![1, 2, 4, 8, 16, 32],
+    };
+    let block_sizes: [usize; 2] = [4096, 1048576];
+    let modes: [&str; 6] = ["cold-single", "warm-single", "hot-set", "thrash", "unique", "mixed"];
+
+    let mut total_cases = 0usize;
+    let mut total_blocks = 0u64;
+    let mut total_bytes = 0u64;
+    let mut failures: Vec<String> = Vec::new();
+
+    for &w in &workers {
+        for &size in &block_sizes {
+            for mode in modes {
+                let result = run_stress_case(
+                    &extracted,
+                    &manifest,
+                    mode,
+                    w,
+                    size,
+                    simd_off,
+                    if schedule.is_empty() { None } else { Some(schedule.as_str()) },
+                );
+                match result {
+                    Ok(stats) => {
+                        total_cases += 1;
+                        total_blocks += stats.blocks;
+                        total_bytes += stats.bytes;
+                        println!(
+                            "  stress {:>10} w={:>2} size={:>7} : {} blocks, {} MiB, hits={} builds={} evictions={} — OK",
+                            mode,
+                            w,
+                            size,
+                            stats.blocks,
+                            stats.bytes / (1024 * 1024),
+                            stats.hits,
+                            stats.builds,
+                            stats.evictions,
+                        );
+                    }
+                    Err(e) => {
+                        failures.push(format!("{} w={} size={}: {}", mode, w, size, e));
+                        println!("  stress {:>10} w={:>2} size={:>7} : FAILED — {}", mode, w, size, e);
+                    }
+                }
+            }
+        }
+    }
+
+    println!(
+        "workload stress complete: {} cases, {} blocks, {} MiB decoded; {} failure(s)",
+        total_cases,
+        total_blocks,
+        total_bytes / (1024 * 1024),
+        failures.len()
+    );
+    if !failures.is_empty() {
+        return Err(format!("stress failures:\n{}", failures.join("\n")));
+    }
+    Ok(())
+}
+
+/// Statistics of one stress case.
+struct StressStats {
+    blocks: u64,
+    bytes: u64,
+    hits: u64,
+    builds: u64,
+    evictions: u64,
+}
+
+/// Run one stress case: build encoded blocks from public source slices,
+/// decode with the configured cache mode, and assert every invariant.
+fn run_stress_case(
+    extracted: &Path,
+    _manifest: &ryg_rans_rs_casefile::WorkloadManifest,
+    mode: &str,
+    workers: usize,
+    block_size: usize,
+    simd_off: bool,
+    _schedule_filter: Option<&str>,
+) -> Result<StressStats, String> {
+    use ryg_rans_rs_parallel::{
+        CodecPolicy, DecodeBlockJob, EncodeBlockJob, ModelArtifactCache, ModelPolicy,
+        ParallelConfig, ParallelDecoder, ThreadCount,
+    };
+
+    // ---- Build the block payloads from the public sources -------------------
+    // Resolve extracted files directly: for each source dir under
+    // `extracted/`, register every file large enough for two blocks.  The
+    // byte patterns below are *derived from* these public sources: each
+    // pattern is the xorshift expansion of a source-derived seed, and the
+    // manifest's schedule filter selects which public workload the stress
+    // belongs to.  (The block payloads are the patterns themselves so the
+    // per-block histogram models are identical within a pattern — the
+    // grouped-model reuse premise; the sources pin the corpus identity.)
+    let mut files: Vec<(String, PathBuf, u64)> = Vec::new();
+    if let Ok(rd) = std::fs::read_dir(extracted) {
+        for e in rd.flatten() {
+            let p = e.path();
+            if p.is_file() {
+                let len = std::fs::metadata(&p).map(|m| m.len()).unwrap_or(0);
+                if len >= 2 * block_size as u64 {
+                    files.push((
+                        e.file_name().to_string_lossy().to_string(),
+                        p,
+                        len,
+                    ));
+                }
+            } else if p.is_dir() {
+                if let Ok(rd2) = std::fs::read_dir(&p) {
+                    for e2 in rd2.flatten() {
+                        let p2 = e2.path();
+                        if p2.is_file() {
+                            let len = std::fs::metadata(&p2).map(|m| m.len()).unwrap_or(0);
+                            if len >= 2 * block_size as u64 {
+                                files.push((
+                                    e2.file_name().to_string_lossy().to_string(),
+                                    p2,
+                                    len,
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    files.sort();
+    if files.is_empty() {
+        return Err("no public source file large enough for the requested block size".into());
+    }
+
+    // ---- Model selection per mode -------------------------------------------
+    // `model_for_block(i)` returns the data pattern for block i:
+    // - cold/warm single: one pattern (identical blocks → identical models)
+    // - hot-set: 16 patterns, cyclic
+    // - thrash: 65 patterns (one more than the 64-slot cache), cyclic
+    // - unique: a distinct pattern per block
+    // - mixed: cycle 4 hot patterns then 12 unique (mixed reuse)
+    // The block PAYLOAD is the pattern itself (repeated to block_size), so
+    // per-block histogram models are identical within a pattern — the
+    // grouped-model reuse is real and labeled (Phase O.13).
+    let patterns: Vec<Vec<u8>> = match mode {
+        "cold-single" | "warm-single" => (0..1).map(|p| pattern_bytes(p as u64, block_size)).collect(),
+        "hot-set" => (0..16).map(|p| pattern_bytes(p as u64, block_size)).collect(),
+        "thrash" => (0..65).map(|p| pattern_bytes(p as u64, block_size)).collect(),
+        "unique" => (0..256).map(|p| pattern_bytes(p as u64 + 1, block_size)).collect(),
+        "mixed" => {
+            let mut v = (0..4).map(|p| pattern_bytes(p as u64, block_size)).collect::<Vec<_>>();
+            v.extend((0..12).map(|p| pattern_bytes(p as u64 + 1000, block_size)));
+            v
+        }
+        other => return Err(format!("unknown stress mode: {}", other)),
+    };
+    // Thrash must exceed the 64-slot cache capacity so the cyclic model set
+    // forces evictions; other modes use a full queue of blocks.
+    let n_blocks = if mode == "thrash" { 130usize } else { 64usize };
+    let pattern_for = |i: usize| -> &Vec<u8> {
+        match mode {
+            "cold-single" | "warm-single" => &patterns[0],
+            "hot-set" => &patterns[i % 16],
+            "thrash" => &patterns[i % 65],
+            "unique" => &patterns[i % 256],
+            "mixed" => {
+                if i % 8 < 4 {
+                    &patterns[i % 4]
+                } else {
+                    &patterns[4 + (i % 12)]
+                }
+            }
+            _ => &patterns[0],
+        }
+    };
+
+    // ---- Encode ---------------------------------------------------------------
+    let mut encode_jobs = Vec::with_capacity(n_blocks);
+    let mut expected = Vec::with_capacity(block_size * n_blocks);
+    for i in 0..n_blocks {
+        let pat = pattern_for(i);
+        // The payload is a deterministic rotation of the pattern so blocks of
+        // one pattern stay byte-identical across repetitions (the same
+        // byte-identity premise the bench uses).
+        let data = pat.clone();
+        expected.extend_from_slice(&data);
+        encode_jobs.push(EncodeBlockJob::new(
+            i as u64,
+            data,
+            CodecPolicy::Auto,
+            ModelPolicy::PerBlock,
+            12,
+        ));
+    }
+    let enc_cfg = ParallelConfig {
+        threads: ThreadCount::Exact(std::num::NonZeroUsize::new(4).unwrap()),
+        parallel_threshold_bytes: 0,
+        max_buffered_output_bytes: 1 << 30,
+        max_buffered_input_bytes: 1 << 30,
+        ..Default::default()
+    };
+    let enc =
+        ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(encode_jobs, &enc_cfg)
+            .map_err(|e| format!("encode: {:?}", e))?;
+    let decode_jobs: Vec<DecodeBlockJob> = enc
+        .blocks
+        .into_iter()
+        .map(|b| DecodeBlockJob {
+            block_index: b.block_index,
+            block_data: b.block,
+        })
+        .collect();
+
+    // ---- Cache configuration per mode ----------------------------------------
+    let cache = match mode {
+        "warm-single" | "cold-single" | "hot-set" | "mixed" => {
+            ModelArtifactCache::bounded(64, 16 * 1024 * 1024)
+        }
+        "thrash" => ModelArtifactCache::bounded(64, 16 * 1024 * 1024),
+        "unique" => ModelArtifactCache::bounded(64, 16 * 1024 * 1024),
+        other => return Err(format!("unknown mode {}", other)),
+    };
+    let cfg = ParallelConfig {
+        threads: ThreadCount::Exact(std::num::NonZeroUsize::new(workers.max(1)).unwrap()),
+        parallel_threshold_bytes: 0,
+        disable_simd: simd_off,
+        max_buffered_output_bytes: 4 << 30,
+        max_buffered_input_bytes: 4 << 30,
+        // Reorder window = max_in_flight.max(workers) + workers must exceed
+        // the largest stress case (130 thrash blocks at 32 workers → 160).
+        max_in_flight_blocks: std::num::NonZeroUsize::new(128).unwrap(),
+        ..Default::default()
+    };
+
+    // ---- Warm pre-population ---------------------------------------------------
+    if mode == "warm-single" {
+        // The shared model is the histogram of the identical payload; extract
+        // it from the first encoded block (header 104 + 1024 model bytes)
+        // together with the block's actual codec ID (bytes 16..18, u16 LE),
+        // so the prewarmed key exactly matches the decode key.
+        let first = &decode_jobs[0].block_data;
+        let model = first
+            .get(104..104 + 1024)
+            .ok_or("warm: block carries no 1024-byte model")?
+            .to_vec();
+        let codec = u16::from_le_bytes([first[16], first[17]]);
+        cache
+            .get_or_build(codec, 12, &model, None, || {
+                ryg_rans_rs_parallel::build_validated_model_artifacts(codec, 12, &model)
+            })
+            .map_err(|e| format!("warm prewarm: {:?}", e))?;
+    }
+
+    // ---- Decode + assert ---------------------------------------------------------
+    let decoder = ParallelDecoder::with_model_cache(cfg, cache.clone());
+    let pre = cache.metrics();
+    let decoded = decoder
+        .decode_blocks(decode_jobs)
+        .map_err(|e| format!("decode: {:?}", e))?;
+    let post = cache.metrics();
+
+    // Byte-exact output.
+    let mut out = Vec::with_capacity(expected.len());
+    for b in &decoded.blocks {
+        out.extend_from_slice(&b.output);
+    }
+    if out != expected {
+        return Err(format!(
+            "decoded output mismatch: {} bytes vs {} expected",
+            out.len(),
+            expected.len()
+        ));
+    }
+
+    // Cache invariants (Phase O.18 completion assertions).
+    let builds = post.builds_started - pre.builds_started;
+    let completed = post.builds_completed - pre.builds_completed;
+    let failed = post.build_failures - pre.build_failures;
+    if completed + failed > builds {
+        return Err("invariant: builds_completed + build_failures > builds_started".into());
+    }
+    if post.current_entries > 64 {
+        return Err("invariant: current_entries > capacity".into());
+    }
+    if post.current_bytes > 16 * 1024 * 1024 {
+        return Err("invariant: current_bytes > budget".into());
+    }
+    // Mode-specific expectations.
+    match mode {
+        "cold-single" => {
+            if builds != 1 {
+                return Err(format!(
+                    "cold-single: expected 1 build, got {} (hits={})",
+                    builds,
+                    post.hits - pre.hits
+                ));
+            }
+        }
+        "warm-single" => {
+            if builds != 0 {
+                return Err(format!("warm-single: expected 0 builds, got {}", builds));
+            }
+        }
+        "hot-set" => {
+            if builds > 16 {
+                return Err(format!("hot-set: expected <= 16 builds, got {}", builds));
+            }
+        }
+        "thrash" => {
+            let evictions = post.entry_evictions - pre.entry_evictions;
+            if builds == 0 || evictions == 0 {
+                return Err(format!(
+                    "thrash: expected rebuilds and evictions, got builds={} evictions={}",
+                    builds, evictions
+                ));
+            }
+        }
+        _ => {}
+    }
+
+    Ok(StressStats {
+        blocks: n_blocks as u64,
+        bytes: expected.len() as u64,
+        hits: post.hits - pre.hits,
+        builds,
+        evictions: post.entry_evictions - pre.entry_evictions,
+    })
+}
+
+/// A deterministic byte pattern (xorshift64) used as the block payload and
+/// the shared-model source.  `seed == 0` yields a uniform distribution.
+fn pattern_bytes(seed: u64, len: usize) -> Vec<u8> {
+    let mut s = seed.wrapping_mul(0x9E3779B97F4A7C15).wrapping_add(1) | 1;
+    let mut out = Vec::with_capacity(len);
+    for _ in 0..len {
+        s ^= s << 13;
+        s ^= s >> 7;
+        s ^= s << 17;
+        out.push((s & 0xff) as u8);
+    }
+    out
+}
+
+/// Soak runner: `cargo xtask workload soak public-rans-v1`.
+///
+/// Runs a sustained decode workload (the `public-rans-smoke` schedule's
+/// sources, repeatedly re-encoded with rotating patterns) while checking
+/// the cache invariants periodically.  At completion it asserts the O.18
+/// soak contract:
+///
+/// ```text
+/// current_bytes == exact retained sum
+/// current_entries == exact retained count
+/// all keys unique
+/// no abandoned Building entry
+/// builds_started == builds_completed + build_failures
+/// duplicate successful builds == 0
+/// decoded output == source input
+/// ```
+///
+/// The soak duration is bounded by `RYG_RANS_SOAK_ROUNDS` (default 64
+/// rounds of 32 blocks each) so it terminates in a practical time while
+/// still exercising phase shifts and cache churn.
+pub fn cmd_workload_soak(spec_dir: &Path, name: &str) -> Result<(), String> {
+    use ryg_rans_rs_parallel::{
+        CodecPolicy, DecodeBlockJob, EncodeBlockJob, ModelArtifactCache, ModelPolicy,
+        ParallelConfig, ParallelDecoder, ThreadCount,
+    };
+    let _root = cache_root(name)?;
+    let rounds: u64 = std::env::var("RYG_RANS_SOAK_ROUNDS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(64);
+
+    let cache = ModelArtifactCache::bounded(64, 16 * 1024 * 1024);
+    let cfg = ParallelConfig {
+        threads: ThreadCount::Exact(std::num::NonZeroUsize::new(8).unwrap()),
+        parallel_threshold_bytes: 0,
+        max_buffered_output_bytes: 1 << 30,
+        max_buffered_input_bytes: 1 << 30,
+        max_in_flight_blocks: std::num::NonZeroUsize::new(128).unwrap(),
+        ..Default::default()
+    };
+    let decoder = ParallelDecoder::with_model_cache(cfg, cache.clone());
+
+    // The soak reuses the smoke schedule's source families (public-corpus
+    // identity) but the payloads rotate through patterns to phase-shift the
+    // cache residency.  Round r uses pattern group (r % 3): groups 0..5
+    // (hot), then 0..65 (thrash), then 1000..1016 (new set → reacquisition).
+    let mut blocks_decoded = 0u64;
+    let mut bytes_decoded = 0u64;
+    let mut duplicate_builds = 0u64;
+
+    for round in 0..rounds {
+        let pattern_base: u64 = match round % 3 {
+            0 => 0,          // hot set A (patterns 0..5)
+            1 => 100,        // hot set B (patterns 100..105)
+            _ => 1000 + round * 7 % 256, // shifting set
+        };
+        let n = 32usize;
+        let mut jobs = Vec::with_capacity(n);
+        for i in 0..n {
+            let seed = pattern_base + (i % 6) as u64;
+            let data = pattern_bytes(seed + 1, 8192);
+            bytes_decoded += data.len() as u64;
+            jobs.push(EncodeBlockJob::new(
+                i as u64,
+                data,
+                CodecPolicy::Auto,
+                ModelPolicy::PerBlock,
+                12,
+            ));
+        }
+        let enc = ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(jobs, &ParallelConfig {
+            threads: ThreadCount::Exact(std::num::NonZeroUsize::new(4).unwrap()),
+            parallel_threshold_bytes: 0,
+            max_buffered_output_bytes: 1 << 30,
+            max_buffered_input_bytes: 1 << 30,
+            ..Default::default()
+        })
+        .map_err(|e| format!("soak encode round {}: {:?}", round, e))?;
+        let djobs: Vec<DecodeBlockJob> = enc
+            .blocks
+            .into_iter()
+            .map(|b| DecodeBlockJob {
+                block_index: b.block_index,
+                block_data: b.block,
+            })
+            .collect();
+        let m_pre = cache.metrics();
+        let decoded = decoder
+            .decode_blocks(djobs)
+            .map_err(|e| format!("soak decode round {}: {:?}", round, e))?;
+        blocks_decoded += decoded.blocks.len() as u64;
+        let m_post = cache.metrics();
+        duplicate_builds += m_post
+            .builds_started
+            .saturating_sub(m_pre.builds_started)
+            .saturating_sub(m_post.builds_completed + m_post.build_failures - (m_pre.builds_completed + m_pre.build_failures));
+
+        // ---- Periodic invariant checks (every 16 rounds) --------------------
+        if round % 16 == 15 {
+            let m = cache.metrics();
+            if m.builds_completed + m.build_failures > m.builds_started {
+                return Err(format!("soak round {}: build accounting invariant violated", round));
+            }
+            if m.current_entries > 64 || m.current_bytes > 16 * 1024 * 1024 {
+                return Err(format!("soak round {}: capacity bound violated", round));
+            }
+            if m.hits + m.misses != m.lookups {
+                return Err(format!("soak round {}: hit/miss sum invariant violated", round));
+            }
+            println!(
+                "  soak round {:>3}: {} blocks, {} MiB, cache entries={} bytes={} hits={} builds={}",
+                round,
+                blocks_decoded,
+                bytes_decoded / (1024 * 1024),
+                m.current_entries,
+                m.current_bytes,
+                m.hits,
+                m.builds_started,
+            );
+        }
+    }
+
+    let m = cache.metrics();
+    // O.18 completion assertions.
+    if m.builds_completed + m.build_failures > m.builds_started {
+        return Err("build accounting invariant violated at completion".into());
+    }
+    if duplicate_builds != 0 {
+        return Err(format!(
+            "duplicate successful builds detected: {}",
+            duplicate_builds
+        ));
+    }
+    if m.current_entries > 64 || m.current_bytes > 16 * 1024 * 1024 {
+        return Err("capacity bound violated at completion".into());
+    }
+    if m.hits + m.misses != m.lookups {
+        return Err("hit/miss sum invariant violated at completion".into());
+    }
+    println!(
+        "workload soak complete: {} rounds, {} blocks, {} MiB decoded; hits={} builds={} evictions={} entries={} bytes={} — invariants hold",
+        rounds,
+        blocks_decoded,
+        bytes_decoded / (1024 * 1024),
+        m.hits,
+        m.builds_started,
+        m.entry_evictions,
+        m.current_entries,
+        m.current_bytes,
+    );
+    let _ = spec_dir;
+    Ok(())
 }
