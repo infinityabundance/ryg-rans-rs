@@ -4,7 +4,7 @@
 > `#![no_std]` + `#![forbid(unsafe_code)]` — portable to embedded and Wasm targets.
 > Schema version 1 (`CASEFILE_SCHEMA_VERSION`). Zero rANS arithmetic.
 
-**Version: 0.3.0** · Schema v1 · 3 core types (+ std-gated performance types) · 1 test (doc test)
+**Version: 0.4.0** · Schema v1 · 3 core types (+ std-gated performance types) · 1 test (doc test)
 
 ---
 
@@ -430,7 +430,7 @@ With the `std` feature, performance artifacts can be serialized:
 
 ## Versioning and Reading Order
 
-- **Version**: 0.3.0 (workspace crates). Schema version 1.
+- **Version**: 0.4.0 (workspace crates). Schema version 1.
 - **Consumers**: `ryg-rans-rs-oracle` declares this crate as a dependency (its
   behavioural evidence uses harness-local receipt types); `xtask` uses the `std`
   performance types in `performance-seal`.
@@ -448,4 +448,4 @@ With the `std` feature, performance artifacts can be serialized:
 
 **Further reading:** `docs/papers/0006-evidence.md` (the evidence system these types model), `docs/glossary.md` (receipt, manifest, residual, seal).
 
-*Part of the ryg-rans-rs project. Version 0.3.0. Phase M custodian documentation pass.*
+*Part of the ryg-rans-rs project. Version 0.4.0. Phase M custodian documentation pass.*

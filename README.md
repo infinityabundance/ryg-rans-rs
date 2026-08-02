@@ -314,14 +314,14 @@ listed below.
 
 | Crate | Version | `no_std` | `unsafe` | Purpose |
 |-------|---------|----------|----------|---------|
-| [`ryg-rans-rs-core`](./crates/ryg-rans-rs-core) | 0.3.0 | ✅ Yes | ✅ Forbid | Algorithmic heart — byte/R64/Word/Alias rANS, malformed validation, Kani proofs |
-| [`ryg-rans-rs-simd`](./crates/ryg-rans-rs-simd) | 0.3.0 | ✅ Yes | ⚠️ Ledgered | SSE4.1 + AVX512VL + AVX512 decode kernels, scalar fallback; every `unsafe fn` in `unsafe-ledger.toml` |
-| [`ryg-rans-rs`](./crates/ryg-rans-rs) | 0.3.0 | ✅ Yes | ✅ Deny | Public facade — re-exports core + optional SIMD |
-| [`ryg-rans-rs-parallel`](./crates/ryg-rans-rs-parallel) | 0.3.0 | ❌ No | ✅ Forbid | **Phase I** — deterministic parallel block engine: bounded live executor, atomic reorder commit, scratch, model cache, exact backend planning (105 tests) |
-| [`ryg-rans-rs-cli`](./crates/ryg-rans-rs-cli) | 0.3.0 | ❌ No | ⚠️ Signals-gated | **`ryg-rans` binary** — 10 wired subcommands, RYGRANS v1 container, 11 stable exit codes, SIGINT/SIGTERM/`--timeout` cancellation, resource limits, strict integrity (23 tests) |
-| [`ryg-rans-rs-bench`](./crates/ryg-rans-rs-bench) | 0.3.0 | ❌ No | ❌ No | **Criterion benchmark suite** — 9 tiers + legacy surfaces + Phase L.14 comparative court. `publish = false` |
-| [`ryg-rans-rs-oracle`](./crates/ryg-rans-rs-oracle) | 0.3.0 | ❌ No | ❌ No | Forensic court harness, evidence generation |
-| [`ryg-rans-rs-casefile`](./crates/ryg-rans-rs-casefile) | 0.3.0 | ✅ Yes | ❌ No | Evidence schema types — Casefile, Receipt, Residual |
+| [`ryg-rans-rs-core`](./crates/ryg-rans-rs-core) | 0.4.0 | ✅ Yes | ✅ Forbid | Algorithmic heart — byte/R64/Word/Alias rANS, malformed validation, Kani proofs |
+| [`ryg-rans-rs-simd`](./crates/ryg-rans-rs-simd) | 0.4.0 | ✅ Yes | ⚠️ Ledgered | SSE4.1 + AVX512VL + AVX512 decode kernels, scalar fallback; every `unsafe fn` in `unsafe-ledger.toml` |
+| [`ryg-rans-rs`](./crates/ryg-rans-rs) | 0.4.0 | ✅ Yes | ✅ Deny | Public facade — re-exports core + optional SIMD |
+| [`ryg-rans-rs-parallel`](./crates/ryg-rans-rs-parallel) | 0.4.0 | ❌ No | ✅ Forbid | **Phase I** — deterministic parallel block engine: bounded live executor, atomic reorder commit, scratch, model cache, exact backend planning (105 tests) |
+| [`ryg-rans-rs-cli`](./crates/ryg-rans-rs-cli) | 0.4.0 | ❌ No | ⚠️ Signals-gated | **`ryg-rans` binary** — 10 wired subcommands, RYGRANS v1 container, 11 stable exit codes, SIGINT/SIGTERM/`--timeout` cancellation, resource limits, strict integrity (23 tests) |
+| [`ryg-rans-rs-bench`](./crates/ryg-rans-rs-bench) | 0.4.0 | ❌ No | ❌ No | **Criterion benchmark suite** — 9 tiers + legacy surfaces + Phase L.14 comparative court. `publish = false` |
+| [`ryg-rans-rs-oracle`](./crates/ryg-rans-rs-oracle) | 0.4.0 | ❌ No | ❌ No | Forensic court harness, evidence generation |
+| [`ryg-rans-rs-casefile`](./crates/ryg-rans-rs-casefile) | 0.4.0 | ✅ Yes | ❌ No | Evidence schema types — Casefile, Receipt, Residual |
 
 ---
 

@@ -1293,6 +1293,8 @@ pub struct ryg_rans_rs_parallel::ModelCacheKey
 pub ryg_rans_rs_parallel::ModelCacheKey::codec_id: u16
 pub ryg_rans_rs_parallel::ModelCacheKey::model_sha256: [u8; 32]
 pub ryg_rans_rs_parallel::ModelCacheKey::scale_bits: u8
+impl ryg_rans_rs_parallel::ModelCacheKey
+pub fn ryg_rans_rs_parallel::ModelCacheKey::from_model(u16, u8, &[u8]) -> Self
 impl core::clone::Clone for ryg_rans_rs_parallel::ModelCacheKey
 pub fn ryg_rans_rs_parallel::ModelCacheKey::clone(&self) -> ryg_rans_rs_parallel::ModelCacheKey
 impl core::cmp::Eq for ryg_rans_rs_parallel::ModelCacheKey
@@ -1711,7 +1713,8 @@ pub fn ryg_rans_rs_parallel::ScratchPool::from(T) -> T
 impl<T> typenum::type_operators::Same for ryg_rans_rs_parallel::ScratchPool
 pub type ryg_rans_rs_parallel::ScratchPool::Output = T
 pub struct ryg_rans_rs_parallel::ValidatedModelArtifacts
-pub ryg_rans_rs_parallel::ValidatedModelArtifacts::freqs: alloc::vec::Vec<u32>
+pub ryg_rans_rs_parallel::ValidatedModelArtifacts::freqs: alloc::sync::Arc<alloc::vec::Vec<u32>>
+pub ryg_rans_rs_parallel::ValidatedModelArtifacts::packed_table: core::option::Option<alloc::sync::Arc<ryg_rans_rs_simd::packed_table::PackedWordTable>>
 pub ryg_rans_rs_parallel::ValidatedModelArtifacts::uniform256: bool
 impl core::clone::Clone for ryg_rans_rs_parallel::ValidatedModelArtifacts
 pub fn ryg_rans_rs_parallel::ValidatedModelArtifacts::clone(&self) -> ryg_rans_rs_parallel::ValidatedModelArtifacts
@@ -1897,6 +1900,7 @@ pub fn ryg_rans_rs_parallel::apply_worker_affinity(&ryg_rans_rs_parallel::Affini
 pub fn ryg_rans_rs_parallel::build_header(u64, u8, u16, u8, u8, u8, u32, u32, u32, [u8; 32], [u8; 32]) -> alloc::vec::Vec<u8>
 pub fn ryg_rans_rs_parallel::build_model_bytes(&[u32]) -> alloc::vec::Vec<u8>
 pub fn ryg_rans_rs_parallel::cached_model_artifacts(u16, u8, &[u8], impl core::ops::function::FnOnce() -> core::option::Option<ryg_rans_rs_parallel::ValidatedModelArtifacts>) -> core::option::Option<ryg_rans_rs_parallel::ValidatedModelArtifacts>
+pub fn ryg_rans_rs_parallel::check_completeness(bool, usize, usize) -> core::result::Result<(), ryg_rans_rs_parallel::ParallelError>
 pub fn ryg_rans_rs_parallel::create_decode_plan(u16, u8, &[u8], ryg_rans_rs_parallel::BackendPolicy, bool, u8, u64) -> core::result::Result<ryg_rans_rs_parallel::DecodePlan, ryg_rans_rs_parallel::BlockError>
 pub fn ryg_rans_rs_parallel::create_decode_plan(u16, u8, &[u8], ryg_rans_rs_parallel::BackendPolicy, bool, u8, u64) -> core::result::Result<ryg_rans_rs_parallel::DecodePlan, ryg_rans_rs_parallel::BlockError>
 pub fn ryg_rans_rs_parallel::decode_single_block(&ryg_rans_rs_parallel::DecodeBlockJob, &ryg_rans_rs_parallel::ParallelConfig) -> core::result::Result<ryg_rans_rs_parallel::DecodedBlockResult, ryg_rans_rs_parallel::BlockError>
