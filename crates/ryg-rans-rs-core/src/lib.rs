@@ -149,6 +149,22 @@
 //! - **Flush**: The remaining state is written directly as 4 bytes (byte rANS)
 //!   or 2 × u32 words (64-bit rANS).
 //!
+//! ## Why the flush order is reverse, and why init order differs from it
+//!
+//! The decoder renormalizes *before* reading a symbol, so it consumes the
+//! state's most-recently-flushed unit first.  The encoder therefore flushes
+//! the *low* unit of the state after each symbol (the unit that will be
+//! needed first), and the trailing state words are written in the order the
+//! decoder will read them back — the decoder's initial-state load is the
+//! mirror image of the encoder's final flush.  Concretely: the encoder
+//! flushes state1 then state2 in the two-state interleaved path, and the
+//! decoder initialises state1 from the first two words and state2 from the
+//! next two — *init order differs from flush order* because the flush
+//! happens after each symbol pair (low unit first) while the init happens
+//! once at the start (high word of each state first).  Both orders are part
+//! of the bitstream contract; changing either produces a stream that
+//! decodes to different bytes.
+//!
 //! ## Error Handling
 //!
 //! - **Encoding**: All encode operations return `Result<(), EncodeError>`. The
@@ -168,6 +184,73 @@
 //! - `SliceBackwardWriter` for convenient `&mut [u8]` encoding
 //! - `&[u8]` implements `ForwardReader` directly for decoding
 //! - `BackwardWord16Writer` / `Word16Reader` for Word rANS (16-bit words)
+//!
+//! ## History (custodian note)
+//!
+//! Phases A–G reconstructed the four surfaces from the pinned upstream C
+//! (`rans_byte.h`, `rans64.h`, `rans_word_sse41.h`, `main_alias.cpp`),
+//! keeping the division path as the reference and adding the reciprocal
+//! fast path.  Phase L.11 audited every surface adversarially (all scale
+//! bits, renormalization boundaries, truncation at every byte/word,
+//! one-symbol models, all-symbols-observed, maximum frequency, frequency
+//! one, state overflow, trailing data); Phase L.16 added the fuzz targets
+//! and Kani proofs.  See `docs/history/`.
+//!
+//! ## Alternatives considered (and why they were rejected)
+//!
+//! * **No reciprocal path** (division everywhere) — correct but 3–5× slower
+//!   encode; ADR-0002 records the exact upstream bias that makes the
+//!   approximation exact.
+//! * **tANS-style static tables instead of rANS arithmetic** — different
+//!   stream format; not upstream (ADR-0001).
+//! * **Hash-based alias construction instead of Vose's method** — Vose is
+//!   O(N) with a deterministic tie-handling rule; the alias surface exists
+//!   because upstream ships it (`main_alias.cpp`).
+//!
+//! ## Failure modes (how they surface)
+//!
+//! * Truncated stream → `DecodeError::InputTooShort` (typed, never a panic).
+//! * Output buffer exhausted → `EncodeError::OutputTooSmall` (state is left
+//!   consistent but partially advanced — transactional).
+//! * Malformed model → `ModelError` variants (`InvalidScaleBits`,
+//!   `ZeroFrequency`, `TotalMismatch`, …); the `malformed` module and the
+//!   fuzz targets pin the no-panic property.
+//! * Reciprocal bias drift → wrong bytes that no internal consistency check
+//!   catches; caught only by the oracle court (the strongest argument for
+//!   the oracle doctrine).
+//!
+//! ## Performance
+//!
+//! The hot paths are division-free (reciprocal multiply-high) and
+//! allocation-free (`no_std`, slice writers).  Throughput is measured in the
+//! bench crate, not here; the sealed numbers are in `evidence/performance/`.
+//!
+//! ## Verification
+//!
+//! Four independent mechanisms (paper 0007): Kani proofs (per-frequency
+//! exhaustive), oracle courts (byte-exact with upstream), fuzz targets
+//! (round-trip + malformed at every truncation), and the differential
+//! division/reciprocal courts.  The confidence boundary of each is
+//! documented: Kani instances are concrete-frequency; the oracle corpus is
+//! finite; fuzz is coverage-guided.
+//!
+//! ## Receipts / Tests
+//!
+//! Behaviour receipts: `RYG_RANS.BYTE.*`, `RYG_RANS.R64.*`,
+//! `RYG_RANS.WORD.*`, `RYG_RANS.ALIAS.*` (oracle courts).  Unit tests in
+//! this crate cover every error path and the special cases; the bench crate
+//! adds the fuzz targets and the comparative court.
+//!
+//! ## Future evolution
+//!
+//! New surfaces (e.g. 128-bit rANS) belong here with their own constants,
+//! proofs, and receipts; they must not change the pinned surfaces.
+//!
+//! ## References
+//!
+//! `docs/papers/0001-rans-design.md`, `docs/papers/0002-word-rans.md`,
+//! `docs/papers/0007-proof-philosophy.md`, `docs/bitstream-contract.md`,
+//! `docs/adr/0001`, `docs/adr/0002`, `docs/glossary.md`.
 
 use core::fmt;
 

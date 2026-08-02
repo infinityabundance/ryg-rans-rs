@@ -1,3 +1,90 @@
+//! # ryg-rans-rs-simd — SSE4.1 / AVX2 / AVX-512 word-rANS decode kernels
+//!
+//! ## Purpose
+//!
+//! The SIMD decode kernels for the word rANS surface (codecs 7 and 8),
+//! with scalar references, safe `_checked` wrappers, packed tables, and a
+//! machine-verified unsafe ledger.  This crate is the only place `unsafe`
+//! lives in the production workspace.
+//!
+//! ## History
+//!
+//! The SSE4.1 8-way kernel was reconstructed from `rans_word_sse41.h` in
+//! Phase G; AVX-512 8-way/16-way kernels followed; Phase J added the AVX2
+//! tier (manual gather, hardware gather, 2×8-on-16, Uniform256 table-free);
+//! Phase H added the optimization backends (Uniform256, Batch4).  Phase L.10
+//! quarantined the unsafe surface: every helper carries its own
+//! `#[target_feature]`, a `# Safety` section, and a ledger entry; the
+//! disassembly courts were added in L.10/L.11 (ADR-0011).  See
+//! `docs/history/`.
+//!
+//! ## Design
+//!
+//! * Every kernel has a scalar reference; differential tests require
+//!   identical output and identical reports (words-consumed, final states).
+//! * Every `unsafe fn` carries its own exact `#[target_feature]` — never
+//!   inherited from the caller — and a `# Safety` section stating pointer
+//!   provenance, bounds, alignment, CPU-feature requirements, and the
+//!   caller list.  No hidden caller obligation exists that could be encoded
+//!   in a safe type.
+//! * Safe `_checked` wrappers perform runtime feature detection and return
+//!   `DecodeError::UnsupportedBackend` (a typed error) when the CPU or
+//!   build cannot run the kernel.  There is no silent scalar fallback.
+//!
+//! ## Alternatives considered
+//!
+//! * Caller-context target features for the SSE helpers — rejected (L10-A):
+//!   a hidden caller obligation is prohibited (ADR-0011).
+//! * Hardware gather only — rejected: gather microarchitectural behaviour
+//!   varies by CPU generation, so manual-gather variants exist and the
+//!   planner/benchmark chooses (paper 0003 §2).
+//! * Packed table as the only layout — rejected: the unpacked
+//!   `RansWordTables` remains the scalar reference and the SSE4.1 kernel's
+//!   input (ADR-0003).
+//!
+//! ## Invariants
+//!
+//! 1. `unsafe-ledger.toml` equals the source inventory (bidirectional test).
+//! 2. Report parity: every executable backend for a block produces the same
+//!    output, words-consumed, and final states.
+//! 3. Inactive lanes never read input (no masked over-read); fuzz targets
+//!    truncate at every word to pin this.
+//! 4. Every kernel is `#[cfg(target_feature)]`-gated and runtime-checked;
+//!    a build without the ISA cannot select the kernel.
+//!
+//! ## Failure modes
+//!
+//! Masked over-read (prevented by lane masks, fuzzed), wrong stream format
+//! (prevented by the planner's compatibility matrix), feature misreport
+//! (prevented by runtime detection), compiler scalarization (detected by
+//! disassembly courts), report divergence (detected by parity courts).
+//!
+//! ## Performance
+//!
+//! Sealed in `evidence/performance/` (run `phase-l-20260802b`): the kernel
+//! hierarchy scalar < SSE4.1 < AVX2 < AVX-512 holds on Zen 5; manual vs
+//! hardware gather is microarchitecture-dependent.  The packed 16 KiB table
+//! is L1-resident; each decode step is one 32-bit gather plus a few ALU
+//! uops (paper 0003).
+//!
+//! ## Verification / Receipts / Tests
+//!
+//! Oracle receipts `RYG_RANS.SSE41.*`, `RYG_RANS.AVX512VL.*`,
+//! `RYG_RANS.AVX512.*`; the unsafe-ledger equality test; the disassembly
+//! courts; the fuzz targets (`avx512vl8_roundtrip`, `avx512_16way_roundtrip`);
+//! the Phase L courts `RYG_RANS.L.SSE41.UNSAFE_QUARANTINE`.
+//!
+//! ## Future evolution
+//!
+//! Encoder SIMD, new ISA tiers (AVX-512 encoder, AMX), and new table
+//! layouts all belong here with the same discipline: scalar reference,
+//! ledger, disassembly court, differential tests.
+//!
+//! ## References
+//!
+//! `docs/papers/0003-simd.md`, `docs/unsafe-ledger.md`, `docs/adr/0003`,
+//! `docs/adr/0011`, `docs/bitstream-contract.md`, `docs/glossary.md`.
+
 #![no_std]
 #![cfg(target_arch = "x86_64")]
 

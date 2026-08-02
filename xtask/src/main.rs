@@ -1479,6 +1479,75 @@ fn cmd_seal() -> Result<(), String> {
     println!("Checking: residual accounting...");
     check_residual_accounting()?;
 
+    // 22. Custodian documentation inventory (Phase M.19): the knowledge-
+    // preservation layer must be complete — philosophy, layers, all eight
+    // papers, the history record, the ADR set, the diagrams, the LLM
+    // operational record, the educational layer, and the references.  A
+    // missing document is a seal failure: the repository's knowledge
+    // preservation is part of its contract.
+    println!("Checking: custodian documentation inventory (Phase M)...");
+    check_documentation_inventory()?;
+
+    Ok(())
+}
+
+/// Custodian documentation inventory (Phase M.19): every knowledge-
+/// preservation artifact must exist.  The Phase M contract is that the
+/// repository serves as the definitive implementation reference; a missing
+/// paper, ADR, or diagram is a broken link in that contract.
+fn check_documentation_inventory() -> Result<(), String> {
+    let required: &[&str] = &[
+        "docs/philosophy.md",
+        "docs/layers.md",
+        "docs/glossary.md",
+        "docs/references.md",
+        "docs/education.md",
+        "docs/papers/0001-rans-design.md",
+        "docs/papers/0002-word-rans.md",
+        "docs/papers/0003-simd.md",
+        "docs/papers/0004-parallel-engine.md",
+        "docs/papers/0005-performance-methodology.md",
+        "docs/papers/0006-evidence.md",
+        "docs/papers/0007-proof-philosophy.md",
+        "docs/papers/0008-llm-assisted-engineering.md",
+        "docs/history/index.md",
+        "docs/diagrams/index.md",
+        "docs/llm/index.md",
+        "docs/adr/0000-template.md",
+        "docs/adr/0001-format-contract.md",
+        "docs/adr/0002-reciprocal-fast-path.md",
+        "docs/adr/0003-word-scale-pinned.md",
+        "docs/adr/0004-bounded-live-executor.md",
+        "docs/adr/0005-canonical-error.md",
+        "docs/adr/0006-strict-integrity-default.md",
+        "docs/adr/0007-cancellation-completeness-boundary.md",
+        "docs/adr/0008-exact-backend-semantics.md",
+        "docs/adr/0009-model-cache-expensive-artifact.md",
+        "docs/adr/0010-benchmark-time-capture.md",
+        "docs/adr/0011-unsafe-quarantine.md",
+        "docs/adr/0012-versioning-030.md",
+        "docs/adr/0013-configuration-discipline.md",
+        "docs/adr/0014-reorder-atomic-commit.md",
+        "docs/adr/0015-per-worker-scratch.md",
+    ];
+    let mut missing: Vec<String> = Vec::new();
+    for p in required {
+        if !std::path::Path::new(p).is_file() {
+            missing.push((*p).to_string());
+        }
+    }
+    if !missing.is_empty() {
+        return Err(format!(
+            "custodian documentation inventory incomplete; missing: {:?}",
+            missing
+        ));
+    }
+    // Cross-link integrity for the new documents is covered by the
+    // documentation-links gate; this gate verifies presence only.
+    println!(
+        "  {} custodian documentation artifacts present",
+        required.len()
+    );
     Ok(())
 }
 

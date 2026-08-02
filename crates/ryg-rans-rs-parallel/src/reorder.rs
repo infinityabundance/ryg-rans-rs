@@ -64,6 +64,60 @@
 //! O(log N) per operation, which is acceptable for typical block counts
 //! (hundreds to millions).  The constant factor is low because `u64` keys
 //! are cheap to compare.
+//!
+//! ## History (why the API is the way it is)
+//!
+//! The original API was `insert(item) -> Result<Option<T>>` plus a separate
+//! `drain_ready()` that callers had to remember after receiving the next
+//! expected item.  That unenforced protocol was fragile — a caller that
+//! forgot the drain silently lost contiguous blocks — so Phase L.5 replaced
+//! it with `insert(item) -> Result<Vec<T>>`, which returns the newly
+//! inserted item plus every contiguous pending item it unblocks, in
+//! strictly ascending order, with **no separate drain required** (ADR-0014).
+//! `drain_ready` remains only as a final inspection API for diagnostics.
+//!
+//! ## Invariants
+//!
+//! 1. Committed output is strictly ascending block index, with no gaps.
+//! 2. If every input block is inserted exactly once and no insertion
+//!    errors, the concatenation of all commit batches equals `[0, 1, …,
+//!    N-1]` — pinned by the exhaustive permutation test for N ≤ 9.
+//! 3. A duplicate or stale (already-committed) block index is a typed
+//!    error, never a silent drop.
+//! 4. Count and byte limits are enforced *before* the entry is stored, so
+//!    a resource-limit error can never be followed by an unbounded grow.
+//!
+//! ## Failure modes
+//!
+//! * **Duplicate index** — two blocks with the same index (encoder bug or
+//!    corrupted plan) → `Err(Duplicate)`; the canonical error tracker picks
+//!    it up and the operation fails deterministically.
+//! * **Stale index** — an index below `next_expected` (committed already)
+//!    → `Err(Stale)`.
+//! * **Resource limit** — pending count or bytes would exceed the budget
+//!    → `Err(ResourceLimit)`; the caller back-pressures the producer.
+//! * **Overflow accounting** — byte totals use checked/saturating
+//!    arithmetic so a hostile `BufferSized` cannot corrupt the budget.
+//!
+//! ## Performance
+//!
+//! O(log N) per insert, O(k log N) per commit batch of k items, O(1)
+//! amortised memory per pending block.  For typical workloads the reorder
+//! stage is a negligible fraction of the pipeline cost (paper 0005 §4).
+//!
+//! ## Verification / Receipts / Tests
+//!
+//! The exhaustive permutation test (N ≤ 9, all permutations) proves the
+//! atomic-commit invariant; property tests cover larger N; dedicated tests
+//! cover duplicates, stale indexes, missing gaps, resource limits, overflow
+//! accounting, error recovery, and cancellation boundaries.  The court
+//! `RYG_RANS.L.REORDER.ATOMIC_COMMIT` seals the contract.
+//!
+//! ## References
+//!
+//! `docs/adr/0014` (atomic commit batches); `docs/papers/0004-parallel-engine.md`
+//! §3 (live reorder commit); `docs/glossary.md` (reorder buffering, committed
+//! output).
 
 use crate::error::{BlockError, BlockErrorKind};
 use std::collections::BTreeMap;

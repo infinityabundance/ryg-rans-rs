@@ -91,6 +91,77 @@
 //!    triggered (internal token).
 //! 4. **Join** — After the sender is dropped and all workers break their loop,
 //!    the coordinator joins every handle.
+//!
+//! ## History (why this shape)
+//!
+//! The first executor submitted all tasks inline from the coordinator and
+//! accumulated results in a `Mutex<Vec>`, then reordered afterwards.  An audit
+//! (Phase L.4) showed peak memory was O(N) results regardless of the queue
+//! capacity — `max_buffered_output_bytes` could not bound the architecture.
+//! The producer-thread design fixes this: the coordinator drains results
+//! *while* the producer submits, so neither channel deadlocks and both stay
+//! bounded.  A later audit (Phase L.3 re-opened) found the completeness
+//! guarantee was enforced only inside the executor, not at the public-API
+//! boundary; `error::check_completeness` now re-asserts it at every entry
+//! point (ADR-0007).  The loom courts (L.16-C) found and fixed a real
+//! missed-wakeup race in the channel layer (sender count outside the mutex).
+//!
+//! ## Invariants
+//!
+//! 1. On `Ok(report)`, `report.results.len() == declared_tasks` (or, for the
+//!    sink variant, `returned_results == declared_tasks`).  Short results
+//!    always surface as `Cancelled` or `IncompleteExecution`.
+//! 2. Every worker is joined before `run_tasks*` returns; no detached
+//!    threads, no abandoned work.
+//! 3. A worker panic is always surfaced as `WorkerPanic` (never swallowed),
+//!    and it broadcasts cancellation to the other workers.
+//! 4. Cancellation is cooperative: an in-flight task may finish; new tasks
+//!    are not started once cancelled.
+//! 5. A runtime affinity-application failure is a typed `Config` error with
+//!    the highest priority, never masked by a cancellation/panic error.
+//!
+//! ## Failure modes
+//!
+//! * **Missed wakeup / lost task** — prevented by the channel-layer design;
+//!   modelled by the loom courts.
+//! * **Mutex poisoning** — task execution runs inside `catch_unwind` before
+//!   any coordinator lock is taken; the collector lock is held only for a
+//!   small push, so a task panic cannot poison it while task code runs
+//!   (Phase L.12 note).
+//! * **Stack overflow abort** — a worker stack below the platform minimum
+//!   would abort the process on Linux; the executor rejects stacks < 64 KiB
+//!   with a typed `Config` error before spawning (Phase L.6 contract).
+//! * **Short-`Ok` regression** — prevented at the executor and re-asserted
+//!   at every public API boundary (ADR-0007).
+//!
+//! ## Performance
+//!
+//! The executor's per-block cost is one channel send/receive each way plus
+//! the task's own work; the sealed L.18 run shows the parallel overhead is
+//! dominated by the mandatory dual SHA-256 per block, not by scheduling
+//! (paper 0005 §4).  The bounded channels provide backpressure without
+//! polling or spin-waiting.
+//!
+//! ## Verification / Receipts / Tests
+//!
+//! The unit suite covers external cancellation, panic containment,
+//! completeness counters, and channel races; the loom courts model
+//! preemption (no lost tasks, cancellation completeness, panic no-wedge,
+//! sink completeness, reorder ascending).  The court
+//! `RYG_RANS.L.EXECUTOR.BOUNDED` seals the boundedness claims and
+//! `RYG_RANS.L.CANCEL.COMPLETENESS` the cancellation claims.
+//!
+//! ## Future evolution
+//!
+//! A true streaming input (feeding blocks one at a time through the job
+//! channel) would extend the producer; the loom sync layer already
+//! instruments the channel backends for that work.
+//!
+//! ## References
+//!
+//! `docs/papers/0004-parallel-engine.md`; `docs/adr/0004` (bounded live
+//! executor), `docs/adr/0007` (boundary completeness), `docs/adr/0015`
+//! (per-worker scratch); `docs/history/` (Phase I and L.3/L.4/L.16 entries).
 
 use crate::cancellation::CancellationToken;
 use crate::error::ParallelError;
