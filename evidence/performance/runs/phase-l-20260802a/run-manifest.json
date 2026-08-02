@@ -1,0 +1,29 @@
+{
+  "bench_args": [
+    "--bench",
+    "byte_rans",
+    "--bench",
+    "r64",
+    "--bench",
+    "alias",
+    "--bench",
+    "scalar",
+    "--bench",
+    "sse41",
+    "--bench",
+    "avx2",
+    "--bench",
+    "avx512",
+    "--bench",
+    "parallel",
+    "--bench",
+    "specialized"
+  ],
+  "cargo_lock_sha256": "83b1754599a6d4c35138750fc1a987f4eb10fabb2137ab82126e128683a08df6",
+  "commit": "84019910d8868b03c6f38b9e8cc607ada713c4fc",
+  "criterion_dir": "target/criterion",
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+  "rustflags": "-C target-cpu=native",
+  "timestamp": "2026-08-01T23:36:23Z",
+  "tree_sha": "62a54516f5bea1b678df335aa64458cd8c56cbc9"
+}

@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "alias/alias-interleaved2/decode/SKEWED_255_1/1KiB/iter",
+  "backend_requested": "alias-interleaved2",
+  "backend_executed": "alias-interleaved2",
+  "verification_passed": true,
+  "input_sha256": "698ba402035d9799cfa28093c36a24f34c29823530d49e425b1bb3851a113b18",
+  "output_sha256": "698ba402035d9799cfa28093c36a24f34c29823530d49e425b1bb3851a113b18",
+  "reference_output_sha256": "698ba402035d9799cfa28093c36a24f34c29823530d49e425b1bb3851a113b18",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

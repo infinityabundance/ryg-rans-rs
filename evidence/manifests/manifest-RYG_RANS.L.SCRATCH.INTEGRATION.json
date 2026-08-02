@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.SCRATCH.INTEGRATION",
   "title": "WorkerScratch / ScratchPool production integration (L.7)",
-  "implementation_commit": "efb064d3e5cfac3212571ab98fec62f079cfb098",
+  "implementation_commit": "8401991",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "7 cases: 7 passed, 0 failed, 0 skipped",
   "cases": [

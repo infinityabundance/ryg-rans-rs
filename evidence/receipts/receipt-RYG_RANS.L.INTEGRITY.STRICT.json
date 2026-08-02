@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.INTEGRITY.STRICT",
   "title": "Strict vs compatibility integrity policy (L.2)",
   "verdict": "passed",
-  "implementation_commit": "efb064d3e5cfac3212571ab98fec62f079cfb098",
-  "evidence_commit": "efb064d3e5cfac3212571ab98fec62f079cfb098",
+  "implementation_commit": "8401991",
+  "evidence_commit": "84019910d8868b03c6f38b9e8cc607ada713c4fc",
   "num_cases": 11,
   "cases_passed": 11,
   "cases_failed": 0,
@@ -15,7 +15,7 @@
     "L2-C",
     "L2-D"
   ],
-  "manifest_sha256": "e873f826b4606b4e9f1bdd5d38dc9bc8e0876ac062852109e7ddc8b978180010",
-  "receipt_sha256": "79e46b46c7f550eb86c3d5e6ade4d6ece66e524256d392d963b39bad784a9cdf",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit efb064d3e5cfac3212571ab98fec62f079cfb098 --only RYG_RANS.L.INTEGRITY.STRICT"
+  "manifest_sha256": "346c5213968901ae552cb03055d777a46d14f2f7354ba5a1556e4e7b39485f0a",
+  "receipt_sha256": "9bbfa7938f766baea3ae9ccfa9ce367b4fd12243232344305de0716178c02cbd",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 8401991 --only RYG_RANS.L.INTEGRITY.STRICT"
 }

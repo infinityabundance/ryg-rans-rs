@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.BACKEND.EXPLICIT",
   "title": "Exact backend semantics and format compatibility (L.9)",
   "verdict": "passed",
-  "implementation_commit": "efb064d3e5cfac3212571ab98fec62f079cfb098",
-  "evidence_commit": "efb064d3e5cfac3212571ab98fec62f079cfb098",
+  "implementation_commit": "8401991",
+  "evidence_commit": "84019910d8868b03c6f38b9e8cc607ada713c4fc",
   "num_cases": 11,
   "cases_passed": 11,
   "cases_failed": 0,
@@ -15,7 +15,7 @@
     "L9-B",
     "L9-C"
   ],
-  "manifest_sha256": "f38ac5be4954dd0e698584331ce4c42ac819a876ed039d220192dc28d7144b66",
-  "receipt_sha256": "d54c3ba3d359b496573910b8851fe38950ce26d7d26cde70429be934557e1a99",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit efb064d3e5cfac3212571ab98fec62f079cfb098 --only RYG_RANS.L.BACKEND.EXPLICIT"
+  "manifest_sha256": "afaaacb7b8660803cce8dab365e57079df4baa915a854cb47c78f678264a1bc0",
+  "receipt_sha256": "58126582f2cf9928f616bf66d22e121f406b60b6c27a868394707027ae6f80ca",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 8401991 --only RYG_RANS.L.BACKEND.EXPLICIT"
 }
