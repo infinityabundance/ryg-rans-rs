@@ -1,0 +1,429 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs-0814826a4eb4ccef)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_bench-7429ca814e3f4e00)
+
+running 16 tests
+test exporter::tests::test_determine_threads_effective ... ok
+test exporter::tests::test_csv_escape ... ok
+test exporter::tests::test_extract_bytes_no_match ... ok
+test exporter::tests::test_extract_bytes_mib ... ok
+test exporter::tests::test_extract_confidence_interval_no_mean ... ok
+test exporter::tests::test_extract_confidence_interval_missing ... ok
+test exporter::tests::test_extract_threads_requested_parallel ... ok
+test exporter::tests::test_extract_confidence_interval_present ... ok
+test exporter::tests::test_extract_threads_requested_single_threaded_defaults_to_one ... ok
+test exporter::tests::test_validate_estimates_infinity ... ok
+test exporter::tests::test_sort_deterministic ... ok
+test exporter::tests::test_validate_estimates_negative ... ok
+test exporter::tests::test_validate_estimates_nan ... ok
+test exporter::tests::test_validate_estimates_valid ... ok
+test exporter::tests::test_serialize_canonical_json_sorted_keys ... ok
+test exporter::tests::test_validate_estimates_zero_samples ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_casefile-8a1ef45454834047)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_cli-6b2f18dd41253346)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/ryg_rans-9170d9b863da0551)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (target/debug/deps/cli-e32616f9f537234a)
+
+running 17 tests
+test unsupported_codec_is_exit_6 ... ok
+test model_build_validate_compare ... ok
+test force_guard_refuses_overwrite_without_force ... ok
+test trace_reports_symbols_and_states ... ok
+test decode_rejects_tampered_decoded_hash ... ok
+test truncated_container_is_a_format_error ... ok
+test corrupted_container_fails_with_integrity_exit_code ... ok
+test rle_and_raw_blocks ... ok
+test compare_arithmetic_division_reciprocal_identical ... ok
+test verify_passes_and_inspect_deep_passes ... ok
+test compare_files_equal_and_different ... ok
+test encode_decode_roundtrip_via_stdin_stdout ... ok
+test multi_block_roundtrip ... ok
+test bench_round_trip_verified ... ok
+test encode_decode_roundtrip_all_codecs ... ok
+test sigint_cancels_decode_with_exit_11 ... ok
+test timeout_cancels_decode_with_exit_11 ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.07s
+
+     Running tests/model_normalizer.rs (target/debug/deps/model_normalizer-d3e6042ff78830e1)
+
+running 5 tests
+test empty_histogram_is_typed_error ... ok
+test normalization_unrepresentable_returns_typed_error ... ok
+test normalization_dominant_symbol_regression ... ok
+test from_bytes_rejects_bad_scale ... ok
+test normalization_sum_invariant_random_histograms ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/model_proptest.rs (target/debug/deps/model_proptest-6779a9287884a791)
+
+running 1 test
+test normalization_sum_and_roundtrip ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_core-426fc891b5e521f3)
+
+running 57 tests
+test malformed::tests::test_has_dominant_symbol ... ok
+test malformed::tests::test_renorm_guard_byte ... ok
+test malformed::tests::test_is_single_symbol ... ok
+test malformed::tests::test_has_freq_one ... ok
+test malformed::tests::test_validate_byte_scale_bits ... ok
+test malformed::tests::test_validate_freq_model_non_monotonic ... ok
+test malformed::tests::test_renorm_guard_r64 ... ok
+test malformed::tests::test_validate_freq_model_range_overflow ... ok
+test malformed::tests::test_validate_freq_model_valid ... ok
+test malformed::tests::test_validate_r64_compressed_short ... ok
+test malformed::tests::test_validate_byte_compressed_short ... ok
+test malformed::tests::test_validate_r64_scale_bits ... ok
+test malformed::tests::test_validate_word_compressed_short ... ok
+test tests::test_backward_writer_basic ... ok
+test tests::test_backward_writer_full ... ok
+test tests::test_backward_writer_u32_le ... ok
+test tests::test_decoder_symbol_init ... ok
+test tests::test_enc_symbol_init ... ok
+test tests::test_enc_symbol_init_freq_one ... ok
+test tests::test_enc_symbol_init_max_freq ... ok
+test tests::test_forward_reader_basic ... ok
+test tests::test_forward_reader_u32_le ... ok
+test tests::test_oracle_reciprocal_parameters ... ok
+test tests::test_rans64_decoder_symbol_init ... ok
+test tests::test_rans64_enc_symbol_init ... ok
+test tests::test_rans64_enc_symbol_init_freq_one ... ok
+test tests::test_rans64_enc_symbol_init_large_scale ... ok
+test tests::test_rans64_flush_init_roundtrip ... ok
+test tests::test_rans64_freq_one_special ... ok
+test tests::test_rans64_large_scale_reciprocal ... ok
+test tests::test_rans64_mul_hi ... ok
+test tests::test_rans64_reciprocal_equals_division ... ok
+test tests::test_rans64_reciprocal_equals_division_large ... ok
+test tests::test_rans64_renorm_only ... ok
+test tests::test_rans64_roundtrip_single_symbol_division ... ok
+test tests::test_interleaved_roundtrip ... ok
+test tests::test_rans64_state_init ... ok
+test tests::test_rans64_state_transition_cycle ... ok
+test tests::test_rans64_roundtrip_two_symbols_division ... ok
+test tests::test_rans64_step_operations ... ok
+test tests::test_rans64_word32_reader_basic ... ok
+test tests::test_rans64_word32_reader_exhaustion ... ok
+test tests::test_rans64_word32_writer_basic ... ok
+test tests::test_rans64_word32_writer_exhaustion ... ok
+test tests::test_reader_exhaustion ... ok
+test tests::test_reciprocal_equals_division ... ok
+test tests::test_reciprocal_freq_one ... ok
+test tests::test_rans64_roundtrip_reciprocal ... ok
+test tests::test_roundtrip_two_symbols ... ok
+test tests::test_rans64_renorm_roundtrip ... ok
+test tests::test_roundtrip_single_symbol ... ok
+test tests::test_slice_backward_writer ... ok
+test tests::test_slice_forward_reader ... ok
+test tests::test_slice_trait_roundtrip ... ok
+test tests::test_state_init ... ok
+test tests::test_writer_exhaustion ... ok
+test tests::test_reciprocal_roundtrip ... ok
+
+test result: ok. 57 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_oracle-2d713d14bbed1e6d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/perf.rs (target/debug/deps/perf-61cfd463a3efb582)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/run-phase-g.rs (target/debug/deps/run_phase_g-37d56767bf568994)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/ryg_rans_rs_oracle-05a425e6dcd14177)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_parallel-2a15cd716fdd967e)
+
+running 91 tests
+test affinity::tests::test_target_cpu_explicit_round_robin ... ok
+test affinity::tests::test_target_cpu_none ... ok
+test affinity::tests::test_target_cpu_explicit_empty_rejected ... ok
+test affinity::tests::test_target_cpu_compact ... ok
+test cache::tests::test_cache_hit ... ok
+test cache::tests::test_cache_miss ... ok
+test cache::tests::test_clear ... ok
+test cache::tests::test_cached_model_artifacts_miss_build_none ... ok
+test cache::tests::test_cached_model_artifacts_rejects_invalid_model ... ok
+test cancellation::tests::test_cancel ... ok
+test cache::tests::test_eviction ... ok
+test cancellation::tests::test_not_cancelled_by_default ... ok
+test cancellation::tests::test_cancel_from_another_thread ... ok
+test decode::tests::test_check_completeness_helper ... ok
+test decode::tests::test_model_corruption_never_panics_and_never_passes ... ok
+test decode::tests::test_deterministic ... ok
+test decode::tests::test_decode_blocks_with_cancel_pre_cancelled_sequential ... ok
+test decode::tests::test_empty_input_roundtrip ... ok
+test decode::tests::test_decode_with_sink_pre_cancelled ... ok
+test decode::tests::test_parallel_determinism ... ok
+test cache::tests::test_cached_model_artifacts_hit ... ok
+test decode::tests::test_decode_streaming_with_cancel_pre_cancelled ... ok
+test decode::tests::test_batch_and_raw_rle_backends_rejected_at_decode ... ok
+test cache::tests::test_cached_model_artifacts_carries_packed_table ... ok
+test decode::tests::test_disable_simd_conflict_is_typed_at_decode ... ok
+test decode::tests::test_rejects_corrupt_payload_hash ... ok
+test decode::tests::test_rejects_truncated_block ... ok
+test decode::tests::test_decode_blocks_with_cancel_pre_cancelled_parallel ... ok
+test decode::tests::test_roundtrip_nonuniform ... ok
+test decode::tests::test_rejects_zero_hash_strict ... ok
+test decode::tests::test_backend_reports_agree_across_executable_backends ... ok
+test decode::tests::test_roundtrip_uniform256 ... ok
+test decode::tests::test_roundtrip_multiple_blocks ... ok
+test decode::tests::test_format_mismatch_rejected_at_decode ... ok
+test decode_plan::tests::test_batch_backend_rejected_at_plan_time ... ok
+test decode_plan::tests::test_explicit_avx2_plan_never_rewritten ... ok
+test decode_plan::tests::test_explicit_simd_backends_map_to_real_plans ... ok
+test decode_plan::tests::test_disable_simd_conflict_is_typed ... ok
+test decode_plan::tests::test_format_mismatch_rejected ... ok
+test decode_plan::tests::test_portable_plan ... ok
+test decode_plan::tests::test_raw_rle_backends_require_matching_block_kind ... ok
+test decode_plan::tests::test_model_aware_selects_table_free_for_uniform256 ... ok
+test decode_plan::tests::test_scalar8_plan ... ok
+test decode_plan::tests::test_skewed_not_uniform ... ok
+test decode_plan::tests::test_uniform256_backend_requires_uniform_model ... ok
+test executor::tests::test_empty_tasks ... ok
+test decode_plan::tests::test_uniform256_detection ... ok
+test plan::tests::test_empty ... ok
+test plan::tests::test_no_gaps ... ok
+test executor::tests::test_single_task ... ok
+test plan::tests::test_version ... ok
+test reorder::tests::test_buffer_full ... ok
+test reorder::tests::test_duplicate_rejected ... ok
+test reorder::tests::test_byte_limit_reached ... ok
+test plan::tests::test_single ... ok
+test plan::tests::test_coverage ... ok
+test reorder::tests::test_empty_buffer ... ok
+test executor::tests::test_multiple_tasks ... ok
+test executor::tests::test_multiple_workers ... ok
+test reorder::tests::test_reverse_order ... ok
+test reorder::tests::test_out_of_order_insert ... ok
+test reorder::tests::test_sequential_insert ... ok
+test executor::tests::test_worker_panic_containment ... ok
+test reorder::tests::test_stale_index_rejected ... ok
+test resource::tests::test_estimate_memory_is_conservative_and_finite ... ok
+test scratch::tests::test_pool ... ok
+test resource::tests::test_effective_worker_count_clamps ... ok
+test scratch::tests::test_scratch_creation ... ok
+test scratch::tests::test_scratch_reset ... ok
+test decode::tests::test_rejects_corrupt_decoded_hash ... ok
+test decode::tests::test_uniform256_tablefree_executes_and_parities_with_scalar ... ok
+test decode::tests::test_explicit_backend_executes_exactly_or_typed_error ... ok
+test decode::tests::test_zero_hash_allowed_under_legacy_policy ... ok
+test decode::tests::test_truncation_at_every_byte_never_panics ... ok
+test verify::tests::test_l2_corrupt_payload_fails ... ok
+test verify::tests::test_l2_clean_block_matching_hashes ... ok
+test verify::tests::test_l2_mismatched_decoded_hash_fails_both_policies ... ok
+test verify::tests::test_l2_zero_decoded_hash_legacy_passes ... ok
+test verify::tests::test_l2_zero_decoded_hash_strict_fails ... ok
+test verify::tests::test_verify_clean_block ... ok
+test verify::tests::test_l2_model_corruption_cannot_pass ... ok
+test verify::tests::test_verify_multiple_blocks ... ok
+test verify::tests::test_verify_corrupt_payload ... ok
+test verify::tests::test_verify_truncated_block ... ok
+test scratch::tests::test_scratch_reset_enforces_max_retain ... ok
+test verify::tests::test_l2_one_bad_block_among_many ... ok
+test verify::tests::test_l2_report_counts_hash_states ... ok
+test executor::tests::test_external_cancellation ... ok
+test decode::tests::test_header_field_mutations_never_panic ... ok
+test reorder::tests::test_permutation_atomic_commit ... ok
+test decode::tests::test_randomized_cross_backend_differential ... ok
+
+test result: ok. 91 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+     Running tests/loom_tests.rs (target/debug/deps/loom_tests-1b6e4b014446b550)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/phase_i_tests.rs (target/debug/deps/phase_i_tests-b5fb5a88e98f4af7)
+
+running 22 tests
+test test_cancellation_before_start ... ok
+test test_cancellation_completeness_encode ... ok
+test test_encode_max_buffered_input_bytes_enforced ... ok
+test test_executor_completeness_counters ... ok
+test test_cancellation_completeness_decode ... ok
+test test_executor_cancelled_not_ok ... ok
+test test_executor_external_cancellation ... ok
+test test_max_buffered_input_bytes_enforced ... ok
+test test_minimal_queue ... ok
+test test_cancellation_completeness_verify ... ok
+test test_worker_panic_lowest_index_error ... ok
+test test_external_cancellation_16_threads ... ok
+test test_decode_with_sink_ordered ... ok
+test test_worker_panic_contained ... ok
+test test_queue_depth_below_worker_count_no_spurious_limit ... ok
+test test_determinism_1_vs_2_threads ... ok
+test test_multi_block_roundtrip ... ok
+test test_worker_count_clamped_to_block_count ... ok
+test test_error_selection_8_16_threads ... ok
+test test_verify_determinism_1_4_8_16_threads ... ok
+test test_encode_determinism_1_4_8_16_threads ... ok
+test test_decode_determinism_1_4_8_16_threads ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/reorder_proptest.rs (target/debug/deps/reorder_proptest-ddd7b83062a40046)
+
+running 2 tests
+test reorder_duplicate_insert_is_rejected_or_benign ... ok
+test reorder_any_permutation_commits_exactly ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ryg_rans_rs_simd-f607da5adedb8ebe)
+
+running 22 tests
+test avx2_renorm::tests::test_scalar_mask_matches_bits ... ok
+test avx2_renorm::tests::test_permutation_table_coverage ... ok
+test backends::tests::test_backend_labels ... ok
+test avx2_renorm::tests::test_permutation_table_deterministic ... ok
+test avx2_renorm::tests::test_signed_compare_trick_scalar ... ok
+test avx2_renorm::tests::test_scalar_exhaustive_256_masks ... ok
+test packed_table::tests::test_packed_table_field_extraction ... ok
+test packed_table::tests::test_packed_table_invalid_scale_bits ... ok
+test tests::test_skewed_renorm ... ok
+test tests::test_simd_vs_scalar_roundtrip ... ok
+test tests::test_truncated_rejected ... ok
+test tests::test_simd_all_lengths ... ok
+test backends::tests::test_scalar16_dispatch ... ok
+test backends::tests::test_scalar8_dispatch ... ok
+test packed_table::tests::test_interleaved16_truncated_rejected ... ok
+test packed_table::tests::test_interleaved16_tail_lengths ... ok
+test backends::tests::test_truncated_8way_rejected ... ok
+test backends::tests::test_truncated_16way_rejected ... ok
+test packed_table::tests::test_packed_scalar_matches_existing_scalar ... ok
+test packed_table::tests::test_state_lane_ordering ... ok
+test packed_table::tests::test_packed_table_equivalence ... ok
+test packed_table::tests::test_interleaved16_roundtrip ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/disasm_court.rs (target/debug/deps/disasm_court-ffc56c5795937c49)
+
+running 4 tests
+test court_avx2_emits_vpermd_and_vpgatherdd ... ok
+test court_avx512_intrinsics_require_crate_level_cfg_gate ... ok
+test court_sse41_emits_pshufb_and_pblendvb ... ok
+test court_avx512_emits_vpmovdb ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/unsafe_ledger.rs (target/debug/deps/unsafe_ledger-b868412f987d11a4)
+
+running 1 test
+test ledger_matches_source_inventory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/xtask-588115bff69b8a9a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ryg_rans_rs
+
+running 2 tests
+test crates/ryg-rans-rs/src/lib.rs - (line 30) ... ok
+test crates/ryg-rans-rs/src/lib.rs - (line 45) ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.06s; merged doctests compilation took 0.06s
+   Doc-tests ryg_rans_rs_bench
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ryg_rans_rs_casefile
+
+running 1 test
+test crates/ryg-rans-rs-casefile/src/lib.rs - (line 28) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.07s; merged doctests compilation took 0.07s
+   Doc-tests ryg_rans_rs_cli
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ryg_rans_rs_core
+
+running 1 test
+test crates/ryg-rans-rs-core/src/malformed.rs - malformed::RenormGuard (line 194) ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.05s; merged doctests compilation took 0.05s
+   Doc-tests ryg_rans_rs_oracle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ryg_rans_rs_parallel
+
+running 8 tests
+test crates/ryg-rans-rs-parallel/src/cancellation.rs - cancellation::CancellationToken (line 68) ... ignored
+test crates/ryg-rans-rs-parallel/src/cancellation.rs - cancellation::CancellationToken::check (line 141) ... ignored
+test crates/ryg-rans-rs-parallel/src/decode.rs - decode::ParallelDecoder (line 1338) ... ignored
+test crates/ryg-rans-rs-parallel/src/error.rs - error::CanonicalErrorTracker (line 367) ... ignored
+test crates/ryg-rans-rs-parallel/src/resource.rs - resource::estimate_memory (line 109) ... ignored
+test crates/ryg-rans-rs-parallel/src/verify.rs - verify (line 44) ... ignored
+test crates/ryg-rans-rs-parallel/src/verify.rs - verify::BlockVerificationResult (line 156) ... ignored
+test crates/ryg-rans-rs-parallel/src/verify.rs - verify::ParallelVerifier (line 381) ... ignored
+
+test result: ok. 0 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.05s; merged doctests compilation took 0.05s
+   Doc-tests ryg_rans_rs_simd
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -2099,6 +2099,7 @@ dependencies = [
  "pico-args",
  "ryg-rans-rs-bench",
  "ryg-rans-rs-casefile",
+ "ryg-rans-rs-parallel",
  "serde",
  "serde_json",
  "sha2",

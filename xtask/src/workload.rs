@@ -940,7 +940,7 @@ fn schedule_hash(blocks: &[ryg_rans_rs_casefile::WorkloadBlock]) -> String {
 /// no abandoned building state).  The grouped-model blocks reuse the
 /// group's training-region slices, so the decode-side model reuse is real
 /// and the results are labeled `grouped-model` (Phase O.13 honesty).
-pub fn cmd_workload_stress(spec_dir: &Path, name: &str, args: &[String]) -> Result<(), String> {
+pub fn cmd_workload_stress(_spec_dir: &Path, name: &str, args: &[String]) -> Result<(), String> {
     let mut schedule = String::new();
     let mut workers_override: Option<usize> = None;
     let mut simd_off = false;
