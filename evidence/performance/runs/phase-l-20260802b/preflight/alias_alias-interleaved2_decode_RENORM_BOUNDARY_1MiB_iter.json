@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "alias/alias-interleaved2/decode/RENORM_BOUNDARY/1MiB/iter",
+  "backend_requested": "alias-interleaved2",
+  "backend_executed": "alias-interleaved2",
+  "verification_passed": true,
+  "input_sha256": "120d9b44c5f21f446ba372e4264a43ff98b940a31750c8dc841dbb70252aa5a4",
+  "output_sha256": "120d9b44c5f21f446ba372e4264a43ff98b940a31750c8dc841dbb70252aa5a4",
+  "reference_output_sha256": "120d9b44c5f21f446ba372e4264a43ff98b940a31750c8dc841dbb70252aa5a4",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}
