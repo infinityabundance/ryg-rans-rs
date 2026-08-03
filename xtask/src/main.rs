@@ -2475,7 +2475,15 @@ fn check_workload_execution_evidence() -> Result<(), String> {
         let log_sha: String = rest
             .split("sha256 ")
             .nth(1)
-            .map(|s| s.trim().trim_end_matches(')').to_string())
+            .map(|s| {
+                // The identity line continues after the hash (e.g. the soak
+                // line appends `, workers=8, rounds=1, ...`); take only the
+                // hex prefix.
+                s.trim()
+                    .chars()
+                    .take_while(|c| c.is_ascii_hexdigit())
+                    .collect()
+            })
             .unwrap_or_default();
         if !log_sha.is_empty() && !expected.starts_with(&log_sha) {
             return Err(format!(
