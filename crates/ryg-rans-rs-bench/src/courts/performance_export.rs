@@ -151,6 +151,8 @@ fn bench_meta(git_commit: &str, dirty: bool) -> crate::common::metadata::BenchMe
         git_commit: git_commit.to_string(),
         dirty_tree: dirty,
         num_cpus: 8,
+        target_cpu: "default".to_string(),
+        codegen_flags: String::new(),
     }
 }
 

@@ -7,6 +7,31 @@
 //! schedules — a small slice manifest that never materializes the tens of
 //! gigabytes it describes.
 //!
+//! ## Two distinct execution families (post-v0.5.0 audit, MODEL_CACHE.WORKLOAD.2)
+//!
+//! * **`synthetic-cache-stress` / `synthetic-cache-soak`** (aliases `stress` /
+//!   `soak`) run the Phase O.12 cache-behaviour classes — cold/warm single
+//!   model, hot set, capacity+1 thrash, unique models, mixed — on
+//!   deterministic **xorshift pattern payloads with constant seeds**.  These
+//!   payloads are *not* derived from the public corpus; the commands are
+//!   honest about that (`synthetic-cache-stress-v1` labels in the output).
+//!   Their purpose is to force exact cache access patterns that public data
+//!   does not naturally produce (one model, 65 models against 64 slots, ...).
+//! * **`stress-public` / `soak-public`** execute the **derived public
+//!   schedule itself**: every block is `source_id` + `source_sha256` +
+//!   `offset` + `length` resolved to the hash-verified extracted source
+//!   bytes, sliced, encoded with the block's declared codec/scale, and
+//!   decoded through the parallel engine.  `--schedule` selects which
+//!   derived schedule actually runs (`public-rans-smoke`, `public-rans-1g`,
+//!   `public-rans-mixed-16g`, `public-rans-stress-64g`).  Natural mode
+//!   derives each model from the block's own bytes; grouped mode trains one
+//!   model per group from the declared public training region
+//!   (derivation.toml `[models]`) and reuses it for the group.
+//!
+//! The two families are deliberately separate: cache-behaviour classes are
+//! inherently synthetic, and public-corpus identity belongs only to runs
+//! that derive their bytes from the pinned sources.
+//!
 //! ## Trust model
 //!
 //! * **HTTPS only.**  Every pinned URL is `https://`; a non-HTTPS URL is a
@@ -33,10 +58,32 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-/// Entry point: `cargo xtask workload <fetch|derive> <workload-name>`.
+// The public stress/soak runners (MODEL_CACHE.WORKLOAD.2) operate at module
+// level and use the parallel engine types directly.
+use ryg_rans_rs_parallel::{
+    CancellationToken, CodecPolicy, DecodeBlockJob, EncodeBlockJob, ModelArtifactCache,
+    ModelPolicy, ParallelConfig, ParallelDecoder, ThreadCount,
+};
+
+/// Entry point: `cargo xtask workload <subcommand> [public-rans-v1] [args]`.
+///
+/// Subcommands:
+///
+/// * `fetch` — download, hash-verify, and safely extract the pinned sources.
+/// * `derive` — expand the derivation policy into the ordered slice manifest.
+/// * `synthetic-cache-stress` / `synthetic-cache-soak` (aliases `stress` /
+///   `soak`) — the Phase O.12 cache-behaviour matrix on deterministic
+///   synthetic payloads (honestly labeled `synthetic-cache-stress-v1`).
+/// * `stress-public` / `soak-public` — execute a derived public schedule on
+///   the actual verified corpus bytes (MODEL_CACHE.WORKLOAD.2 fix).
+/// * `policy-sim` — offline FIFO/LRU shadow simulation.
 pub fn cmd_workload(args: &[String]) -> Result<(), String> {
     if args.is_empty() {
-        return Err("usage: cargo xtask workload <fetch|derive> [public-rans-v1]".into());
+        return Err(
+            "usage: cargo xtask workload <fetch|derive|stress|soak|synthetic-cache-stress|\
+             synthetic-cache-soak|stress-public|soak-public|policy-sim> [public-rans-v1]"
+                .into(),
+        );
     }
     let sub = args[0].as_str();
     let name = args
@@ -53,8 +100,17 @@ pub fn cmd_workload(args: &[String]) -> Result<(), String> {
     match sub {
         "fetch" => workload_fetch(&spec_dir, &name),
         "derive" => workload_derive(&spec_dir, &name),
-        "stress" => cmd_workload_stress(&spec_dir, &name, &args[2..]),
-        "soak" => cmd_workload_soak(&spec_dir, &name),
+        // Synthetic cache-behaviour runners (honestly labeled; the payloads
+        // are deterministic xorshift patterns with constant seeds, NOT
+        // derived from the public corpus — MODEL_CACHE.WORKLOAD.2).
+        "stress" | "synthetic-cache-stress" => {
+            cmd_workload_synthetic_stress(&spec_dir, &name, &args[2..])
+        }
+        "soak" | "synthetic-cache-soak" => cmd_workload_synthetic_soak(&spec_dir, &name),
+        // Genuine public-corpus runners (consume the derived manifest + the
+        // hash-verified extracted bytes — MODEL_CACHE.WORKLOAD.2 fix).
+        "stress-public" => cmd_workload_stress_public(&spec_dir, &name, &args[2..]),
+        "soak-public" => cmd_workload_soak_public(&spec_dir, &name, &args[2..]),
         "policy-sim" => cmd_workload_policy_sim(&name),
         other => Err(format!("unknown workload subcommand: {}", other)),
     }
@@ -922,60 +978,76 @@ fn schedule_hash(blocks: &[ryg_rans_rs_casefile::WorkloadBlock]) -> String {
 }
 
 // ---------------------------------------------------------------------------
-// stress / soak (Phase O.18)
+// Synthetic cache-behaviour stress / soak (Phase O.12/O.18) — honestly
+// labeled `synthetic-cache-stress-v1` / `synthetic-cache-soak-v1`
+// (post-v0.5.0 audit, MODEL_CACHE.WORKLOAD.2)
 // ---------------------------------------------------------------------------
 
-/// Stress matrix runner: `cargo xtask workload stress public-rans-v1`.
+/// Synthetic cache-behaviour stress matrix: `cargo xtask workload
+/// synthetic-cache-stress public-rans-v1` (alias `stress`).
 ///
-/// Runs the O.18 matrix against the **public corpus sources** (from the
-/// fetch cache, verified against the pinned hashes):
+/// Runs the Phase O.12 cache-behaviour classes on **deterministic synthetic
+/// payloads** (xorshift patterns with constant seeds):
 ///
-/// * workers: 1, 2, 4, 8, 16, 32
+/// * workers: 1, 2, 4, 8, 16, 32 (`--workers N` overrides)
 /// * block sizes: tiny (4 KiB) and large (1 MiB)
 /// * cache modes: cold single model, warm single model, hot set (16),
-///   thrash (65, capacity 64), unique models, mixed public corpus
-/// * constrained cache budgets and (via `--simd-off`) a scalar-only build
+///   thrash (65 patterns against a 64-slot cache), unique models, mixed
+///   reuse (4 hot + 12 cold patterns)
+/// * constrained cache budgets (`--cache-entries N --cache-bytes N`)
+///   and (via `--simd-off`) a scalar-only build
 ///
-/// Every decode asserts: decoded bytes == source slice, no panics, and the
-/// cache's exact invariants (byte/count sums, unique keys, build accounting,
-/// no abandoned building state).  The grouped-model blocks reuse the
-/// group's training-region slices, so the decode-side model reuse is real
-/// and the results are labeled `grouped-model` (Phase O.13 honesty).
-pub fn cmd_workload_stress(_spec_dir: &Path, name: &str, args: &[String]) -> Result<(), String> {
-    let mut schedule = String::new();
+/// **Honesty contract (MODEL_CACHE.WORKLOAD.2):** the payloads are the
+/// xorshift expansion of CONSTANT seeds — they are not derived from the
+/// public corpus, the derived manifest is not consulted, and the extracted
+/// source tree is not required.  The command is labeled
+/// `synthetic-cache-stress-v1`; genuine public-corpus execution is
+/// `cargo xtask workload stress-public public-rans-v1`.  (The pre-0.5.1
+/// `--schedule` flag was removed as inert: schedule selection belongs to
+/// the public runner.)
+///
+/// Every decode asserts: decoded bytes == expected, no panics, and the
+/// cache's exact invariants (build accounting, hit/miss sum, byte/count
+/// bounds).  The grouped-model blocks reuse the pattern's own histogram, so
+/// the decode-side model reuse is real and labeled (Phase O.13).
+pub fn cmd_workload_synthetic_stress(
+    _spec_dir: &Path,
+    _name: &str,
+    args: &[String],
+) -> Result<(), String> {
     let mut workers_override: Option<usize> = None;
     let mut simd_off = false;
+    let mut cache_entries: usize = 64;
+    let mut cache_bytes: u64 = 16 * 1024 * 1024;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
-            "--schedule" => {
-                i += 1;
-                schedule = args.get(i).cloned().unwrap_or_default();
-            }
             "--workers" => {
                 i += 1;
                 workers_override = args.get(i).and_then(|s| s.parse::<usize>().ok());
             }
             "--simd-off" => simd_off = true,
-            other => return Err(format!("unknown stress option: {}", other)),
+            "--cache-entries" => {
+                i += 1;
+                cache_entries = args
+                    .get(i)
+                    .and_then(|s| s.parse::<usize>().ok())
+                    .ok_or("--cache-entries requires a usize")?;
+            }
+            "--cache-bytes" => {
+                i += 1;
+                cache_bytes = args
+                    .get(i)
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .ok_or("--cache-bytes requires a u64")?;
+            }
+            other => return Err(format!("unknown synthetic stress option: {}", other)),
         }
         i += 1;
     }
 
-    let root = cache_root(name)?;
-    let manifest_path = root.join("derived").join(format!("{}.manifest.json", name));
-    let manifest_raw = std::fs::read_to_string(&manifest_path)
-        .map_err(|e| format!("read {}: {}", manifest_path.display(), e))?;
-    let manifest: ryg_rans_rs_casefile::WorkloadManifest =
-        serde_json::from_str(&manifest_raw).map_err(|e| format!("parse manifest: {}", e))?;
-
-    // The extracted source tree (must have been fetched).
-    let extracted = root.join("extracted");
-    if !extracted.is_dir() {
-        return Err(
-            "sources not fetched — run `cargo xtask workload fetch public-rans-v1` first".into(),
-        );
-    }
+    println!("synthetic-cache-stress-v1: deterministic xorshift payloads (constant seeds)");
+    println!("  payloads are NOT derived from the public corpus; use `stress-public` for that");
 
     // Worker matrix.
     let workers: Vec<usize> = match workers_override {
@@ -1000,19 +1072,7 @@ pub fn cmd_workload_stress(_spec_dir: &Path, name: &str, args: &[String]) -> Res
     for &w in &workers {
         for &size in &block_sizes {
             for mode in modes {
-                let result = run_stress_case(
-                    &extracted,
-                    &manifest,
-                    mode,
-                    w,
-                    size,
-                    simd_off,
-                    if schedule.is_empty() {
-                        None
-                    } else {
-                        Some(schedule.as_str())
-                    },
-                );
+                let result = run_stress_case(mode, w, size, simd_off, cache_entries, cache_bytes);
                 match result {
                     Ok(stats) => {
                         total_cases += 1;
@@ -1043,7 +1103,7 @@ pub fn cmd_workload_stress(_spec_dir: &Path, name: &str, args: &[String]) -> Res
     }
 
     println!(
-        "workload stress complete: {} cases, {} blocks, {} MiB decoded; {} failure(s)",
+        "synthetic-cache-stress-v1 complete: {} cases, {} blocks, {} MiB decoded; {} failure(s)",
         total_cases,
         total_blocks,
         total_bytes / (1024 * 1024),
@@ -1064,70 +1124,34 @@ struct StressStats {
     evictions: u64,
 }
 
-/// Run one stress case: build encoded blocks from public source slices,
-/// decode with the configured cache mode, and assert every invariant.
+/// Run one synthetic cache-behaviour case: build encoded blocks from the
+/// mode's deterministic xorshift patterns (constant seeds — NOT public
+/// corpus bytes), decode with the configured cache mode, and assert every
+/// invariant.  `cache_entries`/`cache_bytes` constrain the budget.
 fn run_stress_case(
-    extracted: &Path,
-    _manifest: &ryg_rans_rs_casefile::WorkloadManifest,
     mode: &str,
     workers: usize,
     block_size: usize,
     simd_off: bool,
-    _schedule_filter: Option<&str>,
+    cache_entries: usize,
+    cache_bytes: u64,
 ) -> Result<StressStats, String> {
     use ryg_rans_rs_parallel::{
         CodecPolicy, DecodeBlockJob, EncodeBlockJob, ModelArtifactCache, ModelPolicy,
         ParallelConfig, ParallelDecoder, ThreadCount,
     };
 
-    // ---- Build the block payloads from the public sources -------------------
-    // Resolve extracted files directly: for each source dir under
-    // `extracted/`, register every file large enough for two blocks.  The
-    // byte patterns below are *derived from* these public sources: each
-    // pattern is the xorshift expansion of a source-derived seed, and the
-    // manifest's schedule filter selects which public workload the stress
-    // belongs to.  (The block payloads are the patterns themselves so the
-    // per-block histogram models are identical within a pattern — the
-    // grouped-model reuse premise; the sources pin the corpus identity.)
-    let mut files: Vec<(String, PathBuf, u64)> = Vec::new();
-    if let Ok(rd) = std::fs::read_dir(extracted) {
-        for e in rd.flatten() {
-            let p = e.path();
-            if p.is_file() {
-                let len = std::fs::metadata(&p).map(|m| m.len()).unwrap_or(0);
-                if len >= 2 * block_size as u64 {
-                    files.push((e.file_name().to_string_lossy().to_string(), p, len));
-                }
-            } else if p.is_dir() {
-                if let Ok(rd2) = std::fs::read_dir(&p) {
-                    for e2 in rd2.flatten() {
-                        let p2 = e2.path();
-                        if p2.is_file() {
-                            let len = std::fs::metadata(&p2).map(|m| m.len()).unwrap_or(0);
-                            if len >= 2 * block_size as u64 {
-                                files.push((e2.file_name().to_string_lossy().to_string(), p2, len));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    files.sort();
-    if files.is_empty() {
-        return Err("no public source file large enough for the requested block size".into());
-    }
-
     // ---- Model selection per mode -------------------------------------------
-    // `model_for_block(i)` returns the data pattern for block i:
+    // `pattern_for(i)` returns the data pattern for block i:
     // - cold/warm single: one pattern (identical blocks → identical models)
     // - hot-set: 16 patterns, cyclic
-    // - thrash: 65 patterns (one more than the 64-slot cache), cyclic
+    // - thrash: 65 patterns (one more than the cache capacity), cyclic
     // - unique: a distinct pattern per block
     // - mixed: cycle 4 hot patterns then 12 unique (mixed reuse)
     // The block PAYLOAD is the pattern itself (repeated to block_size), so
     // per-block histogram models are identical within a pattern — the
-    // grouped-model reuse is real and labeled (Phase O.13).
+    // grouped-model reuse is real and labeled (Phase O.13).  The seeds are
+    // constants: synthetic by design, never presented as corpus-derived.
     let patterns: Vec<Vec<u8>> = match mode {
         "cold-single" | "warm-single" => (0..1)
             .map(|p| pattern_bytes(p as u64, block_size))
@@ -1150,9 +1174,13 @@ fn run_stress_case(
         }
         other => return Err(format!("unknown stress mode: {}", other)),
     };
-    // Thrash must exceed the 64-slot cache capacity so the cyclic model set
-    // forces evictions; other modes use a full queue of blocks.
-    let n_blocks = if mode == "thrash" { 130usize } else { 64usize };
+    // Thrash must exceed the cache capacity so the cyclic model set forces
+    // evictions; other modes use a full queue of blocks.
+    let n_blocks = if mode == "thrash" {
+        2 * cache_entries + 2
+    } else {
+        64usize
+    };
     let pattern_for = |i: usize| -> &Vec<u8> {
         match mode {
             "cold-single" | "warm-single" => &patterns[0],
@@ -1175,9 +1203,6 @@ fn run_stress_case(
     let mut expected = Vec::with_capacity(block_size * n_blocks);
     for i in 0..n_blocks {
         let pat = pattern_for(i);
-        // The payload is a deterministic rotation of the pattern so blocks of
-        // one pattern stay byte-identical across repetitions (the same
-        // byte-identity premise the bench uses).
         let data = pat.clone();
         expected.extend_from_slice(&data);
         encode_jobs.push(EncodeBlockJob::new(
@@ -1207,14 +1232,7 @@ fn run_stress_case(
         .collect();
 
     // ---- Cache configuration per mode ----------------------------------------
-    let cache = match mode {
-        "warm-single" | "cold-single" | "hot-set" | "mixed" => {
-            ModelArtifactCache::bounded(64, 16 * 1024 * 1024)
-        }
-        "thrash" => ModelArtifactCache::bounded(64, 16 * 1024 * 1024),
-        "unique" => ModelArtifactCache::bounded(64, 16 * 1024 * 1024),
-        other => return Err(format!("unknown mode {}", other)),
-    };
+    let cache = ModelArtifactCache::bounded(cache_entries.max(1), cache_bytes);
     let cfg = ParallelConfig {
         threads: ThreadCount::Exact(std::num::NonZeroUsize::new(workers.max(1)).unwrap()),
         parallel_threshold_bytes: 0,
@@ -1222,8 +1240,9 @@ fn run_stress_case(
         max_buffered_output_bytes: 4 << 30,
         max_buffered_input_bytes: 4 << 30,
         // Reorder window = max_in_flight.max(workers) + workers must exceed
-        // the largest stress case (130 thrash blocks at 32 workers → 160).
-        max_in_flight_blocks: std::num::NonZeroUsize::new(128).unwrap(),
+        // the largest stress case (2*cache_entries+2 thrash blocks at 32
+        // workers).
+        max_in_flight_blocks: std::num::NonZeroUsize::new(2 * cache_entries + 2 + 64).unwrap(),
         ..Default::default()
     };
 
@@ -1274,11 +1293,23 @@ fn run_stress_case(
     if completed + failed > builds {
         return Err("invariant: builds_completed + build_failures > builds_started".into());
     }
-    if post.current_entries > 64 {
-        return Err("invariant: current_entries > capacity".into());
+    if post.current_entries > cache_entries {
+        return Err(format!(
+            "invariant: current_entries {} > capacity {}",
+            post.current_entries, cache_entries
+        ));
     }
-    if post.current_bytes > 16 * 1024 * 1024 {
-        return Err("invariant: current_bytes > budget".into());
+    if post.current_bytes > cache_bytes {
+        return Err(format!(
+            "invariant: current_bytes {} > budget {}",
+            post.current_bytes, cache_bytes
+        ));
+    }
+    if !post.invariant_hit_miss_sum() {
+        return Err(format!(
+            "invariant: hits + misses != lookups ({} + {} != {})",
+            post.hits, post.misses, post.lookups
+        ));
     }
     // Mode-specific expectations.
     match mode {
@@ -1324,6 +1355,8 @@ fn run_stress_case(
 
 /// A deterministic byte pattern (xorshift64) used as the block payload and
 /// the shared-model source.  `seed == 0` yields a uniform distribution.
+/// The seed is a CONSTANT chosen by the mode schedule: synthetic payloads
+/// by design (MODEL_CACHE.WORKLOAD.2 — never presented as corpus-derived).
 fn pattern_bytes(seed: u64, len: usize) -> Vec<u8> {
     let mut s = seed.wrapping_mul(0x9E3779B97F4A7C15).wrapping_add(1) | 1;
     let mut out = Vec::with_capacity(len);
@@ -1336,19 +1369,20 @@ fn pattern_bytes(seed: u64, len: usize) -> Vec<u8> {
     out
 }
 
-/// Soak runner: `cargo xtask workload soak public-rans-v1`.
+/// Synthetic soak runner: `cargo xtask workload synthetic-cache-soak
+/// public-rans-v1` (alias `soak`).
 ///
-/// Runs a sustained decode workload (the `public-rans-smoke` schedule's
-/// sources, repeatedly re-encoded with rotating patterns) while checking
-/// the cache invariants periodically.  At completion it asserts the O.18
-/// soak contract:
+/// Runs a sustained decode workload on deterministic synthetic xorshift
+/// patterns (constant seeds) while checking the cache invariants
+/// periodically.  The payloads are NOT derived from the public corpus — the
+/// command is labeled `synthetic-cache-soak-v1` (MODEL_CACHE.WORKLOAD.2);
+/// use `soak-public` for genuine corpus execution.  At completion it asserts
+/// the O.18 soak contract:
 ///
 /// ```text
-/// current_bytes == exact retained sum
-/// current_entries == exact retained count
-/// all keys unique
-/// no abandoned Building entry
-/// builds_started == builds_completed + build_failures
+/// current_bytes <= budget, current_entries <= capacity
+/// builds_completed + build_failures <= builds_started
+/// hits + misses == lookups
 /// duplicate successful builds == 0
 /// decoded output == source input
 /// ```
@@ -1356,16 +1390,18 @@ fn pattern_bytes(seed: u64, len: usize) -> Vec<u8> {
 /// The soak duration is bounded by `RYG_RANS_SOAK_ROUNDS` (default 64
 /// rounds of 32 blocks each) so it terminates in a practical time while
 /// still exercising phase shifts and cache churn.
-pub fn cmd_workload_soak(spec_dir: &Path, name: &str) -> Result<(), String> {
+pub fn cmd_workload_synthetic_soak(_spec_dir: &Path, _name: &str) -> Result<(), String> {
     use ryg_rans_rs_parallel::{
         CodecPolicy, DecodeBlockJob, EncodeBlockJob, ModelArtifactCache, ModelPolicy,
         ParallelConfig, ParallelDecoder, ThreadCount,
     };
-    let _root = cache_root(name)?;
     let rounds: u64 = std::env::var("RYG_RANS_SOAK_ROUNDS")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(64);
+
+    println!("synthetic-cache-soak-v1: deterministic xorshift payloads (constant seeds)");
+    println!("  payloads are NOT derived from the public corpus; use `soak-public` for that");
 
     let cache = ModelArtifactCache::bounded(64, 16 * 1024 * 1024);
     let cfg = ParallelConfig {
@@ -1378,10 +1414,9 @@ pub fn cmd_workload_soak(spec_dir: &Path, name: &str) -> Result<(), String> {
     };
     let decoder = ParallelDecoder::with_model_cache(cfg, cache.clone());
 
-    // The soak reuses the smoke schedule's source families (public-corpus
-    // identity) but the payloads rotate through patterns to phase-shift the
-    // cache residency.  Round r uses pattern group (r % 3): groups 0..5
-    // (hot), then 0..65 (thrash), then 1000..1016 (new set → reacquisition).
+    // The rounds rotate through pattern groups to phase-shift the cache
+    // residency.  Round r uses pattern group (r % 3): groups 0..5 (hot),
+    // then 0..65 (thrash), then 1000..1016 (new set → reacquisition).
     let mut blocks_decoded = 0u64;
     let mut bytes_decoded = 0u64;
     let mut duplicate_builds = 0u64;
@@ -1488,7 +1523,7 @@ pub fn cmd_workload_soak(spec_dir: &Path, name: &str) -> Result<(), String> {
         return Err("hit/miss sum invariant violated at completion".into());
     }
     println!(
-        "workload soak complete: {} rounds, {} blocks, {} MiB decoded; hits={} builds={} evictions={} entries={} bytes={} — invariants hold",
+        "synthetic-cache-soak-v1 complete: {} rounds, {} blocks, {} MiB decoded; hits={} builds={} evictions={} entries={} bytes={} — invariants hold",
         rounds,
         blocks_decoded,
         bytes_decoded / (1024 * 1024),
@@ -1498,7 +1533,1191 @@ pub fn cmd_workload_soak(spec_dir: &Path, name: &str) -> Result<(), String> {
         m.current_entries,
         m.current_bytes,
     );
-    let _ = spec_dir;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Public-corpus stress / soak — genuine derived-schedule execution
+// (MODEL_CACHE.WORKLOAD.2 fix: the derived manifest IS the workload)
+// ---------------------------------------------------------------------------
+
+/// Streaming SHA-256 of a file (never loads the file into memory — the
+/// public sources include 1 GiB files; hashing them must not spike RAM).
+fn sha256_file_streaming(p: &Path) -> Result<String, String> {
+    use sha2::Digest;
+    let mut f = std::fs::File::open(p).map_err(|e| format!("open {}: {}", p.display(), e))?;
+    let mut h = sha2::Sha256::new();
+    let mut buf = [0u8; 1 << 16];
+    loop {
+        let n = f
+            .read(&mut buf)
+            .map_err(|e| format!("read {}: {}", p.display(), e))?;
+        if n == 0 {
+            break;
+        }
+        h.update(&buf[..n]);
+    }
+    Ok(format!("{:x}", h.finalize()))
+}
+
+/// A resolved public source file: path + length, hash-verified once.
+struct ResolvedSource {
+    path: PathBuf,
+    len: u64,
+}
+
+/// Resolves schedule blocks against the fetched, hash-verified extracted
+/// source tree (MODEL_CACHE.WORKLOAD.2).
+///
+/// Layout (from `workload fetch`): archive sources (zip/tar.gz) extract
+/// into `extracted/<id>/<files...>`; plain-gz sources are single payloads
+/// written flat as `extracted/<id>`.  A `source_id` is a FAMILY, not a
+/// file, so a block's `source_sha256` selects the exact file — the
+/// resolver walks the family, stream-hashes each candidate file, and
+/// matches the pinned hash.  Every file is verified ONCE and the path is
+/// cached; a mismatch or a missing file is a hard error (never a
+/// substituted file, never a silent skip).
+struct PublicSourceResolver {
+    extracted: PathBuf,
+    by_sha: std::collections::HashMap<String, ResolvedSource>,
+}
+
+impl PublicSourceResolver {
+    fn new(extracted: &Path) -> Self {
+        Self {
+            extracted: extracted.to_path_buf(),
+            by_sha: std::collections::HashMap::new(),
+        }
+    }
+
+    /// Locate and hash-verify the file for `source_id` whose SHA-256 is
+    /// `sha`.  Resolves once, caches by hash.  Returns `()` on success;
+    /// callers that need the file metadata use [`Self::get`].
+    fn resolve(&mut self, source_id: &str, sha: &str) -> Result<(), String> {
+        if self.by_sha.contains_key(sha) {
+            return Ok(());
+        }
+        let dir = self.extracted.join(source_id);
+        let mut candidates: Vec<PathBuf> = Vec::new();
+        if dir.is_dir() {
+            for e in std::fs::read_dir(&dir)
+                .map_err(|e| format!("read dir {}: {}", dir.display(), e))?
+                .flatten()
+            {
+                let p = e.path();
+                if p.is_file() {
+                    candidates.push(p);
+                }
+            }
+        } else if dir.is_file() {
+            candidates.push(dir.clone());
+        } else {
+            return Err(format!(
+                "source {}: {} is neither a file nor a directory (run `cargo xtask workload fetch` first)",
+                source_id,
+                dir.display()
+            ));
+        }
+        if candidates.is_empty() {
+            return Err(format!("no files under {}", dir.display()));
+        }
+        // Deterministic order (the schedule pins the FILE by hash, so the
+        // selection is hash-driven, but a stable walk order keeps the
+        // error messages reproducible).
+        candidates.sort();
+        for p in &candidates {
+            let got = sha256_file_streaming(p)?;
+            if got == sha {
+                let len = std::fs::metadata(p).map(|m| m.len()).unwrap_or(0);
+                self.by_sha.insert(
+                    sha.to_string(),
+                    ResolvedSource {
+                        path: p.clone(),
+                        len,
+                    },
+                );
+                return Ok(());
+            }
+        }
+        Err(format!(
+            "no file under {} matches the pinned sha256 {}... ({} candidate(s)); the extracted tree does not match the manifest — re-run `cargo xtask workload fetch`",
+            dir.display(),
+            &sha[..16.min(sha.len())],
+            candidates.len()
+        ))
+    }
+
+    /// Borrow the resolved metadata for a pinned hash (must be resolved
+    /// first).
+    fn get(&self, sha: &str) -> Result<&ResolvedSource, String> {
+        self.by_sha
+            .get(sha)
+            .ok_or_else(|| format!("resolve before get for sha {}", &sha[..16.min(sha.len())]))
+    }
+
+    /// Read the byte slice `[offset, offset+len)` of the file pinned by
+    /// `sha` (streaming seek+read — never materializes the whole file).
+    fn slice(&self, sha: &str, offset: u64, len: u64) -> Result<Vec<u8>, String> {
+        use std::io::{Seek, SeekFrom};
+        let rs = self
+            .by_sha
+            .get(sha)
+            .ok_or_else(|| format!("slice before resolve for sha {}", &sha[..16.min(sha.len())]))?;
+        let end = offset
+            .checked_add(len)
+            .ok_or_else(|| format!("slice overflow {}:{}", sha, offset))?;
+        if end > rs.len {
+            return Err(format!(
+                "slice {} [{}, {}) beyond file length {}",
+                &sha[..16.min(sha.len())],
+                offset,
+                end,
+                rs.len
+            ));
+        }
+        let mut f = std::fs::File::open(&rs.path)
+            .map_err(|e| format!("open {}: {}", rs.path.display(), e))?;
+        f.seek(SeekFrom::Start(offset))
+            .map_err(|e| format!("seek {}: {}", rs.path.display(), e))?;
+        let mut out = vec![0u8; len as usize];
+        f.read_exact(&mut out)
+            .map_err(|e| format!("read {}: {}", rs.path.display(), e))?;
+        Ok(out)
+    }
+}
+
+/// The model mode of a public stress/soak case (Phase O.13).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum PublicMode {
+    /// Every block derives its own model from its own bytes.
+    Natural,
+    /// Every block in a model group reuses the group's trained model
+    /// (trained on the declared public training region).
+    Grouped,
+}
+
+impl PublicMode {
+    fn name(self) -> &'static str {
+        match self {
+            PublicMode::Natural => "natural",
+            PublicMode::Grouped => "grouped",
+        }
+    }
+
+    fn parse(s: &str) -> Result<Vec<PublicMode>, String> {
+        match s {
+            "natural" => Ok(vec![PublicMode::Natural]),
+            "grouped" => Ok(vec![PublicMode::Grouped]),
+            "both" => Ok(vec![PublicMode::Natural, PublicMode::Grouped]),
+            other => Err(format!(
+                "unknown mode {} (expected natural | grouped | both)",
+                other
+            )),
+        }
+    }
+}
+
+/// Select a schedule by name; the four derived names are the only valid
+/// values (MODEL_CACHE.WORKLOAD.2: `--schedule` must select an actual
+/// schedule, never be inert).
+fn select_schedule<'a>(
+    manifest: &'a ryg_rans_rs_casefile::WorkloadManifest,
+    name: &str,
+) -> Result<&'a ryg_rans_rs_casefile::WorkloadSchedule, String> {
+    const KNOWN: [&str; 4] = [
+        "public-rans-smoke",
+        "public-rans-1g",
+        "public-rans-mixed-16g",
+        "public-rans-stress-64g",
+    ];
+    if !KNOWN.contains(&name) {
+        return Err(format!(
+            "unknown schedule {:?} (expected {})",
+            name,
+            KNOWN.join(" | ")
+        ));
+    }
+    manifest
+        .schedules
+        .iter()
+        .find(|s| s.name == name)
+        .ok_or_else(|| {
+            format!(
+                "schedule {} not found in manifest (run `cargo xtask workload derive`)",
+                name
+            )
+        })
+}
+
+/// Parallel config for the public runner: the model cache measures cache
+/// behavior, not output memory bounds, so the I/O budgets are raised; the
+/// reorder window is sized to the window length (window + workers + margin).
+fn public_config(workers: usize, window_len: usize, simd_off: bool) -> ParallelConfig {
+    ParallelConfig {
+        threads: ThreadCount::Exact(std::num::NonZeroUsize::new(workers.max(1)).unwrap()),
+        parallel_threshold_bytes: 0,
+        disable_simd: simd_off,
+        max_buffered_output_bytes: 8 << 30,
+        max_buffered_input_bytes: 8 << 30,
+        max_in_flight_blocks: std::num::NonZeroUsize::new(window_len + workers + 16).unwrap(),
+        ..Default::default()
+    }
+}
+
+/// Cache budget for the public runner, read from the workload spec's
+/// `[cache] default` section so the executed policy is the declared policy.
+fn public_cache_budget(spec_dir: &Path) -> Result<(usize, u64), String> {
+    let raw = std::fs::read_to_string(spec_dir.join("derivation.toml"))
+        .map_err(|e| format!("read derivation.toml: {}", e))?;
+    let deriv: toml::Value =
+        toml::from_str(&raw).map_err(|e| format!("parse derivation.toml: {}", e))?;
+    let entries = deriv
+        .get("cache")
+        .and_then(|c| c.get("default"))
+        .and_then(|d| d.get("max_entries"))
+        .and_then(|v| v.as_integer())
+        .unwrap_or(64) as usize;
+    let bytes = deriv
+        .get("cache")
+        .and_then(|c| c.get("default"))
+        .and_then(|d| d.get("max_total_bytes"))
+        .and_then(|v| v.as_integer())
+        .unwrap_or(16 * 1024 * 1024) as u64;
+    Ok((entries, bytes))
+}
+
+/// Deterministic ordered list of the schedule's distinct pinned files
+/// (first-appearance order) as `(source_id, sha256)` pairs — the
+/// `num_sources` of the derivation policy `source[g % num_sources]` (the
+/// same interpretation the sealed MIXED_PUBLIC bench uses).  The
+/// `source_id` travels with the sha so the training region can be resolved
+/// (a sha alone cannot locate the file — a `source_id` is a family).
+fn distinct_source_shas(
+    schedule: &ryg_rans_rs_casefile::WorkloadSchedule,
+) -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = Vec::new();
+    for b in &schedule.blocks {
+        if !out.iter().any(|(_, sha)| sha == &b.source_sha256) {
+            out.push((b.source_id.clone(), b.source_sha256.clone()));
+        }
+    }
+    out
+}
+
+/// Train the model for group `g` from the declared public training region
+/// (derivation.toml `[models]`: `source[g % num_sources]`, bytes
+/// `[0, min(training_region_bytes, file_len))`).  The model bytes are
+/// produced by encoding the training region with `PerBlock` and extracting
+/// the embedded 1024-byte model (header offset 104) — the same public-API
+/// route the bench's grouped path uses.  Trained once per group, cached in
+/// `group_models`.
+fn train_group_model(
+    g: u64,
+    distinct_sources: &[(String, String)],
+    training_region: u64,
+    scale_bits: u8,
+    resolver: &mut PublicSourceResolver,
+    group_models: &mut std::collections::HashMap<u64, Vec<u8>>,
+) -> Result<(), String> {
+    if group_models.contains_key(&g) {
+        return Ok(());
+    }
+    let n = distinct_sources.len() as u64;
+    if n == 0 {
+        return Err("schedule has no distinct source files — cannot train group models".into());
+    }
+    let (src_id, sha) = &distinct_sources[(g % n) as usize];
+    // Resolve the training file first so its length is known for the clamp.
+    resolver.resolve(src_id, sha)?;
+    let file_len = resolver.get(sha)?.len;
+    let region_len = training_region.min(file_len);
+    let region = resolver.slice(sha, 0, region_len)?;
+    let job = EncodeBlockJob::new(
+        0,
+        region,
+        CodecPolicy::Auto,
+        ModelPolicy::PerBlock,
+        scale_bits,
+    );
+    let enc = ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(
+        vec![job],
+        &public_config(1, 8, false),
+    )
+    .map_err(|e| format!("train group {}: {:?}", g, e))?;
+    let block0 = &enc.blocks[0].block;
+    let model = block0
+        .get(104..104 + 1024)
+        .ok_or_else(|| format!("group {}: block carries no 1024-byte model", g))?
+        .to_vec();
+    group_models.insert(g, model);
+    Ok(())
+}
+
+/// Encode one window with grouped-model fallback.
+///
+/// The whole window is encoded as one batch (indices 0..W, window-relative).
+/// In grouped mode a block whose data contains a symbol absent from its
+/// group's trained model fails with a typed `EncodeFailed` carrying the
+/// block index; that block is downgraded to `PerBlock` and counted as a
+/// fallback, and the batch is retried.  Fallbacks are rare (the training
+/// region and the block data come from the same corpus family), so the
+/// retry loop is short; every downgrade is counted and reported (never
+/// silently dropped — Phase O.13 honesty).
+///
+/// Returns the source slices (for byte-exact verification) and the decode
+/// jobs with window-relative header indices (the decode batch must be a
+/// 0-based contiguous set — Phase L.5 reorder contract).
+fn encode_window(
+    window: &[ryg_rans_rs_casefile::WorkloadBlock],
+    mode: PublicMode,
+    resolver: &mut PublicSourceResolver,
+    group_models: &mut std::collections::HashMap<u64, Vec<u8>>,
+    distinct_sources: &[(String, String)],
+    training_region: u64,
+    fallbacks: &mut u64,
+) -> Result<(Vec<Vec<u8>>, Vec<DecodeBlockJob>), String> {
+    let mut sources: Vec<Vec<u8>> = Vec::with_capacity(window.len());
+    let mut jobs: Vec<EncodeBlockJob> = Vec::with_capacity(window.len());
+    for (j, blk) in window.iter().enumerate() {
+        resolver.resolve(&blk.source_id, &blk.source_sha256)?;
+        let data = resolver.slice(&blk.source_sha256, blk.offset, blk.length)?;
+        let policy = match mode {
+            PublicMode::Natural => ModelPolicy::PerBlock,
+            PublicMode::Grouped => {
+                if blk.model_group == u64::MAX {
+                    // Natural block in the schedule: never grouped.
+                    ModelPolicy::PerBlock
+                } else {
+                    train_group_model(
+                        blk.model_group,
+                        distinct_sources,
+                        training_region,
+                        blk.scale_bits,
+                        resolver,
+                        group_models,
+                    )?;
+                    ModelPolicy::External {
+                        model: group_models[&blk.model_group].clone(),
+                    }
+                }
+            }
+        };
+        sources.push(data.clone());
+        jobs.push(EncodeBlockJob::new(
+            j as u64,
+            data,
+            CodecPolicy::Explicit(blk.codec_id),
+            policy,
+            blk.scale_bits,
+        ));
+    }
+
+    // Batch encode with grouped fallback retries.
+    let enc_cfg = public_config(1, window.len(), false);
+    let encoded = loop {
+        match ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(jobs.clone(), &enc_cfg) {
+            Ok(enc) => break enc,
+            Err(ryg_rans_rs_parallel::ParallelError::EncodeFailed(canonical)) => {
+                let bi = canonical.block_index;
+                let idx = bi as usize;
+                if idx >= jobs.len() {
+                    return Err(format!(
+                        "encode failed with out-of-range block index {} (window {})",
+                        bi,
+                        window.len()
+                    ));
+                }
+                // Downgrade that block to its own model and count it.
+                let EncodeBlockJob {
+                    block_index,
+                    data,
+                    codec_policy,
+                    model_policy,
+                    scale_bits,
+                    ..
+                } = &jobs[idx];
+                if matches!(model_policy, ModelPolicy::PerBlock) {
+                    // A PerBlock encode failed: not a fallback case —
+                    // report the underlying error.
+                    return Err(format!(
+                        "block {} PerBlock encode failed: {:?}",
+                        block_index, canonical
+                    ));
+                }
+                *fallbacks += 1;
+                jobs[idx] = EncodeBlockJob::new(
+                    *block_index,
+                    data.clone(),
+                    *codec_policy,
+                    ModelPolicy::PerBlock,
+                    *scale_bits,
+                );
+            }
+            Err(e) => return Err(format!("window encode: {:?}", e)),
+        }
+    };
+
+    // Patch the embedded header index (offset 8..16, covered by no header
+    // hash) to the window-relative index so the decode batch is 0-based
+    // contiguous.
+    let decode_jobs: Vec<DecodeBlockJob> = encoded
+        .blocks
+        .into_iter()
+        .enumerate()
+        .map(|(j, b)| {
+            let mut block = b.block;
+            block[8..16].copy_from_slice(&(j as u64).to_le_bytes());
+            DecodeBlockJob {
+                block_index: j as u64,
+                block_data: block,
+            }
+        })
+        .collect();
+    Ok((sources, decode_jobs))
+}
+
+/// Encode + decode one window of the schedule and verify byte-exactness.
+/// Returns (block count, decoded bytes).  `window_base` is the schedule
+/// index of the window's first block (for error messages only).
+fn process_window(
+    window: &[ryg_rans_rs_casefile::WorkloadBlock],
+    window_base: u64,
+    mode: PublicMode,
+    workers: usize,
+    simd_off: bool,
+    cache: &std::sync::Arc<ModelArtifactCache>,
+    resolver: &mut PublicSourceResolver,
+    group_models: &mut std::collections::HashMap<u64, Vec<u8>>,
+    distinct_sources: &[(String, String)],
+    training_region: u64,
+    fallbacks: &mut u64,
+    cancel: Option<&std::sync::Arc<CancellationToken>>,
+) -> Result<(u64, u64), String> {
+    let (sources, decode_jobs) = encode_window(
+        window,
+        mode,
+        resolver,
+        group_models,
+        distinct_sources,
+        training_region,
+        fallbacks,
+    )?;
+    let cfg = public_config(workers, window.len(), simd_off);
+    let decoder = ParallelDecoder::with_model_cache(cfg, cache.clone());
+    let decoded = match cancel {
+        Some(tok) => decoder
+            .decode_blocks_with_cancel(decode_jobs, Some(tok.clone()))
+            .map_err(|e| format!("decode window @ {}: {:?}", window_base, e))?,
+        None => decoder
+            .decode_blocks(decode_jobs)
+            .map_err(|e| format!("decode window @ {}: {:?}", window_base, e))?,
+    };
+    if decoded.blocks.len() != window.len() {
+        return Err(format!(
+            "window @ {}: decoded {} blocks, expected {}",
+            window_base,
+            decoded.blocks.len(),
+            window.len()
+        ));
+    }
+    let mut bytes = 0u64;
+    for (i, db) in decoded.blocks.iter().enumerate() {
+        if db.output != sources[i] {
+            return Err(format!(
+                "window @ {} block {}: decoded output differs from the source slice ({} vs {} bytes)",
+                window_base,
+                window_base + i as u64,
+                db.output.len(),
+                sources[i].len()
+            ));
+        }
+        bytes += db.output.len() as u64;
+    }
+    Ok((window.len() as u64, bytes))
+}
+
+/// Probe that a key is not stuck behind an abandoned `Building` marker
+/// (O.18 "no abandoned Building entry"): issue a lookup for `model` with a
+/// watchdog.  A healthy cache returns instantly (hit or fresh build); an
+/// abandoned marker would block the lookup until the watchdog fires.
+///
+/// The probe runs AFTER the case's metric deltas are captured, so it never
+/// perturbs the measured counters.
+fn probe_no_abandoned_building(
+    cache: &std::sync::Arc<ModelArtifactCache>,
+    codec: u16,
+    scale: u8,
+    model: Vec<u8>,
+    timeout: std::time::Duration,
+) -> Result<(), String> {
+    use std::sync::mpsc;
+    let (tx, rx) = mpsc::channel::<Result<(), String>>();
+    let cache2 = cache.clone();
+    let cancel = std::sync::Arc::new(CancellationToken::new());
+    let cancel2 = cancel.clone();
+    let m2 = model.clone();
+    std::thread::spawn(move || {
+        let r = cache2.get_or_build(codec, scale, &m2, Some(&cancel2), || {
+            ryg_rans_rs_parallel::build_validated_model_artifacts(codec, scale, &m2)
+        });
+        let _ = tx.send(match r {
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!("probe build failed: {:?}", e)),
+        });
+    });
+    match rx.recv_timeout(timeout) {
+        Ok(r) => r,
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Err(format!(
+            "probe lookup did not complete within {}s — an abandoned Building marker is suspected",
+            timeout.as_secs()
+        )),
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+            Err("probe thread died without a result".into())
+        }
+    }
+}
+
+/// Model bytes for a probe: encode `data` with PerBlock and extract the
+/// embedded 1024-byte model (header offset 104).
+fn model_bytes_for_probe(data: &[u8], codec: u16, scale: u8) -> Result<Vec<u8>, String> {
+    let job = EncodeBlockJob::new(
+        0,
+        data.to_vec(),
+        CodecPolicy::Explicit(codec),
+        ModelPolicy::PerBlock,
+        scale,
+    );
+    let enc = ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(
+        vec![job],
+        &public_config(1, 8, false),
+    )
+    .map_err(|e| format!("probe model encode: {:?}", e))?;
+    enc.blocks[0]
+        .block
+        .get(104..104 + 1024)
+        .map(|m| m.to_vec())
+        .ok_or_else(|| "probe: block carries no 1024-byte model".into())
+}
+
+/// Parse the public stress/soak argument set.
+struct PublicRunnerArgs {
+    schedule: String,
+    workers: Option<usize>,
+    simd_off: bool,
+    modes: Vec<PublicMode>,
+    window: Option<usize>,
+    max_blocks: Option<u64>,
+    rounds: u64,
+}
+
+impl PublicRunnerArgs {
+    fn parse(args: &[String], default_schedule: &str) -> Result<Self, String> {
+        let mut a = PublicRunnerArgs {
+            schedule: default_schedule.to_string(),
+            workers: None,
+            simd_off: false,
+            modes: vec![PublicMode::Natural, PublicMode::Grouped],
+            window: None,
+            max_blocks: None,
+            rounds: std::env::var("RYG_RANS_SOAK_PUBLIC_ROUNDS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(1),
+        };
+        let mut i = 0;
+        while i < args.len() {
+            match args[i].as_str() {
+                "--schedule" => {
+                    i += 1;
+                    a.schedule = args
+                        .get(i)
+                        .cloned()
+                        .ok_or("--schedule requires a schedule name")?;
+                }
+                "--workers" => {
+                    i += 1;
+                    a.workers = Some(
+                        args.get(i)
+                            .and_then(|s| s.parse::<usize>().ok())
+                            .ok_or("--workers requires a usize")?,
+                    );
+                }
+                "--simd-off" => a.simd_off = true,
+                "--mode" => {
+                    i += 1;
+                    a.modes = PublicMode::parse(
+                        args.get(i)
+                            .ok_or("--mode requires natural | grouped | both")?,
+                    )?;
+                }
+                "--window" => {
+                    i += 1;
+                    a.window = Some(
+                        args.get(i)
+                            .and_then(|s| s.parse::<usize>().ok())
+                            .ok_or("--window requires a usize")?,
+                    );
+                }
+                "--max-blocks" => {
+                    i += 1;
+                    a.max_blocks = Some(
+                        args.get(i)
+                            .and_then(|s| s.parse::<u64>().ok())
+                            .ok_or("--max-blocks requires a u64")?,
+                    );
+                }
+                "--rounds" => {
+                    i += 1;
+                    a.rounds = args
+                        .get(i)
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .ok_or("--rounds requires a u64")?;
+                }
+                other => return Err(format!("unknown public runner option: {}", other)),
+            }
+            i += 1;
+        }
+        Ok(a)
+    }
+}
+
+/// Load the manifest + schedule + resolver common to both public runners.
+struct PublicRun {
+    schedule: ryg_rans_rs_casefile::WorkloadSchedule,
+    extracted: PathBuf,
+    distinct_sources: Vec<(String, String)>,
+    training_region: u64,
+    cache_entries: usize,
+    cache_bytes: u64,
+}
+
+fn load_public_run(spec_dir: &Path, name: &str, schedule_name: &str) -> Result<PublicRun, String> {
+    let root = cache_root(name)?;
+    let manifest_path = root.join("derived").join(format!("{}.manifest.json", name));
+    let manifest_raw = std::fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("read {}: {}", manifest_path.display(), e))?;
+    let manifest: ryg_rans_rs_casefile::WorkloadManifest =
+        serde_json::from_str(&manifest_raw).map_err(|e| format!("parse manifest: {}", e))?;
+    let schedule = select_schedule(&manifest, schedule_name)?.clone();
+    if schedule.blocks.is_empty() {
+        return Err(format!("schedule {} has no blocks", schedule_name));
+    }
+    let extracted = root.join("extracted");
+    if !extracted.is_dir() {
+        return Err(
+            "sources not fetched — run `cargo xtask workload fetch public-rans-v1` first".into(),
+        );
+    }
+    let (cache_entries, cache_bytes) = public_cache_budget(spec_dir)?;
+    // Training region from derivation.toml [models].
+    let deriv_raw = std::fs::read_to_string(spec_dir.join("derivation.toml"))
+        .map_err(|e| format!("read derivation.toml: {}", e))?;
+    let deriv: toml::Value =
+        toml::from_str(&deriv_raw).map_err(|e| format!("parse derivation.toml: {}", e))?;
+    let training_region = deriv
+        .get("models")
+        .and_then(|m| m.get("training_region_bytes"))
+        .and_then(|v| v.as_integer())
+        .unwrap_or(4096) as u64;
+    let distinct_sources = distinct_source_shas(&schedule);
+    Ok(PublicRun {
+        schedule,
+        extracted,
+        distinct_sources,
+        training_region,
+        cache_entries,
+        cache_bytes,
+    })
+}
+
+/// Genuine public-corpus stress runner: `cargo xtask workload stress-public
+/// public-rans-v1 [--schedule NAME] [--workers N] [--mode natural|grouped|both]
+/// [--simd-off] [--window W] [--max-blocks N]`.
+///
+/// Consumes the derived manifest schedule: every block is
+/// `source_id + source_sha256 + offset + length` resolved to the
+/// hash-verified extracted source bytes, sliced, encoded with the block's
+/// declared codec/scale, and decoded through the parallel engine
+/// (MODEL_CACHE.WORKLOAD.2 fix).  `--schedule` actually selects the
+/// executed schedule (smoke / 1g / mixed-16g / stress-64g).  Schedules are
+/// processed in bounded windows (window × block size ≤ 256 MiB), so the
+/// 16 GiB and 64 GiB logical schedules stream — the corpus is never
+/// materialized.  Every window asserts byte-exact output; every case ends
+/// with the O.18 completion invariants and a no-abandoned-marker probe.
+pub fn cmd_workload_stress_public(
+    spec_dir: &Path,
+    name: &str,
+    args: &[String],
+) -> Result<(), String> {
+    let a = PublicRunnerArgs::parse(args, "public-rans-smoke")?;
+    let run = load_public_run(spec_dir, name, &a.schedule)?;
+    println!(
+        "stress-public: schedule {} ({} blocks, {} logical MiB, sha256 {})",
+        run.schedule.name,
+        run.schedule.block_count,
+        run.schedule.logical_bytes / (1024 * 1024),
+        &run.schedule.schedule_sha256[..16.min(run.schedule.schedule_sha256.len())]
+    );
+    println!(
+        "  sources: {} distinct pinned files; cache budget {} entries / {} MiB; grouped training region {} bytes",
+        run.distinct_sources.len(),
+        run.cache_entries,
+        run.cache_bytes / (1024 * 1024),
+        run.training_region
+    );
+
+    // Worker matrix.
+    let workers: Vec<usize> = match a.workers {
+        Some(w) => vec![w],
+        None => vec![1, 2, 4, 8, 16, 32],
+    };
+    let blocks: Vec<ryg_rans_rs_casefile::WorkloadBlock> = match a.max_blocks {
+        Some(cap) => run
+            .schedule
+            .blocks
+            .iter()
+            .take(cap as usize)
+            .cloned()
+            .collect(),
+        None => run.schedule.blocks.clone(),
+    };
+    let max_block_size = blocks.iter().map(|b| b.length).max().unwrap_or(4096);
+    let window_len = a
+        .window
+        .unwrap_or_else(|| ((256u64 * 1024 * 1024) / max_block_size.max(1)).clamp(8, 256) as usize);
+    let n_windows = blocks.len().div_ceil(window_len);
+    println!(
+        "  executing {} blocks in {} windows of <= {} (max block {} bytes)",
+        blocks.len(),
+        n_windows,
+        window_len,
+        max_block_size
+    );
+
+    let mut failures: Vec<String> = Vec::new();
+    let mut total_cases = 0u64;
+    let mut total_blocks = 0u64;
+    let mut total_bytes = 0u64;
+    for &w in &workers {
+        for &mode in &a.modes {
+            let cache = std::sync::Arc::new(ModelArtifactCache::bounded(
+                run.cache_entries,
+                run.cache_bytes,
+            ));
+            let mut resolver = PublicSourceResolver::new(&run.extracted);
+            let mut group_models: std::collections::HashMap<u64, Vec<u8>> =
+                std::collections::HashMap::new();
+            let mut fallbacks = 0u64;
+            let pre = cache.metrics();
+            let mut case_blocks = 0u64;
+            let mut case_bytes = 0u64;
+            let mut case_err: Option<String> = None;
+            for (wi, chunk) in blocks.chunks(window_len).enumerate() {
+                let window_base = (wi * window_len) as u64;
+                match process_window(
+                    chunk,
+                    window_base,
+                    mode,
+                    w,
+                    a.simd_off,
+                    &cache,
+                    &mut resolver,
+                    &mut group_models,
+                    &run.distinct_sources,
+                    run.training_region,
+                    &mut fallbacks,
+                    None,
+                ) {
+                    Ok((nb, nbytes)) => {
+                        case_blocks += nb;
+                        case_bytes += nbytes;
+                    }
+                    Err(e) => {
+                        case_err = Some(e);
+                        break;
+                    }
+                }
+            }
+            let post = cache.metrics();
+            if let Some(e) = case_err {
+                failures.push(format!(
+                    "{} w={} schedule={}: {}",
+                    mode.name(),
+                    w,
+                    a.schedule,
+                    e
+                ));
+                println!(
+                    "  stress-public {:>7} w={:>2} schedule={}: FAILED — {}",
+                    mode.name(),
+                    w,
+                    a.schedule,
+                    e
+                );
+                continue;
+            }
+            // ---- O.18 completion invariants ----------------------------------
+            let builds = post.builds_started - pre.builds_started;
+            let hits = post.hits - pre.hits;
+            let misses = post.misses - pre.misses;
+            let evictions = post.entry_evictions - pre.entry_evictions;
+            let check = |ok: bool, what: &str| -> Result<(), String> {
+                if ok {
+                    Ok(())
+                } else {
+                    Err(format!(
+                        "{} w={} schedule={}: invariant violated — {}",
+                        mode.name(),
+                        w,
+                        a.schedule,
+                        what
+                    ))
+                }
+            };
+            let inv = post.invariant_build_accounting();
+            let inv2 = post.invariant_hit_miss_sum();
+            let inv3 = post.current_entries <= run.cache_entries;
+            let inv4 = post.current_bytes <= run.cache_bytes;
+            if let Err(e) = check(inv, "build accounting (completed + failures > started)")
+                .and_then(|_| check(inv2, "hits + misses != lookups"))
+                .and_then(|_| check(inv3, "current_entries > capacity"))
+                .and_then(|_| check(inv4, "current_bytes > budget"))
+            {
+                failures.push(e.clone());
+                println!(
+                    "  stress-public {} w={} schedule={}: FAILED — {}",
+                    mode.name(),
+                    w,
+                    a.schedule,
+                    e
+                );
+                continue;
+            }
+            // ---- No-abandoned-marker probe (first block's model) ------------
+            let first = &blocks[0];
+            let probe_data = resolver.slice(&first.source_sha256, first.offset, first.length)?;
+            let probe_model = model_bytes_for_probe(&probe_data, first.codec_id, first.scale_bits)?;
+            if let Err(e) = probe_no_abandoned_building(
+                &cache,
+                first.codec_id,
+                first.scale_bits,
+                probe_model,
+                std::time::Duration::from_secs(120),
+            ) {
+                failures.push(format!("{} w={}: probe: {}", mode.name(), w, e));
+                println!(
+                    "  stress-public {} w={}: FAILED — probe: {}",
+                    mode.name(),
+                    w,
+                    e
+                );
+                continue;
+            }
+            total_cases += 1;
+            total_blocks += case_blocks;
+            total_bytes += case_bytes;
+            let mode_label = if mode == PublicMode::Grouped {
+                format!("grouped fallbacks={}", fallbacks)
+            } else {
+                "natural".to_string()
+            };
+            println!(
+                "  stress-public {:>7} w={:>2} schedule={}: {} blocks, {} MiB decoded, hits={} misses={} builds={} evictions={} [{}] — OK",
+                mode.name(),
+                w,
+                a.schedule,
+                case_blocks,
+                case_bytes / (1024 * 1024),
+                hits,
+                misses,
+                builds,
+                evictions,
+                mode_label
+            );
+        }
+    }
+
+    println!(
+        "stress-public complete: schedule={} {} cases, {} blocks, {} MiB decoded; {} failure(s)",
+        a.schedule,
+        total_cases,
+        total_blocks,
+        total_bytes / (1024 * 1024),
+        failures.len()
+    );
+    if !failures.is_empty() {
+        return Err(format!("stress-public failures:\n{}", failures.join("\n")));
+    }
+    Ok(())
+}
+
+/// Genuine public-corpus soak runner: `cargo xtask workload soak-public
+/// public-rans-v1 [--schedule NAME] [--workers N] [--mode natural|grouped|both]
+/// [--rounds N] [--window W] [--max-blocks N]`.
+///
+/// Repeatedly executes the derived public schedule (default `public-rans-1g`)
+/// in bounded windows against one persistent cache, checking the O.18
+/// invariants periodically, with a deterministic mid-run cancellation round
+/// (a cancelled decode must never return `Ok` with fewer blocks than
+/// declared — the executor's completeness contract — and the cache must
+/// recover with no abandoned marker).  At completion asserts the O.18 soak
+/// contract:
+///
+/// ```text
+/// current_bytes <= budget, current_entries <= capacity
+/// builds_completed + build_failures <= builds_started
+/// hits + misses == lookups
+/// duplicate successful builds == 0 (replacements == 0)
+/// decoded output == source input (asserted per window)
+/// no abandoned Building entry (probe)
+/// ```
+pub fn cmd_workload_soak_public(
+    spec_dir: &Path,
+    name: &str,
+    args: &[String],
+) -> Result<(), String> {
+    let a = PublicRunnerArgs::parse(args, "public-rans-1g")?;
+    let run = load_public_run(spec_dir, name, &a.schedule)?;
+    let workers = a.workers.unwrap_or(8);
+    let rounds = a.rounds.max(1);
+    println!(
+        "soak-public: schedule {} ({} blocks, {} logical MiB, sha256 {}), workers={}, rounds={}, mode(s)={}",
+        run.schedule.name,
+        run.schedule.block_count,
+        run.schedule.logical_bytes / (1024 * 1024),
+        &run.schedule.schedule_sha256[..16.min(run.schedule.schedule_sha256.len())],
+        workers,
+        rounds,
+        a.modes
+            .iter()
+            .map(|m| m.name())
+            .collect::<Vec<_>>()
+            .join("+")
+    );
+
+    let blocks: Vec<ryg_rans_rs_casefile::WorkloadBlock> = match a.max_blocks {
+        Some(cap) => run
+            .schedule
+            .blocks
+            .iter()
+            .take(cap as usize)
+            .cloned()
+            .collect(),
+        None => run.schedule.blocks.clone(),
+    };
+    let max_block_size = blocks.iter().map(|b| b.length).max().unwrap_or(4096);
+    let window_len = a
+        .window
+        .unwrap_or_else(|| ((256u64 * 1024 * 1024) / max_block_size.max(1)).clamp(8, 256) as usize);
+
+    let cache = std::sync::Arc::new(ModelArtifactCache::bounded(
+        run.cache_entries,
+        run.cache_bytes,
+    ));
+    let mut total_blocks = 0u64;
+    let mut total_bytes = 0u64;
+    let mut fallbacks = 0u64;
+    let mut windows_seen = 0u64;
+    let cancellation_round = rounds / 2;
+    // The cancellation window is the midpoint of the cancellation round's
+    // first pass (deterministic; the phase where the cache is warm).
+    let cancellation_window = (blocks.len() / window_len / 2) as u64;
+    let mut cancelled_ok = false;
+
+    for round in 0..rounds {
+        for &mode in &a.modes {
+            let mut resolver = PublicSourceResolver::new(&run.extracted);
+            let mut group_models: std::collections::HashMap<u64, Vec<u8>> =
+                std::collections::HashMap::new();
+            for (wi, chunk) in blocks.chunks(window_len).enumerate() {
+                let window_base = (wi * window_len) as u64;
+                let is_cancel_window = round == cancellation_round
+                    && mode == PublicMode::Natural
+                    && window_base == cancellation_window * window_len as u64;
+                // The cancellation round exercises the completeness contract
+                // exactly once per soak; the window is then re-run without
+                // cancellation so the soak's own byte-exact accounting stays
+                // complete.
+                if is_cancel_window && !cancelled_ok {
+                    let tok = std::sync::Arc::new(CancellationToken::new());
+                    let cancel_tok = tok.clone();
+                    let cancel_handle = std::thread::spawn(move || {
+                        // Fire mid-flight: after the decode is under way.
+                        std::thread::sleep(std::time::Duration::from_millis(50));
+                        cancel_tok.cancel();
+                    });
+                    match process_window(
+                        chunk,
+                        window_base,
+                        mode,
+                        workers,
+                        a.simd_off,
+                        &cache,
+                        &mut resolver,
+                        &mut group_models,
+                        &run.distinct_sources,
+                        run.training_region,
+                        &mut fallbacks,
+                        Some(&tok),
+                    ) {
+                        // Either the run completed fully (cancellation arrived
+                        // after the last block — Ok with ALL blocks) or the
+                        // executor returned the typed Cancelled error
+                        // (serialized as `Cancelled { completed: ..,
+                        // expected: .. }`).  A short Ok is impossible by
+                        // construction; accepting only these two outcomes is
+                        // the completeness check.
+                        Ok(_) => {}
+                        Err(e) if e.contains("Cancelled {") => {}
+                        Err(e) => {
+                            return Err(format!(
+                                "soak cancellation round: unexpected error: {}",
+                                e
+                            ));
+                        }
+                    }
+                    let _ = cancel_handle.join();
+                    cancelled_ok = true;
+                    println!(
+                        "  soak-public round {}: cancellation round executed (complete-or-Cancelled, never short-Ok)",
+                        round
+                    );
+                    // Re-run the window uncancelled: byte-exact accounting
+                    // must stay complete.
+                    match process_window(
+                        chunk,
+                        window_base,
+                        mode,
+                        workers,
+                        a.simd_off,
+                        &cache,
+                        &mut resolver,
+                        &mut group_models,
+                        &run.distinct_sources,
+                        run.training_region,
+                        &mut fallbacks,
+                        None,
+                    ) {
+                        Ok((nb, nbytes)) => {
+                            total_blocks += nb;
+                            total_bytes += nbytes;
+                        }
+                        Err(e) => return Err(format!("soak post-cancellation re-run: {}", e)),
+                    }
+                    continue;
+                }
+                match process_window(
+                    chunk,
+                    window_base,
+                    mode,
+                    workers,
+                    a.simd_off,
+                    &cache,
+                    &mut resolver,
+                    &mut group_models,
+                    &run.distinct_sources,
+                    run.training_region,
+                    &mut fallbacks,
+                    None,
+                ) {
+                    Ok((nb, nbytes)) => {
+                        total_blocks += nb;
+                        total_bytes += nbytes;
+                    }
+                    Err(e) => {
+                        return Err(format!(
+                            "soak round {} window @ {} ({}): {}",
+                            round,
+                            window_base,
+                            mode.name(),
+                            e
+                        ));
+                    }
+                }
+                windows_seen += 1;
+
+                // ---- Periodic invariant checks (every 16 windows) ----------
+                if windows_seen % 16 == 0 {
+                    let m = cache.metrics();
+                    if !m.invariant_build_accounting() {
+                        return Err(format!(
+                            "soak window {}: build accounting invariant violated",
+                            windows_seen
+                        ));
+                    }
+                    if !m.invariant_hit_miss_sum() {
+                        return Err(format!(
+                            "soak window {}: hit/miss sum invariant violated",
+                            windows_seen
+                        ));
+                    }
+                    if m.current_entries > run.cache_entries || m.current_bytes > run.cache_bytes {
+                        return Err(format!(
+                            "soak window {}: capacity bound violated ({} entries / {} bytes)",
+                            windows_seen, m.current_entries, m.current_bytes
+                        ));
+                    }
+                    println!(
+                        "  soak-public window {:>5}: {} blocks, {} MiB, cache entries={} bytes={} hits={} builds={} evictions={}",
+                        windows_seen,
+                        total_blocks,
+                        total_bytes / (1024 * 1024),
+                        m.current_entries,
+                        m.current_bytes,
+                        m.hits,
+                        m.builds_started,
+                        m.entry_evictions,
+                    );
+                }
+            }
+        }
+    }
+
+    // ---- Completion assertions (O.18 soak contract) --------------------------
+    let m = cache.metrics();
+    if !m.invariant_build_accounting() {
+        return Err("soak-public: build accounting invariant violated at completion".into());
+    }
+    if !m.invariant_hit_miss_sum() {
+        return Err("soak-public: hit/miss sum invariant violated at completion".into());
+    }
+    if m.current_entries > run.cache_entries || m.current_bytes > run.cache_bytes {
+        return Err("soak-public: capacity bound violated at completion".into());
+    }
+    if m.replacements != 0 {
+        return Err(format!(
+            "soak-public: duplicate successful builds detected ({} replacements)",
+            m.replacements
+        ));
+    }
+    // No-abandoned-marker probe on the first block's model.
+    let first = &blocks[0];
+    {
+        let mut resolver = PublicSourceResolver::new(&run.extracted);
+        resolver.resolve(&first.source_id, &first.source_sha256)?;
+        let probe_data = resolver.slice(&first.source_sha256, first.offset, first.length)?;
+        let probe_model = model_bytes_for_probe(&probe_data, first.codec_id, first.scale_bits)?;
+        probe_no_abandoned_building(
+            &cache,
+            first.codec_id,
+            first.scale_bits,
+            probe_model,
+            std::time::Duration::from_secs(120),
+        )?;
+    }
+    println!(
+        "soak-public complete: schedule={} rounds={} blocks={} MiB={} grouped-fallbacks={} hits={} builds={} evictions={} entries={} bytes={} — invariants hold",
+        a.schedule,
+        rounds,
+        total_blocks,
+        total_bytes / (1024 * 1024),
+        fallbacks,
+        m.hits,
+        m.builds_started,
+        m.entry_evictions,
+        m.current_entries,
+        m.current_bytes,
+    );
     Ok(())
 }
 

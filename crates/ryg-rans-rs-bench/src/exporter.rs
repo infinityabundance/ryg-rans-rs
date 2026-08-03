@@ -153,10 +153,26 @@ pub struct BenchRecord {
     pub cpu: String,
 
     /// Compile-time enabled target features (`#[cfg(target_feature = ...)]`)
+    /// of the exporting process.  For the authoritative codegen facts of
+    /// the benchmark binary (target CPU + RUSTFLAGS), read
+    /// [`BenchRecord::compiled_target`] — the flags are bound to the
+    /// benchmark run, never to the seal invocation.
     pub target_features: Vec<String>,
 
     /// Runtime-detected CPU features via `std::is_x86_feature_detected!()`
+    /// (host capability at export time).
     pub runtime_features: Vec<String>,
+
+    /// Typed compiled-target facts (post-v0.5.0 audit normalization):
+    /// `target_cpu` + `codegen_flags` of the benchmark run and the
+    /// exporter's enabled feature set.  An empty `enabled_target_features`
+    /// does NOT imply the binary lacked AVX2 — read `codegen_flags`.
+    #[serde(default)]
+    pub compiled_target: crate::common::metadata::CompiledTargetInfo,
+
+    /// Typed runtime CPU facts: the host's detected features.
+    #[serde(default)]
+    pub runtime_cpu: crate::common::metadata::RuntimeCpuInfo,
 
     /// Whether the backend passed pre-benchmark verification
     #[serde(default)]
@@ -663,10 +679,14 @@ fn parse_estimate_file(
         .and_then(|g| g.split('/').nth(1))
         .unwrap_or("unknown")
         .to_string();
-    let profile = bench_json
-        .value_str
-        .clone()
-        .unwrap_or_else(|| "unknown".to_string());
+    // Post-v0.5.0 audit normalization: a missing (or literally "unknown")
+    // value dimension means the case has NO model-profile dimension (e.g.
+    // the model_cache surfaces), which is `not_applicable`, never
+    // `unknown`.
+    let profile = match bench_json.value_str.as_deref() {
+        Some(v) if v != "unknown" => v.to_string(),
+        _ => "not_applicable".to_string(),
+    };
 
     // ---- Extract thread counts from the Criterion ID -------------------------
     // Only the parallel/container tiers encode thread counts (`<N>threads`
@@ -718,6 +738,10 @@ fn parse_estimate_file(
         cpu: metadata.cpu_model.clone(),
         target_features: metadata.target_features.clone(),
         runtime_features: runtime_features.to_vec(),
+        compiled_target: metadata.compiled_target(),
+        runtime_cpu: crate::common::metadata::RuntimeCpuInfo {
+            detected_features: runtime_features.to_vec(),
+        },
         verification_passed: preflight.verification_passed,
         output_hash: preflight.output_sha256.clone(),
         words_consumed_hash: preflight.words_consumed_sha256(),
@@ -1108,6 +1132,8 @@ mod tests {
             cpu: "Test CPU".to_string(),
             target_features: vec![],
             runtime_features: vec![],
+            compiled_target: crate::common::metadata::CompiledTargetInfo::default(),
+            runtime_cpu: crate::common::metadata::RuntimeCpuInfo::default(),
             verification_passed: true,
             output_hash: String::new(),
             words_consumed_hash: String::new(),
@@ -1147,6 +1173,8 @@ mod tests {
             cpu: String::new(),
             target_features: vec![],
             runtime_features: vec![],
+            compiled_target: crate::common::metadata::CompiledTargetInfo::default(),
+            runtime_cpu: crate::common::metadata::RuntimeCpuInfo::default(),
             verification_passed: true,
             output_hash: String::new(),
             words_consumed_hash: String::new(),

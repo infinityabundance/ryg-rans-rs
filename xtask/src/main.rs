@@ -2816,6 +2816,15 @@ fn chrono_now() -> String {
 }
 
 /// Collect host metadata for performance sealing.
+/// Collect host CPU metadata for a performance run.
+///
+/// `features` is the **runtime-detected** host capability set
+/// (`std::is_x86_feature_detected!()` — the `runtime_cpu.detected_features`
+/// fact).  Pre-0.5.1 this field was populated from `#[cfg(target_feature
+/// = ...)]`, i.e. the *xtask binary's* compiled features, conflating the
+/// sealer's codegen with the host's capability (post-v0.5.0 audit #4);
+/// the compiled facts are now carried separately in the manifest's
+/// `rustflags` (bench-time) and the `BenchRecord.compiled_target` block.
 fn collect_host_metadata() -> ryg_rans_rs_casefile::CpuMetadata {
     let model = std::fs::read_to_string("/proc/cpuinfo")
         .ok()
@@ -2826,20 +2835,9 @@ fn collect_host_metadata() -> ryg_rans_rs_casefile::CpuMetadata {
         })
         .unwrap_or_else(|| std::env::consts::ARCH.to_string());
 
-    let features: Vec<String> = {
-        let mut __f = Vec::new();
-        #[cfg(target_feature = "avx2")]
-        __f.push("avx2".to_string());
-        #[cfg(target_feature = "avx512f")]
-        __f.push("avx512f".to_string());
-        #[cfg(target_feature = "avx512bw")]
-        __f.push("avx512bw".to_string());
-        #[cfg(target_feature = "avx512vl")]
-        __f.push("avx512vl".to_string());
-        #[cfg(target_feature = "sse4.1")]
-        __f.push("sse4.1".to_string());
-        __f
-    };
+    // Runtime detection: the host CPU's actual capability, independent of
+    // how the xtask binary was compiled.
+    let features: Vec<String> = runtime_detected_features();
 
     let microcode = std::fs::read_to_string("/proc/cpuinfo").ok().and_then(|s| {
         s.lines()
@@ -2865,6 +2863,33 @@ fn collect_host_metadata() -> ryg_rans_rs_casefile::CpuMetadata {
         smt_enabled,
         governor,
     }
+}
+
+/// Runtime CPU feature detection (x86-64/x86 only; other architectures
+/// report an empty set — the host capability facts).
+fn runtime_detected_features() -> Vec<String> {
+    let mut features = Vec::new();
+    if cfg!(target_arch = "x86_64") || cfg!(target_arch = "x86") {
+        if std::is_x86_feature_detected!("sse4.1") {
+            features.push("sse4.1".to_string());
+        }
+        if std::is_x86_feature_detected!("avx2") {
+            features.push("avx2".to_string());
+        }
+        if std::is_x86_feature_detected!("avx512f") {
+            features.push("avx512f".to_string());
+        }
+        if std::is_x86_feature_detected!("avx512bw") {
+            features.push("avx512bw".to_string());
+        }
+        if std::is_x86_feature_detected!("avx512vl") {
+            features.push("avx512vl".to_string());
+        }
+        if std::is_x86_feature_detected!("pclmulqdq") {
+            features.push("pclmulqdq".to_string());
+        }
+    }
+    features
 }
 
 fn collect_os_metadata() -> ryg_rans_rs_casefile::OsMetadata {
@@ -2921,6 +2946,16 @@ fn get_criterion_version() -> String {
 /// Get RUSTFLAGS from environment.
 fn get_rustflags() -> String {
     std::env::var("RUSTFLAGS").unwrap_or_default()
+}
+
+/// Read the benchmark run's RUSTFLAGS from its `host.json` (written by
+/// `cargo xtask benchmark-run` at benchmark time).  This is the
+/// authoritative codegen fact for the run (post-v0.5.0 audit #4); the seal
+/// invocation's own environment is a fallback only.
+fn read_run_rustflags(run_dir: &std::path::Path) -> Option<String> {
+    let host_json = std::fs::read_to_string(run_dir.join("host.json")).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&host_json).ok()?;
+    v.get("rustflags")?.as_str().map(|s| s.to_string())
 }
 
 /// Create a deterministic, zstd-compressed tarball of a directory.
@@ -3088,13 +3123,38 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
     let os_meta = collect_os_metadata();
     let rustc_version = get_rustc_version();
     let criterion_version = get_criterion_version();
-    let rustflags = get_rustflags();
+    let seal_rustflags = get_rustflags();
+    // Post-v0.5.0 audit #4: the codegen facts recorded in the manifest must
+    // be the BENCHMARK run's flags (the authoritative `host.json` written
+    // by `cargo xtask benchmark-run` at benchmark time), never the seal
+    // invocation's environment.  The run's host.json is the same file whose
+    // exact bytes are hashed into the receipt (L1-H).
+    let bench_rustflags = read_run_rustflags(&run_dir).unwrap_or_else(|| {
+        warn(
+            "host.json rustflags not found in run dir; falling back to the seal \
+             environment's RUSTFLAGS (codegen facts then describe the SEAL run, not \
+             the benchmark run — the manifest marks this via the fallback)"
+                .to_string(),
+        );
+        seal_rustflags.clone()
+    });
+    let rustflags = bench_rustflags;
+    let target_cpu = ryg_rans_rs_bench::common::metadata::parse_target_cpu(&rustflags);
     println!("  CPU: {}", cpu_meta.model);
     println!("  OS: {}", os_meta.os);
     println!("  rustc: {}", rustc_version.lines().next().unwrap_or("?"));
     println!("  Criterion: {}", criterion_version);
     println!("  SMT: {}", cpu_meta.smt_enabled);
     println!("  governor: {}", cpu_meta.governor);
+    println!(
+        "  bench-time RUSTFLAGS: {}",
+        if rustflags.is_empty() {
+            "(none)"
+        } else {
+            &rustflags
+        }
+    );
+    println!("  parsed target-cpu: {}", target_cpu);
 
     // Build a host metadata JSON for hashing
     let host_metadata = serde_json::json!({
@@ -3145,7 +3205,14 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
     // Build a BenchMetadata for loading; we only need git_commit and dirty_tree
     let bench_meta = ryg_rans_rs_bench::common::metadata::BenchMetadata {
         rustc_version: rustc_version.clone(),
-        target_features: cpu_meta.features.clone(),
+        // Post-v0.5.0 audit #4: `enabled_target_features` is the cfg feature
+        // set of the EXPORTING process (the xtask binary), which is not a
+        // measurement of the benchmark binary; the authoritative codegen
+        // facts travel in `codegen_flags`/`target_cpu` bound to the
+        // benchmark run (host.json).  We therefore record nothing here
+        // rather than a misleading value — the typed `compiled_target`
+        // block in every record makes the scope explicit.
+        target_features: Vec::new(),
         cpu_model: cpu_meta.model.clone(),
         os_info: os_meta.os.clone(),
         git_commit: implementation_commit.clone(),
@@ -3153,6 +3220,8 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
         num_cpus: std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(1),
+        codegen_flags: rustflags.clone(),
+        target_cpu: target_cpu.clone(),
     };
 
     let preflight_dir = run_dir.join("preflight");
@@ -3167,6 +3236,28 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
         }
     };
     println!("  loaded {} benchmark records", records.len());
+
+    // ---- Post-v0.5.0 audit #4: metadata normalization gates -----------------
+    // A record whose profile is still literally "unknown" was not
+    // normalized (every case is either a real profile or `not_applicable`).
+    // An x86 host whose runtime feature set is empty means the detection
+    // failed — reject rather than seal silent gaps.
+    if let Some(bad) = records.iter().find(|r| r.profile == "unknown") {
+        return Err(format!(
+            "performance-seal: record {} has unnormalized profile \"unknown\" \
+             (must be a real profile or \"not_applicable\")",
+            bad.benchmark_id
+        )
+        .into());
+    }
+    if (cfg!(target_arch = "x86_64") || cfg!(target_arch = "x86")) && cpu_meta.features.is_empty() {
+        return Err(
+            "performance-seal: x86 host with an empty runtime feature set — host \
+             capability detection failed; refusing to seal evidence with no \
+             runtime_cpu facts"
+                .into(),
+        );
+    }
 
     // =========================================================================
     // 4. Validate every expected benchmark surface (15 surfaces)
