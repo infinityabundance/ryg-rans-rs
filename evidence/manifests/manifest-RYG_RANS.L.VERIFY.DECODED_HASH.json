@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.VERIFY.DECODED_HASH",
   "title": "Decoded-output integrity verification (L.2)",
-  "implementation_commit": "e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614",
+  "implementation_commit": "48ae2db",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "15 cases: 15 passed, 0 failed, 0 skipped",
   "cases": [

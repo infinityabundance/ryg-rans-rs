@@ -2,9 +2,9 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.O.CACHE.CANCELLATION",
   "title": "Cancellation semantics (O.5)",
-  "implementation_commit": "e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614",
+  "implementation_commit": "48ae2db",
   "expected_results": "every executable case passes; no residuals",
-  "actual_results": "3 cases: 3 passed, 0 failed, 0 skipped",
+  "actual_results": "4 cases: 4 passed, 0 failed, 0 skipped",
   "cases": [
     {
       "case_id": "CASE.001",
@@ -49,6 +49,25 @@
       "input": "cancelled waiter stops; the shared build completes and is published",
       "expected": "both",
       "actual": "both",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "three-party: cancelled waiter + late arrival keep single-flight (builds == 1, shared Arc)",
+      "expected": "single-flight",
+      "actual": "single-flight",
       "verdict": "pass",
       "residual_ids": [
         "MODEL_CACHE.BOUND.1",

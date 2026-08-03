@@ -1,0 +1,5 @@
+soak-public: schedule public-rans-1g (772 blocks, 1025 logical MiB, sha256 12646696538b466c), workers=8, rounds=1, mode(s)=natural+grouped
+soak-public: manifest derivation_policy_sha256 deb0ee3e81ec3c0a428b20723197a23476ca8b53cbd59ff7a9c7cb662ad10b75 source_hashes_sha256 bac2e3cd8cc205652f51e0fd41ee856fc0f098eda67fb630884fd64d6b82843f
+  soak-public round 0: cancellation round executed (complete-or-Cancelled, never short-Ok)
+  soak-public window    16: 1028 blocks, 1365 MiB, cache entries=64 bytes=1118208 hits=0 builds=1028 evictions=964
+soak-public complete: schedule=public-rans-1g rounds=1 blocks=1544 MiB=2050 grouped-fallbacks=754 hits=2 builds=1541 evictions=1477 entries=64 bytes=1118208 — invariants hold

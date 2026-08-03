@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.CONFIG.WIRING",
   "title": "ParallelConfig field-by-field wiring audit (L.6)",
   "verdict": "passed",
-  "implementation_commit": "e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614",
-  "evidence_commit": "2ca1f5fc242f6a8d46abd9c8930f516011cd24a3",
+  "implementation_commit": "48ae2db",
+  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
   "num_cases": 12,
   "cases_passed": 12,
   "cases_failed": 0,
@@ -21,7 +21,7 @@
     "L6-H",
     "L6-I"
   ],
-  "manifest_sha256": "e2b99dd05278829403b91c72fb088adf383a62dbd2f0eb214a59f629490d3ffb",
-  "receipt_sha256": "67a33e010893d26d78296f11e74114d37f4d65a8060dd4c7df2716cc5a9bd829",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614 --only RYG_RANS.L.CONFIG.WIRING"
+  "manifest_sha256": "05520f589470db2a0ff414fa705bccaca284f497b1d52404f6e8a44b0d0cce1c",
+  "receipt_sha256": "1330447387ee3a390478bc4b777a2d2c283d712c9745fdc5fb2b68496e789ec9",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.L.CONFIG.WIRING"
 }

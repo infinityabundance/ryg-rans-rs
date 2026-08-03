@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "model_cache/e2e/thrash/2-workers/4194304-bytes/thrash",
+  "backend_requested": "parallel",
+  "backend_executed": "parallel",
+  "verification_passed": true,
+  "input_sha256": "2613f748d60e2c23dcf3c8b7d4e7dc4a562c706b77cb36f7f97848ea4635badf",
+  "output_sha256": "2613f748d60e2c23dcf3c8b7d4e7dc4a562c706b77cb36f7f97848ea4635badf",
+  "reference_output_sha256": "2613f748d60e2c23dcf3c8b7d4e7dc4a562c706b77cb36f7f97848ea4635badf",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 2,
+  "threads_effective": 2,
+  "block_count": 18,
+  "queue_capacity": 64,
+  "allocation_mode": "cache-mode=thrash",
+  "status": "passed"
+}

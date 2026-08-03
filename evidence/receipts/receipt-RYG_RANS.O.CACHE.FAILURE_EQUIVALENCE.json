@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.O.CACHE.FAILURE_EQUIVALENCE",
   "title": "Cache failure transparency and path equivalence (O.6)",
   "verdict": "passed",
-  "implementation_commit": "e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614",
-  "evidence_commit": "2ca1f5fc242f6a8d46abd9c8930f516011cd24a3",
+  "implementation_commit": "48ae2db",
+  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
   "num_cases": 4,
   "cases_passed": 4,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "MODEL_CACHE.AVAILABILITY.1"
   ],
-  "manifest_sha256": "6a041ad242483bb89a0e1ca9d80cf27e9dba7636a29332025e87e20765a38dc5",
-  "receipt_sha256": "aa5656e182334ba5f8f19bd40a282d790547772d5bee83cfd7c10e794afe2f94",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614 --only RYG_RANS.O.CACHE.FAILURE_EQUIVALENCE"
+  "manifest_sha256": "6a715f62c15eb2115153b7871480228632dbe9e3fe6e7e5dfe52341edd7d4445",
+  "receipt_sha256": "aedb720c15108e4aad7d68bdc516308ddd85a40f6f70f27a8d2e24ae37eee6ac",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.O.CACHE.FAILURE_EQUIVALENCE"
 }
