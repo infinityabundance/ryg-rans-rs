@@ -325,7 +325,8 @@ pub fn court() -> CourtRun {
     );
 
     // ---- Case 7: expected performance ID set equals index set -------------
-    let expected: [&str; 10] = [
+    // Ten Phase L surfaces plus the five Phase O cache surfaces.
+    let expected: [&str; 15] = [
         "RYG_RANS.PERF.BYTE",
         "RYG_RANS.PERF.R64",
         "RYG_RANS.PERF.WORD.SCALAR",
@@ -336,6 +337,11 @@ pub fn court() -> CourtRun {
         "RYG_RANS.PERF.PHASE_H",
         "RYG_RANS.PERF.PHASE_J.AVX2",
         "RYG_RANS.PERF.PHASE_I.PARALLEL",
+        "RYG_RANS.PERF.CACHE.CONSTRUCTION",
+        "RYG_RANS.PERF.CACHE.CONCURRENCY",
+        "RYG_RANS.PERF.CACHE.COLD_WARM",
+        "RYG_RANS.PERF.CACHE.THRASH",
+        "RYG_RANS.PERF.CACHE.MIXED_PUBLIC",
     ];
     let mut index_ids: Vec<String> = entries
         .iter()
