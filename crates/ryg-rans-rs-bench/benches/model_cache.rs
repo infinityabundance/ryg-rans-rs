@@ -350,8 +350,8 @@ fn blocks_per_case(size: usize, mode: CacheMode) -> usize {
 /// * cold: 1 shared model → exactly 1 build; hits are scheduler-dependent
 ///   (blocks looking up after the publish are direct hits);
 /// * warm: prewarmed → 0 builds, bc direct hits;
-/// * hot-set: `min(bc, 16)` distinct models → that many builds; the rest
-///   are direct hits (the working set fits, so no coalescing);
+/// * hot-set: `min(bc, 16)` distinct models → that many builds; exact hit
+///   counts are asserted at 1 worker only (see the Design-A note below);
 /// * thrash: `min(bc, 17)` distinct models against a 16-slot cache — at 1
 ///   worker the FIFO churn is fully deterministic (builds == bc,
 ///   evictions == max(0, bc-16), hits == 0); at N workers the
@@ -360,9 +360,12 @@ fn blocks_per_case(size: usize, mode: CacheMode) -> usize {
 ///   least one eviction, `lookups == bc`, `hits + misses == lookups`);
 /// * unique: `bc` distinct models → bc builds, 0 hits.
 ///
-/// Every non-thrash mode is scheduling-independent: its working set never
-/// exceeds the cache capacity, so hit/miss/build counts are exact at every
-/// worker count.
+/// Under Design-A accounting (MODEL_CACHE.METRICS.2) the *hit* count of
+/// hot-set is scheduler-dependent at N workers: a block whose lookup runs
+/// before its model is published is a coalesced MISS (it was absent at the
+/// initial check), not a hit.  Exact counts are therefore asserted only at
+/// 1 worker; parallel hot-set asserts the deterministic bounds (each
+/// distinct model built exactly once, `lookups == bc`, invariant).
 fn prove_mode(
     mode: CacheMode,
     bc: usize,
@@ -404,14 +407,37 @@ fn prove_mode(
         }
         CacheMode::HotSet => {
             let distinct = bc.min(16) as u64;
-            if builds != distinct || hits != bc as u64 - distinct {
-                return Err(format!(
-                    "hot-set mode: expected {} builds and {} hits, got builds={} hits={}",
-                    distinct,
-                    bc as u64 - distinct,
-                    builds,
-                    hits
-                ));
+            if workers == 1 {
+                // Sequential decode: the first `distinct` blocks build their
+                // models, the rest hit — exact.
+                if builds != distinct || hits != bc as u64 - distinct {
+                    return Err(format!(
+                        "hot-set mode (1 worker): expected {} builds and {} hits, got builds={} hits={}",
+                        distinct,
+                        bc as u64 - distinct,
+                        builds,
+                        hits
+                    ));
+                }
+            } else {
+                // Parallel decode: every distinct model is built exactly
+                // once (single-flight), every block performs exactly one
+                // lookup attempt, and the Design-A invariant holds.  The
+                // hit count is scheduler-dependent — blocks whose lookups
+                // ran before their model was published are coalesced
+                // misses, not hits.
+                let lookups = post.lookups - pre.lookups;
+                let misses = post.misses - pre.misses;
+                if builds != distinct
+                    || lookups != bc as u64
+                    || hits + misses != lookups
+                    || misses < distinct
+                {
+                    return Err(format!(
+                        "hot-set mode ({} workers): expected {} builds, {} lookups, hits+misses==lookups, misses>={}; got builds={} hits={} misses={} lookups={}",
+                        workers, distinct, bc, distinct, builds, hits, misses, lookups
+                    ));
+                }
             }
         }
         CacheMode::Thrash => {
