@@ -2099,6 +2099,37 @@ fn model_bytes_for_probe(data: &[u8], codec: u16, scale: u8) -> Result<Vec<u8>, 
         .ok_or_else(|| "probe: block carries no 1024-byte model".into())
 }
 
+/// Evidence transcript for the public stress/soak runners (`--log PATH`).
+///
+/// Every load-bearing line (header with schedule identity, per-case
+/// results, completion marker) is written both to stdout and to the log
+/// file incrementally, so a killed long run still leaves genuine partial
+/// evidence.  The seal gate `check_workload_execution_evidence` requires
+/// the completion marker, binding the log to the workload's schedule
+/// identity (MODEL_CACHE.WORKLOAD.2: evidence for the actual executed
+/// schedule).
+struct Transcript {
+    file: Option<std::fs::File>,
+}
+
+impl Transcript {
+    fn new(path: Option<&str>) -> Result<Self, String> {
+        let file = match path {
+            Some(p) => Some(std::fs::File::create(p).map_err(|e| format!("create {}: {}", p, e))?),
+            None => None,
+        };
+        Ok(Self { file })
+    }
+
+    fn line(&mut self, s: &str) {
+        println!("{}", s);
+        if let Some(f) = &mut self.file {
+            use std::io::Write;
+            let _ = writeln!(f, "{}", s);
+        }
+    }
+}
+
 /// Parse the public stress/soak argument set.
 struct PublicRunnerArgs {
     schedule: String,
@@ -2108,6 +2139,7 @@ struct PublicRunnerArgs {
     window: Option<usize>,
     max_blocks: Option<u64>,
     rounds: u64,
+    log: Option<String>,
 }
 
 impl PublicRunnerArgs {
@@ -2123,6 +2155,7 @@ impl PublicRunnerArgs {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(1),
+            log: None,
         };
         let mut i = 0;
         while i < args.len() {
@@ -2173,6 +2206,10 @@ impl PublicRunnerArgs {
                         .and_then(|s| s.parse::<u64>().ok())
                         .ok_or("--rounds requires a u64")?;
                 }
+                "--log" => {
+                    i += 1;
+                    a.log = args.get(i).cloned();
+                }
                 other => return Err(format!("unknown public runner option: {}", other)),
             }
             i += 1;
@@ -2184,6 +2221,7 @@ impl PublicRunnerArgs {
 /// Load the manifest + schedule + resolver common to both public runners.
 struct PublicRun {
     schedule: ryg_rans_rs_casefile::WorkloadSchedule,
+    manifest: ryg_rans_rs_casefile::WorkloadManifest,
     extracted: PathBuf,
     distinct_sources: Vec<(String, String)>,
     training_region: u64,
@@ -2222,6 +2260,7 @@ fn load_public_run(spec_dir: &Path, name: &str, schedule_name: &str) -> Result<P
     let distinct_sources = distinct_source_shas(&schedule);
     Ok(PublicRun {
         schedule,
+        manifest,
         extracted,
         distinct_sources,
         training_region,
@@ -2251,20 +2290,25 @@ pub fn cmd_workload_stress_public(
 ) -> Result<(), String> {
     let a = PublicRunnerArgs::parse(args, "public-rans-smoke")?;
     let run = load_public_run(spec_dir, name, &a.schedule)?;
-    println!(
+    let mut tr = Transcript::new(a.log.as_deref())?;
+    tr.line(&format!(
         "stress-public: schedule {} ({} blocks, {} logical MiB, sha256 {})",
         run.schedule.name,
         run.schedule.block_count,
         run.schedule.logical_bytes / (1024 * 1024),
         &run.schedule.schedule_sha256[..16.min(run.schedule.schedule_sha256.len())]
-    );
-    println!(
+    ));
+    tr.line(&format!(
+        "stress-public: manifest derivation_policy_sha256 {} source_hashes_sha256 {}",
+        run.manifest.derivation_policy_sha256, run.manifest.source_hashes_sha256
+    ));
+    tr.line(&format!(
         "  sources: {} distinct pinned files; cache budget {} entries / {} MiB; grouped training region {} bytes",
         run.distinct_sources.len(),
         run.cache_entries,
         run.cache_bytes / (1024 * 1024),
         run.training_region
-    );
+    ));
 
     // Worker matrix.
     let workers: Vec<usize> = match a.workers {
@@ -2347,13 +2391,13 @@ pub fn cmd_workload_stress_public(
                     a.schedule,
                     e
                 ));
-                println!(
+                tr.line(&format!(
                     "  stress-public {:>7} w={:>2} schedule={}: FAILED — {}",
                     mode.name(),
                     w,
                     a.schedule,
                     e
-                );
+                ));
                 continue;
             }
             // ---- O.18 completion invariants ----------------------------------
@@ -2384,13 +2428,13 @@ pub fn cmd_workload_stress_public(
                 .and_then(|_| check(inv4, "current_bytes > budget"))
             {
                 failures.push(e.clone());
-                println!(
+                tr.line(&format!(
                     "  stress-public {} w={} schedule={}: FAILED — {}",
                     mode.name(),
                     w,
                     a.schedule,
                     e
-                );
+                ));
                 continue;
             }
             // ---- No-abandoned-marker probe (first block's model) ------------
@@ -2405,12 +2449,12 @@ pub fn cmd_workload_stress_public(
                 std::time::Duration::from_secs(120),
             ) {
                 failures.push(format!("{} w={}: probe: {}", mode.name(), w, e));
-                println!(
+                tr.line(&format!(
                     "  stress-public {} w={}: FAILED — probe: {}",
                     mode.name(),
                     w,
                     e
-                );
+                ));
                 continue;
             }
             total_cases += 1;
@@ -2421,7 +2465,7 @@ pub fn cmd_workload_stress_public(
             } else {
                 "natural".to_string()
             };
-            println!(
+            tr.line(&format!(
                 "  stress-public {:>7} w={:>2} schedule={}: {} blocks, {} MiB decoded, hits={} misses={} builds={} evictions={} [{}] — OK",
                 mode.name(),
                 w,
@@ -2433,18 +2477,18 @@ pub fn cmd_workload_stress_public(
                 builds,
                 evictions,
                 mode_label
-            );
+            ));
         }
     }
 
-    println!(
+    tr.line(&format!(
         "stress-public complete: schedule={} {} cases, {} blocks, {} MiB decoded; {} failure(s)",
         a.schedule,
         total_cases,
         total_blocks,
         total_bytes / (1024 * 1024),
         failures.len()
-    );
+    ));
     if !failures.is_empty() {
         return Err(format!("stress-public failures:\n{}", failures.join("\n")));
     }
@@ -2480,7 +2524,8 @@ pub fn cmd_workload_soak_public(
     let run = load_public_run(spec_dir, name, &a.schedule)?;
     let workers = a.workers.unwrap_or(8);
     let rounds = a.rounds.max(1);
-    println!(
+    let mut tr = Transcript::new(a.log.as_deref())?;
+    tr.line(&format!(
         "soak-public: schedule {} ({} blocks, {} logical MiB, sha256 {}), workers={}, rounds={}, mode(s)={}",
         run.schedule.name,
         run.schedule.block_count,
@@ -2493,7 +2538,11 @@ pub fn cmd_workload_soak_public(
             .map(|m| m.name())
             .collect::<Vec<_>>()
             .join("+")
-    );
+    ));
+    tr.line(&format!(
+        "soak-public: manifest derivation_policy_sha256 {} source_hashes_sha256 {}",
+        run.manifest.derivation_policy_sha256, run.manifest.source_hashes_sha256
+    ));
 
     let blocks: Vec<ryg_rans_rs_casefile::WorkloadBlock> = match a.max_blocks {
         Some(cap) => run
@@ -2578,10 +2627,10 @@ pub fn cmd_workload_soak_public(
                     }
                     let _ = cancel_handle.join();
                     cancelled_ok = true;
-                    println!(
+                    tr.line(&format!(
                         "  soak-public round {}: cancellation round executed (complete-or-Cancelled, never short-Ok)",
                         round
-                    );
+                    ));
                     // Re-run the window uncancelled: byte-exact accounting
                     // must stay complete.
                     match process_window(
@@ -2657,7 +2706,7 @@ pub fn cmd_workload_soak_public(
                             windows_seen, m.current_entries, m.current_bytes
                         ));
                     }
-                    println!(
+                    tr.line(&format!(
                         "  soak-public window {:>5}: {} blocks, {} MiB, cache entries={} bytes={} hits={} builds={} evictions={}",
                         windows_seen,
                         total_blocks,
@@ -2667,7 +2716,7 @@ pub fn cmd_workload_soak_public(
                         m.hits,
                         m.builds_started,
                         m.entry_evictions,
-                    );
+                    ));
                 }
             }
         }
@@ -2705,7 +2754,7 @@ pub fn cmd_workload_soak_public(
             std::time::Duration::from_secs(120),
         )?;
     }
-    println!(
+    tr.line(&format!(
         "soak-public complete: schedule={} rounds={} blocks={} MiB={} grouped-fallbacks={} hits={} builds={} evictions={} entries={} bytes={} — invariants hold",
         a.schedule,
         rounds,
@@ -2717,7 +2766,7 @@ pub fn cmd_workload_soak_public(
         m.entry_evictions,
         m.current_entries,
         m.current_bytes,
-    );
+    ));
     Ok(())
 }
 

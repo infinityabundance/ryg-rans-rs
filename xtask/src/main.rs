@@ -1426,6 +1426,13 @@ fn cmd_seal() -> Result<(), String> {
     println!("Checking: performance evidence...");
     check_performance_evidence()?;
 
+    // 8b. Validate the public-corpus stress/soak execution evidence
+    // (MODEL_CACHE.WORKLOAD.2, O.20): the active run must carry complete
+    // transcripts of stress-public / soak-public bound to the derived
+    // manifest's schedule identity.
+    println!("Checking: workload execution evidence...");
+    check_workload_execution_evidence()?;
+
     // 9. README counts must match the evidence indexes (L.20 gate 29).
     println!("Checking: README evidence counts...");
     check_readme_evidence_counts()?;
@@ -2363,6 +2370,139 @@ fn check_performance_evidence() -> Result<(), String> {
         }
     }
     println!("  performance evidence: 15 receipts, run index, manifests, artifacts all verified");
+    Ok(())
+}
+
+/// Verify the public-corpus stress/soak execution evidence (post-v0.5.0
+/// audit, MODEL_CACHE.WORKLOAD.2 + O.20 "stress logs" binding).
+///
+/// The active performance run must carry `workload-stress-public.log` and
+/// `workload-soak-public.log`: complete transcripts of the genuine
+/// public-corpus runners, each containing its schedule identity line and
+/// its completion marker.  The schedule identity (name + schedule_sha256
+/// prefix) must match the derived workload manifest, so the log is bound
+/// to the exact executed schedule — a synthetic run or a corpus-presence
+/// gate cannot satisfy this gate.
+fn check_workload_execution_evidence() -> Result<(), String> {
+    let top_path = std::path::Path::new("evidence/performance/index.json");
+    let top: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(top_path).map_err(|e| format!("read index.json: {}", e))?,
+    )
+    .map_err(|e| format!("parse index.json: {}", e))?;
+    let active_run = top.get("active_run").and_then(|a| a.as_str()).unwrap_or("");
+    if active_run.is_empty() {
+        return Err("performance index has no active_run".into());
+    }
+    let run_rel = active_run.trim_start_matches("evidence/performance/");
+    let run_dir = std::path::Path::new("evidence/performance").join(run_rel);
+
+    // The derived manifest is the workload identity source (from the
+    // fetch cache, outside the repo).
+    let workload_dir = std::env::var("RYG_RANS_WORKLOAD_DIR")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| {
+            std::path::PathBuf::from(std::env::var("HOME").unwrap_or_default())
+                .join(".cache/ryg-rans-rs/workloads")
+        });
+    let manifest_path = workload_dir.join("public-rans-v1/derived/public-rans-v1.manifest.json");
+    let manifest: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(&manifest_path)
+            .map_err(|e| format!("read {}: {}", manifest_path.display(), e))?,
+    )
+    .map_err(|e| format!("parse workload manifest: {}", e))?;
+
+    // schedule_sha256 by schedule name from the manifest.
+    let mut sha_by_name: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    if let Some(scheds) = manifest.get("schedules").and_then(|s| s.as_array()) {
+        for s in scheds {
+            let name = s.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            let sha = s
+                .get("schedule_sha256")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if !name.is_empty() && !sha.is_empty() {
+                sha_by_name.insert(name.to_string(), sha.to_string());
+            }
+        }
+    }
+    if sha_by_name.is_empty() {
+        return Err("workload manifest has no schedules".into());
+    }
+
+    // Both transcripts must exist, be non-empty, carry the schedule
+    // identity line, and end with the completion marker; the identity must
+    // match the manifest's schedule hash.
+    let mut check_one = |file: &str, prefix: &str, complete_marker: &str| -> Result<(), String> {
+        let path = run_dir.join(file);
+        let text = std::fs::read_to_string(&path).map_err(|e| {
+            format!(
+                "{} missing in active run {}: {} — run `cargo xtask workload {}` with `--log {}` at the implementation commit",
+                file,
+                run_dir.display(),
+                e,
+                if file.starts_with("workload-stress") {
+                    "stress-public"
+                } else {
+                    "soak-public"
+                },
+                path.display()
+            )
+        })?;
+        if text.trim().is_empty() {
+            return Err(format!("{} is empty", file));
+        }
+        let identity_line = text
+            .lines()
+            .find(|l| l.starts_with(prefix))
+            .ok_or_else(|| format!("{} has no {} identity line", file, prefix))?;
+        if !text.lines().any(|l| l.starts_with(complete_marker)) {
+            return Err(format!(
+                "{} has no completion marker '{}' — the run did not finish",
+                file, complete_marker
+            ));
+        }
+        // Extract "schedule <name> (N blocks, ... sha256 <hex16>)" and
+        // verify the schedule exists in the manifest with that hash.
+        let rest = identity_line.trim_start_matches(prefix).trim_start();
+        let name: String = rest.split_whitespace().next().unwrap_or("").to_string();
+        let expected = sha_by_name.get(&name).ok_or_else(|| {
+            format!(
+                "{} identity names schedule '{}' which is not in the derived manifest",
+                file, name
+            )
+        })?;
+        let log_sha: String = rest
+            .split("sha256 ")
+            .nth(1)
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
+        if !log_sha.is_empty() && !expected.starts_with(&log_sha) {
+            return Err(format!(
+                "{} schedule_sha256 {} does not match the manifest's {} for '{}'",
+                file,
+                log_sha,
+                &expected[..16.min(expected.len())],
+                name
+            ));
+        }
+        println!(
+            "  workload evidence {}: schedule '{}' verified (sha256 {})",
+            file, name, log_sha
+        );
+        Ok(())
+    };
+
+    check_one(
+        "workload-stress-public.log",
+        "stress-public: schedule ",
+        "stress-public complete:",
+    )?;
+    check_one(
+        "workload-soak-public.log",
+        "soak-public: schedule ",
+        "soak-public complete:",
+    )?;
     Ok(())
 }
 
