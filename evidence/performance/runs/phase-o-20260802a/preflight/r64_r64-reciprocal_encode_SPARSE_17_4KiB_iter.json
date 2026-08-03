@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "r64/r64-reciprocal/encode/SPARSE_17/4KiB/iter",
+  "backend_requested": "r64-reciprocal",
+  "backend_executed": "r64-reciprocal",
+  "verification_passed": true,
+  "input_sha256": "95c0a6130dc3724bf86b71e76a47feb687f1bb84fa56172ad69f136d5e02c528",
+  "output_sha256": "95c0a6130dc3724bf86b71e76a47feb687f1bb84fa56172ad69f136d5e02c528",
+  "reference_output_sha256": "95c0a6130dc3724bf86b71e76a47feb687f1bb84fa56172ad69f136d5e02c528",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

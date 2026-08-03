@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "byte-rans/byte-reciprocal/encode/SPARSE_2/64KiB/iter",
+  "backend_requested": "byte-reciprocal",
+  "backend_executed": "byte-reciprocal",
+  "verification_passed": true,
+  "input_sha256": "88e6ea415180bb127ff44aec108532759080fa0f482a89507b85be9b8142b42f",
+  "output_sha256": "88e6ea415180bb127ff44aec108532759080fa0f482a89507b85be9b8142b42f",
+  "reference_output_sha256": "88e6ea415180bb127ff44aec108532759080fa0f482a89507b85be9b8142b42f",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

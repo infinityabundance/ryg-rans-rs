@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "byte-rans/byte-decode/SPARSE_2/4KiB/iter",
+  "backend_requested": "byte-decode",
+  "backend_executed": "byte-decode",
+  "verification_passed": true,
+  "input_sha256": "aba706f004d918209a2c411567c1ccca7e44a7247e5bf8d32770778448b67514",
+  "output_sha256": "aba706f004d918209a2c411567c1ccca7e44a7247e5bf8d32770778448b67514",
+  "reference_output_sha256": "aba706f004d918209a2c411567c1ccca7e44a7247e5bf8d32770778448b67514",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}
