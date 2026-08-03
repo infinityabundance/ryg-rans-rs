@@ -1,0 +1,23 @@
+{
+  "cpu": {
+    "features": [
+      "sse4.1",
+      "avx2",
+      "avx512f",
+      "avx512bw",
+      "avx512vl",
+      "pclmulqdq"
+    ],
+    "governor": "performance",
+    "microcode": "0xb404035",
+    "model": "AMD Ryzen 7 9800X3D 8-Core Processor",
+    "smt_enabled": true
+  },
+  "os": {
+    "kernel": "7.1.4-1-cachyos",
+    "memory": "MemTotal:       131533480 kB",
+    "os": "linux x86_64"
+  },
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+  "rustflags": "-C target-cpu=native"
+}

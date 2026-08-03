@@ -1,0 +1,39 @@
+stress-public: schedule public-rans-smoke (25 blocks, 20 logical MiB, sha256 c690540fcb467bf9)
+stress-public: manifest derivation_policy_sha256 deb0ee3e81ec3c0a428b20723197a23476ca8b53cbd59ff7a9c7cb662ad10b75 source_hashes_sha256 bac2e3cd8cc205652f51e0fd41ee856fc0f098eda67fb630884fd64d6b82843f
+  sources: 12 distinct pinned files; cache budget 64 entries / 16 MiB; grouped training region 4096 bytes
+  stress-public natural w= 1 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=1 misses=24 builds=24 evictions=0 [natural] — OK
+  stress-public grouped w= 1 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=2 misses=23 builds=23 evictions=0 [grouped fallbacks=16] — OK
+  stress-public natural w= 2 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=1 misses=24 builds=24 evictions=0 [natural] — OK
+  stress-public grouped w= 2 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=2 misses=23 builds=23 evictions=0 [grouped fallbacks=16] — OK
+  stress-public natural w= 4 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=1 misses=24 builds=24 evictions=0 [natural] — OK
+  stress-public grouped w= 4 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=2 misses=23 builds=23 evictions=0 [grouped fallbacks=16] — OK
+  stress-public natural w= 8 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=1 misses=24 builds=24 evictions=0 [natural] — OK
+  stress-public grouped w= 8 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=2 misses=23 builds=23 evictions=0 [grouped fallbacks=16] — OK
+  stress-public natural w=16 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=0 misses=25 builds=24 evictions=0 [natural] — OK
+  stress-public grouped w=16 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=2 misses=23 builds=23 evictions=0 [grouped fallbacks=16] — OK
+  stress-public natural w=32 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=0 misses=25 builds=24 evictions=0 [natural] — OK
+  stress-public grouped w=32 schedule=public-rans-smoke: 25 blocks, 20 MiB decoded, hits=1 misses=24 builds=23 evictions=0 [grouped fallbacks=16] — OK
+stress-public complete: schedule=public-rans-smoke 12 cases, 300 blocks, 244 MiB decoded; 0 failure(s)
+stress-public: schedule public-rans-1g (772 blocks, 1025 logical MiB, sha256 12646696538b466c)
+stress-public: manifest derivation_policy_sha256 deb0ee3e81ec3c0a428b20723197a23476ca8b53cbd59ff7a9c7cb662ad10b75 source_hashes_sha256 bac2e3cd8cc205652f51e0fd41ee856fc0f098eda67fb630884fd64d6b82843f
+  sources: 4 distinct pinned files; cache budget 64 entries / 16 MiB; grouped training region 4096 bytes
+  stress-public natural w= 1 schedule=public-rans-1g: 772 blocks, 1025 MiB decoded, hits=0 misses=772 builds=772 evictions=708 [natural] — OK
+  stress-public grouped w= 1 schedule=public-rans-1g: 772 blocks, 1025 MiB decoded, hits=3 misses=769 builds=769 evictions=705 [grouped fallbacks=754] — OK
+stress-public complete: schedule=public-rans-1g 2 cases, 1544 blocks, 2050 MiB decoded; 0 failure(s)
+stress-public: schedule public-rans-1g (772 blocks, 1025 logical MiB, sha256 12646696538b466c)
+stress-public: manifest derivation_policy_sha256 deb0ee3e81ec3c0a428b20723197a23476ca8b53cbd59ff7a9c7cb662ad10b75 source_hashes_sha256 bac2e3cd8cc205652f51e0fd41ee856fc0f098eda67fb630884fd64d6b82843f
+  sources: 4 distinct pinned files; cache budget 64 entries / 16 MiB; grouped training region 4096 bytes
+  stress-public natural w=16 schedule=public-rans-1g: 772 blocks, 1025 MiB decoded, hits=0 misses=772 builds=772 evictions=708 [natural] — OK
+  stress-public grouped w=16 schedule=public-rans-1g: 772 blocks, 1025 MiB decoded, hits=1 misses=771 builds=769 evictions=705 [grouped fallbacks=754] — OK
+stress-public complete: schedule=public-rans-1g 2 cases, 1544 blocks, 2050 MiB decoded; 0 failure(s)
+stress-public: schedule public-rans-mixed-16g (65536 blocks, 16384 logical MiB, sha256 d3c6bf1f718351a7)
+stress-public: manifest derivation_policy_sha256 deb0ee3e81ec3c0a428b20723197a23476ca8b53cbd59ff7a9c7cb662ad10b75 source_hashes_sha256 bac2e3cd8cc205652f51e0fd41ee856fc0f098eda67fb630884fd64d6b82843f
+  sources: 7 distinct pinned files; cache budget 64 entries / 16 MiB; grouped training region 4096 bytes
+  stress-public natural w=16 schedule=public-rans-mixed-16g: 16384 blocks, 4096 MiB decoded, hits=0 misses=16384 builds=16384 evictions=16320 [natural] — OK
+  stress-public grouped w=16 schedule=public-rans-mixed-16g: 16384 blocks, 4096 MiB decoded, hits=1267 misses=15117 builds=15062 evictions=14998 [grouped fallbacks=14622] — OK
+stress-public complete: schedule=public-rans-mixed-16g 2 cases, 32768 blocks, 8192 MiB decoded; 0 failure(s)
+stress-public: schedule public-rans-stress-64g (65536 blocks, 65536 logical MiB, sha256 bc787c13eaa43cf4)
+stress-public: manifest derivation_policy_sha256 deb0ee3e81ec3c0a428b20723197a23476ca8b53cbd59ff7a9c7cb662ad10b75 source_hashes_sha256 bac2e3cd8cc205652f51e0fd41ee856fc0f098eda67fb630884fd64d6b82843f
+  sources: 9 distinct pinned files; cache budget 64 entries / 16 MiB; grouped training region 4096 bytes
+  stress-public natural w=16 schedule=public-rans-stress-64g: 8192 blocks, 8192 MiB decoded, hits=0 misses=8192 builds=8192 evictions=8128 [natural] — OK
+stress-public complete: schedule=public-rans-stress-64g 1 cases, 8192 blocks, 8192 MiB decoded; 0 failure(s)

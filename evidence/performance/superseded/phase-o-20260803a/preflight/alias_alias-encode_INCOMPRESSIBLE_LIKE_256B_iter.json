@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "alias/alias-encode/INCOMPRESSIBLE_LIKE/256B/iter",
+  "backend_requested": "alias-encode",
+  "backend_executed": "alias-encode",
+  "verification_passed": true,
+  "input_sha256": "2fd8fb69262b5cd9406c601140aff1c4c0cb7d127be2e350cc8e1106cb25f734",
+  "output_sha256": "2fd8fb69262b5cd9406c601140aff1c4c0cb7d127be2e350cc8e1106cb25f734",
+  "reference_output_sha256": "2fd8fb69262b5cd9406c601140aff1c4c0cb7d127be2e350cc8e1106cb25f734",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

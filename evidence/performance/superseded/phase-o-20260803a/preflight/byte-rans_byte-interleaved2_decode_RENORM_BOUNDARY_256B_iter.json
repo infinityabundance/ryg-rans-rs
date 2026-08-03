@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "byte-rans/byte-interleaved2/decode/RENORM_BOUNDARY/256B/iter",
+  "backend_requested": "byte-interleaved2",
+  "backend_executed": "byte-interleaved2",
+  "verification_passed": true,
+  "input_sha256": "7cf40f0ec1e2dd920efa9c59077c3e8a67ff7ee3034a3a3c448abd8de70229d8",
+  "output_sha256": "7cf40f0ec1e2dd920efa9c59077c3e8a67ff7ee3034a3a3c448abd8de70229d8",
+  "reference_output_sha256": "7cf40f0ec1e2dd920efa9c59077c3e8a67ff7ee3034a3a3c448abd8de70229d8",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "unknown",
+  "status": "passed"
+}

@@ -1,0 +1,8 @@
+workdir: /run/media/one/1tb_kingston1/ryg-rans-rs
+command: cargo bench -p ryg-rans-rs-bench --bench byte_rans --bench r64 --bench alias --bench scalar --bench sse41 --bench avx2 --bench avx512 --bench parallel --bench specialized --bench model_cache
+rustflags: -C target-cpu=native
+preflight_dir: /run/media/one/1tb_kingston1/ryg-rans-rs/evidence/performance/runs/phase-o-20260803a/preflight
+start: 2026-08-03T07:31:47Z
+exit: exit status: 0
+finish: 2026-08-03T09:59:38Z
+post-run tree sha: 94238b3c24657086960150efbb9c056caf34ae08
