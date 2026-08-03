@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN",
   "title": "Performance receipt hash chain (L.1-L)",
-  "implementation_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
+  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "9 cases: 9 passed, 0 failed, 0 skipped",
   "cases": [
@@ -18,7 +18,7 @@
     },
     {
       "case_id": "CASE.002",
-      "input": "active run evidence/performance/runs/phase-o-20260802a has a parseable run index",
+      "input": "active run evidence/performance/runs/phase-o-20260802b has a parseable run index",
       "expected": "present",
       "actual": "present",
       "verdict": "pass",

@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.O.CACHE.SINGLE_FLIGHT",
   "title": "Per-key single-flight construction (O.5)",
   "verdict": "passed",
-  "implementation_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
-  "evidence_commit": "93640efb47e3922491bff7b90b2ac19be25afcea",
+  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
+  "evidence_commit": "572aa17f635ae09aa13034731e0b32b7614e4977",
   "num_cases": 2,
   "cases_passed": 2,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "MODEL_CACHE.RACE.1"
   ],
-  "manifest_sha256": "24dd691436348427d68e0ee812943b77876a88795eac1bd1b87ed22d0af170af",
-  "receipt_sha256": "91e3762935d0bfee5a0c742ce47299751e0549835c9e4b54b758356f49956d81",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit f82daa3bd70c262df457645a5c7fdcdd129ed72e --only RYG_RANS.O.CACHE.SINGLE_FLIGHT"
+  "manifest_sha256": "adac1402322c6038b3f7a1d58771e70b1bf9a98831abe3fc628973a8a296aab4",
+  "receipt_sha256": "70fe1c80d395e1b9fbcffcbd9bc2c16f60d672a176f32b9bf3a2696a1d684659",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 9c1c87b23a147200cc5fc74bb654f93e3736fed8 --only RYG_RANS.O.CACHE.SINGLE_FLIGHT"
 }

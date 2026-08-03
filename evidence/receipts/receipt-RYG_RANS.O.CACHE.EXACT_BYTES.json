@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.O.CACHE.EXACT_BYTES",
   "title": "Exact byte accounting (O.1)",
   "verdict": "passed",
-  "implementation_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
-  "evidence_commit": "93640efb47e3922491bff7b90b2ac19be25afcea",
+  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
+  "evidence_commit": "572aa17f635ae09aa13034731e0b32b7614e4977",
   "num_cases": 10,
   "cases_passed": 10,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "MODEL_CACHE.BOUND.1"
   ],
-  "manifest_sha256": "d3a50590240be8462b21c3479866a36d5fabc2bedfa4ec6b9386013092931b13",
-  "receipt_sha256": "562a808323d9e22836076f16b52fbb6105eda06a12b1acff36eb908941002f97",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit f82daa3bd70c262df457645a5c7fdcdd129ed72e --only RYG_RANS.O.CACHE.EXACT_BYTES"
+  "manifest_sha256": "d69913b9791f88d0f3ba0425e0dd94bbe4f3ea520e21d1e7737f7b7b8cf5bfd2",
+  "receipt_sha256": "8803adad96c6ebe4ffea6f28f03036349b529bb04d502b8d2c901535fa2a8e73",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 9c1c87b23a147200cc5fc74bb654f93e3736fed8 --only RYG_RANS.O.CACHE.EXACT_BYTES"
 }

@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.EXECUTOR.BOUNDED",
   "title": "Bounded live executor pipeline (L.4)",
   "verdict": "passed",
-  "implementation_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
-  "evidence_commit": "93640efb47e3922491bff7b90b2ac19be25afcea",
+  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
+  "evidence_commit": "572aa17f635ae09aa13034731e0b32b7614e4977",
   "num_cases": 10,
   "cases_passed": 10,
   "cases_failed": 0,
@@ -17,7 +17,7 @@
     "L4-D",
     "L4-E"
   ],
-  "manifest_sha256": "8ac291c9613b3f5237a1e3a84305fa8bb1b92653a5556ad9c399238b72b569b3",
-  "receipt_sha256": "0e79b61e81ccb22c5c9abc5dfdd46e571743437f68851b524d42cfb6f7222b7a",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit f82daa3bd70c262df457645a5c7fdcdd129ed72e --only RYG_RANS.L.EXECUTOR.BOUNDED"
+  "manifest_sha256": "df4137a0ea98927f330e4cbd9a2731857335447e5d0d31ea63aa34127ce47d34",
+  "receipt_sha256": "6e7c32e276cb7c002aee2df0abab6ab69075cf66f190a3acd2eb852f5bb3c779",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 9c1c87b23a147200cc5fc74bb654f93e3736fed8 --only RYG_RANS.L.EXECUTOR.BOUNDED"
 }

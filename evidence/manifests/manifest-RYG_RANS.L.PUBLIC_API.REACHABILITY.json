@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.PUBLIC_API.REACHABILITY",
   "title": "Public API reachability and inventory (L.13)",
-  "implementation_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
+  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "6 cases: 6 passed, 0 failed, 0 skipped",
   "cases": [
