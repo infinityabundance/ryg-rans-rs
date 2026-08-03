@@ -283,6 +283,94 @@ fn loom_cache_two_same_key_requests_one_build() {
     });
 }
 
+/// O.5/O.9 (residual MODEL_CACHE.RACE.3): a cancelled waiter must never
+/// remove the active builder's in-flight marker, even when a third caller
+/// arrives after the cancellation and before publication.  Loom explores
+/// every interleaving of {builder, cancelling waiter, late arrival,
+/// canceller thread}; the load-bearing assertions are: exactly one
+/// construction for the key, every successful caller receives the same
+/// Arc, `hits + misses == lookups` holds under cancellation, and no
+/// abandoned `Building` marker survives (a fresh request completes with a
+/// second build).
+#[test]
+fn loom_cache_cancelled_waiter_keeps_builder_marker() {
+    loom::model(|| {
+        let cache = ModelArtifactCache::bounded(8, 1 << 20);
+        let builds = Arc::new(loom::sync::atomic::AtomicUsize::new(0));
+        // A dedicated canceller thread fires the token at some interleaving
+        // point; loom schedules it against the three callers.
+        let cancel = Arc::new(CancellationToken::new());
+        let canceller = loom::thread::spawn({
+            let cancel = cancel.clone();
+            move || {
+                cancel.cancel();
+            }
+        });
+        let (c1, b1) = (cache.clone(), builds.clone());
+        let t1 = loom::thread::spawn(move || {
+            c1.get_or_build(7, 12, &[], None, || {
+                b1.fetch_add(1, loom::sync::atomic::Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+        });
+        let (c2, b2) = (cache.clone(), builds.clone());
+        let c2_tok = cancel.clone();
+        let t2 = loom::thread::spawn(move || {
+            c2.get_or_build(7, 12, &[], Some(&c2_tok), || {
+                b2.fetch_add(1, loom::sync::atomic::Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+        });
+        let (c3, b3) = (cache.clone(), builds.clone());
+        let t3 = loom::thread::spawn(move || {
+            c3.get_or_build(7, 12, &[], None, || {
+                b3.fetch_add(1, loom::sync::atomic::Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+        });
+        let r1 = t1.join().expect("t1");
+        let r2 = t2.join().expect("t2");
+        let r3 = t3.join().expect("t3");
+        canceller.join().expect("canceller");
+        assert_eq!(
+            builds.load(loom::sync::atomic::Ordering::SeqCst),
+            1,
+            "single-flight must survive waiter cancellation + a late arrival"
+        );
+        // Every successful caller receives the same Arc artifact.
+        let mut ok_arcs: Vec<Arc<ryg_rans_rs_parallel::ValidatedModelArtifacts>> = Vec::new();
+        for r in [r1, r2, r3] {
+            if let Ok(a) = r {
+                assert_eq!(a.freqs.len(), 256);
+                ok_arcs.push(a);
+            }
+        }
+        if !ok_arcs.is_empty() {
+            assert!(
+                ok_arcs.iter().all(|a| Arc::ptr_eq(a, &ok_arcs[0])),
+                "all successful callers share one artifact"
+            );
+        }
+        let m = cache.metrics();
+        assert!(
+            m.invariant_hit_miss_sum(),
+            "hits + misses == lookups under cancellation (hits={} misses={} lookups={})",
+            m.hits,
+            m.misses,
+            m.lookups
+        );
+        assert!(m.invariant_build_accounting());
+        // No abandoned Building state: a fresh request for the same key must
+        // complete (a stale marker with no builder would leave it waiting
+        // forever — loom would report the deadlock).  The artifact is
+        // retained, so the fresh request is a direct hit: builds stay at 1.
+        let fresh = cache
+            .get_or_build(7, 12, &[], None, || build_validated_model_artifacts(7, 12, &[]))
+            .expect("fresh request completes");
+        assert_eq!(fresh.freqs.len(), 256);
+    });
+}
+
 /// Two different cold keys built concurrently: two builds, no cross-talk.
 #[test]
 fn loom_cache_different_keys_two_builds() {

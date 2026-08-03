@@ -340,18 +340,24 @@ fn blocks_per_case(size: usize, mode: CacheMode) -> usize {
 /// pre/post metric text used in failure messages.
 ///
 /// The expectations are **data-driven**: `bc` is the case's block count and
-/// the distinct-model cardinalities follow from the mode's model schedule:
+/// the distinct-model cardinalities follow from the mode's model schedule.
+/// Hit/miss classification is Design A (Phase O post-release audit,
+/// MODEL_CACHE.METRICS.2): a lookup whose initial check finds no artifact is
+/// a miss whether it becomes the builder, a coalesced waiter, or a cancelled
+/// waiter; a waiter that later receives the published artifact is still a
+/// miss (never a second hit), so `hits + misses == lookups` always:
 ///
-/// * cold: 1 shared model → exactly 1 build, bc-1 hits;
-/// * warm: prewarmed → 0 builds, bc hits;
-/// * hot-set: `min(bc, 16)` distinct models → that many builds, the rest
-///   are hits;
+/// * cold: 1 shared model → exactly 1 build; hits are scheduler-dependent
+///   (blocks looking up after the publish are direct hits);
+/// * warm: prewarmed → 0 builds, bc direct hits;
+/// * hot-set: `min(bc, 16)` distinct models → that many builds; the rest
+///   are direct hits (the working set fits, so no coalescing);
 /// * thrash: `min(bc, 17)` distinct models against a 16-slot cache — at 1
 ///   worker the FIFO churn is fully deterministic (builds == bc,
 ///   evictions == max(0, bc-16), hits == 0); at N workers the
 ///   eviction/lookup interleaving is scheduler-dependent, so the proof
 ///   asserts the deterministic bounds (every distinct model built, at
-///   least one eviction, O.8 invariants);
+///   least one eviction, `lookups == bc`, `hits + misses == lookups`);
 /// * unique: `bc` distinct models → bc builds, 0 hits.
 ///
 /// Every non-thrash mode is scheduling-independent: its working set never
@@ -424,14 +430,20 @@ fn prove_mode(
                 }
             } else {
                 // Parallel decode: the eviction/lookup interleaving is
-                // scheduler-dependent, but these bounds are deterministic:
+                // scheduler-dependent, but these facts are deterministic:
                 // every distinct model is built at least once (17), at
                 // least one eviction occurs (working set 17 > capacity 16),
-                // and every block is accounted as either a hit or a build.
-                if builds < 17 || evictions == 0 || builds + hits != bc as u64 {
+                // every block performs exactly one lookup attempt, and the
+                // cache's Design-A accounting invariant holds (hits + misses
+                // == lookups) — coalesced misses are misses, not hits, so
+                // builds + hits may be less than bc here.
+                let lookups = post.lookups - pre.lookups;
+                let misses = post.misses - pre.misses;
+                if builds < 17 || evictions == 0 || lookups != bc as u64 || hits + misses != lookups
+                {
                     return Err(format!(
-                        "thrash mode ({} workers): expected >= 17 builds, >= 1 eviction, builds+hits == {}, got builds={} hits={} evictions={}",
-                        workers, bc, builds, hits, evictions
+                        "thrash mode ({} workers): expected >= 17 builds, >= 1 eviction, {} lookups, hits+misses==lookups; got builds={} hits={} misses={} lookups={} evictions={}",
+                        workers, bc, builds, hits, misses, lookups, evictions
                     ));
                 }
             }

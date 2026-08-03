@@ -788,11 +788,17 @@ fn checked_scale_total(scale_bits: u8) -> Result<u32, ModelArtifactBuildError> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ModelCacheMetricsSnapshot {
     /// Total lookup attempts (cache-enabled only; disabled runs count
-    /// `disabled_bypasses` instead).
+    /// `disabled_bypasses` instead).  One per loop iteration of
+    /// `get_or_build` (a failed-build retry is a new lookup attempt).
     pub lookups: u64,
-    /// Lookups that found a retained artifact.
+    /// Lookups whose INITIAL check found a retained artifact.  Under Design
+    /// A accounting (residual MODEL_CACHE.METRICS.2) a caller that misses
+    /// and then receives the published artifact as a coalesced waiter is a
+    /// miss, never a hit — `hits + misses == lookups` holds under
+    /// cancellation.
     pub hits: u64,
-    /// Lookups that found no retained artifact.
+    /// Lookups whose initial check found no retained artifact (builder,
+    /// coalesced waiter, or cancelled waiter alike).
     pub misses: u64,
     /// Single-flight constructions started (includes retries after failure).
     pub builds_started: u64,
@@ -1114,11 +1120,22 @@ impl ModelArtifactCache {
 
             state.metrics.lookups = state.metrics.lookups.saturating_add(1);
 
-            // Hit path: the artifact is retained.
+            // Hit path: the artifact is retained at the initial lookup.
             if let Some(artifact) = state.ready.get(&key) {
                 state.metrics.hits = state.metrics.hits.saturating_add(1);
                 return Ok(artifact);
             }
+
+            // Miss path (Design A accounting, residual MODEL_CACHE.METRICS.2):
+            // every lookup that does NOT find the artifact at the initial
+            // check is a miss — regardless of whether the caller becomes the
+            // builder, a coalesced waiter, or a cancelled waiter.  "Hits and
+            // misses" classify the INITIAL lookup; "builder / coalesced
+            // waiter / cancelled" classify what happened after the miss.
+            // This keeps `hits + misses == lookups` true under cancellation,
+            // which is why the waiter-receipt path below never increments
+            // `hits` again (its miss was already counted).
+            state.metrics.misses = state.metrics.misses.saturating_add(1);
 
             // Miss path.  Use the entry API so exactly one caller becomes the
             // builder (atomic under the mutex — the classic single-flight
@@ -1129,7 +1146,6 @@ impl ModelArtifactCache {
                     // the expensive construction runs outside it.
                     v.insert(KeyState::Building { waiters: 0 });
                     state.metrics.builds_started = state.metrics.builds_started.saturating_add(1);
-                    state.metrics.misses = state.metrics.misses.saturating_add(1);
                     drop(state);
 
                     // A builder cancelled before construction starts yields
@@ -1306,7 +1322,10 @@ impl ModelArtifactCache {
                         // finished without publishing (retry), or timeout.
                         if let Some(artifact) = state.ready.get(&key) {
                             self.finish_wait(&mut state, &key);
-                            state.metrics.hits = state.metrics.hits.saturating_add(1);
+                            // Design A (METRICS.2): this lookup was already
+                            // classified as a miss when the artifact was
+                            // absent at the initial check; the receipt is the
+                            // outcome of that miss, not a second hit.
                             #[cfg(all(feature = "cache-timing", not(loom)))]
                             record_wait(self);
                             return Ok(artifact);
@@ -1332,25 +1351,22 @@ impl ModelArtifactCache {
         }
     }
 
-    /// Decrement a waiter registration, removing the in-flight marker when
-    /// it reaches zero.  `waiters` is a diagnostic metric only — it never
-    /// gates resource accounting, so saturation is the documented semantic
-    /// and cannot hide an invariant violation.
+    /// Decrement a waiter registration (residual MODEL_CACHE.RACE.3 fix).
+    ///
+    /// ONLY the builder may remove the in-flight marker — on successful
+    /// publication, typed build failure, caught panic, pre-build
+    /// cancellation, or cache shutdown.  A leaving waiter must NEVER remove
+    /// a marker that belongs to a running builder: doing so would let a
+    /// later caller register as a second builder and duplicate the
+    /// construction (single-flight violated, `builds_started` inflated,
+    /// metrics corrupted, cache churn).  This function therefore only
+    /// decrements the diagnostic waiter count; the marker survives until
+    /// the builder settles it.  `waiters` is a diagnostic metric only — it
+    /// never gates resource accounting, so saturation is the documented
+    /// semantic and cannot hide an invariant violation.
     fn finish_wait(&self, state: &mut CacheState, key: &ModelCacheKey) {
-        if let std::collections::hash_map::Entry::Occupied(mut o) =
-            state.in_flight.entry(key.clone())
-        {
-            match o.get() {
-                KeyState::Building { waiters } => {
-                    if *waiters <= 1 {
-                        o.remove();
-                    } else {
-                        o.insert(KeyState::Building {
-                            waiters: waiters - 1,
-                        });
-                    }
-                }
-            }
+        if let Some(KeyState::Building { waiters }) = state.in_flight.get_mut(key) {
+            *waiters = waiters.saturating_sub(1);
         }
     }
 
@@ -1871,6 +1887,153 @@ fn concurrent_same_key_cold_burst_single_build() {
     // Arc; the waiter count is bounded, not exact.
     assert!(m.coalesced_waiters <= N as u64 - 1);
     assert!(m.invariant_build_accounting());
+}
+
+/// O.5/O.9 (residual MODEL_CACHE.RACE.3): a cancelled waiter must NEVER
+/// remove the active builder's in-flight marker.  Deterministic three-party
+/// schedule:
+///
+/// ```text
+/// A = sleeping builder (holds the marker, builds ~120 ms)
+/// B = waiter that registers, then cancels (~30 ms)
+/// C = caller entering AFTER B cancels but BEFORE A publishes (~60 ms)
+/// ```
+///
+/// With the pre-fix `finish_wait`, B's cancellation removed A's marker and
+/// C registered as a SECOND builder (builds == 2).  With the fix, C finds
+/// the marker still present, waits as a coalesced waiter, and receives A's
+/// artifact (builds == 1, A and C share the Arc).
+#[test]
+fn cancelled_waiter_never_removes_builder_marker() {
+    use std::sync::mpsc;
+    let cache = ModelArtifactCache::bounded(16, 1 << 20);
+    let builds = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+
+    // A: the sleeping builder.  Signals that its closure started (which
+    // implies its marker is installed), then sleeps and completes.
+    let (tx_started, rx_started) = mpsc::channel::<()>();
+    let cache_a = cache.clone();
+    let builds_a = builds.clone();
+    let builder = std::thread::spawn(move || {
+        cache_a
+            .get_or_build(7, 12, &[], None, || {
+                tx_started.send(()).ok();
+                std::thread::sleep(std::time::Duration::from_millis(120));
+                builds_a.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .expect("builder")
+    });
+    rx_started.recv().expect("builder started");
+
+    // B: the cancelling waiter.
+    let cancel_b = std::sync::Arc::new(CancellationToken::new());
+    let cache_b = cache.clone();
+    let cancel_b2 = cancel_b.clone();
+    let builds_b = builds.clone();
+    let waiter = std::thread::spawn(move || {
+        cache_b
+            .get_or_build(7, 12, &[], Some(&cancel_b2), || {
+                builds_b.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .err()
+    });
+    // Give B time to register as a waiter (it is polling every 10 ms).
+    std::thread::sleep(std::time::Duration::from_millis(30));
+    cancel_b.cancel();
+    // Give B time to process the cancellation (poll interval) so its
+    // finish_wait has run before C arrives.
+    std::thread::sleep(std::time::Duration::from_millis(40));
+
+    // C: the late arrival — must find the marker STILL PRESENT.
+    let cache_c = cache.clone();
+    let builds_c = builds.clone();
+    let late = std::thread::spawn(move || {
+        cache_c
+            .get_or_build(7, 12, &[], None, || {
+                builds_c.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .expect("late arrival")
+    });
+
+    let e_b = waiter.join().expect("waiter");
+    let a_a = builder.join().expect("builder");
+    let a_c = late.join().expect("late");
+
+    assert_eq!(
+        e_b,
+        Some(ModelArtifactBuildError::Cancelled),
+        "the cancelled waiter receives Cancelled"
+    );
+    assert_eq!(
+        builds.load(std::sync::atomic::Ordering::SeqCst),
+        1,
+        "single-flight must hold: exactly one construction despite the cancellation"
+    );
+    assert!(
+        crate::sync::Arc::ptr_eq(&a_a, &a_c),
+        "builder and late arrival must share one Arc artifact"
+    );
+    let m = cache.metrics();
+    assert_eq!(m.current_entries, 1, "one retained entry");
+    assert_eq!(m.replacements, 0, "no re-insertion of the same key");
+    assert_eq!(m.builds_started, 1);
+    assert_eq!(m.builds_completed, 1);
+    assert!(m.invariant_hit_miss_sum(), "hits + misses == lookups");
+    // No abandoned Building state: a fresh request for the same key must
+    // complete (a stale marker would leave it waiting forever).
+    let fresh = cache
+        .get_or_build(7, 12, &[], None, || {
+            build_validated_model_artifacts(7, 12, &[])
+        })
+        .expect("fresh request completes");
+    assert_eq!(fresh.freqs.len(), 256);
+}
+
+/// O.8 (residual MODEL_CACHE.METRICS.2): the `hits + misses == lookups`
+/// invariant must hold even when a coalesced waiter is cancelled.
+#[test]
+fn cancelled_waiter_metrics_invariant_holds() {
+    use std::sync::mpsc;
+    let cache = ModelArtifactCache::bounded(16, 1 << 20);
+    let (tx_started, rx_started) = mpsc::channel::<()>();
+    let cache_a = cache.clone();
+    let builder = std::thread::spawn(move || {
+        cache_a
+            .get_or_build(7, 12, &[], None, || {
+                tx_started.send(()).ok();
+                std::thread::sleep(std::time::Duration::from_millis(120));
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .expect("builder")
+    });
+    rx_started.recv().expect("builder started");
+    let cancel = std::sync::Arc::new(CancellationToken::new());
+    let cache_w = cache.clone();
+    let cancel_w = cancel.clone();
+    let waiter = std::thread::spawn(move || {
+        cache_w
+            .get_or_build(7, 12, &[], Some(&cancel_w), || {
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .err()
+    });
+    std::thread::sleep(std::time::Duration::from_millis(30));
+    cancel.cancel();
+    let e = waiter.join().expect("waiter");
+    let _ = builder.join().expect("builder");
+    assert_eq!(e, Some(ModelArtifactBuildError::Cancelled));
+    let m = cache.metrics();
+    assert_eq!(m.lookups, 2, "builder lookup + cancelled waiter lookup");
+    assert!(
+        m.invariant_hit_miss_sum(),
+        "hits + misses == lookups after a cancelled waiter (hits={} misses={} lookups={})",
+        m.hits,
+        m.misses,
+        m.lookups
+    );
 }
 
 /// O.5: different-key concurrent requests build each key exactly once and

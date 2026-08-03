@@ -575,15 +575,95 @@ pub fn court_cancellation() -> CourtRun {
         },
     );
 
+    // MODEL_CACHE.RACE.3 (post-release audit): a cancelled waiter must never
+    // remove the active builder's marker, even when a third caller arrives
+    // after the cancellation and before publication.  Deterministic
+    // three-party schedule: A sleeps 120 ms in the build closure; B
+    // registers as a waiter and cancels at ~30 ms; C arrives at ~70 ms
+    // (after B's finish_wait, before A's publish) and must find the marker
+    // still present — becoming a coalesced waiter, not a second builder.
+    let cache3 = ModelArtifactCache::bounded(16, 1 << 20);
+    let builds3 = std::sync::Arc::new(AtomicUsize::new(0));
+    let (tx3, rx3) = mpsc::channel::<()>();
+    let cache3_a = cache3.clone();
+    let builds3_a = builds3.clone();
+    let builder_a = std::thread::spawn(move || {
+        cache3_a
+            .get_or_build(7, 12, &[], None, || {
+                tx3.send(()).ok();
+                std::thread::sleep(std::time::Duration::from_millis(120));
+                builds3_a.fetch_add(1, Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .expect("builder A")
+    });
+    rx3.recv().expect("A started");
+    let cancel_b = std::sync::Arc::new(CancellationToken::new());
+    let cache3_b = cache3.clone();
+    let cancel_b2 = cancel_b.clone();
+    let builds3_b = builds3.clone();
+    let waiter_b = std::thread::spawn(move || {
+        cache3_b
+            .get_or_build(7, 12, &[], Some(&cancel_b2), || {
+                builds3_b.fetch_add(1, Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .err()
+    });
+    std::thread::sleep(std::time::Duration::from_millis(30));
+    cancel_b.cancel();
+    std::thread::sleep(std::time::Duration::from_millis(40)); // B's finish_wait runs
+    let cache3_c = cache3.clone();
+    let builds3_c = builds3.clone();
+    let caller_c = std::thread::spawn(move || {
+        cache3_c
+            .get_or_build(7, 12, &[], None, || {
+                builds3_c.fetch_add(1, Ordering::SeqCst);
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .expect("caller C")
+    });
+    let e_b = waiter_b.join().expect("waiter B");
+    let a_a = builder_a.join().expect("builder A");
+    let a_c = caller_c.join().expect("caller C");
+    let m3 = cache3.metrics();
+    cases.add(
+        "CASE.004",
+        "three-party: cancelled waiter + late arrival keep single-flight (builds == 1, shared Arc)",
+        "single-flight",
+        if e_b == Some(ModelArtifactBuildError::Cancelled)
+            && builds3.load(Ordering::SeqCst) == 1
+            && std::sync::Arc::ptr_eq(&a_a, &a_c)
+            && m3.builds_started == 1
+            && m3.replacements == 0
+            && m3.current_entries == 1
+            && m3.invariant_hit_miss_sum()
+        {
+            Ok("single-flight".into())
+        } else {
+            Err(format!(
+                "waiter={:?} builds={} ptr_eq={} started={} replacements={} entries={} invariant={}",
+                e_b,
+                builds3.load(Ordering::SeqCst),
+                std::sync::Arc::ptr_eq(&a_a, &a_c),
+                m3.builds_started,
+                m3.replacements,
+                m3.current_entries,
+                m3.invariant_hit_miss_sum()
+            ))
+        },
+    );
+
     CourtRun {
         court_id: "RYG_RANS.O.CACHE.CANCELLATION".into(),
         title: "Cancellation semantics (O.5)".into(),
-        residual_ids: vec!["MODEL_CACHE.RACE.1".into()],
+        residual_ids: vec!["MODEL_CACHE.RACE.1".into(), "MODEL_CACHE.RACE.3".into()],
         cases: cases.cases,
     }
 }
 
 pub fn court_metrics() -> CourtRun {
+    use ryg_rans_rs_parallel::CancellationToken;
     let mut cases = Cases { cases: Vec::new() };
     let cache = ModelArtifactCache::bounded(4, 64 * 1024);
     let model = [0u8; 1024]; // invalid sum → build failure
@@ -657,10 +737,63 @@ pub fn court_metrics() -> CourtRun {
         },
     );
 
+    // MODEL_CACHE.METRICS.2 (post-release audit): the O.8 invariant must
+    // hold when a coalesced waiter is cancelled.  Design A accounting: the
+    // waiter's lookup was a miss (artifact absent at the initial check), so
+    // cancellation must not leave hits + misses < lookups.
+    use std::sync::mpsc;
+    let cache3 = ModelArtifactCache::bounded(16, 1 << 20);
+    let (tx3, rx3) = mpsc::channel::<()>();
+    let cache3_b = cache3.clone();
+    let builder = std::thread::spawn(move || {
+        cache3_b
+            .get_or_build(7, 12, &[], None, || {
+                tx3.send(()).ok();
+                std::thread::sleep(std::time::Duration::from_millis(120));
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .expect("builder")
+    });
+    rx3.recv().expect("started");
+    let cancel3 = std::sync::Arc::new(CancellationToken::new());
+    let cache3_w = cache3.clone();
+    let cancel3_w = cancel3.clone();
+    let waiter = std::thread::spawn(move || {
+        cache3_w
+            .get_or_build(7, 12, &[], Some(&cancel3_w), || {
+                build_validated_model_artifacts(7, 12, &[])
+            })
+            .err()
+    });
+    std::thread::sleep(std::time::Duration::from_millis(30));
+    cancel3.cancel();
+    let e = waiter.join().expect("waiter");
+    let _ = builder.join().expect("builder");
+    let m3 = cache3.metrics();
+    cases.add(
+        "CASE.005",
+        "hits + misses == lookups holds after a cancelled waiter (Design A)",
+        "holds",
+        if e == Some(ModelArtifactBuildError::Cancelled)
+            && m3.lookups == 2
+            && m3.invariant_hit_miss_sum()
+        {
+            Ok("holds".into())
+        } else {
+            Err(format!(
+                "waiter={:?} hits={} misses={} lookups={}",
+                e, m3.hits, m3.misses, m3.lookups
+            ))
+        },
+    );
+
     CourtRun {
         court_id: "RYG_RANS.O.CACHE.METRICS".into(),
         title: "Observable cache metrics (O.8)".into(),
-        residual_ids: vec!["MODEL_CACHE.METRICS.1".into()],
+        residual_ids: vec![
+            "MODEL_CACHE.METRICS.1".into(),
+            "MODEL_CACHE.METRICS.2".into(),
+        ],
         cases: cases.cases,
     }
 }
