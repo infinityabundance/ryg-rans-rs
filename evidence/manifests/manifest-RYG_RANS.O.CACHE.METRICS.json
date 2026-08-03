@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.CACHE.METRICS",
+  "title": "Observable cache metrics (O.8)",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "4 cases: 4 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "hit + miss == lookups (O.8 invariant)",
+      "expected": "holds",
+      "actual": "holds",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "builds_completed + build_failures <= builds_started (O.8 invariant)",
+      "expected": "holds",
+      "actual": "holds",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "a failed build is counted as a failure, not a completion",
+      "expected": "counted",
+      "actual": "counted",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "hit path increments hits without a second build",
+      "expected": "hit",
+      "actual": "hit",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    }
+  ]
+}

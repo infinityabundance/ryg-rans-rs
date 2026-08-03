@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.CACHE.OVERSIZED",
+  "title": "Oversized-entry semantics (O.2)",
+  "verdict": "passed",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "num_cases": 2,
+  "cases_passed": 2,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "MODEL_CACHE.BOUND.2"
+  ],
+  "manifest_sha256": "8d6a673e81dfd850bcf5cc5625f89180ad899163e66a9d38f44b6e63ec698390",
+  "receipt_sha256": "9678f9f860200dfd4ac25d65a62d156ab65c9ff76029bfa790522057c94cdd24",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.OVERSIZED"
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.CACHE.METRICS",
+  "title": "Observable cache metrics (O.8)",
+  "verdict": "passed",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "num_cases": 4,
+  "cases_passed": 4,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "MODEL_CACHE.METRICS.1"
+  ],
+  "manifest_sha256": "00de590d8d406544385fa51ec86205b250fbbaed01d358b3de53a4c52dae75b0",
+  "receipt_sha256": "0ea7b78a3885e5334b8adfb0af2ba2ce7f36fd9fbdf331dca852eed909a0e903",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.METRICS"
+}

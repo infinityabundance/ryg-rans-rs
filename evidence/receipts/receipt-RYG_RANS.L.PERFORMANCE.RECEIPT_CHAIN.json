@@ -2,18 +2,18 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN",
   "title": "Performance receipt hash chain (L.1-L)",
-  "verdict": "passed",
-  "implementation_commit": "6264b536da25ffbbeef0a5a704ff50898bf53407",
-  "evidence_commit": "84fed978413092820651eb08d7222fdea8730710",
+  "verdict": "failed",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
   "num_cases": 9,
-  "cases_passed": 9,
-  "cases_failed": 0,
+  "cases_passed": 7,
+  "cases_failed": 2,
   "cases_skipped": 0,
   "residual_count": 1,
   "residual_ids": [
     "L1-L"
   ],
-  "manifest_sha256": "dcf2e54a0ee2f521ae3c0b3087ebda9d2f762c114eb643af6c1717af46f29e4d",
-  "receipt_sha256": "d483d1ab3ec161bba4fcab32be695ee89208f261e21226a534c6704a74a43df0",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 6264b536da25ffbbeef0a5a704ff50898bf53407 --only RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN"
+  "manifest_sha256": "d5cc25dda05aaab349de96a55a2607bd17f6b4e00ac0d8a4585688b3fa6bf8e1",
+  "receipt_sha256": "009d7b7d180b61b97092926f7d7e040b3385ec4c319dafa00eb9b123a66e563b",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN"
 }

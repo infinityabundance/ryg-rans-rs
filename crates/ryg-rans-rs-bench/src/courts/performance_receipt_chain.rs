@@ -114,7 +114,10 @@ pub fn court() -> CourtRun {
         }
     };
 
-    // ---- Case 1: top-level index has exactly ten entries ------------------
+    // ---- Case 1: top-level index has exactly fifteen entries -------------
+    // Phase O added five cache surfaces (RYG_RANS.PERF.CACHE.*) to the ten
+    // Phase L surfaces; the count is pinned here so the court breaks loudly
+    // if the surface model ever changes again.
     let entries = index
         .get("receipts")
         .and_then(|r| r.as_array())
@@ -124,9 +127,9 @@ pub fn court() -> CourtRun {
         &mut cases,
         "CASE.001",
         "top-level performance index entries",
-        "10",
-        if entries.len() == 10 {
-            Ok("10".to_string())
+        "15",
+        if entries.len() == 15 {
+            Ok("15".to_string())
         } else {
             Ok(format!("{}", entries.len()))
         },
@@ -247,7 +250,7 @@ pub fn court() -> CourtRun {
     add(
         &mut cases,
         "CASE.004",
-        "all ten receipt final-file hashes AND canonical self-hashes verify",
+        "all fifteen receipt final-file hashes AND canonical self-hashes verify",
         "all_verify",
         if all_file_hashes_ok && bad_entries.is_empty() {
             Ok("all_verify".to_string())

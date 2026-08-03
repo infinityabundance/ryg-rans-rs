@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.CANCEL.COMPLETENESS",
   "title": "Cancellation completeness and public cancellation APIs (L.3)",
   "verdict": "passed",
-  "implementation_commit": "6264b536da25ffbbeef0a5a704ff50898bf53407",
-  "evidence_commit": "84fed978413092820651eb08d7222fdea8730710",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
   "num_cases": 12,
   "cases_passed": 12,
   "cases_failed": 0,
@@ -16,7 +16,7 @@
     "L3-C",
     "L3-D"
   ],
-  "manifest_sha256": "21a20a381095d70c4956adcf6862c9869d34cfab59d10cd703f5e1d512ccc635",
-  "receipt_sha256": "703bdbac760974256c660e0c66db1420deb9f62517dedbaf9b877e66a26a13ec",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 6264b536da25ffbbeef0a5a704ff50898bf53407 --only RYG_RANS.L.CANCEL.COMPLETENESS"
+  "manifest_sha256": "8e8aa6e03238c454a6a9aac57dfe10abd9d78d4ee296da79a353c96e45b74673",
+  "receipt_sha256": "2254a82168d36a87bc1b0a14a97a26565d5c2009160a20b95a1f7d3c11e6e78b",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.L.CANCEL.COMPLETENESS"
 }

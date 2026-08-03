@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.WORKLOAD.PUBLIC_RANS_V1",
+  "title": "Public rANS workload v1 spec integrity (O.10)",
+  "verdict": "passed",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "num_cases": 5,
+  "cases_passed": 5,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "MODEL_CACHE.WORKLOAD.1"
+  ],
+  "manifest_sha256": "2f8acb87efabb1492e13d86e541fbd59901ab193250d46f41a397fdd975ca842",
+  "receipt_sha256": "2f7848c9ec8614becc59270c8ff5415882e059453d13a4d4250100b9fe200a58",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.WORKLOAD.PUBLIC_RANS_V1"
+}

@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.CACHE.ZERO_CAPACITY",
+  "title": "Zero-capacity semantics (O.2)",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "3 cases: 3 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.000",
+      "input": "zero-capacity cache (0, 1024)",
+      "expected": "disabled",
+      "actual": "disabled",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.001",
+      "input": "zero-capacity cache (8, 0)",
+      "expected": "disabled",
+      "actual": "disabled",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.010",
+      "input": "disabled owner cache builds directly and retains nothing",
+      "expected": "bypassed",
+      "actual": "bypassed",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    }
+  ]
+}

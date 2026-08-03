@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.CACHE.EXACT_BYTES",
+  "title": "Exact byte accounting (O.1)",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "10 cases: 10 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.000",
+      "input": "insert 1 bytes",
+      "expected": "invariant",
+      "actual": "invariant",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.001",
+      "input": "insert 99 bytes",
+      "expected": "invariant",
+      "actual": "invariant",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "insert 100 bytes",
+      "expected": "invariant",
+      "actual": "invariant",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "insert 101 bytes",
+      "expected": "invariant",
+      "actual": "invariant",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "insert 1024 bytes",
+      "expected": "invariant",
+      "actual": "invariant",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.005",
+      "input": "insert 16384 bytes",
+      "expected": "invariant",
+      "actual": "invariant",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.006",
+      "input": "insert 1048576 bytes",
+      "expected": "invariant",
+      "actual": "invariant",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.100",
+      "input": "insert u64::MAX bytes into a u64::MAX budget",
+      "expected": "inserted",
+      "actual": "inserted",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.101",
+      "input": "second u64::MAX entry evicts the first (no overflow)",
+      "expected": "invariant",
+      "actual": "invariant",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.102",
+      "input": "recomputed byte sum equals the counter",
+      "expected": "equal",
+      "actual": "equal",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    }
+  ]
+}

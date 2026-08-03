@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.CACHE.FAILURE_EQUIVALENCE",
+  "title": "Cache failure transparency and path equivalence (O.6)",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "expected_results": "every executable case passes; no residuals",
+  "actual_results": "4 cases: 4 passed, 0 failed, 0 skipped",
+  "cases": [
+    {
+      "case_id": "CASE.001",
+      "input": "invalid model: disabled and cached paths return the same error",
+      "expected": "same",
+      "actual": "same",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.002",
+      "input": "corrupt model is never admitted; failures counted",
+      "expected": "clean",
+      "actual": "clean",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.003",
+      "input": "valid model: disabled and cached paths return identical artifacts",
+      "expected": "identical",
+      "actual": "identical",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    },
+    {
+      "case_id": "CASE.004",
+      "input": "typed cache errors exist and are distinct from build errors",
+      "expected": "typed",
+      "actual": "typed",
+      "verdict": "pass",
+      "residual_ids": [
+        "MODEL_CACHE.BOUND.1",
+        "MODEL_CACHE.BOUND.2",
+        "MODEL_CACHE.BOUND.3",
+        "MODEL_CACHE.RACE.1",
+        "MODEL_CACHE.RACE.2",
+        "MODEL_CACHE.AVAILABILITY.1",
+        "MODEL_CACHE.METRICS.1",
+        "MODEL_CACHE.CONTENTION.1",
+        "MODEL_CACHE.PERF.1",
+        "MODEL_CACHE.WORKLOAD.1"
+      ]
+    }
+  ]
+}

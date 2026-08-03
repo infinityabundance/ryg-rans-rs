@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.CACHE.CANCELLATION",
+  "title": "Cancellation semantics (O.5)",
+  "verdict": "passed",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "num_cases": 3,
+  "cases_passed": 3,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "MODEL_CACHE.RACE.1"
+  ],
+  "manifest_sha256": "4396941807a225d32baa56e37b3474f2d75b657a0f2a233b26d204e2a7058a68",
+  "receipt_sha256": "8d0f52555f422c0b73a05890b830ee8e990f896b85994edfcfbffcfe3e9d97c2",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.CANCELLATION"
+}

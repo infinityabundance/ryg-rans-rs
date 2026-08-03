@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.CACHE.ZERO_CAPACITY",
+  "title": "Zero-capacity semantics (O.2)",
+  "verdict": "passed",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "num_cases": 3,
+  "cases_passed": 3,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "MODEL_CACHE.BOUND.3"
+  ],
+  "manifest_sha256": "dfaea43fd9c70f023c73be7d7ecda6aa5b9ed9872cd209113e7e93d784cbbf2d",
+  "receipt_sha256": "1a76a4a79fe6a568f048b3ef6ee4fc89d3d146f3fc9dfcfea809ddff702e69df",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.ZERO_CAPACITY"
+}

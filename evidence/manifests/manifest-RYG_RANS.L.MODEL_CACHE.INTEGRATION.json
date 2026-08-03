@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.MODEL_CACHE.INTEGRATION",
   "title": "ModelCache production integration (L.8)",
-  "implementation_commit": "6264b536da25ffbbeef0a5a704ff50898bf53407",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "11 cases: 11 passed, 0 failed, 0 skipped",
   "cases": [
@@ -78,9 +78,9 @@
     },
     {
       "case_id": "CASE.008",
-      "input": "corrupt model builder returns None → cached_model_artifacts returns None",
-      "expected": "none",
-      "actual": "none",
+      "input": "corrupt model → typed build error, never admitted to the cache",
+      "expected": "error",
+      "actual": "error",
       "verdict": "pass",
       "residual_ids": [
         "L8-A"

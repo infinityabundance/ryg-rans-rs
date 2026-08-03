@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "court_id": "RYG_RANS.O.CACHE.SINGLE_FLIGHT",
+  "title": "Per-key single-flight construction (O.5)",
+  "verdict": "passed",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "num_cases": 2,
+  "cases_passed": 2,
+  "cases_failed": 0,
+  "cases_skipped": 0,
+  "residual_count": 1,
+  "residual_ids": [
+    "MODEL_CACHE.RACE.1"
+  ],
+  "manifest_sha256": "bfc0f7790f88c4139032bf05726463b52703db19225fd10b77f420d218b9ed3c",
+  "receipt_sha256": "f04126ff086a653f2a332e70814dfe0bb750872a93298f28b538e96b4f090e7e",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.SINGLE_FLIGHT"
+}

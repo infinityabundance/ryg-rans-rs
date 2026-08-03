@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "performance_id": "RYG_RANS.PERF.SSE41.INTERLEAVED8",
+  "surface": "SSE4.1 SIMD — interleaved8",
+  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "run_id": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "host_id": "vanir-x86_64",
+  "benchmark_cases": [
+    {
+      "benchmark_id": "sse41/sse41-8way/allocating/SKEWED_255_1/256KiB/sse41-8way",
+      "backend_requested": "sse41-8way",
+      "backend_executed": "sse41-8way",
+      "profile": "unknown",
+      "bytes": 262144,
+      "threads_requested": 1,
+      "threads_effective": 1,
+      "sample_count": 100,
+      "median_ns": 267441.3042385058,
+      "mean_ns": 267457.649189269,
+      "stddev_ns": 123.3954083649772,
+      "confidence_interval_95_low_ns": 267436.2118422644,
+      "confidence_interval_95_high_ns": 267484.08376521483,
+      "throughput_gib_s": 0.9128755399064085,
+      "verification_passed": true,
+      "output_hash": "794641f0e7b2b97b657e76714568c8593bed5c9d1a17ced03bfd4badf30790c4",
+      "words_consumed_hash": "0d6fd989f5cdf3bc89249f6904aca33406dd5c70389b45629dc8ae932e5251b8",
+      "final_states_hash": "fa3c23aa41eba992bec041bdb2862489f519acb5340fb9d2c1c838d4304ad04b",
+      "status": "pass"
+    }
+  ],
+  "artifact_hashes": {
+    "criterion_archive_sha256": "2cf86dad07ca2ad8ecc748560dfb00d09b1747832cd506ea3f8149a5ad17139b",
+    "results_json_sha256": "355891a09a4679b82e36ef1283cbcb4fdb1069608ca355f3825180fbfe22d088",
+    "results_csv_sha256": "cda44e1acf31dfc5a874d30b85b3269380335e4a58e88eec6be469ac2a98168c",
+    "host_metadata_sha256": "9b5be6acbb1a0596a05d5c741e5bce1db01ad91936603dda8fdafe5714ec2a77",
+    "commands_log_sha256": "aac7ed74c1056ae58320a0b6464f0fb59733f79f1dc400811073279fa89e48d0"
+  },
+  "command": "target/debug/xtask performance-seal --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --run-dir evidence/performance/runs/phase-o-20260802a",
+  "rustflags": "",
+  "criterion_version": "0.5.1",
+  "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+  "cpu": {
+    "model": "AMD Ryzen 7 9800X3D 8-Core Processor",
+    "features": [],
+    "microcode": "0xb404035",
+    "smt_enabled": true,
+    "governor": "performance"
+  },
+  "os": {
+    "kernel": "7.1.4-1-cachyos",
+    "os": "linux x86_64",
+    "memory": "MemTotal:       131533480 kB"
+  },
+  "dirty_tree": false
+}
