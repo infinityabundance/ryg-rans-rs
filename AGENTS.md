@@ -122,17 +122,9 @@ gate (L.20): it must pass fully before any "Sealed" claim is made.
   single in-flight block.
 * The `bench` subcommand is a live smoke measurement; the Criterion suite
   is the sealed measurement surface.
-* Performance evidence is re-sealed at the current implementation commit
-  (latest: Phase O.5.1 run `phase-o-20260803c` at implementation commit
-  `48ae2db`, 1040 cases × 100 samples, 15 receipts); the Phase K run and
-  the superseded Phase O runs (`phase-o-20260803a`/`b`) are retained under
-  `evidence/performance/superseded/` with `SUPERSEDED.md` reasons.  The
-  exact active run is `evidence/performance/index.json` → `active_run`.
-* The public stress/soak commands split into synthetic
-  (`synthetic-cache-stress`/`soak`, labeled `synthetic-cache-stress-v1`)
-  and genuine corpus execution (`stress-public`/`soak-public`, bound to
-  the derived manifest by seal gate 8b); only the public family may claim
-  corpus provenance (MODEL_CACHE.WORKLOAD.2).
+* Performance evidence is re-sealed in Phase L.18 at implementation commit
+  `8401991` (run `phase-l-20260802a`, 800 cases × 100 samples); the Phase K
+  run is superseded (see `evidence/performance/superseded/`).
 
 ## How to verify claims rather than trusting prose
 
