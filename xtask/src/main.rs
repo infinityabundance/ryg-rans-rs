@@ -3477,7 +3477,8 @@ fn cmd_performance_seal(args: &[String]) -> Result<(), Box<dyn std::error::Error
     // 11. Generate the performance index
     // =========================================================================
     println!("performance-seal: step 11 — generating performance index...");
-    let index_entries: Vec<ryg_rans_rs_casefile::PerformanceIndexEntry> = (0..10)
+    let index_entries: Vec<ryg_rans_rs_casefile::PerformanceIndexEntry> = (0..EXPECTED_PERF_IDS
+        .len())
         .filter_map(|idx| {
             if surface_records[idx].is_empty() {
                 None // skip empty surfaces
