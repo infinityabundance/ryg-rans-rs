@@ -357,7 +357,12 @@ fn blocks_per_case(size: usize, mode: CacheMode) -> usize {
 ///   evictions == max(0, bc-16), hits == 0); at N workers the
 ///   eviction/lookup interleaving is scheduler-dependent, so the proof
 ///   asserts the deterministic bounds (every distinct model built, at
-///   least one eviction, `lookups == bc`, `hits + misses == lookups`);
+///   least one eviction, `lookups >= bc`, `hits + misses == lookups`).
+///   `lookups` may EXCEED `bc`: a coalesced waiter whose key is FIFO-
+///   evicted between its registration and its wake-up retries (the
+///   documented evict-then-rebuild semantic), adding a lookup and a
+///   rebuild.  That is correct cache behavior — the proof must not demand
+///   a scheduler-dependent exact count (F-16).
 /// * unique: `bc` distinct models → bc builds, 0 hits.
 ///
 /// Under Design-A accounting (MODEL_CACHE.METRICS.2) the *hit* count of
@@ -459,16 +464,17 @@ fn prove_mode(
                 // scheduler-dependent, but these facts are deterministic:
                 // every distinct model is built at least once (17), at
                 // least one eviction occurs (working set 17 > capacity 16),
-                // every block performs exactly one lookup attempt, and the
+                // every block performs AT LEAST one lookup attempt, and the
                 // cache's Design-A accounting invariant holds (hits + misses
-                // == lookups) — coalesced misses are misses, not hits, so
-                // builds + hits may be less than bc here.
+                // == lookups).  lookups may exceed bc: a coalesced waiter
+                // whose key was FIFO-evicted while it waited retries
+                // (evict-then-rebuild), adding one lookup + one build.
                 let lookups = post.lookups - pre.lookups;
                 let misses = post.misses - pre.misses;
-                if builds < 17 || evictions == 0 || lookups != bc as u64 || hits + misses != lookups
+                if builds < 17 || evictions == 0 || lookups < bc as u64 || hits + misses != lookups
                 {
                     return Err(format!(
-                        "thrash mode ({} workers): expected >= 17 builds, >= 1 eviction, {} lookups, hits+misses==lookups; got builds={} hits={} misses={} lookups={} evictions={}",
+                        "thrash mode ({} workers): expected >= 17 builds, >= 1 eviction, >= {} lookups, hits+misses==lookups; got builds={} hits={} misses={} lookups={} evictions={}",
                         workers, bc, builds, hits, misses, lookups, evictions
                     ));
                 }
