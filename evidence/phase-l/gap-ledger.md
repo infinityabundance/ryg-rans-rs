@@ -229,6 +229,7 @@ Each residual records: severity, affected files, reproduction, expected/actual b
 - **L17-A (PARTIAL)** — Component isolation uses software decomposition (measured: 1-worker parallel overhead 1.38x over the raw kernel, dominated by dual SHA-256 per block); explicit benchmark-only hooks deferred to the sealed L.18 run's methodology note.
 - **L17-C (OPEN)** — Hardware counters unavailable on this host (perf not installed / no kernel permission); documented accepted limitation in `docs/performance/phase-l17-analysis.md`; component isolation uses software decomposition instead.
 
+| O22-A | MEDIUM | Release v0.5.0 (minor per semver-checks: the decoder/cache ownership change, decode_single_block arity, and the ModelPolicy redesign are 8 breaking changes in ryg-rans-rs-parallel) | RESOLVED | `e7221c0` (implementation commit, final source state) — benchmark run `phase-o-20260802c` (1040 cases x 100 samples, mode-proven cache preflight), 15 performance receipts (10 Phase L + 5 `RYG_RANS.PERF.CACHE.*`), 167 behavioural receipts (144 oracle + 23 L/O courts), Docker matrix `ci-20260803-e7221c0` 11/11; all seven crates published at 0.5.0 in dependency order from the sealed evidence commit; annotated tag `v0.5.0` at the sealed release commit; full seal gate green |
 ## Post-L reopened residuals and Phase M
 
 | ID | Severity | Issue | Status | Resolution |
