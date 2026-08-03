@@ -4,7 +4,7 @@
   "title": "Cancellation completeness and public cancellation APIs (L.3)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 12,
   "cases_passed": 12,
   "cases_failed": 0,
@@ -17,6 +17,6 @@
     "L3-D"
   ],
   "manifest_sha256": "b272af7f2adcb0be7f9bf4fc36bcda412d5ad7bfe93ba6edfc6cf94521f21cf4",
-  "receipt_sha256": "37c700861e0f3ffd113215845c35a3bb5da5aea643d300b4046e9c8ce90e32a3",
+  "receipt_sha256": "6051d187ef16818656a4cad09f6048bc498e65b23d25c1f171b145743dc8689e",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.L.CANCEL.COMPLETENESS"
 }

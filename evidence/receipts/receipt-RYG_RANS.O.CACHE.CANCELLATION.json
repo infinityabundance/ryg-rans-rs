@@ -4,7 +4,7 @@
   "title": "Cancellation semantics (O.5)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 4,
   "cases_passed": 4,
   "cases_failed": 0,
@@ -15,6 +15,6 @@
     "MODEL_CACHE.RACE.3"
   ],
   "manifest_sha256": "7f6dd0bb6dccc7e67d578588584029aef039d2d2e3dec1f95593cf731a2315d5",
-  "receipt_sha256": "35f22658a56ecd01d4d745a9eedb660a449f78e6db8c08296dff60d3fa0293d6",
+  "receipt_sha256": "ae504759e5369ed8262d48c6c4ce78a8512c5912a37a3c89767ddb46978ebbfd",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.O.CACHE.CANCELLATION"
 }

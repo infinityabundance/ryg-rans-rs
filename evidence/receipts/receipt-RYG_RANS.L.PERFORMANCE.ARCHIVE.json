@@ -4,7 +4,7 @@
   "title": "Deterministic archive round-trip (L.1-K)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 5,
   "cases_passed": 5,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "L1-K"
   ],
   "manifest_sha256": "30121d9131d5c555725bd9f4434a9151d78b214ec6423a047dd40ee7a5172f8f",
-  "receipt_sha256": "c662e544c97b9edb4f72b6cce4f619443f848beff20c76802b3ad671b7867550",
+  "receipt_sha256": "bb4b9d29716330eb5376637c11b6fef7d7a285db240da4906005d19d50527bff",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.L.PERFORMANCE.ARCHIVE"
 }

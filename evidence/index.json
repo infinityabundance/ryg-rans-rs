@@ -1,5 +1,6 @@
 {
   "code_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "receipts": [
     {
       "court_id": "RYG_RANS.BYTE.DIVISION.SINGLE_STATE.UNIFORM256.S12",
@@ -579,95 +580,95 @@
     },
     {
       "court_id": "RYG_RANS.L.VERIFY.DECODED_HASH",
-      "sha256": "af1772b1d4e52618cfb0dacc90ff2d36a6d308ca9fb424a94650fd88b41ffdeb"
+      "sha256": "97346af4aed39a07b3b12be12b12fa006568e37e2fe67f4110c7c39936faaf77"
     },
     {
       "court_id": "RYG_RANS.L.INTEGRITY.STRICT",
-      "sha256": "1ddc4de17bd84039758bdfdb763b75edc75346d04d3a18880e8073d422e73750"
+      "sha256": "ecb9a907b72ac9f7e6d99e4f7342b4b8a97755b44bd7e6ff51c7a4cf6f8eabad"
     },
     {
       "court_id": "RYG_RANS.L.CANCEL.COMPLETENESS",
-      "sha256": "1caa8f836415229869348cb9201e10f18515b1f67a202c72cefa4fd010b2ef6b"
+      "sha256": "e1ede72a1c0e5668073c95967cd7cee57e41ccce4ffb517bd9c37e5b13d3ab96"
     },
     {
       "court_id": "RYG_RANS.L.EXECUTOR.BOUNDED",
-      "sha256": "f77e1b6494dec1a84613926b2913fe42c10e6e3458746fdd8c6bc0b0604aa013"
+      "sha256": "585c68b7242c79508f5dd9a0af1b46cc87feb17e3a3e5211b25691713d37e716"
     },
     {
       "court_id": "RYG_RANS.L.REORDER.ATOMIC_COMMIT",
-      "sha256": "8ac9c280775ad9640d8e92d6fe2053d4f730a284c690fe67f41cb877711bf7c5"
+      "sha256": "6b8e5bb2e2af211cd2cdab306424083b2bde4c5f6fd51e2d32d3d3f833fbe683"
     },
     {
       "court_id": "RYG_RANS.L.CONFIG.WIRING",
-      "sha256": "91c77c04668f15defa1835c5e7eaf01f494373b077ec0424212c85eaec8ced50"
+      "sha256": "ff30d161e54572b2606533c810dd10cc717da29f48a245413484bee58c42c4f5"
     },
     {
       "court_id": "RYG_RANS.L.SCRATCH.INTEGRATION",
-      "sha256": "d4d0756306899801d3e4e77933680ed2e813d0d86b2add824ea53ca370dcf2fd"
+      "sha256": "46e76a5b406ea362ddd90d0037049daa4f5feb55780b37b0972b1cead965680a"
     },
     {
       "court_id": "RYG_RANS.L.MODEL_CACHE.INTEGRATION",
-      "sha256": "c04652d53bad4e3c472740c1bf48c3ddeed8caf990f069fbc3ed9c7a0f9ddb40"
+      "sha256": "0a9356f10f9a94fcfad1e852fe2950a160e0924659e1ed1c68c23b83b5ba4903"
     },
     {
       "court_id": "RYG_RANS.L.BACKEND.EXPLICIT",
-      "sha256": "347f385802302cfb6b63bb452d7d06107790106810707656bd7716b31f3f494d"
+      "sha256": "01a128a303269e08b6204e01c5b77988f52ecdf46a579ed20b4ec9a24faf7c5a"
     },
     {
       "court_id": "RYG_RANS.L.SSE41.UNSAFE_QUARANTINE",
-      "sha256": "da094c316214c47a8e282fc1b5ea0286be45362c396bdabc753914c01fa90ca4"
+      "sha256": "e3b426aec20127a6b657903bda583f84d2f73b0a121c5dbcdabf9a39b8b5600e"
     },
     {
       "court_id": "RYG_RANS.L.PERFORMANCE.EXPORT",
-      "sha256": "1d92f7c42552cd857cb7057ddea691a2f7c3f87277f7702ca6a63e2ef0b61352"
+      "sha256": "7650a5648f00fe9e62c04ef0f33fd70d3d8e7a68861450d02018c5629e6163b4"
     },
     {
       "court_id": "RYG_RANS.L.PERFORMANCE.ARCHIVE",
-      "sha256": "640c61d06fa8d5163fec1b8ffc30d61ac9e7ca782ab74be290a3543639bbce11"
+      "sha256": "1d018a9160e21af93ec99d5e2e82a052b634365091a44b860b71257f6310aeb9"
     },
     {
       "court_id": "RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN",
-      "sha256": "f0bff9128c0e9d2af3db022767c577f1a913a5b2448462b211eba64e56d425c2"
+      "sha256": "504f6233f66c1350a7663e1fb0d69eafb3413678e4118217edc2b46caca9f5e5"
     },
     {
       "court_id": "RYG_RANS.L.PUBLIC_API.REACHABILITY",
-      "sha256": "d8a7283df6995869f8d7a32aa5226a747ca8e1dc894bd7ea9f94428f655c6f4a"
+      "sha256": "2ddba0a5724724f4fe42f359261c40dc1c3e2d72f4d628aa463074465463ab78"
     },
     {
       "court_id": "RYG_RANS.O.CACHE.EXACT_BYTES",
-      "sha256": "bcddcccad2ccaf2b228c45fd9cf1fde1bb06e48cb899b88423dbc5ae29ee6e45"
+      "sha256": "b3e6af43a1e51698a89be35149a045cc4ac3fe0b9766c9c1815a78a2ed973303"
     },
     {
       "court_id": "RYG_RANS.O.CACHE.ZERO_CAPACITY",
-      "sha256": "25071fb463cb419632853e38238281b2b51dc2ef25679dbeca7c075f828b0e13"
+      "sha256": "1dbefb2dc5de4da203dd9263439fc4a6b00f050810165a91022aa3aa2172fbfe"
     },
     {
       "court_id": "RYG_RANS.O.CACHE.OVERSIZED",
-      "sha256": "022f0197c1b5cf14cb0e5b9b6030cbf562bf24a6e0d99bae5294cd1f01a45d2a"
+      "sha256": "80cd78336ffc87254a9d2a97604b76a541802089a7127763a6eae1e8d3f1f1e5"
     },
     {
       "court_id": "RYG_RANS.O.CACHE.UNIQUE_KEYS",
-      "sha256": "93a7c81014e362e20f3d4f632e00593d600a98c2e9531f90ec2a9b3e95972695"
+      "sha256": "75d325a423e1a0ba79a7dd3ee7f1c5c7fab794ba6889b96e9ae71851b3f30f3c"
     },
     {
       "court_id": "RYG_RANS.O.CACHE.SINGLE_FLIGHT",
-      "sha256": "d5ea597bbd45840c61dedc0e7f541d6603dfc6edcb0529db817a899c7b548988"
+      "sha256": "19756bf061b5911e540d243e634e53068781363cf8bb7fa1cd598a8253aae679"
     },
     {
       "court_id": "RYG_RANS.O.CACHE.FAILURE_EQUIVALENCE",
-      "sha256": "324fd0334fa73842ba6abae90c2b115b6c15b8482ff712691d2d96a7011a1896"
+      "sha256": "8bb1296903b0465a6eb369f9eef9041346759ea8ed133aa7a294976cdb32da69"
     },
     {
       "court_id": "RYG_RANS.O.CACHE.CANCELLATION",
-      "sha256": "a7803318af84c898e50c00feeadc7694accf380badbb87e4391e65dcda94b178"
+      "sha256": "1b059917a14c74985d57d60f87148bffa7bd398f7d7796e385287a7351f7783e"
     },
     {
       "court_id": "RYG_RANS.O.CACHE.METRICS",
-      "sha256": "08165030ce6fc3027437b1ba0e3ff9a8880daceaf00c2b09e69bf1cef3865900"
+      "sha256": "502161ffde8aa8ff7bc1fe4150da3d2be03e740b119570154e3a8de68fcced52"
     },
     {
       "court_id": "RYG_RANS.O.WORKLOAD.PUBLIC_RANS_V1",
-      "sha256": "507738edfb673b3fff60732e699cba8c9391ce88b58906f35456222616ee435b"
+      "sha256": "3db2d2aa4f32857e454bed01a05b4b03ec76067c5e56005b253ab851b77efce7"
     }
   ],
   "schema_version": 1

@@ -4,7 +4,7 @@
   "title": "Zero-capacity semantics (O.2)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 3,
   "cases_passed": 3,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "MODEL_CACHE.BOUND.3"
   ],
   "manifest_sha256": "57c68d9ab4467b1075675d3fc3a7b6283c35947bd5bf0b245476bf5064218e85",
-  "receipt_sha256": "8282fd9811d913d1342f4db83b73d42f2841c5a6129ee54b4b1277cb8049af53",
+  "receipt_sha256": "023417e4b602888f02abb3bb329b8916aaeff41131641fbf35fc96a6cd8c94e3",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.O.CACHE.ZERO_CAPACITY"
 }

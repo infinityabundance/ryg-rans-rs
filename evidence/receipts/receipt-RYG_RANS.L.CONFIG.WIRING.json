@@ -4,7 +4,7 @@
   "title": "ParallelConfig field-by-field wiring audit (L.6)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 12,
   "cases_passed": 12,
   "cases_failed": 0,
@@ -22,6 +22,6 @@
     "L6-I"
   ],
   "manifest_sha256": "05520f589470db2a0ff414fa705bccaca284f497b1d52404f6e8a44b0d0cce1c",
-  "receipt_sha256": "1330447387ee3a390478bc4b777a2d2c283d712c9745fdc5fb2b68496e789ec9",
+  "receipt_sha256": "da7534d4b9764b39e50476a19f2ead40affd420ffe743d1c701b91acd1e802f2",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.L.CONFIG.WIRING"
 }

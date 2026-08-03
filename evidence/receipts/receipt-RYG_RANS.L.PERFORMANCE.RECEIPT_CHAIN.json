@@ -4,7 +4,7 @@
   "title": "Performance receipt hash chain (L.1-L)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 9,
   "cases_passed": 9,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "L1-L"
   ],
   "manifest_sha256": "d94a6bd9a91a174d8182e33d9f7624fe4ab1f0af651dede625a3befd216c2a71",
-  "receipt_sha256": "7d2b2cb2361035e6ed47e4d446b0974b16732b5abaa1b1f3eb0951612b8c0b02",
+  "receipt_sha256": "5c992a16b2913ef3dab1de6bd1d1e5c31a3d5906a55e420e3ac71899976d8d35",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.L.PERFORMANCE.RECEIPT_CHAIN"
 }

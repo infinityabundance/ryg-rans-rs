@@ -4,7 +4,7 @@
   "title": "Public rANS workload v1 spec integrity (O.10)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 5,
   "cases_passed": 5,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "MODEL_CACHE.WORKLOAD.1"
   ],
   "manifest_sha256": "c2bbe9824366d839870482a6621793334400d8f59f33142442dc659b480f2311",
-  "receipt_sha256": "1ce1bb333db643f443f3a046bc3d44de02c85d07ac4b7c6a48b40eeefba6aadd",
+  "receipt_sha256": "026b53c0a72948a96568fd64c25f3b34d797fa2ddfd55cb953813e9e5eaa9946",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.O.WORKLOAD.PUBLIC_RANS_V1"
 }

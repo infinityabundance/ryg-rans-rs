@@ -4,7 +4,7 @@
   "title": "Performance exporter correctness (L.1 / L.18)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 10,
   "cases_passed": 10,
   "cases_failed": 0,
@@ -20,6 +20,6 @@
     "L1-J"
   ],
   "manifest_sha256": "735f47ff26304987de0c3901a7db1460fd98618a48edb84e333d4a4bcfbf4e53",
-  "receipt_sha256": "14afdd1401f1dfdd91581adb02f68f9d951d805f9707fb24bf0deb9b9861b175",
+  "receipt_sha256": "070698c7537f83c9c689a5e0577f8cc988601cc20fffb54dc756f29cc4fa836c",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.L.PERFORMANCE.EXPORT"
 }

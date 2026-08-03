@@ -4,7 +4,7 @@
   "title": "Decoded-output integrity verification (L.2)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 15,
   "cases_passed": 15,
   "cases_failed": 0,
@@ -17,6 +17,6 @@
     "L2-D"
   ],
   "manifest_sha256": "8c5459c35375cec31636716486c61c17fe9961eb5277be502e7362ec1c3c0f4b",
-  "receipt_sha256": "e965ff2a6c8884bad505aa83bd58085b95294f41c7014b83df76a977ff324a4c",
+  "receipt_sha256": "2ae0fe321e00df02d7214c3b146c72dceb3db043f8970793706fba3a57349341",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.L.VERIFY.DECODED_HASH"
 }

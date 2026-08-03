@@ -4,7 +4,7 @@
   "title": "Strict vs compatibility integrity policy (L.2)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 11,
   "cases_passed": 11,
   "cases_failed": 0,
@@ -16,6 +16,6 @@
     "L2-D"
   ],
   "manifest_sha256": "ccc23da41495753e5ce24563e835791dbf957be8c3f70f861870ce8282d2f872",
-  "receipt_sha256": "4420597d40ca530c798e0946f49521f0260459428dfafc7f08fb7ebe2bc7cc91",
+  "receipt_sha256": "6b5e25506275d11472747b21bf91b0abb526c1107e7143b14e1e61b4918412b1",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.L.INTEGRITY.STRICT"
 }

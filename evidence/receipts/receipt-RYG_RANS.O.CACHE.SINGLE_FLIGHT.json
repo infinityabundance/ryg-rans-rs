@@ -4,7 +4,7 @@
   "title": "Per-key single-flight construction (O.5)",
   "verdict": "passed",
   "implementation_commit": "48ae2db",
-  "evidence_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "evidence_commit": "350b0388b63d83ec3164ee4ceb8bbb7713279753",
   "num_cases": 2,
   "cases_passed": 2,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "MODEL_CACHE.RACE.1"
   ],
   "manifest_sha256": "8283ea6308e73d28299ffc3d9b47c57fccce56562388476f0d1f86931c6a2e41",
-  "receipt_sha256": "486298fa775064688aa0ee7f79ec5516927e20c994f98b3188881e621b9bf37c",
+  "receipt_sha256": "5884ba239738fd98707cab22baaa28d8901782e32c26d01226dd88329ebd3e94",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 48ae2db --only RYG_RANS.O.CACHE.SINGLE_FLIGHT"
 }
