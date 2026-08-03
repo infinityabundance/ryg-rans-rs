@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.PERFORMANCE.ARCHIVE",
   "title": "Deterministic archive round-trip (L.1-K)",
   "verdict": "passed",
-  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
-  "evidence_commit": "572aa17f635ae09aa13034731e0b32b7614e4977",
+  "implementation_commit": "fa7d6a73cb42f7e077be67c0be917cc6c792f4c3",
+  "evidence_commit": "0fe165e77edcc70c0f0db26aee0e9df2f59ba336",
   "num_cases": 5,
   "cases_passed": 5,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "L1-K"
   ],
-  "manifest_sha256": "1fc7be81a9f1bef0b17d0bcf208d9933b586b4de25a472c637aa6a0ee6fef44e",
-  "receipt_sha256": "7bcb5d4115b0ee22a4991cef3ac5e4c699ce7d27e8bafdf2e23a9a237504e443",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 9c1c87b23a147200cc5fc74bb654f93e3736fed8 --only RYG_RANS.L.PERFORMANCE.ARCHIVE"
+  "manifest_sha256": "2bd0f6e26772dd0abae089f68fe70edc784a5ee1b1ea0bec9e7550411d314f1d",
+  "receipt_sha256": "a9766b221ac6709529bc6d162bd4054b52f64c854502bf9ca5ca6abf5e8ec3c3",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit fa7d6a73cb42f7e077be67c0be917cc6c792f4c3 --only RYG_RANS.L.PERFORMANCE.ARCHIVE"
 }

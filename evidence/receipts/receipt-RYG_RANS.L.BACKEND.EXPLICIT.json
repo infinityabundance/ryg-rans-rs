@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.BACKEND.EXPLICIT",
   "title": "Exact backend semantics and format compatibility (L.9)",
   "verdict": "passed",
-  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
-  "evidence_commit": "572aa17f635ae09aa13034731e0b32b7614e4977",
+  "implementation_commit": "fa7d6a73cb42f7e077be67c0be917cc6c792f4c3",
+  "evidence_commit": "0fe165e77edcc70c0f0db26aee0e9df2f59ba336",
   "num_cases": 11,
   "cases_passed": 11,
   "cases_failed": 0,
@@ -15,7 +15,7 @@
     "L9-B",
     "L9-C"
   ],
-  "manifest_sha256": "ffa781cc06813bc079c4eed95080195c185a09b67a4f53108b43105f7e0f0aeb",
-  "receipt_sha256": "1096c640a1ba08d68f250df527b0992de03043bd4a4acfd9542003e483b01558",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 9c1c87b23a147200cc5fc74bb654f93e3736fed8 --only RYG_RANS.L.BACKEND.EXPLICIT"
+  "manifest_sha256": "f10d9bf65bd0d76d9f345d41be1fa052df2a40664c28a2a8f9f62d9df0742345",
+  "receipt_sha256": "72a86708889f7b53ef36ef20d3eea4e73fc41d9a704d648363fed62d6f70432f",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit fa7d6a73cb42f7e077be67c0be917cc6c792f4c3 --only RYG_RANS.L.BACKEND.EXPLICIT"
 }

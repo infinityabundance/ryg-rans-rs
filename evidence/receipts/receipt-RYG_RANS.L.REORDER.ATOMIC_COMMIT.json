@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.REORDER.ATOMIC_COMMIT",
   "title": "ReorderBuffer atomic commit (L.5)",
   "verdict": "passed",
-  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
-  "evidence_commit": "572aa17f635ae09aa13034731e0b32b7614e4977",
+  "implementation_commit": "fa7d6a73cb42f7e077be67c0be917cc6c792f4c3",
+  "evidence_commit": "0fe165e77edcc70c0f0db26aee0e9df2f59ba336",
   "num_cases": 11,
   "cases_passed": 11,
   "cases_failed": 0,
@@ -14,7 +14,7 @@
     "L5-A",
     "L5-B"
   ],
-  "manifest_sha256": "fa5c735e7a28d61a3eb591c566abe26dd4100e71b1bc5f9ead48af5a000e5f1a",
-  "receipt_sha256": "d5b09cc61d5692831c1a15f17d7006a15e1e2e565259bda056f779b663bcb675",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 9c1c87b23a147200cc5fc74bb654f93e3736fed8 --only RYG_RANS.L.REORDER.ATOMIC_COMMIT"
+  "manifest_sha256": "ac5de7537c34d121333a66356e6faf2dcfa16210f353fe8453cb68a353cd0f5a",
+  "receipt_sha256": "913c729370b077f0a2630c2b6fd882ff839ddadaa04bb491dd3f7921db332cfd",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit fa7d6a73cb42f7e077be67c0be917cc6c792f4c3 --only RYG_RANS.L.REORDER.ATOMIC_COMMIT"
 }

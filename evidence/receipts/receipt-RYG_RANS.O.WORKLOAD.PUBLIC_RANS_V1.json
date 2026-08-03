@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.O.WORKLOAD.PUBLIC_RANS_V1",
   "title": "Public rANS workload v1 spec integrity (O.10)",
   "verdict": "passed",
-  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
-  "evidence_commit": "572aa17f635ae09aa13034731e0b32b7614e4977",
+  "implementation_commit": "fa7d6a73cb42f7e077be67c0be917cc6c792f4c3",
+  "evidence_commit": "0fe165e77edcc70c0f0db26aee0e9df2f59ba336",
   "num_cases": 5,
   "cases_passed": 5,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "MODEL_CACHE.WORKLOAD.1"
   ],
-  "manifest_sha256": "10f0ace33579b1ddbc5d6681e6f1f930261b1aaec27313231c69bfc670fd6786",
-  "receipt_sha256": "df00524166427c7392447912805141c1e52d0365c3235e08949ab11ff0fcbdff",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 9c1c87b23a147200cc5fc74bb654f93e3736fed8 --only RYG_RANS.O.WORKLOAD.PUBLIC_RANS_V1"
+  "manifest_sha256": "c8ee3fb0af431960fbf8a9ab9013c41f68b711a36ce54417cc2eaec9e1743982",
+  "receipt_sha256": "9d79846bf165b6297b9f66c9bf58e530b2af59420e250ef23bb71415b226d233",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit fa7d6a73cb42f7e077be67c0be917cc6c792f4c3 --only RYG_RANS.O.WORKLOAD.PUBLIC_RANS_V1"
 }

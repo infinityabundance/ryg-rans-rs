@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.CONFIG.WIRING",
   "title": "ParallelConfig field-by-field wiring audit (L.6)",
-  "implementation_commit": "9c1c87b23a147200cc5fc74bb654f93e3736fed8",
+  "implementation_commit": "fa7d6a73cb42f7e077be67c0be917cc6c792f4c3",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "12 cases: 12 passed, 0 failed, 0 skipped",
   "cases": [
