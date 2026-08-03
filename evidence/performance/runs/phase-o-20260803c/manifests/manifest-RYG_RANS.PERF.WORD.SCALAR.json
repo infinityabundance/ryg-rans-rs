@@ -2,8 +2,8 @@
   "schema_version": 1,
   "performance_id": "RYG_RANS.PERF.WORD.SCALAR",
   "surface": "Word rANS — scalar table-based",
-  "implementation_commit": "48ae2db",
-  "run_id": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "implementation_commit": "48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
+  "run_id": "e30ed7ef41d872f5485c6ef767629caac7bb27b2",
   "host_id": "vanir-x86_64",
   "benchmark_cases": [
     {
@@ -828,12 +828,12 @@
   ],
   "artifact_hashes": {
     "criterion_archive_sha256": "1afd7c17dc2f6f7c95d0ed976f7fc859e46b202e7e452e5642dcaa14a4ebc9d3",
-    "results_json_sha256": "bd8de1b0993a92cd5b2504fd879f71839978a7f34321da122ba6ed12cdf7240d",
-    "results_csv_sha256": "717f6e9be952e88f8659a361973e957e360629cfc6d0e23ac9887374ae90f076",
+    "results_json_sha256": "1ac46c14f371d64b0f429f5172d8dab29d8fb8359e82fa684b2aadd7f67d13cc",
+    "results_csv_sha256": "a22539fd9f9bc047b6fa09ef7f24172cd76de3115432b6f041e77d26d6c9803f",
     "host_metadata_sha256": "725d2111971d03c8fb3d37ebc3a768d846a7c8b7aaba3eb82988217ca133fe7a",
     "commands_log_sha256": "95cc063ddfe81a8173f3272198cb76f07078c6e6b8b1ff4095d25e33f27afce1"
   },
-  "command": "target/debug/xtask performance-seal --criterion-dir target/criterion --run-dir evidence/performance/runs/phase-o-20260803c --implementation-commit 48ae2db",
+  "command": "target/debug/xtask performance-seal --criterion-dir target/criterion --run-dir evidence/performance/runs/phase-o-20260803c --implementation-commit 48ae2db6d43d9ddfa529443a02185e28c7d3d2f1",
   "rustflags": "-C target-cpu=native",
   "criterion_version": "0.5.1",
   "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
