@@ -1853,16 +1853,48 @@ fn train_group_model(
     Ok(())
 }
 
+/// Does the trained model cover every symbol present in `data`?
+///
+/// `model` is the 1024-byte raw frequency model (256 × u32 LE).  Returns
+/// `false` if any symbol occurring in `data` has frequency 0 — the exact
+/// condition under which the encoder's `build_external_model` would reject
+/// the job with a typed Model error.  Parsing the model here (1024 bytes)
+/// is negligible next to the data histogram the encoder computes anyway,
+/// and it lets the grouped-mode window encode decide fallbacks BEFORE the
+/// batch runs, keeping the hot path linear.
+fn model_covers(model: &[u8], data: &[u8]) -> Result<bool, String> {
+    if model.len() != 1024 {
+        return Err(format!(
+            "model_covers: expected 1024 bytes, got {}",
+            model.len()
+        ));
+    }
+    let mut freq = [0u32; 256];
+    for (i, chunk) in model.chunks_exact(4).enumerate() {
+        freq[i] = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+    }
+    let mut present = [false; 256];
+    for &b in data {
+        present[b as usize] = true;
+    }
+    for (i, &p) in present.iter().enumerate() {
+        if p && freq[i] == 0 {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
 /// Encode one window with grouped-model fallback.
 ///
 /// The whole window is encoded as one batch (indices 0..W, window-relative).
 /// In grouped mode a block whose data contains a symbol absent from its
-/// group's trained model fails with a typed `EncodeFailed` carrying the
-/// block index; that block is downgraded to `PerBlock` and counted as a
-/// fallback, and the batch is retried.  Fallbacks are rare (the training
-/// region and the block data come from the same corpus family), so the
-/// retry loop is short; every downgrade is counted and reported (never
-/// silently dropped — Phase O.13 honesty).
+/// group's trained model is **pre-downgraded** to `PerBlock` by
+/// [`model_covers`] before the batch runs (counted as a fallback), so the
+/// batch succeeds on the first attempt — the hot path is linear.  A
+/// defensive retry loop remains for any coverage-check/encoder mismatch
+/// (it should run at most a couple of times per window; every downgrade is
+/// counted and reported, never silently dropped — Phase O.13 honesty).
 ///
 /// Returns the source slices (for byte-exact verification) and the decode
 /// jobs with window-relative header indices (the decode batch must be a
@@ -1896,8 +1928,24 @@ fn encode_window(
                         resolver,
                         group_models,
                     )?;
-                    ModelPolicy::External {
-                        model: group_models[&blk.model_group].clone(),
+                    let model = &group_models[&blk.model_group];
+                    // Coverage pre-check (avoids the quadratic fallback
+                    // retry): a grouped block whose data contains a symbol
+                    // absent from the trained model would fail the batch
+                    // encode; downgrade it to PerBlock BEFORE the batch so
+                    // the batch succeeds on the first attempt.  This is the
+                    // same zero-frequency-symbol rule the encoder enforces
+                    // (`build_external_model`), computed here to keep the
+                    // hot path linear — without it, a window with F
+                    // fallbacks re-encodes the whole batch F times
+                    // (O(F·W) block encodes instead of O(W)).
+                    if model_covers(model, &data)? {
+                        ModelPolicy::External {
+                            model: model.clone(),
+                        }
+                    } else {
+                        *fallbacks += 1;
+                        ModelPolicy::PerBlock
                     }
                 }
             }
@@ -1912,7 +1960,11 @@ fn encode_window(
         ));
     }
 
-    // Batch encode with grouped fallback retries.
+    // Batch encode with a defensive fallback retry.  After the coverage
+    // pre-check the grouped blocks are guaranteed covered, so the batch
+    // normally succeeds on the first attempt; the retry loop is kept as a
+    // safety net for any mismatch between this check and the encoder's
+    // validation (it should never run more than a couple of times).
     let enc_cfg = public_config(1, window.len(), false);
     let encoded = loop {
         match ryg_rans_rs_parallel::ParallelEncoder::encode_blocks(jobs.clone(), &enc_cfg) {
