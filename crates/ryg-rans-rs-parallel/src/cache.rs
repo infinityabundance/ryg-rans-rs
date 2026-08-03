@@ -857,10 +857,10 @@ impl ModelCacheMetricsSnapshot {
 /// # What each counter means
 ///
 /// * `lock_acquires` / `lock_wait_ns` — the cache-state mutex acquisition
-///   attempts routed through [`ModelArtifactCache::lock_state`] and the
-///   cumulative time spent blocked acquiring it.  This is the "lookup lock
-///   wait time" of O.16: if it grows with worker count, the global mutex is
-///   the serialization point.
+///   attempts routed through `ModelArtifactCache::lock_state` (a private
+///   helper) and the cumulative time spent blocked acquiring it.  This is
+///   the "lookup lock wait time" of O.16: if it grows with worker count,
+///   the global mutex is the serialization point.
 /// * `artifact_builds` / `artifact_build_ns` — the single-flight builder
 ///   closure executions and their cumulative duration (run OUTSIDE the
 ///   mutex, so this is not lock time).

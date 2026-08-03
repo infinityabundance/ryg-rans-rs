@@ -1336,13 +1336,15 @@ fn find_symbol_from_freqs(freqs: &[u32], slot: usize) -> u8 {
 ///
 /// # Explicit cache ownership (Phase O.4, ADR-0016)
 ///
-/// A `ParallelDecoder` owns its [`ModelArtifactCache`] explicitly.  There is
+/// A `ParallelDecoder` owns its [`crate::cache::ModelArtifactCache`]
+/// explicitly.  There is
 /// no process-global cache: cold runs construct a fresh decoder (hence a
 /// fresh cache), warm runs reuse one instance, tests inject tiny budgets,
 /// and applications isolate tenants.  [`ParallelDecoder::new`] creates the
 /// default bounded cache (64 entries, 16 MiB — the pre-Phase-O global
 /// defaults); [`ParallelDecoder::with_model_cache`] accepts a caller-owned
-/// cache (e.g. [`ModelArtifactCache::disabled`] for the semantic baseline,
+/// cache (e.g. [`crate::cache::ModelArtifactCache::disabled`] for the
+/// semantic baseline,
 /// or a budgeted instance for measurement).
 pub struct ParallelDecoder {
     /// The configuration for every decode issued through this decoder.
