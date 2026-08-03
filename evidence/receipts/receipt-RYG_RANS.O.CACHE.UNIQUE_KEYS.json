@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.O.CACHE.UNIQUE_KEYS",
   "title": "One retained entry per key (O.3)",
   "verdict": "passed",
-  "implementation_commit": "fa7d6a73cb42f7e077be67c0be917cc6c792f4c3",
-  "evidence_commit": "0fe165e77edcc70c0f0db26aee0e9df2f59ba336",
+  "implementation_commit": "e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614",
+  "evidence_commit": "2ca1f5fc242f6a8d46abd9c8930f516011cd24a3",
   "num_cases": 3,
   "cases_passed": 3,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "MODEL_CACHE.RACE.2"
   ],
-  "manifest_sha256": "2f8dc60553e3cf941ed3a9359a3b859f0c633483068dc8ac2faaab08d4b7d9c7",
-  "receipt_sha256": "e0f1a1f7e8b6335ed92f229dcfcb3ddd886e0897fd490050e0dc43d45e69fd8f",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit fa7d6a73cb42f7e077be67c0be917cc6c792f4c3 --only RYG_RANS.O.CACHE.UNIQUE_KEYS"
+  "manifest_sha256": "fcf91fb8ddf934533f5c6ba7e8e2769c7583c5e85ba2d0696cefa4e51538eb1a",
+  "receipt_sha256": "0364283ff1a35189f0d1da6b7c3dfec01d78c303a50b16bd97954e8a34a5aa43",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614 --only RYG_RANS.O.CACHE.UNIQUE_KEYS"
 }

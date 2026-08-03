@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.O.CACHE.OVERSIZED",
   "title": "Oversized-entry semantics (O.2)",
   "verdict": "passed",
-  "implementation_commit": "fa7d6a73cb42f7e077be67c0be917cc6c792f4c3",
-  "evidence_commit": "0fe165e77edcc70c0f0db26aee0e9df2f59ba336",
+  "implementation_commit": "e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614",
+  "evidence_commit": "2ca1f5fc242f6a8d46abd9c8930f516011cd24a3",
   "num_cases": 2,
   "cases_passed": 2,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "MODEL_CACHE.BOUND.2"
   ],
-  "manifest_sha256": "6f7175b135962ae4f97e5bb6d6b24b45973643452aedaeb7ccfa125cc7112a4d",
-  "receipt_sha256": "9c890e5689c65f567d51dd2a176ebd340b5563785d41481c357d933d9f4143c1",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit fa7d6a73cb42f7e077be67c0be917cc6c792f4c3 --only RYG_RANS.O.CACHE.OVERSIZED"
+  "manifest_sha256": "520a49d6ac4add3ddad61eacc7f0fa362e61d5aeb8828a6cf5cf9237a43b81f9",
+  "receipt_sha256": "2840365ffb275c1a2cd8405abec5c6dc4bd98b54250bff8baacb0f025a577b58",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614 --only RYG_RANS.O.CACHE.OVERSIZED"
 }

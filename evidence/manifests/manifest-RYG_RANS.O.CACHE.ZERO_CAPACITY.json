@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.O.CACHE.ZERO_CAPACITY",
   "title": "Zero-capacity semantics (O.2)",
-  "implementation_commit": "fa7d6a73cb42f7e077be67c0be917cc6c792f4c3",
+  "implementation_commit": "e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "3 cases: 3 passed, 0 failed, 0 skipped",
   "cases": [

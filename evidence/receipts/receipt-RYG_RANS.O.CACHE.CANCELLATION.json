@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.O.CACHE.CANCELLATION",
   "title": "Cancellation semantics (O.5)",
   "verdict": "passed",
-  "implementation_commit": "fa7d6a73cb42f7e077be67c0be917cc6c792f4c3",
-  "evidence_commit": "0fe165e77edcc70c0f0db26aee0e9df2f59ba336",
+  "implementation_commit": "e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614",
+  "evidence_commit": "2ca1f5fc242f6a8d46abd9c8930f516011cd24a3",
   "num_cases": 3,
   "cases_passed": 3,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "MODEL_CACHE.RACE.1"
   ],
-  "manifest_sha256": "87ca950df2c5bb04890553dfc0df16cedf6ceb0b0ba92295d7d3b30a0542a0cc",
-  "receipt_sha256": "1cb8fcc4d52db27a0db2587eda5cce2b9d3fd3334bfe8044cb1d252d659dbb9a",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit fa7d6a73cb42f7e077be67c0be917cc6c792f4c3 --only RYG_RANS.O.CACHE.CANCELLATION"
+  "manifest_sha256": "d956bf1620e8c734d96e8621af8c2380ceff2cc6827bbda2fe500aa29454768a",
+  "receipt_sha256": "7273de949bd613d111f598c72f92d9c23d19027b4e4ef2d4a60a7fbd6220133d",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit e7221c0fc94e5de3c5c3e8bdc26ed3dc81872614 --only RYG_RANS.O.CACHE.CANCELLATION"
 }
