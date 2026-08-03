@@ -2433,7 +2433,7 @@ fn check_workload_execution_evidence() -> Result<(), String> {
     // Both transcripts must exist, be non-empty, carry the schedule
     // identity line, and end with the completion marker; the identity must
     // match the manifest's schedule hash.
-    let mut check_one = |file: &str, prefix: &str, complete_marker: &str| -> Result<(), String> {
+    let check_one = |file: &str, prefix: &str, complete_marker: &str| -> Result<(), String> {
         let path = run_dir.join(file);
         let text = std::fs::read_to_string(&path).map_err(|e| {
             format!(
