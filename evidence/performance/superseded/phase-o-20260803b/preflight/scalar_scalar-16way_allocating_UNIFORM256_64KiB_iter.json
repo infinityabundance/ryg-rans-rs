@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "scalar/scalar-16way/allocating/UNIFORM256/64KiB/iter",
+  "backend_requested": "scalar-16way",
+  "backend_executed": "scalar-16way",
+  "verification_passed": true,
+  "input_sha256": "6b183af492a6395144a38e57d392ee1018cf083c898cf746c3f04afc5a54ecba",
+  "output_sha256": "6b183af492a6395144a38e57d392ee1018cf083c898cf746c3f04afc5a54ecba",
+  "reference_output_sha256": "6b183af492a6395144a38e57d392ee1018cf083c898cf746c3f04afc5a54ecba",
+  "words_consumed": 32800,
+  "reference_words_consumed": 32800,
+  "final_states_sha256": "77cf337bb7c6215aee3b4dfdbce1ff110dcd5c7ee31fdc82349e109d4a562c2a",
+  "reference_final_states_sha256": "77cf337bb7c6215aee3b4dfdbce1ff110dcd5c7ee31fdc82349e109d4a562c2a",
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "allocating",
+  "status": "passed"
+}

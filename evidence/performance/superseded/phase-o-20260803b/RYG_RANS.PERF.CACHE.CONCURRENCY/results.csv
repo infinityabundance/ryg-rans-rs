@@ -1,0 +1,7 @@
+benchmark_id,tier,backend_requested,backend_executed,api,profile,bytes,threads_requested,threads_effective,median_ns,mean_ns,stddev_ns,confidence_low_ns,confidence_high_ns,sample_count,throughput_gib_s,commit,status
+model_cache/ops/cold-miss,model_cache,cache-op,cache-op,ops,not_applicable,1,1,1,85944.67775372775,88155.25286196027,7791.982466110408,86705.91202479959,89734.56780832625,100,0.00001083630306095462,8b96b69,pass
+model_cache/ops/disabled-bypass,model_cache,cache-op,cache-op,ops,not_applicable,1,1,1,92150.02219251337,88994.38787419611,7440.364614349532,87551.66714905831,90453.49160343393,100,0.000010106590887952525,8b96b69,pass
+model_cache/ops/fifo-eviction,model_cache,cache-op,cache-op,ops,not_applicable,1,1,1,571.7979436496847,571.975669570074,1.2733979046718775,571.7663258237794,572.2568862724879,100,0.0016287616717734449,8b96b69,pass
+model_cache/ops/oversized-bypass,model_cache,cache-op,cache-op,ops,not_applicable,1,1,1,83115.84770499109,86349.7796342252,7453.200061927421,84954.43808699031,87861.666735528,100,0.000011205114311305434,8b96b69,pass
+model_cache/ops/same-key-single-flight,model_cache,cache-op,cache-op,ops,not_applicable,1,1,1,48981.87136959689,49240.15659804346,1868.630849034333,48913.621332407834,49643.86781618056,100,0.000019013617662504245,8b96b69,pass
+model_cache/ops/warm-hit,model_cache,cache-op,cache-op,ops,not_applicable,1,1,1,573.71560130182,576.802122529917,5.106433351715226,575.8340623135649,577.8217185489915,100,0.0016233174982556015,8b96b69,pass
