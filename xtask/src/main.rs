@@ -2475,7 +2475,7 @@ fn check_workload_execution_evidence() -> Result<(), String> {
         let log_sha: String = rest
             .split("sha256 ")
             .nth(1)
-            .map(|s| s.trim().to_string())
+            .map(|s| s.trim().trim_end_matches(')').to_string())
             .unwrap_or_default();
         if !log_sha.is_empty() && !expected.starts_with(&log_sha) {
             return Err(format!(
