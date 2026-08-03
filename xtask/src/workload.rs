@@ -2115,7 +2115,16 @@ struct Transcript {
 impl Transcript {
     fn new(path: Option<&str>) -> Result<Self, String> {
         let file = match path {
-            Some(p) => Some(std::fs::File::create(p).map_err(|e| format!("create {}: {}", p, e))?),
+            Some(p) => Some(
+                // Append mode: multiple invocations (one per schedule) share
+                // one evidence log; each run adds its own identity line +
+                // per-case results + completion marker.
+                std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(p)
+                    .map_err(|e| format!("open {}: {}", p, e))?,
+            ),
             None => None,
         };
         Ok(Self { file })
