@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "scalar/scalar-16way/into/INCOMPRESSIBLE_LIKE/256KiB/iter",
+  "backend_requested": "scalar-16way",
+  "backend_executed": "scalar-16way",
+  "verification_passed": true,
+  "input_sha256": "bf55d3dbcb31c90d54b200a31e16c1775e5a4e657a1e68c1109352c570ab3a67",
+  "output_sha256": "bf55d3dbcb31c90d54b200a31e16c1775e5a4e657a1e68c1109352c570ab3a67",
+  "reference_output_sha256": "bf55d3dbcb31c90d54b200a31e16c1775e5a4e657a1e68c1109352c570ab3a67",
+  "words_consumed": 131613,
+  "reference_words_consumed": 131613,
+  "final_states_sha256": "77cf337bb7c6215aee3b4dfdbce1ff110dcd5c7ee31fdc82349e109d4a562c2a",
+  "reference_final_states_sha256": "77cf337bb7c6215aee3b4dfdbce1ff110dcd5c7ee31fdc82349e109d4a562c2a",
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "into",
+  "status": "passed"
+}

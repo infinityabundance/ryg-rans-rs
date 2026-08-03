@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "model_cache/ops/fifo-eviction",
+  "backend_requested": "cache-op",
+  "backend_executed": "cache-op",
+  "verification_passed": true,
+  "input_sha256": "ca92681806bac6809e7714435bf7686271a1d7cb2d7920d1eb4fb3416dbcc9eb",
+  "output_sha256": "ca92681806bac6809e7714435bf7686271a1d7cb2d7920d1eb4fb3416dbcc9eb",
+  "reference_output_sha256": "ca92681806bac6809e7714435bf7686271a1d7cb2d7920d1eb4fb3416dbcc9eb",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 1,
+  "threads_effective": 1,
+  "block_count": 1,
+  "queue_capacity": 0,
+  "allocation_mode": "cache-op",
+  "status": "passed"
+}

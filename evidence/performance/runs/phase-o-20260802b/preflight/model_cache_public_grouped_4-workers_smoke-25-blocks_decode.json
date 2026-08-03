@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "model_cache/public/grouped/4-workers/smoke-25-blocks/decode",
+  "backend_requested": "parallel",
+  "backend_executed": "parallel",
+  "verification_passed": true,
+  "input_sha256": "4b9c71ef4e89b4e2911580dd6d28ba1ece27b138147c9c6665c66fecabdc3b05",
+  "output_sha256": "4b9c71ef4e89b4e2911580dd6d28ba1ece27b138147c9c6665c66fecabdc3b05",
+  "reference_output_sha256": "4b9c71ef4e89b4e2911580dd6d28ba1ece27b138147c9c6665c66fecabdc3b05",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 4,
+  "threads_effective": 4,
+  "block_count": 25,
+  "queue_capacity": 64,
+  "allocation_mode": "cache-mode=public-grouped fallbacks=16",
+  "status": "passed"
+}

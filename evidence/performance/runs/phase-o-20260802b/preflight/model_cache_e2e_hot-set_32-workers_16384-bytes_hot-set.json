@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "model_cache/e2e/hot-set/32-workers/16384-bytes/hot-set",
+  "backend_requested": "parallel",
+  "backend_executed": "parallel",
+  "verification_passed": true,
+  "input_sha256": "8b07ec9535476b97eec1e2bf3bcb10a5efad12671572f5d6fcb76dd3d303478a",
+  "output_sha256": "8b07ec9535476b97eec1e2bf3bcb10a5efad12671572f5d6fcb76dd3d303478a",
+  "reference_output_sha256": "8b07ec9535476b97eec1e2bf3bcb10a5efad12671572f5d6fcb76dd3d303478a",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 32,
+  "threads_effective": 32,
+  "block_count": 32,
+  "queue_capacity": 64,
+  "allocation_mode": "cache-mode=hot-set",
+  "status": "passed"
+}

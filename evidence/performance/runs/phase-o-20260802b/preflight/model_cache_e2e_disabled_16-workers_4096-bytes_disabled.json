@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "model_cache/e2e/disabled/16-workers/4096-bytes/disabled",
+  "backend_requested": "parallel",
+  "backend_executed": "parallel",
+  "verification_passed": true,
+  "input_sha256": "c1e9d3a983564a82d23670243fe8b9f912ca411197a6a9e3630352849952e003",
+  "output_sha256": "c1e9d3a983564a82d23670243fe8b9f912ca411197a6a9e3630352849952e003",
+  "reference_output_sha256": "c1e9d3a983564a82d23670243fe8b9f912ca411197a6a9e3630352849952e003",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 16,
+  "threads_effective": 16,
+  "block_count": 32,
+  "queue_capacity": 64,
+  "allocation_mode": "cache-mode=disabled",
+  "status": "passed"
+}
