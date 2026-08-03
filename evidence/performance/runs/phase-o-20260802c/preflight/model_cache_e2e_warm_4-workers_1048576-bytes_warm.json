@@ -1,0 +1,19 @@
+{
+  "benchmark_id": "model_cache/e2e/warm/4-workers/1048576-bytes/warm",
+  "backend_requested": "parallel",
+  "backend_executed": "parallel",
+  "verification_passed": true,
+  "input_sha256": "37f4c5629ae8f54723674226b497e0aad4d651eeb36cc61a54cfb6fc5d5a5857",
+  "output_sha256": "37f4c5629ae8f54723674226b497e0aad4d651eeb36cc61a54cfb6fc5d5a5857",
+  "reference_output_sha256": "37f4c5629ae8f54723674226b497e0aad4d651eeb36cc61a54cfb6fc5d5a5857",
+  "words_consumed": null,
+  "reference_words_consumed": null,
+  "final_states_sha256": null,
+  "reference_final_states_sha256": null,
+  "threads_requested": 4,
+  "threads_effective": 4,
+  "block_count": 16,
+  "queue_capacity": 64,
+  "allocation_mode": "cache-mode=warm",
+  "status": "passed"
+}
