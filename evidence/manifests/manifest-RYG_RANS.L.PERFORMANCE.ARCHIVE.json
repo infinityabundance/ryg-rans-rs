@@ -2,7 +2,7 @@
   "schema_version": 1,
   "court_id": "RYG_RANS.L.PERFORMANCE.ARCHIVE",
   "title": "Deterministic archive round-trip (L.1-K)",
-  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
+  "implementation_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
   "expected_results": "every executable case passes; no residuals",
   "actual_results": "5 cases: 5 passed, 0 failed, 0 skipped",
   "cases": [

@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.O.CACHE.METRICS",
   "title": "Observable cache metrics (O.8)",
   "verdict": "passed",
-  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
+  "implementation_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
+  "evidence_commit": "93640efb47e3922491bff7b90b2ac19be25afcea",
   "num_cases": 4,
   "cases_passed": 4,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "MODEL_CACHE.METRICS.1"
   ],
-  "manifest_sha256": "00de590d8d406544385fa51ec86205b250fbbaed01d358b3de53a4c52dae75b0",
-  "receipt_sha256": "e252e815a5f22a65b67ace462f245fc8e12961d860dba2180e1f5ee505ebbe85",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.METRICS"
+  "manifest_sha256": "cb4392a3ec28abd04c8da7c789a1f486e097da56c85af535376d7b1a38ba40eb",
+  "receipt_sha256": "57bfba922bd993d3b4bfbfbf65b8336aefc6c7471dd275e0711a361c806debf7",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit f82daa3bd70c262df457645a5c7fdcdd129ed72e --only RYG_RANS.O.CACHE.METRICS"
 }

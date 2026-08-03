@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.O.CACHE.ZERO_CAPACITY",
   "title": "Zero-capacity semantics (O.2)",
   "verdict": "passed",
-  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
+  "implementation_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
+  "evidence_commit": "93640efb47e3922491bff7b90b2ac19be25afcea",
   "num_cases": 3,
   "cases_passed": 3,
   "cases_failed": 0,
@@ -13,7 +13,7 @@
   "residual_ids": [
     "MODEL_CACHE.BOUND.3"
   ],
-  "manifest_sha256": "dfaea43fd9c70f023c73be7d7ecda6aa5b9ed9872cd209113e7e93d784cbbf2d",
-  "receipt_sha256": "baa4fe239b37753f7194deb5eae730bef73961edf4368f73fd6790e9fef7605d",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.ZERO_CAPACITY"
+  "manifest_sha256": "aa5ee980dad02a803721555d50a018b604f5b746a55d35cc90c9727245904dde",
+  "receipt_sha256": "32e75caa42250653faa56f03f91d0ce23cbeec5a46deaf484143434e13dbee1a",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit f82daa3bd70c262df457645a5c7fdcdd129ed72e --only RYG_RANS.O.CACHE.ZERO_CAPACITY"
 }

@@ -3,8 +3,8 @@
   "court_id": "RYG_RANS.L.SSE41.UNSAFE_QUARANTINE",
   "title": "SSE unsafe quarantine and machine-verified ledger (L.10)",
   "verdict": "passed",
-  "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
+  "implementation_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
+  "evidence_commit": "93640efb47e3922491bff7b90b2ac19be25afcea",
   "num_cases": 7,
   "cases_passed": 7,
   "cases_failed": 0,
@@ -14,7 +14,7 @@
     "L10-A",
     "L10-B"
   ],
-  "manifest_sha256": "76eb47e1b8cee3dc94491c94ab6d81e32bef96820ffb64c76c06d9ebe3316157",
-  "receipt_sha256": "a5ba8a3781a0b0a83ecdc87599d5802b0a92513ec7e6a8d17fbf5d24bc06b692",
-  "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.L.SSE41.UNSAFE_QUARANTINE"
+  "manifest_sha256": "afaaca8cf2aa98b67a92d92ed1cdbdbdb2b922db4c884bd648d23b95642e7ff1",
+  "receipt_sha256": "5c110eb1ca1e07384124c326da0149cf0544905892d9c97278bdc757bb4b1373",
+  "reproduction_command": "cargo xtask courts-run --implementation-commit f82daa3bd70c262df457645a5c7fdcdd129ed72e --only RYG_RANS.L.SSE41.UNSAFE_QUARANTINE"
 }
