@@ -97,6 +97,25 @@ Single-flight design candidates (O.16 later measures them):
    marker, notify all, and are retryable.  Panics are caught and converted
    to `ModelArtifactBuildError::Panicked`; no permanent `Building` state is
    possible.
+
+   **Builder-marker ownership (post-v0.5.0 audit, `MODEL_CACHE.RACE.3`):**
+   only the builder may remove the in-flight marker — on successful
+   publication, typed build failure, caught panic, pre-build cancellation,
+   or cache shutdown.  A leaving waiter decrements the diagnostic waiter
+   count but must never delete the RUNNING builder's marker: deleting it
+   lets a caller arriving after the cancellation register as a second
+   builder and duplicate the construction.  The pre-0.5.1
+   `finish_wait` removed the marker when the last waiter left; the fix
+   (`4389d9b`) makes the builder the sole owner and adds the deterministic
+   three-party test, the `CANCELLATION` court CASE.004, and the loom court
+   `loom_cache_cancelled_waiter_keeps_builder_marker`.
+
+   **Metrics accounting (post-v0.5.0 audit, `MODEL_CACHE.METRICS.2`):**
+   Design-A accounting — every lookup whose initial check finds no
+   artifact is a miss (builder, coalesced waiter, and cancelled waiter
+   alike); a waiter that later receives the published artifact is a miss,
+   never a second hit.  `hits + misses == lookups` therefore holds under
+   cancellation.
 5. Cache-internal failures (poisoned lock, accounting invariant violation)
    record `uncached_fallbacks` and bypass to a direct construction with the
    same canonical constructor — never a false model error (O.6).
@@ -137,10 +156,11 @@ Single-flight design candidates (O.16 later measures them):
   `RYG_RANS.O.CACHE.UNIQUE_KEYS`, `RYG_RANS.O.CACHE.SINGLE_FLIGHT`,
   `RYG_RANS.O.CACHE.FAILURE_EQUIVALENCE`, `RYG_RANS.O.CACHE.CANCELLATION`,
   `RYG_RANS.O.CACHE.METRICS`.
-* Residuals resolved: `MODEL_CACHE.BOUND.1-3`, `MODEL_CACHE.RACE.1-2`,
-  `MODEL_CACHE.AVAILABILITY.1`, `MODEL_CACHE.METRICS.1`,
-  `MODEL_CACHE.CONTENTION.1`, `MODEL_CACHE.PERF.1` (see
-  `evidence/phase-l/gap-ledger.md` Phase O section).
+* Residuals resolved: `MODEL_CACHE.BOUND.1-3`, `MODEL_CACHE.RACE.1-3`,
+  `MODEL_CACHE.AVAILABILITY.1`, `MODEL_CACHE.METRICS.1-2`,
+  `MODEL_CACHE.CONTENTION.1`, `MODEL_CACHE.PERF.1`, `MODEL_CACHE.WORKLOAD.2`,
+  `PERF.EVIDENCE.1` (see `evidence/phase-l/gap-ledger.md` Phase O section;
+  the post-v0.5.0 reopenings are resolved at `4389d9b` and `0510ca0`).
 
 ## Future implications
 

@@ -101,7 +101,33 @@ Concrete failures from this project, each of which shaped the process:
    gap is a recurring class, not a one-off; every guarantee sentence needs
    a trace-to-return check, including guarantees written during the fix.
 
-The pattern across all eight: **the agent produced plausible structure with
+9. **The feature-composition failure (post-v0.5.0 audit).**  Two features
+   were individually proven — cancellation (a waiter can stop waiting) and
+   single-flight (a same-key cold burst performs one build) — and their
+   composition was wrong: a cancelled last waiter deleted the RUNNING
+   builder's in-flight marker, so a caller arriving between cancellation
+   and publication became a second builder and duplicated the expensive
+   construction.  The cancellation test alone (one builder + one
+   cancelling waiter, no third arrival) never exercised the window; the
+   fix (builder-marker ownership) added a three-party court and a loom
+   court over the exact interleaving.  Lesson: a test can prove feature A
+   and another test can prove feature B while A∘B is still broken;
+   adversarial review must compose the features it reviews, and the fix
+   for a composition defect needs a composition test.
+
+10. **Requiring a corpus to exist is not deriving the workload from its
+    bytes (post-v0.5.0 audit).**  The stress/soak commands required the
+    fetched source tree, read the derived manifest, and then encoded
+    synthetic xorshift payloads from constant seeds — the manifest and
+    corpus were presence gates, not inputs, yet the completion claims
+    described "public-corpus stress".  The fix separated the families
+    (`synthetic-cache-stress` labeled honestly; `stress-public` resolving
+    every block's `source_sha256`/`offset`/`length` to verified bytes) and
+    added the identity-honesty rule to the workloads README.  Lesson:
+    provenance is a property of the data that actually flows into the
+    measured region; names, directories, and manifests are not inputs.
+
+The pattern across all ten: **the agent produced plausible structure with
 missing truth.**  Plausible structure is the failure mode to defend
 against, because it passes every local check while failing the global
 one.

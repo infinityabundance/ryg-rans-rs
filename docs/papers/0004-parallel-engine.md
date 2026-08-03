@@ -139,6 +139,17 @@ evidence (ADR-0017): at the production 64-entry capacity, the shadow
 simulation shows FIFO and LRU are identical on every derived public
 schedule.
 
+The single-flight guarantee survived a post-v0.5.0 audit only after the
+builder-marker ownership rule was made explicit (MODEL_CACHE.RACE.3,
+`4389d9b`): **only the builder may remove the in-flight marker**.  A
+cancelled waiter that deleted the RUNNING builder's marker let a later
+arrival become a second builder — a composition failure (cancellation ×
+single-flight) that no single-feature test could catch; the fix added a
+deterministic three-party test, a court case, and a loom court.  Cache
+metrics use Design-A accounting (MODEL_CACHE.METRICS.2): every lookup
+whose initial check finds no artifact is a miss, so
+`hits + misses == lookups` holds under cancellation.
+
 The cache stores the model-derived immutable artifacts — frequencies
 (Arc-shared) and the 16 KiB packed word table (Arc-shared) — and
 **never** the backend choice: backend selection happens after the lookup

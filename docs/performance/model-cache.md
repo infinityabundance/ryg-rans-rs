@@ -28,11 +28,12 @@ suites, not by measurement:
 | `entry_bytes > max_total_bytes` ⇒ never retained, **and nothing useful is evicted to find out** | `RejectedOversized` with no eviction; the artifact is still delivered for the current decode (O.2) |
 | one retained entry per key; same key never occupies two slots | `HashMap` keyed by `ModelCacheKey` + FIFO queue in set equality; replacement removes first (O.3) |
 | N concurrent same-key cold requests ⇒ exactly one construction | per-key `Building` marker + condvar single-flight; loom courts (O.5) |
+| same-key single-flight survives waiter cancellation + a later arrival | only the builder may remove the in-flight marker (RACE.3, fixed `4389d9b`): a cancelled waiter decrements the diagnostic count but never deletes the RUNNING builder's marker; three-party test + loom court (`loom_cache_cancelled_waiter_keeps_builder_marker`) |
 | no abandoned `Building` state possible | builder panic caught → `Panicked`, marker removed, waiters released (O.5) |
 | cache failure never reported as a model error | `ModelCacheError::Synchronization` → `uncached_fallbacks` + direct construction with the same canonical constructor (O.6) |
 | cached and cache-disabled decode produce identical outputs and semantic errors | both paths call `build_validated_model_artifacts` (O.7) |
 | packed tables are actually shared on hit | `Arc<PackedWordTable>` in `ValidatedModelArtifacts`; `Arc::ptr_eq` tests (O.7) |
-| metrics invariants: `hits + misses == lookups`; `builds_completed + build_failures <= builds_started` | O.8 invariant checks |
+| metrics invariants: `hits + misses == lookups` (Design A); `builds_completed + build_failures <= builds_started` | O.8 invariant checks; METRICS.2 (fixed `4389d9b`): a lookup whose initial check finds no artifact is a miss — builder, coalesced waiter, and cancelled waiter alike — so the sum holds under cancellation |
 
 The exact byte/entry bound proofs: insertion is planned against the
 retained set before any mutation; every arithmetic step is `checked_*`;
@@ -184,9 +185,34 @@ count (contention table above).
 | E uniform mixed | (model cardinality spread via unique + public natural) | capacity transition, honest organic reuse |
 | F thrash | `model_cache/e2e/thrash/*` | worst-case FIFO churn; byte accounting under eviction |
 | G mixed sizes | every group × 6 block sizes | exact byte accounting across entry sizes |
-| H phase shift | soak rounds | FIFO re-acquisition cost |
+| H phase shift | soak rounds (`synthetic-cache-soak` + `soak-public` rounds) | FIFO re-acquisition cost; deterministic cancellation round proves complete-or-Cancelled, never short Ok |
 | I unique | `model_cache/e2e/unique/*` | cache overhead with zero reuse |
-| J mixed public | `model_cache/public/*` | real corpus, natural + grouped modes, 1–32 workers |
+| J mixed public | `model_cache/public/*` + `stress-public`/`soak-public` | real corpus, natural + grouped modes, 1–32 workers, byte-exact source slices |
+
+## 6. Execution families (post-v0.5.0 audit, MODEL_CACHE.WORKLOAD.2)
+
+The repository distinguishes two workload families so that public-corpus
+identity is never claimed for synthetic data:
+
+* **`synthetic-cache-stress` / `synthetic-cache-soak`** (aliases `stress` /
+  `soak`) — the cache-behaviour classes A–I on deterministic xorshift
+  payloads with **constant seeds** (labeled `synthetic-cache-stress-v1`).
+  These are the only place the cache access patterns of classes B/C/D/F/H
+  can be forced precisely (one model, 65 models against 64 slots, ...);
+  the payloads are *not* corpus-derived.
+* **`stress-public` / `soak-public`** — the derived public schedule itself:
+  every block resolves `source_id + source_sha256 + offset + length` to
+  hash-verified extracted source bytes, encodes with the block's declared
+  codec/scale, decodes, and asserts byte-exact output per window.  Natural
+  mode measures organic reuse; grouped mode trains each group's model from
+  the declared public training region and counts every fallback.  The
+  schedules stream in bounded windows (window × block size ≤ 256 MiB), so
+  `public-rans-mixed-16g` and `public-rans-stress-64g` execute without
+  materializing the corpus.
+
+A claim that a result "comes from the public corpus" is only true for the
+second family (and the Criterion `model_cache/public` group); every
+synthetic result is labeled as such (O.13 honesty).
 
 ## 5. Evidence chain
 
@@ -198,4 +224,10 @@ count (contention table above).
   `.CONCURRENCY`, `.COLD_WARM`, `.THRASH`, `.MIXED_PUBLIC`.
 - Deterministic workload: `workloads/public-rans-v1/` (15 pinned sources,
   4 derived schedules); `cargo xtask workload policy-sim` (ADR-0017).
-- Stress/soak: `cargo xtask workload stress|soak public-rans-v1` (O.18).
+- Stress/soak (O.18): `cargo xtask workload synthetic-cache-stress|synthetic-cache-soak`
+  (cache-behaviour classes, honestly labeled) and
+  `cargo xtask workload stress-public|soak-public [--schedule NAME]`
+  (genuine corpus execution; `--schedule` selects smoke/1g/mixed-16g/
+  stress-64g).  Residuals: `MODEL_CACHE.RACE.3`, `MODEL_CACHE.METRICS.2`,
+  `MODEL_CACHE.WORKLOAD.2`, `PERF.EVIDENCE.1` (all resolved; see
+  `evidence/phase-l/gap-ledger.md` Phase O section).

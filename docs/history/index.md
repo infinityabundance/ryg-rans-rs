@@ -224,6 +224,41 @@ re-tracing to the returns; the bench's "skew" generator was a no-op
 (F-13); the reorder buffer surfaced caller-contract violations as
 internal-bug errors (F-15).
 
+## Post-O — the 0.5.0 self-cancellation (v0.5.1 audit correction)
+
+v0.5.0 shipped the Phase O redesign.  A post-release audit (the same
+self-adversarial process the repository is built on) reopened four items
+before any further claim could stand:
+
+* **MODEL_CACHE.RACE.3** — a cancelled last waiter deleted the RUNNING
+  builder's in-flight marker; a caller arriving between cancellation and
+  publication duplicated the construction.  The composition of two
+  individually-proven features (cancellation × single-flight) was broken.
+  Fixed (`4389d9b`) by making the builder the sole owner of the marker;
+  the three-party test, the CANCELLATION court CASE.004, and a loom court
+  pin the interleaving.  This is failure class F-17.
+* **MODEL_CACHE.METRICS.2** — cancelled coalesced lookups violated
+  `hits + misses == lookups`.  Fixed (`4389d9b`) with Design-A accounting:
+  every initial absent lookup is a miss, whatever the caller does next.
+* **MODEL_CACHE.WORKLOAD.2** — the stress/soak commands wore a
+  public-corpus label while encoding synthetic xorshift payloads.  Fixed
+  (`0510ca0`) by splitting the families: `synthetic-cache-stress` /
+  `synthetic-cache-soak` (honestly labeled) and `stress-public` /
+  `soak-public` (every block resolves `source_id + source_sha256 +
+  offset + length` to hash-verified extracted bytes; `--schedule` selects
+  the executed schedule; bounded-window streaming executes the 16/64 GiB
+  logical schedules without materializing them).  This is failure class
+  F-18.
+* **PERF.EVIDENCE.1** — performance metadata normalized `profile =
+  unknown` and recorded the sealer's compiled features instead of the
+  benchmark run's facts.  Fixed (`0510ca0`) with typed
+  `compiled_target`/`runtime_cpu` blocks, bench-time `rustflags` binding,
+  runtime feature detection, and `not_applicable` profile normalization.
+
+The release posture is honest: v0.5.0 completed the main redesign and is
+recorded as such (O22-A); the reopenings are recorded verbatim (O22-B)
+and resolved in 0.5.1.  History is never rewritten.
+
 ---
 
 ## The invariant timeline (what was discovered, and when)
@@ -240,6 +275,9 @@ internal-bug errors (F-15).
 | L.9 | A requested backend executes exactly or returns a typed error |
 | L.19 | Evidence is never deleted; it is superseded with a reason |
 | L.20 | The seal is the single authoritative final gate and never lies about skipping |
+| Post-O | Only the builder owns the in-flight marker; a departing waiter cannot affect single-flight |
+| Post-O | A result may claim public-corpus provenance only when the executed bytes come from the pinned sources |
+| Post-O | An empty compiled feature set is not evidence about the benchmark binary; the codegen flags are |
 
 ---
 
@@ -258,6 +296,8 @@ internal-bug errors (F-15).
 | Post-L | the reopened-residual fixes (ModelCache, completeness) | parallel |
 | Phase M | custodian documentation (M.0–M.22) | docs, source commentary |
 | Phase N | navigation, knowledge architecture, publications (N.0–N.22) | docs/navigation, atlas, articles, failures, story |
+| Phase O | model cache redesign, public-corpus workloads, measured effectiveness | parallel, bench, xtask, workloads |
+| Post-O | 0.5.1 audit correction: marker ownership, Design-A metrics, honest stress/soak split, metadata normalization | parallel, xtask, bench |
 
 ## Decision timeline (what was decided, when)
 

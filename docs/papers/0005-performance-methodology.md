@@ -120,6 +120,30 @@ the preflight says an AVX-512 kernel actually executed.
   caching a net regression" conclusions.
 * **Eviction policy** is a measured decision: `cargo xtask workload
   policy-sim` reproduces the FIFO-vs-LRU evidence (ADR-0017).
+* **Execution-family honesty (post-v0.5.0 audit, MODEL_CACHE.WORKLOAD.2)**:
+  synthetic cache-behaviour classes and public-corpus execution are
+  separate commands with separate labels.  Only `stress-public` /
+  `soak-public` (and the Criterion `model_cache/public` group) may claim
+  public-corpus provenance; the synthetic runners are labeled
+  `synthetic-cache-stress-v1`.  Requiring a corpus to exist is not
+  deriving the executed workload from its bytes.
+* **Metadata normalization (post-v0.5.0 audit, PERF.EVIDENCE.1)**: every
+  record carries typed `compiled_target { target_cpu,
+  enabled_target_features, codegen_flags }` and `runtime_cpu {
+  detected_features }`; `codegen_flags` is bound to the benchmark run's
+  `host.json`, never the seal invocation's environment; `profile` is
+  `not_applicable` where the profile dimension does not apply.  An empty
+  compiled feature set is never evidence that the benchmark binary lacked
+  SIMD — read the codegen flags.
+
+## 6.2 Cancellation-safe measurement (post-v0.5.0 audit)
+
+The cache's metric invariants hold under cancellation because of Design-A
+accounting (MODEL_CACHE.METRICS.2): a lookup whose initial check finds no
+artifact is a miss whether the caller becomes the builder, a coalesced
+waiter, or a cancelled waiter.  Bench mode proofs therefore assert
+`hits + misses == lookups` per case, and soak runs assert the same
+invariant periodically and at completion.
 
 ## 7. Common mistakes this methodology exists to prevent
 

@@ -316,6 +316,14 @@ generating per-surface evidence.
   "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor",
   "target_features": ["avx512f", "avx512bw"],
   "runtime_features": ["avx512f", "avx512vl", "avx512bw"],
+  "compiled_target": {
+    "target_cpu": "native",
+    "enabled_target_features": [],
+    "codegen_flags": "-C target-cpu=native"
+  },
+  "runtime_cpu": {
+    "detected_features": ["sse4.1", "avx2", "avx512f", "avx512bw", "avx512vl", "pclmulqdq"]
+  },
   "verification_passed": true,
   "output_hash": "e3b0c44298fc1c149afbf4c8996fb924...",
   "words_consumed_hash": "e3b0c44298fc1c149afbf4c8996fb924...",
@@ -326,6 +334,25 @@ generating per-surface evidence.
 
 CSV columns:
 `benchmark_id,tier,backend_requested,backend_executed,api,profile,bytes,threads_requested,threads_effective,median_ns,mean_ns,stddev_ns,confidence_low_ns,confidence_high_ns,sample_count,throughput_gib_s,commit,status`
+
+> **Metadata normalization (post-v0.5.0 audit, `PERF.EVIDENCE.1`):**
+> `compiled_target` and `runtime_cpu` are typed, serde-defaulted blocks that
+> separate three facts that were previously conflated:
+>
+> * `compiled_target.target_cpu` / `compiled_target.codegen_flags` — the
+>   benchmark run's codegen facts, bound to the run's `host.json` (never
+>   the seal invocation's environment);
+> * `compiled_target.enabled_target_features` — the `cfg(target_feature)`
+>   set of the **exporting** process (the standard workflow runs exporter
+>   and benchmark under the same `RUSTFLAGS`, so it approximates the bench
+>   binary; `codegen_flags` is authoritative);
+> * `runtime_cpu.detected_features` — the host's actual capability via
+>   `std::is_x86_feature_detected!()`.
+>
+> An empty `enabled_target_features` must never be read as "the benchmark
+> binary lacked AVX2" — consult `compiled_target.codegen_flags` first.
+> `profile` is `"not_applicable"` (never `"unknown"`) for benchmark cases
+> without a model-profile dimension (the `model_cache` surfaces).
 
 > **Status caveat (Phase L.18):** the current exporter reconstructed identity from
 > sanitized directory names and defaulted `sample_count`/`verification_passed`/

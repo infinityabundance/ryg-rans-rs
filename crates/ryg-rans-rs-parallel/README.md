@@ -395,7 +395,11 @@ exact model bytes plus the two discriminators).  Properties:
   perform exactly one construction (builds run outside the cache-state
   lock); a builder panic is caught and never leaves a permanent
   `Building` state; cancelled waiters stop without corrupting the shared
-  build.
+  build.  **Builder-marker ownership** (post-v0.5.0 audit,
+  `MODEL_CACHE.RACE.3`): only the builder may remove the in-flight marker
+  — a departing waiter only decrements the diagnostic waiter count, so a
+  caller arriving after a cancellation can never become a second builder
+  (three-party court + loom court).
 - **Cache failure is transparent** (O.6): a synchronization or accounting
   failure records `uncached_fallbacks` and builds directly with the same
   canonical constructor (`build_validated_model_artifacts`) — it is never
@@ -413,10 +417,12 @@ exact model bytes plus the two discriminators).  Properties:
 - **Observable behavior** (O.8): `ModelCacheMetricsSnapshot` reports
   lookups/hits/misses/builds/coalesced waiters/insertions/replacements/
   evictions/oversized/disabled/fallbacks/current+peak entries and bytes,
-  with the invariants `hits + misses == lookups` and `builds_completed +
-  build_failures <= builds_started`.  With the `cache-timing` feature,
-  `timing()` adds lock wait/hold, build, single-flight wait, and lookup
-  durations for contention analysis (O.16).
+  with the invariants `hits + misses == lookups` (Design A,
+  `MODEL_CACHE.METRICS.2`: an initial absent lookup is a miss whether the
+  caller becomes the builder, a coalesced waiter, or a cancelled waiter)
+  and `builds_completed + build_failures <= builds_started`.  With the
+  `cache-timing` feature, `timing()` adds lock wait/hold, build,
+  single-flight wait, and lookup durations for contention analysis (O.16).
 
 Measured behavior (cold/warm/hot-set/thrash/unique/public classes) is
 reported in `docs/performance/model-cache.md`; the behavioural courts
@@ -613,8 +619,8 @@ is marked **Sealed**:
 |-------|----------|
 | Deterministic output, bounded executor, atomic reorder commit, cancellation completeness, exact backend semantics, per-field config wiring, scratch/cache wiring | 105 unit + integration tests in `src/*.rs` and `tests/` (`phase_i_tests.rs`, `loom_tests.rs`) |
 | Concurrency safety of the executor | `tests/loom_tests.rs` (Loom model under `--cfg loom`; see AGENTS.md exact commands) |
-| Behavioural parity courts (receipts + manifests) | Phase L.19 courts — **OPEN** (gap ledger L19-A); no behavioural receipts yet |
-| Performance | Phase K run receipt `RYG_RANS.PERF.PHASE_I.PARALLEL` under `evidence/performance/runs/phase-k-*` — **superseded** (defects L1-A…L1-S); Phase L.18 re-seals through `cargo xtask benchmark-run` + `cargo xtask performance-seal`.  No performance claim is marked Sealed until the seal gate passes. |
+| Behavioural parity courts (receipts + manifests) | Phase L.19 courts (14) + Phase O cache courts (9) — sealed; see `evidence/index.json` |
+| Performance | Sealed Phase L.18/Phase O runs through `cargo xtask benchmark-run` + `cargo xtask performance-seal`; the Phase K run is superseded (defects L1-A…L1-S).  No performance claim is marked Sealed until the seal gate passes. |
 
 How to verify a claim: find the claim, find the producing code path, find the
 test/court that pins it, find the receipt in `evidence/`, run the seal gate.
@@ -652,9 +658,11 @@ Honest, current (Phase L.15):
 - **Encode tasks currently ignore the scratch's `model_buffer`** —
   `encode_single_block` allocates its own model bytes; the scratch is
   accepted but not yet plumbed into the encode path.
-- **The `ModelCache` is not `Sync`**; the global cache is Mutex-guarded with
-  an O(N) linear scan and approximate byte accounting (documented in
-  `cache.rs`).  Fine for tens-to-hundreds of unique models per process.
+- **The model cache is per-decoder and bounded**; `ModelArtifactCache` is
+  `Send + Sync` (`Arc`-shared, internally synchronized) with exact
+  byte/count accounting, per-key single-flight, and FIFO eviction.  The
+  pre-Phase-O process-global cache with O(N) scans and approximate
+  accounting no longer exists (ADR-0016).
 - **`BackendPolicy::Auto` and `ScalarPreferred` are scalar-only today**;
   `ModelAware` adds only the Uniform256 table-free kernel.  SIMD requires
   explicit opt-in.

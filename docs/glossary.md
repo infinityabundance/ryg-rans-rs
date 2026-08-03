@@ -117,6 +117,15 @@ meanings.  If a document uses a term differently, that document is wrong.
   canonical constructor so cached and uncached paths agree.
 * **Single-flight** — N concurrent same-key cold requests perform exactly
   one construction; the N-1 waiters receive the same `Arc` artifact.
+  **Builder-marker ownership** (post-v0.5.0 audit, `MODEL_CACHE.RACE.3`):
+  only the builder may remove the in-flight `Building` marker; a departing
+  waiter only decrements the diagnostic waiter count.
+* **Design-A accounting** (post-v0.5.0 audit, `MODEL_CACHE.METRICS.2`) —
+  the hit/miss classification rule: a lookup whose initial check finds no
+  artifact is a **miss** whether the caller becomes the builder, a
+  coalesced waiter, or a cancelled waiter; a waiter that later receives
+  the published artifact is a miss, never a second hit.  This keeps
+  `hits + misses == lookups` true under cancellation.
 * **CacheInsertOutcome** — the typed insertion verdict (`Inserted`,
   `Replaced`, `RejectedDisabled`, `RejectedOversized { entry_bytes,
   max_total_bytes }`); oversized entries are delivered for the current
@@ -127,12 +136,30 @@ meanings.  If a document uses a term differently, that document is wrong.
 * **ModelCacheMetricsSnapshot** — the authoritative behavior counters
   (lookups/hits/misses/builds/coalesced waiters/insertions/replacements/
   evictions/oversized/disabled/fallbacks/current+peak entries and bytes)
-  with the invariants `hits + misses == lookups` and `builds_completed +
-  build_failures <= builds_started`.
+  with the invariants `hits + misses == lookups` (Design-A accounting;
+  holds under cancellation) and `builds_completed + build_failures <=
+  builds_started`.
 * **ModelPolicy** — the encode-side model construction policy: `PerBlock`
   (natural mode) or `External { model }` (grouped mode, Phase O.13).  The
   documented-but-inert `Uniform`/`Global` variants were removed in Phase O
   (residual `ENCODE.MODEL_POLICY.1`).
+* **Synthetic-cache-stress / synthetic-cache-soak** (aliases `stress` /
+  `soak`) — the Phase O.12 cache-behaviour classes on deterministic
+  xorshift payloads with constant seeds, honestly labeled
+  `synthetic-cache-stress-v1` (post-v0.5.0 audit, `MODEL_CACHE.WORKLOAD.2`:
+  these payloads are NOT corpus-derived).
+* **Stress-public / soak-public** — the genuine public-corpus runners:
+  every block resolves `source_id + source_sha256 + offset + length` to
+  hash-verified extracted source bytes; `--schedule` selects the executed
+  derived schedule (smoke/1g/mixed-16g/stress-64g).  Only these (and the
+  Criterion `model_cache/public` group) may claim corpus provenance.
+* **Compiled target / runtime CPU** (post-v0.5.0 audit,
+  `PERF.EVIDENCE.1`) — the typed performance metadata facts:
+  `compiled_target { target_cpu, enabled_target_features, codegen_flags }`
+  (codegen bound to the benchmark run's `host.json`) versus
+  `runtime_cpu { detected_features }` (host capability via runtime
+  detection).  `profile` is `not_applicable` where the profile dimension
+  does not apply.
 
 ## Configuration
 

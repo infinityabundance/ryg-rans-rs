@@ -303,10 +303,21 @@ The model-cache and cache-behavior benchmarks consume a deterministic,
 versioned **rANS workload derivation** from public corpora — Canterbury,
 enwik8/enwik9, and Pizza & Chili (15 pinned sources; hashes cross-validated
 with the publishers).  The corpus bytes are never committed; the pinned
-identity, rights record, derivation policy, and fetch/derive/stress/soak
-tooling are (`workloads/public-rans-v1/`).  `cargo xtask workload
+identity, rights record, derivation policy, and tooling are
+(`workloads/public-rans-v1/`).  `cargo xtask workload
 policy-sim` reproduces the FIFO-vs-LRU eviction evidence (ADR-0017).
 Measured cache behavior is reported in `docs/performance/model-cache.md`.
+
+**Two execution families (post-v0.5.0 audit, `MODEL_CACHE.WORKLOAD.2`):**
+`synthetic-cache-stress` / `synthetic-cache-soak` (aliases `stress` /
+`soak`) run the cache-behaviour classes on deterministic xorshift payloads
+and are labeled `synthetic-cache-stress-v1`; `stress-public` /
+`soak-public` execute the derived manifest schedule itself — every block
+resolves `source_id + source_sha256 + offset + length` to hash-verified
+extracted source bytes, with `--schedule` selecting the executed schedule
+(smoke/1g/mixed-16g/stress-64g) and bounded-window streaming so the 16/64
+GiB logical schedules never materialize.  Only the public family may claim
+corpus provenance.
 
 ### Key Design Properties
 

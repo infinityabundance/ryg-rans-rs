@@ -57,10 +57,39 @@ cargo xtask workload fetch public-rans-v1
 # Derive the schedules (smoke / 1g / mixed-16g / stress-64g) as a small
 # slice manifest — tens of gigabytes are never materialized.
 cargo xtask workload derive public-rans-v1
+
+# --- Cache-behaviour classes on synthetic payloads (honestly labeled) ---
+# Deterministic xorshift patterns with constant seeds — NOT corpus bytes.
+# These force exact cache access patterns (one model, 65 models against 64
+# slots, ...) that public data does not naturally produce.  The output is
+# labeled synthetic-cache-stress-v1 / synthetic-cache-soak-v1.
+cargo xtask workload synthetic-cache-stress public-rans-v1   # alias: stress
+cargo xtask workload synthetic-cache-soak public-rans-v1     # alias: soak
+
+# --- Genuine public-corpus execution (the derived schedule IS the input) ---
+# Every block resolves source_id + source_sha256 + offset + length to the
+# hash-verified extracted bytes, encodes with the block's declared
+# codec/scale, decodes, and asserts byte-exact output.  --schedule selects
+# the executed schedule (smoke / 1g / mixed-16g / stress-64g); schedules
+# stream in bounded windows so the 16/64 GiB logical schedules never
+# materialize.  Natural mode derives each model from the block's bytes;
+# grouped mode trains one model per group from the declared public
+# training region (fallbacks counted).
+cargo xtask workload stress-public public-rans-v1 --schedule public-rans-smoke
+cargo xtask workload soak-public public-rans-v1 --schedule public-rans-1g
+
+# Offline eviction-policy shadow simulation (FIFO vs LRU).
+cargo xtask workload policy-sim public-rans-v1
 ```
 
 The fetch cache lives **outside the Git repository**; `RYG_RANS_WORKLOAD_DIR`
 overrides the default location.
+
+> **Workload identity honesty (post-v0.5.0 audit, `MODEL_CACHE.WORKLOAD.2`):**
+> requiring the fetched corpus to *exist* is not the same as deriving the
+> executed workload from its *bytes*.  Only `stress-public` / `soak-public`
+> (and the Criterion `model_cache/public` group) may claim public-corpus
+> provenance; the synthetic runners never do.
 
 ## Derived schedules
 

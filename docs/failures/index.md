@@ -288,16 +288,75 @@ tooling that exists to catch the class.
 * **Root cause:** the proof asserted exact counts that only hold for
   sequential (1-worker) execution.
 * **Fix:** exact proofs at 1 worker; deterministic bounds at N workers
-  (every distinct model built, ≥ 1 eviction, hits + builds == blocks);
-  the report documents which numbers are exact and which are
-  scheduler-dependent ranges.
+  (every distinct model built, ≥ 1 eviction, hits + builds == blocks at
+  the time); the report documents which numbers are exact and which are
+  scheduler-dependent ranges.  **Later correction** (post-v0.5.0 audit,
+  `MODEL_CACHE.METRICS.2`): Design-A accounting made coalesced misses
+  *misses*, so the multi-worker bound became `lookups == blocks` and
+  `hits + misses == lookups` — the exact-count assertion on builds was
+  itself scheduler-dependent in a way the original fix had not fully
+  named.
 * **Invariant introduced:** output determinism is the invariant; cache
   *metric* determinism under concurrency is not claimed.
 * **Future prevention:** mode proofs are data-driven and worker-aware.
 
----
+## F-17 — The cancelled-waiter marker deletion (composition failure)
 
-## The failure classes (summary)
+* **Original assumption:** a test proving cancellation works and another
+  test proving single-flight works together prove that cancellation and
+  single-flight compose.
+* **Observed failure:** `finish_wait` removed the whole in-flight entry
+  when the last waiter left; a cancelled waiter therefore deleted the
+  RUNNING builder's marker, and a caller arriving between cancellation and
+  publication registered as a second builder and duplicated the expensive
+  construction (single-flight violated, `builds_started` inflated, cache
+  churn).  The post-v0.5.0 audit found this by composing the two features;
+  the cancellation test alone (one builder + one cancelling waiter, no
+  third arrival) never exercised the window.
+* **Evidence:** residual `MODEL_CACHE.RACE.3`; the three-party schedule
+  (sleeping builder + cancelling waiter + late arrival) reproduces it; the
+  mutation test (restoring the old `finish_wait`) fails the new tests.
+* **Root cause:** the waiter path and the builder path both mutated the
+  in-flight marker; ownership of the marker was not assigned.
+* **Fix:** only the builder may remove the marker (publication, typed
+  failure, caught panic, pre-build cancellation, shutdown); `finish_wait`
+  only decrements the diagnostic waiter count (`4389d9b`).
+* **Invariant introduced:** the builder is the sole owner of the in-flight
+  marker; a departing waiter cannot affect single-flight.
+* **Future prevention:** deterministic three-party court
+  (`RYG_RANS.O.CACHE.CANCELLATION` CASE.004) and loom court
+  `loom_cache_cancelled_waiter_keeps_builder_marker`; audit rule: prove
+  every *pairwise* feature composition, not each feature alone.
+
+## F-18 — The synthetic stress wearing a public-corpus label
+
+* **Original assumption:** requiring the fetched corpus to exist and
+  passing the derived manifest into the stress runner means the stress
+  executes the public corpus.
+* **Observed failure:** `run_stress_case` took `_manifest` and
+  `_schedule_filter` as unused parameters; the payloads were xorshift
+  expansions of constant seeds; the extracted source tree was a presence
+  gate, not an input.  The completion claims "public-corpus stress
+  executed" were false, and the `--schedule` flag was inert.
+* **Evidence:** residual `MODEL_CACHE.WORKLOAD.2`; the audit traced the
+  function parameters and the seed constants.
+* **Root cause:** naming and presence were mistaken for provenance; the
+  synthetic cache-behaviour classes (which are inherently synthetic) were
+  conflated with corpus execution.
+* **Fix:** two honestly separated families — `synthetic-cache-stress` /
+  `synthetic-cache-soak` (labeled `synthetic-cache-stress-v1`, constant
+  seeds, no corpus requirement) and `stress-public` / `soak-public`
+  (every block resolves `source_id + source_sha256 + offset + length` to
+  hash-verified extracted bytes; `--schedule` selects the executed
+  schedule) (`0510ca0`).
+* **Invariant introduced:** a result may claim public-corpus provenance
+  only when the executed bytes are derived from the pinned sources;
+  synthetic results carry the synthetic label.
+* **Future prevention:** the honest labels in the tool output; the
+  workloads README's identity-honesty note; audit rule: trace what data
+  actually flows into the timed/measured region.
+
+---
 
 | Class | Examples | Prevention |
 |-------|----------|------------|
@@ -317,3 +376,5 @@ tooling that exists to catch the class.
 | Documented API with no production path | F-14 | reachability doctrine + observable-effect doctrine |
 | Caller contract enforced as an internal bug | F-15 | typed boundary validation |
 | Exact assertions on scheduler-dependent metrics | F-16 | worker-aware, data-driven proofs |
+| Feature composition unproven (cancellation × single-flight) | F-17 | three-party courts + loom; pairwise-composition audits |
+| Synthetic workload presented with corpus provenance | F-18 | honest labels; trace data into the measured region |
