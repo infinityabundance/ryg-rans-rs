@@ -4,7 +4,7 @@
   "title": "Bounded live executor pipeline (L.4)",
   "verdict": "passed",
   "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
   "num_cases": 10,
   "cases_passed": 10,
   "cases_failed": 0,
@@ -18,6 +18,6 @@
     "L4-E"
   ],
   "manifest_sha256": "5fab539d39ebecbdaedb4e4668e5874bd22918d90be57e8deddf2b8b97ddad97",
-  "receipt_sha256": "fe009d772ed5329be9e60e13dfe46c8da5a92ccc556972b8ad2a039cabb7bc2d",
+  "receipt_sha256": "dd463bef418c4d5ddab306cb5a0165193dc4d6dcc6bdc55f72a3e98e0471a439",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.L.EXECUTOR.BOUNDED"
 }

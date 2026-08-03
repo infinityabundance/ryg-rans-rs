@@ -4,7 +4,7 @@
   "title": "One retained entry per key (O.3)",
   "verdict": "passed",
   "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
   "num_cases": 3,
   "cases_passed": 3,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "MODEL_CACHE.RACE.2"
   ],
   "manifest_sha256": "a5cbfab6fa394c7ed58093e0ef9e3b1e0183cbef03237aab84575b838785dce2",
-  "receipt_sha256": "642ceef631c80fecfd370072b1d46671d71adb7d80bf2a29c467b7e8701290ab",
+  "receipt_sha256": "e59e7ae4852fbc61d31e2a3b82612ee9cb983abfde6af933ad4a12fa25463652",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.UNIQUE_KEYS"
 }

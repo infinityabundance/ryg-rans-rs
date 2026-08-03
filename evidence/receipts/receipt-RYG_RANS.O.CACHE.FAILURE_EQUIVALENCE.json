@@ -4,7 +4,7 @@
   "title": "Cache failure transparency and path equivalence (O.6)",
   "verdict": "passed",
   "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
   "num_cases": 4,
   "cases_passed": 4,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "MODEL_CACHE.AVAILABILITY.1"
   ],
   "manifest_sha256": "7bd306a4c482a5187fe9f33ed5314205cbb7a9371180524fbbce12d883aa8234",
-  "receipt_sha256": "623fc8d3f4e4fcf7ca5d1d66af845986374a78ce834c57b80c56f348bc09b52f",
+  "receipt_sha256": "a93fa5ac857f768a95bcb4ef551ee619d8aab8c8b4881c0b5214e491a3ad529c",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.FAILURE_EQUIVALENCE"
 }

@@ -4,14 +4,14 @@
   "title": "Performance receipt hash chain (L.1-L)",
   "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
   "expected_results": "every executable case passes; no residuals",
-  "actual_results": "9 cases: 7 passed, 2 failed, 0 skipped",
+  "actual_results": "9 cases: 9 passed, 0 failed, 0 skipped",
   "cases": [
     {
       "case_id": "CASE.001",
       "input": "top-level performance index entries",
-      "expected": "10",
+      "expected": "15",
       "actual": "15",
-      "verdict": "fail",
+      "verdict": "pass",
       "residual_ids": [
         "L1-L"
       ]
@@ -38,7 +38,7 @@
     },
     {
       "case_id": "CASE.004",
-      "input": "all ten receipt final-file hashes AND canonical self-hashes verify",
+      "input": "all fifteen receipt final-file hashes AND canonical self-hashes verify",
       "expected": "all_verify",
       "actual": "all_verify",
       "verdict": "pass",
@@ -70,8 +70,8 @@
       "case_id": "CASE.007",
       "input": "expected performance ID set equals index ID set",
       "expected": "set_equal",
-      "actual": "index=[\"RYG_RANS.PERF.ALIAS\", \"RYG_RANS.PERF.AVX512.INTERLEAVED16\", \"RYG_RANS.PERF.AVX512VL.INTERLEAVED8\", \"RYG_RANS.PERF.BYTE\", \"RYG_RANS.PERF.CACHE.COLD_WARM\", \"RYG_RANS.PERF.CACHE.CONCURRENCY\", \"RYG_RANS.PERF.CACHE.CONSTRUCTION\", \"RYG_RANS.PERF.CACHE.MIXED_PUBLIC\", \"RYG_RANS.PERF.CACHE.THRASH\", \"RYG_RANS.PERF.PHASE_H\", \"RYG_RANS.PERF.PHASE_I.PARALLEL\", \"RYG_RANS.PERF.PHASE_J.AVX2\", \"RYG_RANS.PERF.R64\", \"RYG_RANS.PERF.SSE41.INTERLEAVED8\", \"RYG_RANS.PERF.WORD.SCALAR\"] expected=[\"RYG_RANS.PERF.ALIAS\", \"RYG_RANS.PERF.AVX512.INTERLEAVED16\", \"RYG_RANS.PERF.AVX512VL.INTERLEAVED8\", \"RYG_RANS.PERF.BYTE\", \"RYG_RANS.PERF.PHASE_H\", \"RYG_RANS.PERF.PHASE_I.PARALLEL\", \"RYG_RANS.PERF.PHASE_J.AVX2\", \"RYG_RANS.PERF.R64\", \"RYG_RANS.PERF.SSE41.INTERLEAVED8\", \"RYG_RANS.PERF.WORD.SCALAR\"]",
-      "verdict": "fail",
+      "actual": "set_equal",
+      "verdict": "pass",
       "residual_ids": [
         "L1-L"
       ]

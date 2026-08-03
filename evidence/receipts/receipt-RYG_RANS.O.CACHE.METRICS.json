@@ -4,7 +4,7 @@
   "title": "Observable cache metrics (O.8)",
   "verdict": "passed",
   "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
   "num_cases": 4,
   "cases_passed": 4,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "MODEL_CACHE.METRICS.1"
   ],
   "manifest_sha256": "00de590d8d406544385fa51ec86205b250fbbaed01d358b3de53a4c52dae75b0",
-  "receipt_sha256": "0ea7b78a3885e5334b8adfb0af2ba2ce7f36fd9fbdf331dca852eed909a0e903",
+  "receipt_sha256": "e252e815a5f22a65b67ace462f245fc8e12961d860dba2180e1f5ee505ebbe85",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.O.CACHE.METRICS"
 }

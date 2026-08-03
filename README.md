@@ -169,9 +169,7 @@ hand-edited).  Phase O adds **9 behavioural courts** (`RYG_RANS.O.CACHE.*`,
 | AVX512.INTERLEAVED16 | **Sealed** | **Sealed** | 8 | 1 |
 | Phase H optimization backends | **Test-verified** | **Sealed** | 0 | 1 |
 | Phase J AVX2 backends | **Test-verified** | **Sealed** | 0 | 1 |
-| Phase I parallel block engine | **Test-verified** | **Sealed** | 0 | 1 |
-| Phase L behavioural courts | **Sealed** | — | 14 | 0 |
-| **Total** | | | **158** | **10** |
+| Phase I parallel block engine | **Test-verified** | **Sealed** | 0 | 1 || Phase L behavioural courts | **Sealed** | — | 14 | 0 || Phase O cache courts | **Sealed** | **Sealed** | 9 | 5 || **Total** | | | **167** | **15** |
 ## CLI — the `ryg-rans` Command
 
 The `ryg-rans` binary implements the RYGRANS v1 container format

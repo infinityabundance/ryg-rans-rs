@@ -4,7 +4,7 @@
   "title": "Exact backend semantics and format compatibility (L.9)",
   "verdict": "passed",
   "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
   "num_cases": 11,
   "cases_passed": 11,
   "cases_failed": 0,
@@ -16,6 +16,6 @@
     "L9-C"
   ],
   "manifest_sha256": "59e65f625974f28422ea548ee3d28ab9fe96fe41cec1c407183136f1efedb134",
-  "receipt_sha256": "3a34abe55eff7aad2c8e94c495a130f081ac5d86709975dd14e864a0d24f6fb9",
+  "receipt_sha256": "d4ac78eba4375cfcd3c7499c6fa7bb3bb718c890c0ea9c5745cbc5b5ff7d5ad7",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.L.BACKEND.EXPLICIT"
 }

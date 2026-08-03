@@ -4,7 +4,7 @@
   "title": "ModelCache production integration (L.8)",
   "verdict": "passed",
   "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
   "num_cases": 11,
   "cases_passed": 11,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "L8-A"
   ],
   "manifest_sha256": "d67ce35ddbc12661a135b369858e66e6397e2135cd91f537dc5c561f625aeaae",
-  "receipt_sha256": "5b0af83672b720989a7f00ef88aa85b9737d28e029652d9563a575731a09e886",
+  "receipt_sha256": "19fd1a348b500ff6a234f9094c2f5a4dc87f773b480a94955ebb9f2883834cdc",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.L.MODEL_CACHE.INTEGRATION"
 }

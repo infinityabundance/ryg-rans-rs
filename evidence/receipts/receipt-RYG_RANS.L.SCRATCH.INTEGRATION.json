@@ -4,7 +4,7 @@
   "title": "WorkerScratch / ScratchPool production integration (L.7)",
   "verdict": "passed",
   "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
   "num_cases": 7,
   "cases_passed": 7,
   "cases_failed": 0,
@@ -14,6 +14,6 @@
     "L7-A"
   ],
   "manifest_sha256": "ac2f860ad7e72d8a095aeca3b3c14e98018dcfb49306679a13d2a1eab51a652e",
-  "receipt_sha256": "05e10da5380f0a6ffe146b69c67a951f8da6f52d15b19ab8f9401ce312d2deaa",
+  "receipt_sha256": "7f1f5359493b13403f046b52514c1841037c99f3e1e605e2da0a79bab94492e1",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.L.SCRATCH.INTEGRATION"
 }

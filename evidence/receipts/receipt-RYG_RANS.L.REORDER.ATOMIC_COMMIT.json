@@ -4,7 +4,7 @@
   "title": "ReorderBuffer atomic commit (L.5)",
   "verdict": "passed",
   "implementation_commit": "08514bf0a437675d1d5e5d8275aa2b71837699df",
-  "evidence_commit": "51766cf9542f2a3406efde90eee774c76df2000b",
+  "evidence_commit": "f82daa3bd70c262df457645a5c7fdcdd129ed72e",
   "num_cases": 11,
   "cases_passed": 11,
   "cases_failed": 0,
@@ -15,6 +15,6 @@
     "L5-B"
   ],
   "manifest_sha256": "5645f2069d4c663b03a3c72ce65af0fb197089f52fdc025910fea9426e066b61",
-  "receipt_sha256": "115824d49edadcf5fb572b3c8c791cec4de3b8f56be739ff06e6f05c49948a32",
+  "receipt_sha256": "dc3f318b27833314d0571b2ddd4ad36cc8ba955461f2484ad0baae05b56d1ae5",
   "reproduction_command": "cargo xtask courts-run --implementation-commit 08514bf0a437675d1d5e5d8275aa2b71837699df --only RYG_RANS.L.REORDER.ATOMIC_COMMIT"
 }
